@@ -9,6 +9,7 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,7 +18,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.QuoteService;
@@ -64,7 +68,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
-        .discovery(options -> options.seeds(gateway.discovery().address()))
+        .discovery(ServiceCallRemoteTest::serviceDiscovery)
         .services(service)
         .startAwait();
   }
@@ -235,6 +239,17 @@ public class ServiceCallRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder().startAwait();
+    return Microservices.builder()
+        .discovery(
+            (serviceRegistry, serviceEndpoint) ->
+                new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+        .startAwait();
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+        .start();
   }
 }

@@ -1,6 +1,11 @@
 package io.scalecube.services.examples.orderbook;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.services.examples.orderbook.service.OrderRequest;
@@ -8,12 +13,14 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import reactor.core.publisher.Mono;
 
 public class Example1 {
 
@@ -29,11 +36,18 @@ public class Example1 {
    */
   public static void main(String[] args) throws InterruptedException {
 
-    Microservices gateway = Microservices.builder().startAwait();
+    Microservices gateway =
+        Microservices.builder()
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .startAwait();
 
     Microservices ms =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(gateway, serviceRegistry, serviceEndpoint))
             .services(new DefaultMarketDataService())
             .startAwait();
 
@@ -76,6 +90,13 @@ public class Example1 {
             TimeUnit.MILLISECONDS);
 
     Thread.currentThread().join();
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      Microservices gateway, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+        .start();
   }
 
   private static void print(OrderBookSnapshoot snapshot) {

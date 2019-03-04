@@ -2,6 +2,7 @@ package io.scalecube.services.routings;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -12,8 +13,12 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -44,11 +49,16 @@ public class RoutersTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().startAwait();
+    gateway =
+        Microservices.builder() //
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(RoutersTest::serviceDiscovery)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -62,7 +72,7 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(RoutersTest::serviceDiscovery)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -147,8 +157,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(ref -> "2".equals(ref.tags().get("SENDER")))
                         .findFirst());
 
@@ -171,8 +180,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())
@@ -220,5 +228,12 @@ public class RoutersTest extends BaseTest {
         (serviceBCount.doubleValue() / n) > 0.5,
         "Service B's Weight=0.9; at least more than half "
             + "of invocations have to be routed to Service B");
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+        .start();
   }
 }

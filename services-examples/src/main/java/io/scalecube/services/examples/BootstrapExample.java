@@ -1,12 +1,18 @@
 package io.scalecube.services.examples;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.gateway.HttpGatewayStub;
 import io.scalecube.services.examples.gateway.WebsocketGatewayStub;
 import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +33,9 @@ public class BootstrapExample {
     System.out.println("Start gateway");
     Microservices gateway =
         Microservices.builder()
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
             .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
@@ -45,7 +54,9 @@ public class BootstrapExample {
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
             .services(
                 call ->
                     Collections.singleton(
@@ -60,14 +71,18 @@ public class BootstrapExample {
     System.out.println("Start ServiceHello");
     final Microservices node2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
             .services(new ServiceWorldImpl())
             .startAwait();
 
@@ -82,6 +97,13 @@ public class BootstrapExample {
 
     Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown())
         .block(Duration.ofSeconds(5));
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices gateway) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+        .start();
   }
 
   /** Just a service. */

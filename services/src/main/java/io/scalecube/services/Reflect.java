@@ -134,9 +134,7 @@ public final class Reflect {
    */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface)
-            .values()
-            .stream()
+        serviceMethods(serviceInterface).values().stream()
             .collect(
                 Collectors.toMap(
                     Function.identity(),

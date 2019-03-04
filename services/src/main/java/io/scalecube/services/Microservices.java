@@ -6,7 +6,6 @@ import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -38,7 +37,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -121,9 +119,10 @@ public class Microservices {
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscovery discovery;
-  private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
+  private final ServiceDiscoveryFactory serviceDiscoveryFactory;
   private final ServiceProviderErrorMapper errorMapper;
+
+  private ServiceDiscovery discovery;
 
   private Microservices(Builder builder) {
     this.id = UUID.randomUUID().toString();
@@ -133,8 +132,7 @@ public class Microservices {
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.discovery = builder.discovery;
-    this.discoveryOptions = builder.discoveryOptions;
+    this.serviceDiscoveryFactory = builder.serviceDiscoveryFactory;
     this.transportBootstrap =
         new ServiceTransportBootstrap(
             ServiceTransportConfig.builder(builder.transportOptions).build());
@@ -165,25 +163,22 @@ public class Microservices {
                   .forEach(this::collectAndRegister);
 
               // register services in service registry
-              ServiceEndpoint endpoint = null;
+              ServiceEndpoint serviceEndpoint = null;
               if (!serviceInfos.isEmpty()) {
                 String serviceHost = serviceAddress.getHostString();
                 int servicePort = serviceAddress.getPort();
-                endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-                serviceRegistry.registerService(endpoint);
+                serviceEndpoint =
+                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
+                serviceRegistry.registerService(serviceEndpoint);
               }
 
               // configure discovery and publish to the cluster
-              ServiceDiscoveryConfig discoveryConfig =
-                  ServiceDiscoveryConfig.builder(discoveryOptions)
-                      .serviceRegistry(serviceRegistry)
-                      .endpoint(endpoint)
-                      .build();
-              return discovery
-                  .start(discoveryConfig)
+              return serviceDiscoveryFactory
+                  .createFrom(serviceRegistry, serviceEndpoint)
+                  .doOnNext(discovery -> this.discovery = discovery)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this, discoveryConfig)))
+                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this, discovery)))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -262,7 +257,7 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Function<Microservices.Builder, ServiceDiscovery> serviceDiscoveryFactory;
+    private ServiceDiscoveryFactory serviceDiscoveryFactory;
     private Consumer<ServiceTransportConfig.Builder> transportOptions;
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
@@ -314,8 +309,7 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(
-        Function<Microservices.Builder, ServiceDiscovery> serviceDiscoveryFactory) {
+    public Builder discovery(ServiceDiscoveryFactory serviceDiscoveryFactory) {
       this.serviceDiscoveryFactory = serviceDiscoveryFactory;
       return this;
     }
@@ -509,13 +503,13 @@ public class Microservices {
     public static final int MAX_CACHE_SIZE = 128;
 
     private final Microservices microservices;
-    private final ServiceDiscoveryConfig serviceDiscoveryConfig;
+    private final ServiceDiscovery serviceDiscovery;
     private final ReplayProcessor<ServiceDiscoveryEvent> processor;
 
     private static JmxMBeanBootstrap start(
-        Microservices instance, ServiceDiscoveryConfig serviceDiscoveryConfig) throws Exception {
+        Microservices instance, ServiceDiscovery serviceDiscovery) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscoveryConfig);
+      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscovery);
       ObjectName objectName =
           new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
@@ -523,9 +517,8 @@ public class Microservices {
       return jmxMBean;
     }
 
-    private JmxMBeanBootstrap(
-        Microservices microservices, ServiceDiscoveryConfig serviceDiscoveryConfig) {
-      this.serviceDiscoveryConfig = serviceDiscoveryConfig;
+    private JmxMBeanBootstrap(Microservices microservices, ServiceDiscovery serviceDiscovery) {
+      this.serviceDiscovery = serviceDiscovery;
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
       microservices.discovery.listen().subscribe(processor);
@@ -574,7 +567,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceDiscovery() {
-      return Collections.singletonList(serviceDiscoveryConfig.toString());
+      return Collections.singletonList(serviceDiscovery.toString());
     }
   }
 }

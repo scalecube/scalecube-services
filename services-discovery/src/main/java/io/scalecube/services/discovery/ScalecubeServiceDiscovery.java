@@ -36,6 +36,13 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
+  /**
+   * Constructor.
+   *
+   * @param serviceRegistry service registrety
+   * @param endpoint service endpoiintg
+   * @param clusterConfig slcaluecibe cluster config
+   */
   public ScalecubeServiceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint endpoint, ClusterConfig clusterConfig) {
     this.serviceRegistry = serviceRegistry;
@@ -43,6 +50,12 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     this.clusterConfig = clusterConfig;
   }
 
+  /**
+   * Constructror.
+   *
+   * @param serviceRegistry service registry
+   * @param endpoint service endpoiint
+   */
   public ScalecubeServiceDiscovery(ServiceRegistry serviceRegistry, ServiceEndpoint endpoint) {
     this(serviceRegistry, endpoint, ClusterConfig.defaultLanConfig());
   }
@@ -77,8 +90,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    io.scalecube.transport.Address address = cluster.address();
-    return Address.create(address.host(), address.port());
+    return Address.create(cluster.address().host(), cluster.address().port());
   }
 
   @Override
@@ -86,6 +98,11 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return endpoint;
   }
 
+  /**
+   * Starts scalecube service discoevery. Joins a cluster with local services as metadata.
+   *
+   * @return mono result
+   */
   public Mono<ServiceDiscovery> start() {
     return Mono.defer(
         () -> {

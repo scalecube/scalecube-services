@@ -78,10 +78,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   }
 
   private InetSocketAddress gatewayAddress(Microservices gateway, String gatewayName) {
-    return gateway
-        .gatewayAddresses()
-        .entrySet()
-        .stream()
+    return gateway.gatewayAddresses().entrySet().stream()
         .filter(entry -> entry.getKey().name().equals(gatewayName))
         .map(Entry::getValue)
         .findFirst()

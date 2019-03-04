@@ -2,9 +2,14 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -29,12 +34,19 @@ public class Example2 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed = Microservices.builder().startAwait();
+    Microservices seed =
+        Microservices.builder()
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(seed, serviceRegistry, serviceEndpoint))
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -59,5 +71,12 @@ public class Example2 {
     // shut down the nodes
     seed.shutdown().block();
     microservices.shutdown().block();
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      Microservices seed, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(seed.discovery().address())))
+        .start();
   }
 }

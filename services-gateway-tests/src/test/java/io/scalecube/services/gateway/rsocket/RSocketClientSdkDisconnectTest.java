@@ -5,6 +5,7 @@ import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -45,6 +46,9 @@ class RSocketClientSdkDisconnectTest {
         Microservices.builder()
             .services(new GreetingServiceImpl())
             .gateway(gatewayConfig)
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");

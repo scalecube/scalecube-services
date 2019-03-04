@@ -1,10 +1,14 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.GreetingRequest;
@@ -57,12 +61,16 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder().startAwait();
+    return Microservices.builder()
+        .discovery(
+            (serviceRegistry, serviceEndpoint) ->
+                new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+        .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .discovery(options -> options.seeds(gateway.discovery().address()))
+        .discovery(ServiceRemoteTest::serviceDiscovery)
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -193,7 +201,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -215,7 +223,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .services(another)
             .startAwait();
 
@@ -234,7 +242,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .services(another) // add service a and b
             .startAwait();
 
@@ -258,7 +266,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .services(another) // add service a and b
             .startAwait();
 
@@ -340,7 +348,13 @@ public class ServiceRemoteTest extends BaseTest {
     tags.put("HOSTNAME", "host1");
 
     Microservices ms =
-        Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
+        Microservices.builder()
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .tags(tags)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
   }
@@ -370,5 +384,12 @@ public class ServiceRemoteTest extends BaseTest {
         .call()
         .create()
         .api(GreetingService.class); // create proxy for GreetingService API
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+        .start();
   }
 }

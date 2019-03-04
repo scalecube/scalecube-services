@@ -1,9 +1,11 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
@@ -32,11 +34,20 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder().startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .startAwait();
 
     serviceNode =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
+                        .start())
             .services(new SimpleQuoteService())
             .startAwait();
   }

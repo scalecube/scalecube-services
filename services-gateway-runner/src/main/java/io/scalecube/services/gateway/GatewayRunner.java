@@ -9,13 +9,17 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.io.File;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +27,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 
 public class GatewayRunner {
 
@@ -55,15 +60,8 @@ public class GatewayRunner {
 
     Microservices.builder()
         .discovery(
-            options ->
-                options
-                    .seeds(
-                        Arrays.stream(config.seedAddresses())
-                            .map(address -> Address.create(address.host(), address.port()))
-                            .toArray(Address[]::new))
-                    .port(config.discoveryPort())
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()))
+            (serviceRegistry, serviceEndpoint) ->
+                serviceDiscovery(serviceRegistry, serviceEndpoint, config))
         .transport(options -> options.port(config.servicePort()))
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
@@ -72,6 +70,18 @@ public class GatewayRunner {
         .startAwait();
 
     Thread.currentThread().join();
+  }
+
+  private static Mono<ServiceDiscovery> serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(
+            opts ->
+                opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))
+                    .port(config.discoveryPort())
+                    .memberHost(config.memberHost())
+                    .memberPort(config.memberPort()))
+        .start();
   }
 
   private static MetricRegistry initMetricRegistry() {

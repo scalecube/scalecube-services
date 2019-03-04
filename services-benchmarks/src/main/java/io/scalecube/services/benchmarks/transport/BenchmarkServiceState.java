@@ -1,9 +1,12 @@
 package io.scalecube.services.benchmarks.transport;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +30,24 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
   @Override
   public void beforeAll() {
-    seed = Microservices.builder().metrics(registry()).startAwait();
+    seed =
+        Microservices.builder()
+            .metrics(registry())
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .startAwait();
+
+    io.scalecube.transport.Address seedAddress = toAddress(seed.discovery().address());
 
     node =
         Microservices.builder()
             .metrics(registry())
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(opts -> opts.seedMembers(seedAddress))
+                        .start())
             .services(services)
             .startAwait();
 
