@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -261,8 +262,7 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
-    private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
+    private Function<Microservices.Builder, ServiceDiscovery> serviceDiscoveryFactory;
     private Consumer<ServiceTransportConfig.Builder> transportOptions;
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
@@ -314,13 +314,9 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(ServiceDiscovery discovery) {
-      this.discovery = discovery;
-      return this;
-    }
-
-    public Builder discovery(Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions) {
-      this.discoveryOptions = discoveryOptions;
+    public Builder discovery(
+        Function<Microservices.Builder, ServiceDiscovery> serviceDiscoveryFactory) {
+      this.serviceDiscoveryFactory = serviceDiscoveryFactory;
       return this;
     }
 
