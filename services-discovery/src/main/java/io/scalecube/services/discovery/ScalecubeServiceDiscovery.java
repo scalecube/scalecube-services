@@ -66,9 +66,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private Map<String, String> getMetadata() {
-    return serviceRegistry
-        .listServiceEndpoints()
-        .stream()
+    return serviceRegistry.listServiceEndpoints().stream()
         .collect(Collectors.toMap(ServiceEndpoint::id, ClusterMetadataDecoder::encodeMetadata));
   }
 
@@ -125,16 +123,15 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     Map<String, String> metadata = null;
     if (event.isAdded()) {
       metadata = event.newMetadata();
+      LOGGER.info("ServiceEndpoint ADDED, since member {} has joined the cluster", member);
     }
     if (event.isRemoved()) {
       metadata = event.oldMetadata();
+      LOGGER.info("ServiceEndpoint REMOVED, since member {} have left the cluster", member);
     }
 
     List<ServiceEndpoint> serviceEndpoints =
-        Optional.ofNullable(metadata)
-            .orElse(Collections.emptyMap())
-            .values()
-            .stream()
+        Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
             .map(ClusterMetadataDecoder::decodeMetadata)
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
@@ -147,20 +144,12 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
             case ADDED:
               // Register services
               if (serviceRegistry.registerService(serviceEndpoint)) {
-                LOGGER.info(
-                    "ServiceEndpoint ADDED, since member {} has joined the cluster: {}",
-                    member,
-                    serviceEndpoint);
                 discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
               }
               break;
             case REMOVED:
               // Unregister services
               if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
-                LOGGER.info(
-                    "ServiceEndpoint REMOVED, since member {} have left the cluster: {}",
-                    member,
-                    serviceEndpoint);
                 discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
               }
               break;
@@ -171,10 +160,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           if (discoveryEvent != null) {
             switch (discoveryEvent.type()) {
               case REGISTERED:
-                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
+                LOGGER.info("Publish services registered: {}", discoveryEvent);
                 break;
               case UNREGISTERED:
-                LOGGER.info("Publish services registered: {}", discoveryEvent);
+                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
                 break;
               default:
                 break;
