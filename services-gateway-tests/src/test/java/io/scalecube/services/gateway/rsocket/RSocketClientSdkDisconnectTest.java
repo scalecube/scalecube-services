@@ -46,9 +46,7 @@ class RSocketClientSdkDisconnectTest {
         Microservices.builder()
             .services(new GreetingServiceImpl())
             .gateway(gatewayConfig)
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");

@@ -25,11 +25,7 @@ public class Example1 {
   public static void main(String[] args) {
     // ScaleCube Node node with no members
     Microservices seed =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
@@ -37,8 +33,7 @@ public class Example1 {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address())))
-                        .start())
+                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
             .services(new GreetingServiceImpl())
             .startAwait();
 

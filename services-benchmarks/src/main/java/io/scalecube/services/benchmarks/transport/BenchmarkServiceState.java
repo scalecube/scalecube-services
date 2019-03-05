@@ -33,9 +33,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
     seed =
         Microservices.builder()
             .metrics(registry())
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .startAwait();
 
     io.scalecube.transport.Address seedAddress = toAddress(seed.discovery().address());
@@ -46,8 +44,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress))
-                        .start())
+                        .options(opts -> opts.seedMembers(seedAddress)))
             .services(services)
             .startAwait();
 

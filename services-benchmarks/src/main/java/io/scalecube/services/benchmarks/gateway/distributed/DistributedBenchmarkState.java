@@ -51,8 +51,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress))
-                        .start())
+                        .options(opts -> opts.seedMembers(seedAddress)))
             .transport(options -> options.numOfThreads(Runtime.getRuntime().availableProcessors()))
             .services(new BenchmarkServiceImpl())
             .startAwait();

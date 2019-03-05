@@ -33,9 +33,7 @@ public class BootstrapExample {
     System.out.println("Start gateway");
     Microservices gateway =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
@@ -99,11 +97,10 @@ public class BootstrapExample {
         .block(Duration.ofSeconds(5));
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices gateway) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 
   /** Just a service. */

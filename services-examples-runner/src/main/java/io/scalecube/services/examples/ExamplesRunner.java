@@ -20,7 +20,6 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class ExamplesRunner {
 
@@ -63,7 +62,7 @@ public class ExamplesRunner {
     Thread.currentThread().join();
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(
@@ -71,8 +70,7 @@ public class ExamplesRunner {
                 opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()))
-        .start();
+                    .memberPort(config.memberPort()));
   }
 
   public static class Config {

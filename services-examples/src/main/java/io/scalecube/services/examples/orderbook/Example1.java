@@ -20,7 +20,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import reactor.core.publisher.Mono;
 
 public class Example1 {
 
@@ -37,11 +36,7 @@ public class Example1 {
   public static void main(String[] args) throws InterruptedException {
 
     Microservices gateway =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     Microservices ms =
         Microservices.builder()
@@ -92,11 +87,10 @@ public class Example1 {
     Thread.currentThread().join();
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       Microservices gateway, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {

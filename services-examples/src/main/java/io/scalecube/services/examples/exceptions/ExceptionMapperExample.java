@@ -8,7 +8,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.Collections;
-import reactor.core.publisher.Mono;
 
 public class ExceptionMapperExample {
 
@@ -21,9 +20,7 @@ public class ExceptionMapperExample {
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
@@ -70,10 +67,9 @@ public class ExceptionMapperExample {
     Thread.currentThread().join();
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices ms1) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
   }
 }
