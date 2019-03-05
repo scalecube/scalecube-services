@@ -13,5 +13,7 @@ public interface ServiceDiscovery {
 
   Flux<ServiceDiscoveryEvent> listen();
 
+  Mono<ServiceDiscovery> start();
+
   Mono<Void> shutdown();
 }

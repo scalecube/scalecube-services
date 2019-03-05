@@ -175,6 +175,7 @@ public class Microservices {
               // configure discovery and publish to the cluster
               return serviceDiscoveryFactory
                   .createFrom(serviceRegistry, serviceEndpoint)
+                  .start()
                   .doOnNext(discovery -> this.discovery = discovery)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))

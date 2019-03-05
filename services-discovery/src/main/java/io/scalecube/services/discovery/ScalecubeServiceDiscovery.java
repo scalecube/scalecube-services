@@ -103,6 +103,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
    *
    * @return mono result
    */
+  @Override
   public Mono<ServiceDiscovery> start() {
     return Mono.defer(
         () -> {

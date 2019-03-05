@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
 
 public class StreamingServiceTest extends BaseTest {
 
@@ -29,12 +28,7 @@ public class StreamingServiceTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     node =
         Microservices.builder()
@@ -199,10 +193,9 @@ public class StreamingServiceTest extends BaseTest {
     assertEquals(batchSize, serviceMessages.size());
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

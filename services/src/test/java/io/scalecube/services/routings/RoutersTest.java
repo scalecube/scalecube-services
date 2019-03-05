@@ -51,9 +51,7 @@ public class RoutersTest extends BaseTest {
   public static void setup() {
     gateway =
         Microservices.builder() //
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
@@ -230,10 +228,9 @@ public class RoutersTest extends BaseTest {
             + "of invocations have to be routed to Service B");
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

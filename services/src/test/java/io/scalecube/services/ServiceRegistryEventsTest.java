@@ -24,11 +24,7 @@ public class ServiceRegistryEventsTest {
     List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
     Microservices seed =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     seed.discovery().listen().subscribe(events::add);
 
@@ -61,10 +57,9 @@ public class ServiceRegistryEventsTest {
     seed.shutdown().block(Duration.ofSeconds(6));
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)))
-        .start();
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }
 }

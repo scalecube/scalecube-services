@@ -61,11 +61,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .discovery(
-            (serviceRegistry, serviceEndpoint) ->
-                new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-        .startAwait();
+    return Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
   }
 
   private static Microservices serviceProvider() {
@@ -349,9 +345,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     Microservices ms =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .tags(tags)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -386,10 +380,9 @@ public class ServiceRemoteTest extends BaseTest {
         .api(GreetingService.class); // create proxy for GreetingService API
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

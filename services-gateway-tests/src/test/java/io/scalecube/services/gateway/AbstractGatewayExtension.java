@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public abstract class AbstractGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
@@ -40,9 +39,7 @@ public abstract class AbstractGatewayExtension
 
     gateway =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
+            .discovery(ScalecubeServiceDiscovery::new)
             .gateway(gatewayConfig)
             .startAwait();
   }
@@ -89,11 +86,10 @@ public abstract class AbstractGatewayExtension
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
-  private Mono<ServiceDiscovery> serviceDiscovery(
+  private ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 
   /** Shutdown services. */

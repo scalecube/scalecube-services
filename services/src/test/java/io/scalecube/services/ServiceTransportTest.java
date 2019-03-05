@@ -34,20 +34,15 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     serviceNode =
         Microservices.builder()
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-                        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-                        .start())
+                        .options(
+                            opts -> opts.seedMembers(toAddress(gateway.discovery().address()))))
             .services(new SimpleQuoteService())
             .startAwait();
   }

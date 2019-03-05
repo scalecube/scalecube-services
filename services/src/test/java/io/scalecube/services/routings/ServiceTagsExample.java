@@ -24,11 +24,7 @@ public class ServiceTagsExample {
    */
   public static void main(String[] args) {
     Microservices gateway =
-        Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-            .startAwait();
+        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     Microservices services1 =
         Microservices.builder()
@@ -67,10 +63,9 @@ public class ServiceTagsExample {
     }
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)))
-        .start();
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }
 }

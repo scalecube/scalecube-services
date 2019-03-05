@@ -239,17 +239,12 @@ public class ServiceCallRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .discovery(
-            (serviceRegistry, serviceEndpoint) ->
-                new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint).start())
-        .startAwait();
+    return Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
   }
 
-  private static Mono<ServiceDiscovery> serviceDiscovery(
+  private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())))
-        .start();
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }
