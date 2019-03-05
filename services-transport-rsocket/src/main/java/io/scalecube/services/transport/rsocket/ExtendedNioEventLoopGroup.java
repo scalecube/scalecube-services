@@ -17,10 +17,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.BiFunction;
 
-/**
- * Nio event loop group with provided event executor chooser. Creates instances of {@link
- * io.netty.channel.nio.NioEventLoop}.
- */
 public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
   private static final ThreadFactory WORKER_THREAD_FACTORY =

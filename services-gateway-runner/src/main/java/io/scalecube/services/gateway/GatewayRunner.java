@@ -9,6 +9,7 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -18,6 +19,8 @@ import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
@@ -61,7 +64,7 @@ public class GatewayRunner {
         .discovery(
             (serviceRegistry, serviceEndpoint) ->
                 serviceDiscovery(serviceRegistry, serviceEndpoint, config))
-        .transport(options -> options.port(config.servicePort()))
+        .transport(opts -> serviceTransport(opts, config))
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
         .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).port(9090).build())
@@ -69,6 +72,14 @@ public class GatewayRunner {
         .startAwait();
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(
+      ServiceTransportBootstrap opts, Config config) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport)
+        .port(config.servicePort());
   }
 
   private static ServiceDiscovery serviceDiscovery(

@@ -7,12 +7,15 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -55,11 +58,19 @@ public class ExamplesRunner {
         .discovery(
             (serviceRegistry, serviceEndpoint) ->
                 serviceDiscovery(serviceRegistry, serviceEndpoint, config))
-        .transport(options -> options.numOfThreads(numOfThreads).port(config.servicePort()))
+        .transport(opts -> serviceTransport(numOfThreads, opts, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(
+      int numOfThreads, ServiceTransportBootstrap opts, Config config) {
+    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport)
+        .port(config.servicePort());
   }
 
   private static ServiceDiscovery serviceDiscovery(
