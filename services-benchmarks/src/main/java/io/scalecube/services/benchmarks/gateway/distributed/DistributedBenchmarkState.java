@@ -2,6 +2,7 @@ package io.scalecube.services.benchmarks.gateway.distributed;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -42,6 +43,8 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(this::serviceTransport)
             .metrics(registry())
             .startAwait();
 
@@ -79,5 +82,11 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   @Override
   public Mono<Client> createClient() {
     return createClient(gateway, gatewayName, clientBuilder);
+  }
+
+  private ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

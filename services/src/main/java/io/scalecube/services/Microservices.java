@@ -431,59 +431,93 @@ public class Microservices {
       return new ServiceTransportBootstrap(this);
     }
 
+    /**
+     * Setting for service host.
+     *
+     * @param host service host
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
     public ServiceTransportBootstrap host(String host) {
       ServiceTransportBootstrap c = copy();
       c.host = host;
       return c;
     }
 
+    /**
+     * Setting for service port.
+     *
+     * @param port service port
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
     public ServiceTransportBootstrap port(int port) {
       ServiceTransportBootstrap c = copy();
       c.port = port;
       return c;
     }
 
+    /**
+     * Setting for service transpotr resoruces.
+     *
+     * @param supplier transport resources provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
     public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
       ServiceTransportBootstrap c = copy();
       c.resourcesSupplier = supplier;
       return c;
     }
 
-    public ServiceTransportBootstrap client(
-        Function<TransportResources, ClientTransport> factory) {
+    /**
+     * Setting for client trnaspotr provider.
+     *
+     * @param factory client transptr provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
       ServiceTransportBootstrap c = copy();
       c.clientTransportFactory = factory;
       return c;
     }
 
-    public ServiceTransportBootstrap server(
-        Function<TransportResources, ServerTransport> factory) {
+    /**
+     * Setting for service transport provider.
+     *
+     * @param factory server transport provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
       ServiceTransportBootstrap c = copy();
       c.serverTransportFactory = factory;
       return c;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      return Mono.defer(
-          () -> {
-            this.resources = resourcesSupplier.get();
-            this.clientTransport = clientTransportFactory.apply(resources);
-            this.serverTransport = serverTransportFactory.apply(resources);
+      return Mono.fromSupplier(resourcesSupplier)
+          .flatMap(TransportResources::start)
+          .doOnNext(
+              resources -> {
+                // keep transport resources
+                this.resources = resources;
+              })
+          .flatMap(
+              resources -> {
+                this.serverTransport = serverTransportFactory.apply(resources);
+                // bind server transport
+                return serverTransport.bind(port, methodRegistry);
+              })
+          .doOnNext(
+              serverTransport -> {
+                // prepare service host:port for exposing
+                int port = serverTransport.address().port();
+                String host =
+                    Optional.ofNullable(this.host)
+                        .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
+                this.address = Address.create(host, port);
 
-            // bind service tranmsptr
-            return serverTransport
-                .bind(port, methodRegistry)
-                .doOnNext(
-                    serverTransport -> {
-                      // prepare service host:port for exposing
-                      int port = serverTransport.address().port();
-                      String host =
-                          Optional.ofNullable(this.host)
-                              .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
-                      this.address = Address.create(host, port);
-                    })
-                .thenReturn(this);
-          });
+                // create client transpotr
+                this.clientTransport = clientTransportFactory.apply(resources);
+              })
+          .thenReturn(this);
     }
 
     private Mono<Void> shutdown() {

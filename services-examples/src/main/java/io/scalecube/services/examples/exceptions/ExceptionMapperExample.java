@@ -1,12 +1,15 @@
 package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.util.Collections;
 
 public class ExceptionMapperExample {
@@ -21,6 +24,7 @@ public class ExceptionMapperExample {
     Microservices ms1 =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ExceptionMapperExample::serviceTransport)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
@@ -35,6 +39,7 @@ public class ExceptionMapperExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, ms1))
+            .transport(ExceptionMapperExample::serviceTransport)
             .services(
                 call -> {
                   ServiceA serviceA =
@@ -71,5 +76,11 @@ public class ExceptionMapperExample {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices ms1) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

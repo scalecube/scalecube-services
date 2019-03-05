@@ -3,6 +3,7 @@ package io.scalecube.services.examples;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
@@ -13,6 +14,8 @@ import io.scalecube.services.examples.gateway.HttpGatewayStub;
 import io.scalecube.services.examples.gateway.WebsocketGatewayStub;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -34,6 +37,7 @@ public class BootstrapExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(BootstrapExample::serviceTransport)
             .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
@@ -55,6 +59,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(BootstrapExample::serviceTransport)
             .services(
                 call ->
                     Collections.singleton(
@@ -72,6 +77,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(BootstrapExample::serviceTransport)
             .services(new ServiceHelloImpl())
             .startAwait();
 
@@ -81,6 +87,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(BootstrapExample::serviceTransport)
             .services(new ServiceWorldImpl())
             .startAwait();
 
@@ -167,5 +174,11 @@ public class BootstrapExample {
       BiFunction<String, String, String> businessLogic = String::concat;
       return Flux.zip(serviceHello.hello(), serviceWorld.world(), businessLogic).as(Mono::from);
     }
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

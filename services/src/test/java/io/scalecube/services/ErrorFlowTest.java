@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -12,6 +13,8 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,6 +37,7 @@ public class ErrorFlowTest {
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
+            .transport(ErrorFlowTest::serviceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -47,7 +51,14 @@ public class ErrorFlowTest {
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
+            .transport(ErrorFlowTest::serviceTransport)
             .startAwait();
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 
   @AfterAll

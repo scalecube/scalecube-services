@@ -3,6 +3,7 @@ package io.scalecube.services.examples.orderbook;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -14,6 +15,9 @@ import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
@@ -36,13 +40,18 @@ public class Example1 {
   public static void main(String[] args) throws InterruptedException {
 
     Microservices gateway =
-        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(Example1::serviceTransport)
+            .startAwait();
 
     Microservices ms =
         Microservices.builder()
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(gateway, serviceRegistry, serviceEndpoint))
+                    serviceDiscovery(
+                        serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+            .transport(Example1::serviceTransport)
             .services(new DefaultMarketDataService())
             .startAwait();
 
@@ -88,9 +97,9 @@ public class Example1 {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      Microservices gateway, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+        .options(opts -> opts.seedMembers(toAddress(address)));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {
@@ -105,5 +114,11 @@ public class Example1 {
     System.out.println("====== Bids ========");
     System.out.println("  Price\t|  Amount");
     snapshot.bids().forEach((key, value) -> System.out.println("   " + key + "\t|    " + value));
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

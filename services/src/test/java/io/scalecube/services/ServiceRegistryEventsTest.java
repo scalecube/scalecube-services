@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -10,6 +11,8 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +27,10 @@ public class ServiceRegistryEventsTest {
     List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
     Microservices seed =
-        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceRegistryEventsTest::serviceTransport)
+            .startAwait();
 
     seed.discovery().listen().subscribe(events::add);
 
@@ -35,6 +41,7 @@ public class ServiceRegistryEventsTest {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .transport(ServiceRegistryEventsTest::serviceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -43,6 +50,7 @@ public class ServiceRegistryEventsTest {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .transport(ServiceRegistryEventsTest::serviceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -61,5 +69,11 @@ public class ServiceRegistryEventsTest {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

@@ -6,12 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -28,11 +31,16 @@ public class StreamingServiceTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(StreamingServiceTest::serviceTransport)
+            .startAwait();
 
     node =
         Microservices.builder()
             .discovery(StreamingServiceTest::serviceDiscovery)
+            .transport(StreamingServiceTest::serviceTransport)
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -197,5 +205,11 @@ public class StreamingServiceTest extends BaseTest {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
+    return opts.resources(RSocketTransportResources::new)
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }
