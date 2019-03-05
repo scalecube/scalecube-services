@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -28,14 +30,23 @@ public class ErrorFlowTest {
   public static void initNodes() {
     provider =
         Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(opts -> opts.port(port.incrementAndGet())))
             .services(new GreetingServiceImpl())
             .startAwait();
+
+    io.scalecube.transport.Address seedAddress =
+        ClusterAddresses.toAddress(provider.discovery().address());
+
     consumer =
         Microservices.builder()
             .discovery(
-                options ->
-                    options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(
+                            opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
             .startAwait();
   }
 

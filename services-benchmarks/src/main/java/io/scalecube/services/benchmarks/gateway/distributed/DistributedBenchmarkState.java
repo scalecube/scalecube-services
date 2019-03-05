@@ -3,6 +3,8 @@ package io.scalecube.services.benchmarks.gateway.distributed;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.Client;
@@ -41,9 +43,15 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .metrics(registry())
             .startAwait();
 
+    io.scalecube.transport.Address seedAddress =
+        ClusterAddresses.toAddress(gateway.discovery().address());
+
     services =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(opts -> opts.seedMembers(seedAddress)))
             .transport(options -> options.numOfThreads(Runtime.getRuntime().availableProcessors()))
             .services(new BenchmarkServiceImpl())
             .startAwait();

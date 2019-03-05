@@ -1,11 +1,15 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -24,11 +28,11 @@ public class StreamingServiceTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().startAwait();
+    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
 
     node =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(StreamingServiceTest::serviceDiscovery)
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -187,5 +191,11 @@ public class StreamingServiceTest extends BaseTest {
         serviceCall.requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
 
     assertEquals(batchSize, serviceMessages.size());
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

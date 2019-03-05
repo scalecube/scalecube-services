@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
@@ -32,7 +33,10 @@ public class ServiceLocalTest extends BaseTest {
   public void setUp() {
     microservices =
         Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                        .options(opts -> opts.port(port.incrementAndGet())))
             .services(new GreetingServiceImpl())
             .startAwait();
   }

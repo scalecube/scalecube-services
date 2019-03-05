@@ -1,7 +1,12 @@
 package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.Collections;
 
 public class ExceptionMapperExample {
@@ -15,6 +20,7 @@ public class ExceptionMapperExample {
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
         Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
@@ -26,7 +32,9 @@ public class ExceptionMapperExample {
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(ms1.discovery().address()))
+            .discovery(
+                (serviceRegistry, serviceEndpoint) ->
+                    serviceDiscovery(serviceRegistry, serviceEndpoint, ms1))
             .services(
                 call -> {
                   ServiceA serviceA =
@@ -57,5 +65,11 @@ public class ExceptionMapperExample {
             () -> System.out.println("Completed!"));
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices ms1) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
   }
 }

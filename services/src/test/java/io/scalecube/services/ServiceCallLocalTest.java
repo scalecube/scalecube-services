@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.GreetingResponse;
@@ -62,7 +63,10 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder().services(new GreetingServiceImpl()).startAwait();
+    return Microservices.builder()
+        .discovery(ScalecubeServiceDiscovery::new)
+        .services(new GreetingServiceImpl())
+        .startAwait();
   }
 
   @Test

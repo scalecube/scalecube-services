@@ -7,9 +7,13 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -49,20 +53,24 @@ public class ExamplesRunner {
 
     Microservices.builder()
         .discovery(
-            options ->
-                options
-                    .seeds(
-                        Arrays.stream(config.seedAddresses())
-                            .map(address -> Address.create(address.host(), address.port()))
-                            .toArray(Address[]::new))
-                    .port(config.discoveryPort())
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()))
+            (serviceRegistry, serviceEndpoint) ->
+                serviceDiscovery(serviceRegistry, serviceEndpoint, config))
         .transport(options -> options.numOfThreads(numOfThreads).port(config.servicePort()))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(
+            opts ->
+                opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))
+                    .port(config.discoveryPort())
+                    .memberHost(config.memberHost())
+                    .memberPort(config.memberPort()));
   }
 
   public static class Config {

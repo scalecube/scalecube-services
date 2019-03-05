@@ -82,8 +82,7 @@ public class RSocketServerTransport implements ServerTransport {
     return Mono.defer(
         () ->
             Mono.when(
-                    connections
-                        .stream()
+                    connections.stream()
                         .map(
                             connection -> {
                               connection.dispose();

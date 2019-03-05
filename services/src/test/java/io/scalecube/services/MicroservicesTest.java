@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -25,7 +24,7 @@ import reactor.test.StepVerifier;
 @MockitoSettings(strictness = Strictness.WARN)
 public class MicroservicesTest {
 
-  @Mock private ServiceDiscovery serviceDiscovery;
+  @Mock private ServiceDiscoveryFactory serviceDiscoveryFactory;
   @Mock private ServiceTransport serviceTransport;
   @Mock private ServerTransport serverTransport;
   @Mock private ClientTransport clientTransport;
@@ -60,21 +59,20 @@ public class MicroservicesTest {
   @Test
   public void testServiceDiscoveryNotStarting() {
     String expectedErrorMessage = "expected error message";
-    Mockito.when(serviceDiscovery.start(any()))
+    Mockito.when(serviceDiscoveryFactory.createFrom(any(), any()))
         .thenThrow(new RuntimeException(expectedErrorMessage));
     Mockito.when(serverTransport.bind(anyInt(), any()))
         .thenReturn(Mono.just(new InetSocketAddress(0)));
 
     StepVerifier.create(
             Microservices.builder()
-                .discovery(serviceDiscovery)
+                .discovery(serviceDiscoveryFactory)
                 .transport(options -> options.transport(serviceTransport))
                 .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
 
     Mockito.verify(serverTransport, Mockito.atLeastOnce()).stop();
-    Mockito.verify(serviceDiscovery, Mockito.atLeastOnce()).shutdown();
     Mockito.verify(transportResources, Mockito.atLeastOnce()).shutdown();
   }
 }

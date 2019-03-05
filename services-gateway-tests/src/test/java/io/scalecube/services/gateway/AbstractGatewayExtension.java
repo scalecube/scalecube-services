@@ -1,10 +1,16 @@
 package io.scalecube.services.gateway;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -31,7 +37,11 @@ public abstract class AbstractGatewayExtension
     this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
 
-    gateway = Microservices.builder().gateway(gatewayConfig).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .gateway(gatewayConfig)
+            .startAwait();
   }
 
   @Override
@@ -70,10 +80,16 @@ public abstract class AbstractGatewayExtension
   public void startServices() {
     services =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(this::serviceDiscovery)
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
+  }
+
+  private ServiceDiscovery serviceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 
   /** Shutdown services. */

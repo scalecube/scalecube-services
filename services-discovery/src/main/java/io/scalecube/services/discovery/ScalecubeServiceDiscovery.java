@@ -2,21 +2,19 @@ package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,45 +27,102 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private ServiceRegistry serviceRegistry;
+  private final ServiceRegistry serviceRegistry;
+  private final ServiceEndpoint endpoint;
+  private final ClusterConfig clusterConfig;
+
   private Cluster cluster;
-  private ServiceEndpoint endpoint;
 
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
+  /**
+   * Constructor.
+   *
+   * @param serviceRegistry service registrety
+   * @param endpoint service endpoiintg
+   * @param clusterConfig slcaluecibe cluster config
+   */
+  public ScalecubeServiceDiscovery(
+      ServiceRegistry serviceRegistry, ServiceEndpoint endpoint, ClusterConfig clusterConfig) {
+    this.serviceRegistry = serviceRegistry;
+    this.endpoint = endpoint;
+    this.clusterConfig = clusterConfig;
+  }
+
+  /**
+   * Constructror.
+   *
+   * @param serviceRegistry service registry
+   * @param endpoint service endpoiint
+   */
+  public ScalecubeServiceDiscovery(ServiceRegistry serviceRegistry, ServiceEndpoint endpoint) {
+    this(serviceRegistry, endpoint, ClusterConfig.defaultLanConfig());
+  }
+
+  private ScalecubeServiceDiscovery(ScalecubeServiceDiscovery that, ClusterConfig clusterConfig) {
+    this(that.serviceRegistry, that.endpoint, clusterConfig);
+  }
+
+  private ClusterConfig.Builder copyFrom(ClusterConfig config) {
+    return ClusterConfig.builder()
+        .seedMembers(config.getSeedMembers())
+        .metadataTimeout(config.getMetadataTimeout())
+        .metadata(config.getMetadata())
+        .memberHost(config.getMemberHost())
+        .memberPort(config.getMemberPort())
+        .gossipFanout(config.getGossipFanout())
+        .gossipInterval(config.getGossipInterval())
+        .gossipRepeatMult(config.getGossipRepeatMult())
+        .pingInterval(config.getPingInterval())
+        .pingReqMembers(config.getPingReqMembers())
+        .pingTimeout(config.getPingTimeout())
+        .suspicionMult(config.getSuspicionMult())
+        .syncGroup(config.getSyncGroup())
+        .syncInterval(config.getSyncInterval())
+        .syncTimeout(config.getSyncTimeout())
+        .transportConfig(config.getTransportConfig());
+  }
+
+  public ScalecubeServiceDiscovery options(UnaryOperator<ClusterConfig.Builder> opts) {
+    return new ScalecubeServiceDiscovery(this, opts.apply(copyFrom(clusterConfig)).build());
+  }
+
   @Override
   public Address address() {
-    return toServicesAddress(cluster.address());
+    return Address.create(cluster.address().host(), cluster.address().port());
   }
 
   @Override
   public ServiceEndpoint endpoint() {
-    return this.endpoint;
+    return endpoint;
   }
 
+  /**
+   * Starts scalecube service discoevery. Joins a cluster with local services as metadata.
+   *
+   * @return mono result
+   */
   @Override
-  public Mono<ServiceDiscovery> start(ServiceDiscoveryConfig config) {
+  public Mono<ServiceDiscovery> start() {
     return Mono.defer(
         () -> {
-          this.serviceRegistry = config.serviceRegistry();
-          this.endpoint = config.endpoint();
+          Map<String, String> metadata =
+              serviceRegistry.listServiceEndpoints().stream()
+                  .collect(
+                      Collectors.toMap(
+                          ServiceEndpoint::id, ClusterMetadataDecoder::encodeMetadata));
 
-          ClusterConfig clusterConfig =
-              clusterConfigBuilder(config).addMetadata(getMetadata()).build();
+          ClusterConfig clusterConfig = copyFrom(this.clusterConfig).addMetadata(metadata).build();
+          ScalecubeServiceDiscovery serviceDiscovery =
+              new ScalecubeServiceDiscovery(this, clusterConfig);
 
-          LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
-
+          LOGGER.info("Start ScalecubeServiceDiscovery with config: {}", clusterConfig);
           return Cluster.join(clusterConfig)
-              .doOnSuccess(cluster -> this.cluster = cluster)
-              .doOnSuccess(this::listen)
-              .thenReturn(this);
+              .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
+              .doOnSuccess(serviceDiscovery::listen)
+              .thenReturn(serviceDiscovery);
         });
-  }
-
-  private Map<String, String> getMetadata() {
-    return serviceRegistry.listServiceEndpoints().stream()
-        .collect(Collectors.toMap(ServiceEndpoint::id, ClusterMetadataDecoder::encodeMetadata));
   }
 
   private void listen(Cluster cluster) {
@@ -90,31 +145,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           sink.complete();
           return Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty());
         });
-  }
-
-  private ClusterConfig.Builder clusterConfigBuilder(ServiceDiscoveryConfig config) {
-    Builder builder = ClusterConfig.builder();
-
-    Optional.ofNullable(config.seeds())
-        .map(Arrays::stream)
-        .map(stream -> stream.map(this::toClusterAddress))
-        .map(stream -> stream.toArray(io.scalecube.transport.Address[]::new))
-        .ifPresent(builder::seedMembers);
-
-    Optional.ofNullable(config.port()).ifPresent(builder::port);
-    Optional.ofNullable(config.tags()).ifPresent(builder::metadata);
-    Optional.ofNullable(config.memberHost()).ifPresent(builder::memberHost);
-    Optional.ofNullable(config.memberPort()).ifPresent(builder::memberPort);
-
-    return builder;
-  }
-
-  private io.scalecube.transport.Address toClusterAddress(Address address) {
-    return io.scalecube.transport.Address.create(address.host(), address.port());
-  }
-
-  private Address toServicesAddress(io.scalecube.transport.Address address) {
-    return Address.create(address.host(), address.port());
   }
 
   private void onMemberEvent(MembershipEvent event) {

@@ -29,9 +29,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> listServiceReferences() {
-    return referencesByQualifier
-        .values()
-        .stream()
+    return referencesByQualifier.values().stream()
         .flatMap(Collection::stream)
         .collect(Collectors.toList());
   }
@@ -43,8 +41,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       return Collections.emptyList();
     }
     String contentType = request.dataFormatOrDefault();
-    return result
-        .stream()
+    return result.stream()
         .filter(ref -> ref.contentTypes().contains(contentType))
         .collect(Collectors.toList());
   }
@@ -70,9 +67,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     if (serviceEndpoint != null) {
 
       Map<String, ServiceReference> serviceReferencesOfEndpoint =
-          referencesByQualifier
-              .values()
-              .stream()
+          referencesByQualifier.values().stream()
               .flatMap(Collection::stream)
               .filter(sr -> sr.endpointId().equals(endpointId))
               .collect(Collectors.toMap(ServiceReference::qualifier, Function.identity()));
