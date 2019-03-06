@@ -26,12 +26,15 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
+  private static final int EVENT_BUFFER_SIZE = 65536;
+
   private final ServiceEndpoint endpoint;
   private final ClusterConfig clusterConfig;
 
   private Cluster cluster;
 
-  private final EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(65536);
+  private final EmitterProcessor<ServiceDiscoveryEvent> subject =
+      EmitterProcessor.create(EVENT_BUFFER_SIZE);
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
   /**
