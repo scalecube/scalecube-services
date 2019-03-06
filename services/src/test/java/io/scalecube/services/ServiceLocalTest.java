@@ -4,14 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,7 +37,7 @@ public class ServiceLocalTest extends BaseTest {
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
-            .transport(ServiceLocalTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
   }
@@ -260,11 +257,5 @@ public class ServiceLocalTest extends BaseTest {
         .call()
         .create()
         .api(GreetingService.class); // create proxy for GreetingService API
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

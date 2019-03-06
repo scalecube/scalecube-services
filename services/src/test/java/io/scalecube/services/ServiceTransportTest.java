@@ -4,15 +4,12 @@ import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +37,7 @@ public class ServiceTransportTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransportTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     serviceNode =
@@ -50,7 +47,7 @@ public class ServiceTransportTest {
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(toAddress(gateway.discovery().address()))))
-            .transport(ServiceTransportTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -163,11 +160,5 @@ public class ServiceTransportTest {
     assertEquals(0, latch1.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

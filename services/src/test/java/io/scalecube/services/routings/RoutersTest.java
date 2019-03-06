@@ -10,12 +10,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -30,8 +30,6 @@ import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,13 +53,13 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(RoutersTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(RoutersTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -76,7 +74,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(RoutersTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -238,11 +236,5 @@ public class RoutersTest extends BaseTest {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

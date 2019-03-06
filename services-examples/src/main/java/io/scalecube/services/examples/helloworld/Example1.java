@@ -3,12 +3,10 @@ package io.scalecube.services.examples.helloworld;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 
 /**
  * The Hello World project is a time-honored tradition in computer programming. It is a simple
@@ -30,7 +28,7 @@ public class Example1 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(Example1::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
@@ -40,7 +38,7 @@ public class Example1 {
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
-            .transport(Example1::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -58,11 +56,5 @@ public class Example1 {
     // shut down the nodes
     seed.shutdown().block();
     microservices.shutdown().block();
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

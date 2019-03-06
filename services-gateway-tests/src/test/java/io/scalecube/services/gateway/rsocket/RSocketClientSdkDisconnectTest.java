@@ -5,11 +5,11 @@ import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.ServiceTransports;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
@@ -19,8 +19,6 @@ import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,7 +48,7 @@ class RSocketClientSdkDisconnectTest {
             .services(new GreetingServiceImpl())
             .gateway(gatewayConfig)
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(RSocketClientSdkDisconnectTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
@@ -108,11 +106,5 @@ class RSocketClientSdkDisconnectTest {
             })
         .expectError(ConnectionClosedException.class)
         .verify(shutdownAt.plus(SHUTDOWN_TIMEOUT));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

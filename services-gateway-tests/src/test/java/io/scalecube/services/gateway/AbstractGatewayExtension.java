@@ -3,7 +3,6 @@ package io.scalecube.services.gateway;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -12,8 +11,6 @@ import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -43,7 +40,7 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(this::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .gateway(gatewayConfig)
             .startAwait();
   }
@@ -85,7 +82,7 @@ public abstract class AbstractGatewayExtension
     services =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(this::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
@@ -95,12 +92,6 @@ public abstract class AbstractGatewayExtension
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
-  }
-
-  private ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 
   /** Shutdown services. */

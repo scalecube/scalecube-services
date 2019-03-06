@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
@@ -16,8 +15,6 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,14 +63,14 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceRemoteTest::serviceTransport)
+        .transport(ServiceTransports::rsocketServiceTransport)
         .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
-        .transport(ServiceRemoteTest::serviceTransport)
+        .transport(ServiceTransports::rsocketServiceTransport)
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -205,7 +202,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceRemoteTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -228,7 +225,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceRemoteTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(another)
             .startAwait();
 
@@ -248,7 +245,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceRemoteTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(another) // add service a and b
             .startAwait();
 
@@ -273,7 +270,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceRemoteTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(another) // add service a and b
             .startAwait();
 
@@ -357,7 +354,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceRemoteTest::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .tags(tags)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -396,11 +393,5 @@ public class ServiceRemoteTest extends BaseTest {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

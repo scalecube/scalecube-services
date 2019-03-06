@@ -3,10 +3,10 @@ package io.scalecube.services.examples.orderbook;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.services.examples.orderbook.service.OrderRequest;
@@ -16,8 +16,6 @@ import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
@@ -42,7 +40,7 @@ public class Example1 {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(Example1::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     Microservices ms =
@@ -51,7 +49,7 @@ public class Example1 {
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(
                         serviceRegistry, serviceEndpoint, gateway.discovery().address()))
-            .transport(Example1::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new DefaultMarketDataService())
             .startAwait();
 
@@ -114,11 +112,5 @@ public class Example1 {
     System.out.println("====== Bids ========");
     System.out.println("  Price\t|  Amount");
     snapshot.bids().forEach((key, value) -> System.out.println("   " + key + "\t|    " + value));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

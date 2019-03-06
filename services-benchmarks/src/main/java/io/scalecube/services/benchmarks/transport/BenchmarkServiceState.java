@@ -5,11 +5,9 @@ import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +35,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
         Microservices.builder()
             .metrics(registry())
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(BenchmarkServiceState::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     io.scalecube.transport.Address seedAddress = toAddress(seed.discovery().address());
@@ -49,7 +47,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(BenchmarkServiceState::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(services)
             .startAwait();
 
@@ -79,11 +77,5 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
   public ServiceCall serviceCall() {
     return seed.call().create();
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

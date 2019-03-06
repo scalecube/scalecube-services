@@ -1,9 +1,9 @@
 package io.scalecube.services.routings;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -14,8 +14,6 @@ import io.scalecube.services.routings.sut.GreetingServiceImplB;
 import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.transport.api.Address;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
@@ -29,7 +27,7 @@ public class ServiceTagsExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTagsExample::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     Microservices services1 =
@@ -38,7 +36,7 @@ public class ServiceTagsExample {
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(
                         serviceRegistry, serviceEndpoint, gateway.discovery().address()))
-            .transport(ServiceTagsExample::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -51,7 +49,7 @@ public class ServiceTagsExample {
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(
                         serviceRegistry, serviceEndpoint, gateway.discovery().address()))
-            .transport(ServiceTagsExample::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")
@@ -75,11 +73,5 @@ public class ServiceTagsExample {
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }

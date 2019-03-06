@@ -1,18 +1,16 @@
 package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +38,7 @@ public class Example2 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(Example2::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
@@ -49,7 +47,7 @@ public class Example2 {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(seed, serviceRegistry, serviceEndpoint))
-            .transport(Example2::serviceTransport)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -80,11 +78,5 @@ public class Example2 {
       Microservices seed, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(seed.discovery().address())));
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
   }
 }
