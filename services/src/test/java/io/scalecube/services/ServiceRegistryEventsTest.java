@@ -24,7 +24,10 @@ public class ServiceRegistryEventsTest {
     List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
     Microservices seed =
-        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     seed.discovery().listen().subscribe(events::add);
 
@@ -35,6 +38,7 @@ public class ServiceRegistryEventsTest {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -43,6 +47,7 @@ public class ServiceRegistryEventsTest {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 

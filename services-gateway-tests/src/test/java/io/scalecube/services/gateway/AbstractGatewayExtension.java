@@ -40,6 +40,7 @@ public abstract class AbstractGatewayExtension
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .gateway(gatewayConfig)
             .startAwait();
   }
@@ -81,6 +82,7 @@ public abstract class AbstractGatewayExtension
     services =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());

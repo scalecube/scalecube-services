@@ -16,7 +16,6 @@ import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 
-/** RSocket client transport implementation. */
 public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
@@ -43,7 +42,7 @@ public class RSocketClientTransport implements ClientTransport {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
     Mono<RSocket> rsocket =
         monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
-    return new RSocketServiceClientAdapter(rsocket, codec);
+    return new RSocketClientChannel(rsocket, codec);
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
@@ -72,7 +71,7 @@ public class RSocketClientTransport implements ClientTransport {
                   .doOnTerminate(
                       () -> {
                         monoMap.remove(address);
-                        LOGGER.info("Connection closed on {} and removed from the pool", address);
+                        LOGGER.info("Connection closed on {}", address);
                       })
                   .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
             })

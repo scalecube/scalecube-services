@@ -34,7 +34,11 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     serviceNode =
         Microservices.builder()
@@ -43,6 +47,7 @@ public class ServiceTransportTest {
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(toAddress(gateway.discovery().address()))))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new SimpleQuoteService())
             .startAwait();
   }

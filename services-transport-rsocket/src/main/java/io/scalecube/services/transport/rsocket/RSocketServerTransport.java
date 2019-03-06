@@ -1,11 +1,11 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
@@ -15,8 +15,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
+import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
@@ -25,7 +27,7 @@ public class RSocketServerTransport implements ServerTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
   private final ServiceMessageCodec codec;
-  private final DelegatedLoopResources loopResources;
+  private final LoopResources loopResources;
 
   private CloseableChannel server; // calculated
   private List<Connection> connections = new CopyOnWriteArrayList<>(); // calculated
@@ -34,15 +36,21 @@ public class RSocketServerTransport implements ServerTransport {
    * Constructor for this server transport.
    *
    * @param codec message codec
-   * @param workerPool worker thread pool
+   * @param loopResources server loop resources
    */
-  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup workerPool) {
+  public RSocketServerTransport(ServiceMessageCodec codec, LoopResources loopResources) {
     this.codec = codec;
-    this.loopResources = DelegatedLoopResources.newServerLoopResources(workerPool);
+    this.loopResources = loopResources;
   }
 
   @Override
-  public Mono<InetSocketAddress> bind(int port, ServiceMethodRegistry methodRegistry) {
+  public Address address() {
+    InetSocketAddress socketAddress = server.address();
+    return Address.create(socketAddress.getAddress().getHostName(), socketAddress.getPort());
+  }
+
+  @Override
+  public Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
@@ -68,28 +76,29 @@ public class RSocketServerTransport implements ServerTransport {
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
               .transport(() -> TcpServerTransport.create(tcpServer))
               .start()
-              .map(server -> this.server = server)
-              .map(CloseableChannel::address);
+              .doOnSuccess(channel -> this.server = channel)
+              .thenReturn(this);
         });
   }
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer().then(closeConnections()).then(shutdownLoopResources());
+    return Flux //
+        .concatDelayError(shutdownServer(), closeConnections(), shutdownLoopResources())
+        .then();
   }
 
   private Mono<Void> closeConnections() {
     return Mono.defer(
         () ->
-            Mono.when(
+            Mono.whenDelayError(
                     connections.stream()
                         .map(
                             connection -> {
                               connection.dispose();
                               return connection
                                   .onTerminate()
-                                  .doOnError(e -> LOGGER.warn("Failed to close connection: " + e))
-                                  .onErrorResume(e -> Mono.empty());
+                                  .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
                             })
                         .collect(Collectors.toList()))
                 .doOnTerminate(connections::clear));
@@ -105,8 +114,7 @@ public class RSocketServerTransport implements ServerTransport {
                             .doOnError(
                                 e ->
                                     LOGGER.warn(
-                                        "Failed to close server transport loopResources: " + e))
-                            .onErrorResume(e -> Mono.empty()))
+                                        "Failed to close server transport loopResources: " + e)))
                 .orElse(Mono.empty()));
   }
 
@@ -119,8 +127,7 @@ public class RSocketServerTransport implements ServerTransport {
                       server.dispose();
                       return server
                           .onClose()
-                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
-                          .onErrorResume(e -> Mono.empty());
+                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e));
                     })
                 .orElse(Mono.empty()));
   }

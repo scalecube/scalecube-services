@@ -28,11 +28,16 @@ public class StreamingServiceTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     node =
         Microservices.builder()
             .discovery(StreamingServiceTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new SimpleQuoteService())
             .startAwait();
   }

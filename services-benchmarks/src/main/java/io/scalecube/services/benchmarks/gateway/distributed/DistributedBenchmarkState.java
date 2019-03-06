@@ -2,6 +2,7 @@ package io.scalecube.services.benchmarks.gateway.distributed;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -40,11 +41,15 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .metrics(registry())
             .startAwait();
 
     io.scalecube.transport.Address seedAddress =
         ClusterAddresses.toAddress(gateway.discovery().address());
+
+    int numOfThreads = Runtime.getRuntime().availableProcessors();
 
     services =
         Microservices.builder()
@@ -52,7 +57,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(options -> options.numOfThreads(Runtime.getRuntime().availableProcessors()))
+            .transport(opts -> ServiceTransports.rsocketServiceTransport(opts, numOfThreads))
             .services(new BenchmarkServiceImpl())
             .startAwait();
   }

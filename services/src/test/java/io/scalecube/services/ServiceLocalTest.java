@@ -37,6 +37,7 @@ public class ServiceLocalTest extends BaseTest {
                 (serviceRegistry, serviceEndpoint) ->
                     new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
   }

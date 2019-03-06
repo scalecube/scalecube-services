@@ -2,7 +2,9 @@ package io.scalecube.services.benchmarks.gateway.standalone;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.Client;
@@ -38,6 +40,8 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .metrics(registry())
             .startAwait();
   }

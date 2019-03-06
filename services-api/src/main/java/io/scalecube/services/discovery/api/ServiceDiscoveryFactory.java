@@ -1,6 +1,6 @@
-package io.scalecube.services;
+package io.scalecube.services.discovery.api;
 
-import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
 public interface ServiceDiscoveryFactory {

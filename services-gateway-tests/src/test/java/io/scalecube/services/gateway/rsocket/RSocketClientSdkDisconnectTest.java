@@ -9,6 +9,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.ServiceTransports;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
@@ -47,6 +48,7 @@ class RSocketClientSdkDisconnectTest {
             .services(new GreetingServiceImpl())
             .gateway(gatewayConfig)
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");

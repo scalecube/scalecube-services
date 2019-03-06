@@ -15,6 +15,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -52,11 +53,13 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -71,6 +74,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")

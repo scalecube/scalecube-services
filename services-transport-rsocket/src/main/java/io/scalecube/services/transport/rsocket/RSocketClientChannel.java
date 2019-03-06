@@ -12,12 +12,12 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class RSocketServiceClientAdapter implements ClientChannel {
+public class RSocketClientChannel implements ClientChannel {
 
   private Mono<RSocket> rsocket;
   private ServiceMessageCodec messageCodec;
 
-  public RSocketServiceClientAdapter(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
+  public RSocketClientChannel(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
     this.rsocket = rsocket;
     this.messageCodec = codec;
   }

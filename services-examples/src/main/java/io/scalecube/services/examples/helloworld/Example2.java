@@ -7,6 +7,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -35,7 +36,10 @@ public class Example2 {
   public static void main(String[] args) {
     // ScaleCube Node node with no members
     Microservices seed =
-        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
@@ -43,6 +47,7 @@ public class Example2 {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(seed, serviceRegistry, serviceEndpoint))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 

@@ -69,6 +69,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
         .discovery(ServiceCallRemoteTest::serviceDiscovery)
+        .transport(ServiceTransports::rsocketServiceTransport)
         .services(service)
         .startAwait();
   }
@@ -239,7 +240,10 @@ public class ServiceCallRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+    return Microservices.builder()
+        .discovery(ScalecubeServiceDiscovery::new)
+        .transport(ServiceTransports::rsocketServiceTransport)
+        .startAwait();
   }
 
   private static ServiceDiscovery serviceDiscovery(

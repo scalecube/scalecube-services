@@ -34,6 +34,7 @@ public class BootstrapExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
@@ -55,6 +56,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 call ->
                     Collections.singleton(
@@ -72,6 +74,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceHelloImpl())
             .startAwait();
 
@@ -81,6 +84,7 @@ public class BootstrapExample {
             .discovery(
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceWorldImpl())
             .startAwait();
 

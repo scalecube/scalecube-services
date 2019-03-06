@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -16,11 +17,10 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.ServiceTransportConfig;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
-import io.scalecube.services.transport.api.ServiceTransport;
+import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -36,7 +36,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -133,9 +135,7 @@ public class Microservices {
     this.methodRegistry = builder.methodRegistry;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.serviceDiscoveryFactory = builder.serviceDiscoveryFactory;
-    this.transportBootstrap =
-        new ServiceTransportBootstrap(
-            ServiceTransportConfig.builder(builder.transportOptions).build());
+    this.transportBootstrap = builder.serviceTransportBootstrap;
     this.errorMapper = builder.errorMapper;
   }
 
@@ -152,8 +152,8 @@ public class Microservices {
         .start(methodRegistry)
         .flatMap(
             input -> {
-              ClientTransport clientTransport = transportBootstrap.clientTransport();
-              InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
+              ClientTransport clientTransport = transportBootstrap.clientTransport;
+              Address serviceAddress = transportBootstrap.address;
 
               Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
@@ -165,8 +165,8 @@ public class Microservices {
               // register services in service registry
               ServiceEndpoint serviceEndpoint = null;
               if (!serviceInfos.isEmpty()) {
-                String serviceHost = serviceAddress.getHostString();
-                int servicePort = serviceAddress.getPort();
+                String serviceHost = serviceAddress.host();
+                int servicePort = serviceAddress.port();
                 serviceEndpoint =
                     ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
                 serviceRegistry.registerService(serviceEndpoint);
@@ -185,12 +185,13 @@ public class Microservices {
         .onErrorResume(
             ex -> {
               // return original error then shutdown
-              return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+              return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             });
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    return gatewayBootstrap.start(transportBootstrap.workerPool(), call, metrics);
+    Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
+    return gatewayBootstrap.start(workerPool, call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -213,12 +214,12 @@ public class Microservices {
     return this.metrics;
   }
 
-  public InetSocketAddress serviceAddress() {
-    return transportBootstrap.serviceAddress();
+  public Address serviceAddress() {
+    return transportBootstrap.address;
   }
 
   public Call call() {
-    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
+    return new Call(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
   }
 
   public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -241,7 +242,7 @@ public class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () ->
-            Mono.when(
+            Mono.whenDelayError(
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
                 Optional.ofNullable(gatewayBootstrap)
                     .map(GatewayBootstrap::shutdown)
@@ -259,7 +260,7 @@ public class Microservices {
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscoveryFactory serviceDiscoveryFactory;
-    private Consumer<ServiceTransportConfig.Builder> transportOptions;
+    private ServiceTransportBootstrap serviceTransportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
@@ -310,13 +311,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(ServiceDiscoveryFactory serviceDiscoveryFactory) {
-      this.serviceDiscoveryFactory = serviceDiscoveryFactory;
+    public Builder discovery(ServiceDiscoveryFactory factory) {
+      this.serviceDiscoveryFactory = factory;
       return this;
     }
 
-    public Builder transport(Consumer<ServiceTransportConfig.Builder> transportOptions) {
-      this.transportOptions = transportOptions;
+    public Builder transport(UnaryOperator<ServiceTransportBootstrap> op) {
+      this.serviceTransportBootstrap = op.apply(this.serviceTransportBootstrap);
       return this;
     }
 
@@ -372,7 +373,7 @@ public class Microservices {
       return Mono.defer(
           () ->
               gatewayInstances != null && !gatewayInstances.isEmpty()
-                  ? Mono.when(
+                  ? Mono.whenDelayError(
                       gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
                   : Mono.empty());
     }
@@ -403,98 +404,145 @@ public class Microservices {
     }
   }
 
-  private static class ServiceTransportBootstrap {
+  public static class ServiceTransportBootstrap {
 
-    private static final int DEFAULT_NUM_OF_THREADS = Runtime.getRuntime().availableProcessors();
+    private String host = "localhost";
+    private int port = 0;
+    private Supplier<TransportResources> resourcesSupplier;
+    private Function<TransportResources, ClientTransport> clientTransportFactory;
+    private Function<TransportResources, ServerTransport> serverTransportFactory;
 
-    private String serviceHost; // config
-    private int servicePort; // config
-    private ServiceTransport transport; // config or calculated
-    private ClientTransport clientTransport; // calculated
-    private ServerTransport serverTransport; // calculated
-    private ServiceTransport.Resources transportResources; // calculated
-    private InetSocketAddress serviceAddress; // calculated
-    private int numOfThreads; // calculated
+    private TransportResources resources;
+    private ClientTransport clientTransport;
+    private ServerTransport serverTransport;
+    private Address address;
 
-    public ServiceTransportBootstrap(ServiceTransportConfig options) {
-      this.serviceHost = options.host();
-      this.servicePort = Optional.ofNullable(options.port()).orElse(0);
-      this.numOfThreads =
-          Optional.ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
-      this.transport = options.transport();
+    private ServiceTransportBootstrap() {}
+
+    private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
+      this.host = other.host;
+      this.port = other.port;
+      this.resourcesSupplier = other.resourcesSupplier;
+      this.clientTransportFactory = other.clientTransportFactory;
+      this.serverTransportFactory = other.serverTransportFactory;
     }
 
-    private ServiceTransport transport() {
-      return transport;
+    private ServiceTransportBootstrap copy() {
+      return new ServiceTransportBootstrap(this);
     }
 
-    private ClientTransport clientTransport() {
-      return clientTransport;
+    /**
+     * Setting for service host.
+     *
+     * @param host service host
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap host(String host) {
+      ServiceTransportBootstrap c = copy();
+      c.host = host;
+      return c;
     }
 
-    private Executor workerPool() {
-      return transportResources.workerPool().orElse(null);
+    /**
+     * Setting for service port.
+     *
+     * @param port service port
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap port(int port) {
+      ServiceTransportBootstrap c = copy();
+      c.port = port;
+      return c;
     }
 
-    private InetSocketAddress serviceAddress() {
-      return serviceAddress;
+    /**
+     * Setting for service transpotr resoruces.
+     *
+     * @param supplier transport resources provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
+      ServiceTransportBootstrap c = copy();
+      c.resourcesSupplier = supplier;
+      return c;
+    }
+
+    /**
+     * Setting for client trnaspotr provider.
+     *
+     * @param factory client transptr provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
+      ServiceTransportBootstrap c = copy();
+      c.clientTransportFactory = factory;
+      return c;
+    }
+
+    /**
+     * Setting for service transport provider.
+     *
+     * @param factory server transport provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
+      ServiceTransportBootstrap c = copy();
+      c.serverTransportFactory = factory;
+      return c;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      return Mono.defer(
-          () -> {
-            this.transport =
-                Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
+      return Mono.fromSupplier(resourcesSupplier)
+          .flatMap(TransportResources::start)
+          .doOnNext(
+              resources -> {
+                // keep transport resources
+                this.resources = resources;
+              })
+          .flatMap(
+              resources -> {
+                this.serverTransport = serverTransportFactory.apply(resources);
+                // bind server transport
+                return serverTransport.bind(port, methodRegistry);
+              })
+          .doOnNext(
+              serverTransport -> {
+                // prepare service host:port for exposing
+                int port = serverTransport.address().port();
+                String host =
+                    Optional.ofNullable(this.host)
+                        .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
+                this.address = Address.create(host, port);
 
-            this.transportResources = transport.resources(numOfThreads);
-            this.clientTransport = transport.clientTransport(transportResources);
-            this.serverTransport = transport.serverTransport(transportResources);
-
-            // bind service serverTransport transport
-            return serverTransport
-                .bind(servicePort, methodRegistry)
-                .map(
-                    listenAddress -> {
-                      // prepare service host:port for exposing
-                      int port = listenAddress.getPort();
-                      String host =
-                          Optional.ofNullable(serviceHost)
-                              .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
-                      this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
-                      return this;
-                    });
-          });
+                // create client transpotr
+                this.clientTransport = clientTransportFactory.apply(resources);
+              })
+          .thenReturn(this);
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              Mono.when(
+              Mono.whenDelayError(
                   Optional.ofNullable(serverTransport)
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
-                  transportResources.shutdown()));
+                  resources.shutdown()));
     }
 
     @Override
     public String toString() {
       return "ServiceTransportBootstrap{"
-          + "serviceHost="
-          + serviceHost
-          + ", servicePort="
-          + servicePort
-          + ", serviceAddress="
-          + serviceAddress
-          + ", numOfThreads="
-          + numOfThreads
-          + ", transport="
-          + transport.getClass()
+          + "host="
+          + host
+          + ", port="
+          + port
           + ", clientTransport="
           + clientTransport.getClass()
           + ", serverTransport="
           + serverTransport.getClass()
-          + ", transportResources="
-          + transportResources.getClass()
+          + ", resources="
+          + resources.getClass()
           + "}";
     }
   }

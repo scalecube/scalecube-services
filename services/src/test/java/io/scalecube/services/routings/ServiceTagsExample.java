@@ -3,6 +3,7 @@ package io.scalecube.services.routings;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -24,7 +25,10 @@ public class ServiceTagsExample {
    */
   public static void main(String[] args) {
     Microservices gateway =
-        Microservices.builder().discovery(ScalecubeServiceDiscovery::new).startAwait();
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     Microservices services1 =
         Microservices.builder()
@@ -32,6 +36,7 @@ public class ServiceTagsExample {
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(
                         serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -44,6 +49,7 @@ public class ServiceTagsExample {
                 (serviceRegistry, serviceEndpoint) ->
                     serviceDiscovery(
                         serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")
