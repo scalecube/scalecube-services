@@ -102,8 +102,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           Map<String, String> metadata =
-              Collections.singletonMap(
-                  endpoint.id(), ClusterMetadataCodec.encodeMetadata(endpoint));
+              endpoint != null
+                  ? Collections.singletonMap(
+                      endpoint.id(), ClusterMetadataCodec.encodeMetadata(endpoint))
+                  : Collections.emptyMap();
 
           ClusterConfig clusterConfig = copyFrom(this.clusterConfig).addMetadata(metadata).build();
           ScalecubeServiceDiscovery serviceDiscovery =

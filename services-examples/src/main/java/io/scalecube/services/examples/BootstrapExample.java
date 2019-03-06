@@ -12,7 +12,6 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.gateway.HttpGatewayStub;
 import io.scalecube.services.examples.gateway.WebsocketGatewayStub;
 import io.scalecube.services.gateway.GatewayConfig;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -53,9 +52,7 @@ public class BootstrapExample {
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 call ->
@@ -71,9 +68,7 @@ public class BootstrapExample {
     System.out.println("Start ServiceHello");
     final Microservices node2 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceHelloImpl())
             .startAwait();
@@ -81,9 +76,7 @@ public class BootstrapExample {
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, gateway))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceWorldImpl())
             .startAwait();
@@ -102,7 +95,7 @@ public class BootstrapExample {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices gateway) {
+      ServiceEndpoint serviceEndpoint, Microservices gateway) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }

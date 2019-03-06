@@ -7,7 +7,6 @@ import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routings.sut.CanaryService;
 import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
@@ -30,12 +29,11 @@ public class ServiceTagsExample {
             .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
+    Address seedAddress = gateway.discovery().address();
+
     Microservices services1 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(
-                        serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
@@ -45,10 +43,7 @@ public class ServiceTagsExample {
 
     Microservices services2 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(
-                        serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
@@ -70,7 +65,7 @@ public class ServiceTagsExample {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
+      ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }

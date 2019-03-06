@@ -34,8 +34,8 @@ public class ServiceLocalTest extends BaseTest {
     microservices =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())

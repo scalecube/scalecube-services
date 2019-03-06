@@ -10,7 +10,6 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -88,8 +87,7 @@ public abstract class AbstractGatewayExtension
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
-  private ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+  private ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }

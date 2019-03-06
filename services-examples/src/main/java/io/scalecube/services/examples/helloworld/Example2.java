@@ -10,7 +10,6 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
@@ -44,9 +43,7 @@ public class Example2 {
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(seed, serviceRegistry, serviceEndpoint))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -75,7 +72,7 @@ public class Example2 {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      Microservices seed, ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+      ServiceEndpoint serviceEndpoint, Microservices seed) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(seed.discovery().address())));
   }

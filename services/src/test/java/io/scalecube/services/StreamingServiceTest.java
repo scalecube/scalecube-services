@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -198,8 +197,7 @@ public class StreamingServiceTest extends BaseTest {
     assertEquals(batchSize, serviceMessages.size());
   }
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }

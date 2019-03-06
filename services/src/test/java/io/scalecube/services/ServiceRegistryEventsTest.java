@@ -7,7 +7,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
@@ -35,18 +34,14 @@ public class ServiceRegistryEventsTest {
 
     Microservices ms1 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, seedAddress))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -63,7 +58,7 @@ public class ServiceRegistryEventsTest {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
+      ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }

@@ -7,7 +7,6 @@ import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.Collections;
 
 public class ExceptionMapperExample {
@@ -34,9 +33,7 @@ public class ExceptionMapperExample {
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(serviceRegistry, serviceEndpoint, ms1))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, ms1))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 call -> {
@@ -71,7 +68,7 @@ public class ExceptionMapperExample {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices ms1) {
+      ServiceEndpoint serviceEndpoint, Microservices ms1) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
   }

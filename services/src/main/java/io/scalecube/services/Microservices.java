@@ -303,8 +303,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(UnaryOperator<ServiceDiscoveryBootstrap> op) {
-      this.discoveryBootstrap = op.apply(this.discoveryBootstrap);
+    public Builder discovery(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryBootstrap = new ServiceDiscoveryBootstrap(factory);
       return this;
     }
 
@@ -334,7 +334,7 @@ public class Microservices {
     }
   }
 
-  private static class ServiceDiscoveryBootstrap {
+  public static class ServiceDiscoveryBootstrap {
 
     private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory;
 
@@ -342,25 +342,8 @@ public class Microservices {
 
     private ServiceDiscoveryBootstrap() {}
 
-    private ServiceDiscoveryBootstrap(ServiceDiscoveryBootstrap that) {
-      this.discovery = that.discovery;
-    }
-
-    private ServiceDiscoveryBootstrap copy() {
-      return new ServiceDiscoveryBootstrap(this);
-    }
-
-    /**
-     * Setting for service discovery provider.
-     *
-     * @param factory service discovery provider
-     * @return new {@code ServiceDiscoveryBootstrap} instance
-     */
-    public ServiceDiscoveryBootstrap discovery(
-        Function<ServiceEndpoint, ServiceDiscovery> factory) {
-      ServiceDiscoveryBootstrap c = copy();
-      c.discoveryFactory = factory;
-      return c;
+    private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryFactory = factory;
     }
 
     private Mono<ServiceDiscovery> start(
@@ -420,10 +403,10 @@ public class Microservices {
     private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
-              gatewayConfig ->
-                  Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerPool, call, metrics)
-                      .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
+              gwConfig ->
+                  Gateway.getGateway(gwConfig.gatewayClass())
+                      .start(gwConfig, workerPool, call, metrics)
+                      .doOnSuccess(gw -> gatewayInstances.put(gwConfig, gw)))
           .then(Mono.just(this));
     }
 

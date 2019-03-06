@@ -54,8 +54,8 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
     services =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
             .transport(opts -> ServiceTransports.rsocketServiceTransport(opts, numOfThreads))
             .services(new BenchmarkServiceImpl())

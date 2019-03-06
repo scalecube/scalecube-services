@@ -31,8 +31,8 @@ public class ErrorFlowTest {
     provider =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
@@ -44,8 +44,8 @@ public class ErrorFlowTest {
     consumer =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
             .transport(ServiceTransports::rsocketServiceTransport)
