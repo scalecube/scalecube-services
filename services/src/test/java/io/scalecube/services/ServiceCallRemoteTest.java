@@ -248,7 +248,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

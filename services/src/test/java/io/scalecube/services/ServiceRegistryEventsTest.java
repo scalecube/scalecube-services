@@ -64,7 +64,7 @@ public class ServiceRegistryEventsTest {
 
   private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }
 }

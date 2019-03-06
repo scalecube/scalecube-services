@@ -84,7 +84,7 @@ public class GatewayRunner {
 
   private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
             opts ->
                 opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))

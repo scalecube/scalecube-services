@@ -103,7 +103,7 @@ public class BootstrapExample {
 
   private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices gateway) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 

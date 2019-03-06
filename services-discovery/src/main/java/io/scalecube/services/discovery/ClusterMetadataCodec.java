@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 
-public class ClusterMetadataDecoder {
+public class ClusterMetadataCodec {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMetadataDecoder.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMetadataCodec.class);
 
   private static final ObjectMapper objectMapper = newObjectMapper();
 

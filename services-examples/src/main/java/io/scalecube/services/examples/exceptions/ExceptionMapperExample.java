@@ -72,7 +72,7 @@ public class ExceptionMapperExample {
 
   private static ServiceDiscovery serviceDiscovery(
       ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Microservices ms1) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
   }
 }

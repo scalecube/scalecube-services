@@ -372,10 +372,23 @@ public class Microservices {
                   .start()
                   .doOnSuccess(
                       discovery -> {
-                        discovery.listen();
-
                         this.discovery = discovery;
+                        listenDiscoveryEvents(serviceRegistry);
                       }));
+    }
+
+    private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
+      discovery.listen().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+    }
+
+    private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
+      ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
+      if (event.isRegistered()) {
+        serviceRegistry.registerService(serviceEndpoint);
+      }
+      if (event.isUnregistered()) {
+        serviceRegistry.unregisterService(serviceEndpoint.id());
+      }
     }
 
     private Mono<Void> shutdown() {
