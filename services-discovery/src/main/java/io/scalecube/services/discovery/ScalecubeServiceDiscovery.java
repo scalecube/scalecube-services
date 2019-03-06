@@ -17,7 +17,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -31,7 +31,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private Cluster cluster;
 
-  private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
+  private final EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(65536);
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
   /**
@@ -143,11 +143,11 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     Map<String, String> metadata = null;
     if (membershipEvent.isAdded()) {
       metadata = membershipEvent.newMetadata();
-      LOGGER.info("ServiceEndpoint ADDED, since member {} has joined the cluster", member);
+      LOGGER.info("ServiceEndpoint added, since member {} has joined the cluster", member);
     }
     if (membershipEvent.isRemoved()) {
       metadata = membershipEvent.oldMetadata();
-      LOGGER.info("ServiceEndpoint REMOVED, since member {} have left the cluster", member);
+      LOGGER.info("ServiceEndpoint removed, since member {} have left the cluster", member);
     }
 
     List<ServiceEndpoint> serviceEndpoints =
@@ -162,11 +162,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
           if (membershipEvent.isAdded()) {
             discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
-            LOGGER.info("Publish services registered: {}", discoveryEvent);
           }
           if (membershipEvent.isRemoved()) {
             discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-            LOGGER.info("Publish services unregistered: {}", discoveryEvent);
           }
 
           if (discoveryEvent != null) {

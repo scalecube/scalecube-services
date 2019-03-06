@@ -237,11 +237,10 @@ public class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () ->
-            Flux.concatDelayError(
-                    discoveryBootstrap.shutdown(),
-                    gatewayBootstrap.shutdown(),
-                    transportBootstrap.shutdown())
-                .then());
+            Mono.whenDelayError(
+                discoveryBootstrap.shutdown(),
+                gatewayBootstrap.shutdown(),
+                transportBootstrap.shutdown()));
   }
 
   public static final class Builder {
@@ -564,12 +563,11 @@ public class Microservices {
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              Flux.concatDelayError(
-                      Optional.ofNullable(serverTransport)
-                          .map(ServerTransport::stop)
-                          .orElse(Mono.empty()),
-                      resources.shutdown())
-                  .then());
+              Mono.whenDelayError(
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  resources.shutdown()));
     }
 
     @Override

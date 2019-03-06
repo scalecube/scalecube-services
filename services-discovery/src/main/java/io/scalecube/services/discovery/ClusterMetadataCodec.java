@@ -42,7 +42,7 @@ public class ClusterMetadataCodec {
     try {
       return objectMapper.readValue(metadata, ServiceEndpoint.class);
     } catch (IOException e) {
-      LOGGER.error("Can read metadata: " + e, e);
+      LOGGER.error("Failed to read metadata: " + e);
       return null;
     }
   }
@@ -58,7 +58,7 @@ public class ClusterMetadataCodec {
     try {
       return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
-      LOGGER.error("Can write metadata: " + e, e);
+      LOGGER.error("Failed to write metadata: " + e);
       throw Exceptions.propagate(e);
     }
   }

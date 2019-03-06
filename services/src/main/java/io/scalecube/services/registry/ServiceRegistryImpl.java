@@ -13,8 +13,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -50,6 +54,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
+      LOGGER.info("ServiceEndpoint registered: {}", serviceEndpoint);
       serviceEndpoint
           .serviceReferences()
           .forEach(
@@ -65,6 +70,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
+      LOGGER.info("ServiceEndpoint unregistered: {}", serviceEndpoint);
 
       Map<String, ServiceReference> serviceReferencesOfEndpoint =
           referencesByQualifier.values().stream()
