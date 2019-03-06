@@ -16,7 +16,9 @@ public interface MicroservicesMBean {
 
   Collection<String> getRecentServiceDiscoveryEvents();
 
-  Collection<String> getServiceTransport();
+  Collection<String> getClientServiceTransport();
+
+  Collection<String> getServerServiceTransport();
 
   Collection<String> getServiceDiscovery();
 }
