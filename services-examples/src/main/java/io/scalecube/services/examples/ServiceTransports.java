@@ -10,6 +10,12 @@ public class ServiceTransports {
     // Do not instantiate
   }
 
+  /**
+   * Returns new {@code ServiceTransportBootstrap} object.
+   *
+   * @param opts options
+   * @return new {@code ServiceTransportBootstrap} object
+   */
   public static ServiceTransportBootstrap rsocketServiceTransport(ServiceTransportBootstrap opts) {
     return opts.resources(RSocketTransportResources::new)
         .client(RSocketServiceTransport.INSTANCE::clientTransport)
