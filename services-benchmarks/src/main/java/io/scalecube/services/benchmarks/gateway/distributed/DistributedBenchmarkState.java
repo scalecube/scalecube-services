@@ -37,9 +37,9 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
 
     gateway =
         Microservices.builder()
-            .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
-            .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
-            .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
+            .gateway(opts -> new RSocketGateway(opts.id("rsws")))
+            .gateway(opts -> new WebsocketGateway(opts.id("ws")))
+            .gateway(opts -> new HttpGateway(opts.id("http")))
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
             .metrics(registry())

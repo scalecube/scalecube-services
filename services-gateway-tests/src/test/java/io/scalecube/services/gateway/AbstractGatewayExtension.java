@@ -10,7 +10,8 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
-import java.net.InetSocketAddress;
+import io.scalecube.services.transport.api.Address;
+import java.util.function.Function;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -26,21 +27,20 @@ public abstract class AbstractGatewayExtension
 
   private final Microservices gateway;
   private final Object serviceInstance;
-  private final GatewayConfig gatewayConfig;
 
   private Client client;
-  private InetSocketAddress gatewayAddress;
+  private Address gatewayAddress;
   private Microservices services;
 
-  protected AbstractGatewayExtension(Object serviceInstance, GatewayConfig gatewayConfig) {
-    this.gatewayConfig = gatewayConfig;
+  protected AbstractGatewayExtension(
+      Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
     this.serviceInstance = serviceInstance;
 
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
-            .gateway(gatewayConfig)
+            .gateway(gatewayFactory)
             .startAwait();
   }
 
@@ -59,7 +59,7 @@ public abstract class AbstractGatewayExtension
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = gateway.gateway(gatewayAliasName());
+    gatewayAddress = gateway.gateway(gatewayAliasName()).address();
     startServices();
   }
 
@@ -120,10 +120,7 @@ public abstract class AbstractGatewayExtension
   }
 
   protected final ClientSettings clientSettings() {
-    return ClientSettings.builder()
-        .host(gatewayAddress.getHostName())
-        .port(gatewayAddress.getPort())
-        .build();
+    return ClientSettings.builder().host(gatewayAddress.host()).port(gatewayAddress.port()).build();
   }
 
   protected abstract ClientTransport transport();

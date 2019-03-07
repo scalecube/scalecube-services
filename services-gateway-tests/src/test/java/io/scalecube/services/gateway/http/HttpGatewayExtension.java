@@ -14,7 +14,7 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
   private static final String GATEWAY_ALIAS_NAME = "http";
 
   HttpGatewayExtension(Object serviceInstance) {
-    super(serviceInstance, GatewayConfig.builder(GATEWAY_ALIAS_NAME, HttpGateway.class).build());
+    super(serviceInstance, opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)));
   }
 
   @Override
