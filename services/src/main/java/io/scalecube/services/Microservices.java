@@ -172,9 +172,9 @@ public class Microservices {
               // configure discovery and publish to the cluster
               return discoveryBootstrap
                   .start(serviceRegistry, serviceEndpoint)
-                  .then(Mono.defer(this::doInjection))
+                  .then(Mono.fromCallable(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this)))
+                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -189,10 +189,10 @@ public class Microservices {
     return gatewayBootstrap.start(workerPool, call, metrics);
   }
 
-  private Mono<Microservices> doInjection() {
+  private Microservices doInjection() {
     List<Object> serviceInstances =
         serviceInfos.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
-    return Mono.just(Reflect.inject(this, serviceInstances));
+    return Reflect.inject(this, serviceInstances);
   }
 
   private void collectAndRegister(ServiceInfo serviceInfo) {
@@ -587,24 +587,45 @@ public class Microservices {
     }
   }
 
-  private static class JmxMBeanBootstrap implements MicroservicesMBean {
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
+  }
+
+  private static class JmxMonitorMBean implements MonitorMBean {
 
     public static final int MAX_CACHE_SIZE = 128;
 
     private final Microservices microservices;
     private final ReplayProcessor<ServiceDiscoveryEvent> processor;
 
-    private static JmxMBeanBootstrap start(Microservices instance) throws Exception {
+    private static JmxMonitorMBean start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance);
+      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName =
           new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
-      StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
+      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
     }
 
-    private JmxMBeanBootstrap(Microservices microservices) {
+    private JmxMonitorMBean(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
       microservices.discovery().listen().subscribe(processor);
