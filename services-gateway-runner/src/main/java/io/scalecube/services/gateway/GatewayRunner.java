@@ -17,7 +17,6 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketTransportResources;
@@ -61,9 +60,7 @@ public class GatewayRunner {
     MetricRegistry metrics = initMetricRegistry();
 
     Microservices.builder()
-        .discovery(
-            (serviceRegistry, serviceEndpoint) ->
-                serviceDiscovery(serviceRegistry, serviceEndpoint, config))
+        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(opts, config))
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
@@ -82,9 +79,8 @@ public class GatewayRunner {
         .port(config.servicePort());
   }
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
             opts ->
                 opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))

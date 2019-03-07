@@ -14,7 +14,6 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.util.Collections;
 import java.util.Random;
@@ -46,9 +45,7 @@ public class Example1 {
     Microservices ms =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    serviceDiscovery(
-                        serviceRegistry, serviceEndpoint, gateway.discovery().address()))
+                serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway.discovery().address()))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new DefaultMarketDataService())
             .startAwait();
@@ -95,8 +92,8 @@ public class Example1 {
   }
 
   private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+      ServiceEndpoint serviceEndpoint, Address address) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(address)));
   }
 

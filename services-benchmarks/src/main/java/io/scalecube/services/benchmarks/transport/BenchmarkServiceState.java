@@ -44,8 +44,8 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
         Microservices.builder()
             .metrics(registry())
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(services)

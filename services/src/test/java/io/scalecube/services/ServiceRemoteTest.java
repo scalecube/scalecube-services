@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.GreetingRequest;
@@ -389,9 +388,8 @@ public class ServiceRemoteTest extends BaseTest {
         .api(GreetingService.class); // create proxy for GreetingService API
   }
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

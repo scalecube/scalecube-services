@@ -7,7 +7,6 @@ import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.util.Collections;
 import java.util.List;
@@ -18,7 +17,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -27,41 +26,39 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private final ServiceRegistry serviceRegistry;
+  private static final int EVENT_BUFFER_SIZE = 65536;
+
   private final ServiceEndpoint endpoint;
   private final ClusterConfig clusterConfig;
 
   private Cluster cluster;
 
-  private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
+  private final EmitterProcessor<ServiceDiscoveryEvent> subject =
+      EmitterProcessor.create(EVENT_BUFFER_SIZE, false);
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
   /**
    * Constructor.
    *
-   * @param serviceRegistry service registrety
    * @param endpoint service endpoiintg
    * @param clusterConfig slcaluecibe cluster config
    */
-  public ScalecubeServiceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint endpoint, ClusterConfig clusterConfig) {
-    this.serviceRegistry = serviceRegistry;
+  public ScalecubeServiceDiscovery(ServiceEndpoint endpoint, ClusterConfig clusterConfig) {
     this.endpoint = endpoint;
     this.clusterConfig = clusterConfig;
   }
 
   /**
-   * Constructror.
+   * Constructror with default {@code ClusterConfig.defaultLanConfig}.
    *
-   * @param serviceRegistry service registry
    * @param endpoint service endpoiint
    */
-  public ScalecubeServiceDiscovery(ServiceRegistry serviceRegistry, ServiceEndpoint endpoint) {
-    this(serviceRegistry, endpoint, ClusterConfig.defaultLanConfig());
+  public ScalecubeServiceDiscovery(ServiceEndpoint endpoint) {
+    this(endpoint, ClusterConfig.defaultLanConfig());
   }
 
   private ScalecubeServiceDiscovery(ScalecubeServiceDiscovery that, ClusterConfig clusterConfig) {
-    this(that.serviceRegistry, that.endpoint, clusterConfig);
+    this(that.endpoint, clusterConfig);
   }
 
   private ClusterConfig.Builder copyFrom(ClusterConfig config) {
@@ -108,10 +105,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           Map<String, String> metadata =
-              serviceRegistry.listServiceEndpoints().stream()
-                  .collect(
-                      Collectors.toMap(
-                          ServiceEndpoint::id, ClusterMetadataDecoder::encodeMetadata));
+              endpoint != null
+                  ? Collections.singletonMap(
+                      endpoint.id(), ClusterMetadataCodec.encodeMetadata(endpoint))
+                  : Collections.emptyMap();
 
           ClusterConfig clusterConfig = copyFrom(this.clusterConfig).addMetadata(metadata).build();
           ScalecubeServiceDiscovery serviceDiscovery =
@@ -131,11 +128,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listen() {
-    return Flux.defer(
-        () ->
-            Flux.fromIterable(serviceRegistry.listServiceEndpoints())
-                .map(ServiceDiscoveryEvent::registered)
-                .concatWith(subject));
+    return subject;
   }
 
   @Override
@@ -147,22 +140,22 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         });
   }
 
-  private void onMemberEvent(MembershipEvent event) {
-    final Member member = event.member();
+  private void onMemberEvent(MembershipEvent membershipEvent) {
+    final Member member = membershipEvent.member();
 
     Map<String, String> metadata = null;
-    if (event.isAdded()) {
-      metadata = event.newMetadata();
-      LOGGER.info("ServiceEndpoint ADDED, since member {} has joined the cluster", member);
+    if (membershipEvent.isAdded()) {
+      metadata = membershipEvent.newMetadata();
+      LOGGER.info("ServiceEndpoint added, since member {} has joined the cluster", member);
     }
-    if (event.isRemoved()) {
-      metadata = event.oldMetadata();
-      LOGGER.info("ServiceEndpoint REMOVED, since member {} have left the cluster", member);
+    if (membershipEvent.isRemoved()) {
+      metadata = membershipEvent.oldMetadata();
+      LOGGER.info("ServiceEndpoint removed, since member {} have left the cluster", member);
     }
 
     List<ServiceEndpoint> serviceEndpoints =
         Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
-            .map(ClusterMetadataDecoder::decodeMetadata)
+            .map(ClusterMetadataCodec::decodeMetadata)
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
@@ -170,34 +163,14 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         serviceEndpoint -> {
           ServiceDiscoveryEvent discoveryEvent = null;
 
-          switch (event.type()) {
-            case ADDED:
-              // Register services
-              if (serviceRegistry.registerService(serviceEndpoint)) {
-                discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
-              }
-              break;
-            case REMOVED:
-              // Unregister services
-              if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
-                discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-              }
-              break;
-            default:
-              break;
+          if (membershipEvent.isAdded()) {
+            discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
+          }
+          if (membershipEvent.isRemoved()) {
+            discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
           }
 
           if (discoveryEvent != null) {
-            switch (discoveryEvent.type()) {
-              case REGISTERED:
-                LOGGER.info("Publish services registered: {}", discoveryEvent);
-                break;
-              case UNREGISTERED:
-                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
-                break;
-              default:
-                break;
-            }
             sink.next(discoveryEvent);
           }
         });

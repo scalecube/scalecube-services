@@ -43,8 +43,8 @@ public class ServiceTransportTest {
     serviceNode =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(toAddress(gateway.discovery().address()))))
             .transport(ServiceTransports::rsocketServiceTransport)

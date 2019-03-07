@@ -35,8 +35,8 @@ public class Example1 {
     Microservices microservices =
         Microservices.builder()
             .discovery(
-                (serviceRegistry, serviceEndpoint) ->
-                    new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())

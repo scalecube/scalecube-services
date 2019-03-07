@@ -12,7 +12,6 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketTransportResources;
@@ -55,9 +54,7 @@ public class ExamplesRunner {
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     Microservices.builder()
-        .discovery(
-            (serviceRegistry, serviceEndpoint) ->
-                serviceDiscovery(serviceRegistry, serviceEndpoint, config))
+        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(numOfThreads, opts, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait();
@@ -73,9 +70,8 @@ public class ExamplesRunner {
         .port(config.servicePort());
   }
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint, Config config) {
-    return new ScalecubeServiceDiscovery(serviceRegistry, serviceEndpoint)
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
             opts ->
                 opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))

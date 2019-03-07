@@ -7,7 +7,6 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -121,10 +120,8 @@ public class Microservices {
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscoveryFactory serviceDiscoveryFactory;
+  private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
-
-  private ServiceDiscovery discovery;
 
   private Microservices(Builder builder) {
     this.id = UUID.randomUUID().toString();
@@ -134,8 +131,8 @@ public class Microservices {
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.serviceDiscoveryFactory = builder.serviceDiscoveryFactory;
-    this.transportBootstrap = builder.serviceTransportBootstrap;
+    this.discoveryBootstrap = builder.discoveryBootstrap;
+    this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
   }
 
@@ -173,13 +170,11 @@ public class Microservices {
               }
 
               // configure discovery and publish to the cluster
-              return serviceDiscoveryFactory
-                  .createFrom(serviceRegistry, serviceEndpoint)
-                  .start()
-                  .doOnNext(discovery -> this.discovery = discovery)
+              return discoveryBootstrap
+                  .start(serviceRegistry, serviceEndpoint)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this, discovery)))
+                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this)))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -231,7 +226,7 @@ public class Microservices {
   }
 
   public ServiceDiscovery discovery() {
-    return this.discovery;
+    return discoveryBootstrap.discovery;
   }
 
   /**
@@ -243,13 +238,9 @@ public class Microservices {
     return Mono.defer(
         () ->
             Mono.whenDelayError(
-                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
-                Optional.ofNullable(gatewayBootstrap)
-                    .map(GatewayBootstrap::shutdown)
-                    .orElse(Mono.empty()),
-                Optional.ofNullable(transportBootstrap)
-                    .map(ServiceTransportBootstrap::shutdown)
-                    .orElse(Mono.empty())));
+                discoveryBootstrap.shutdown(),
+                gatewayBootstrap.shutdown(),
+                transportBootstrap.shutdown()));
   }
 
   public static final class Builder {
@@ -259,8 +250,8 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServiceDiscoveryFactory serviceDiscoveryFactory;
-    private ServiceTransportBootstrap serviceTransportBootstrap = new ServiceTransportBootstrap();
+    private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
+    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
@@ -311,13 +302,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(ServiceDiscoveryFactory factory) {
-      this.serviceDiscoveryFactory = factory;
+    public Builder discovery(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryBootstrap = new ServiceDiscoveryBootstrap(factory);
       return this;
     }
 
     public Builder transport(UnaryOperator<ServiceTransportBootstrap> op) {
-      this.serviceTransportBootstrap = op.apply(this.serviceTransportBootstrap);
+      this.transportBootstrap = op.apply(this.transportBootstrap);
       return this;
     }
 
@@ -342,6 +333,55 @@ public class Microservices {
     }
   }
 
+  public static class ServiceDiscoveryBootstrap {
+
+    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory;
+
+    private ServiceDiscovery discovery;
+
+    private ServiceDiscoveryBootstrap() {}
+
+    private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryFactory = factory;
+    }
+
+    private Mono<ServiceDiscovery> start(
+        ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+      return Mono.defer(
+          () ->
+              discoveryFactory
+                  .apply(serviceEndpoint)
+                  .start()
+                  .doOnSuccess(
+                      discovery -> {
+                        this.discovery = discovery;
+                        listenDiscoveryEvents(serviceRegistry);
+                      }));
+    }
+
+    private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
+      discovery.listen().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+    }
+
+    private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
+      ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
+      if (event.isRegistered()) {
+        serviceRegistry.registerService(serviceEndpoint);
+      }
+      if (event.isUnregistered()) {
+        serviceRegistry.unregisterService(serviceEndpoint.id());
+      }
+    }
+
+    private Mono<Void> shutdown() {
+      return Mono.defer(
+          () ->
+              Optional.ofNullable(discovery) //
+                  .map(ServiceDiscovery::shutdown)
+                  .orElse(Mono.empty()));
+    }
+  }
+
   private static class GatewayBootstrap {
 
     private Set<GatewayConfig> gatewayConfigs = new HashSet<>(); // config
@@ -362,10 +402,10 @@ public class Microservices {
     private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
-              gatewayConfig ->
-                  Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerPool, call, metrics)
-                      .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
+              gwConfig ->
+                  Gateway.getGateway(gwConfig.gatewayClass())
+                      .start(gwConfig, workerPool, call, metrics)
+                      .doOnSuccess(gw -> gatewayInstances.put(gwConfig, gw)))
           .then(Mono.just(this));
     }
 
@@ -494,7 +534,7 @@ public class Microservices {
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.fromSupplier(resourcesSupplier)
           .flatMap(TransportResources::start)
-          .doOnNext(
+          .doOnSuccess(
               resources -> {
                 // keep transport resources
                 this.resources = resources;
@@ -505,7 +545,7 @@ public class Microservices {
                 // bind server transport
                 return serverTransport.bind(port, methodRegistry);
               })
-          .doOnNext(
+          .doOnSuccess(
               serverTransport -> {
                 // prepare service host:port for exposing
                 int port = serverTransport.address().port();
@@ -552,13 +592,11 @@ public class Microservices {
     public static final int MAX_CACHE_SIZE = 128;
 
     private final Microservices microservices;
-    private final ServiceDiscovery serviceDiscovery;
     private final ReplayProcessor<ServiceDiscoveryEvent> processor;
 
-    private static JmxMBeanBootstrap start(
-        Microservices instance, ServiceDiscovery serviceDiscovery) throws Exception {
+    private static JmxMBeanBootstrap start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscovery);
+      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance);
       ObjectName objectName =
           new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
@@ -566,11 +604,10 @@ public class Microservices {
       return jmxMBean;
     }
 
-    private JmxMBeanBootstrap(Microservices microservices, ServiceDiscovery serviceDiscovery) {
-      this.serviceDiscovery = serviceDiscovery;
+    private JmxMBeanBootstrap(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery.listen().subscribe(processor);
+      microservices.discovery().listen().subscribe(processor);
     }
 
     @Override
@@ -610,13 +647,18 @@ public class Microservices {
     }
 
     @Override
-    public Collection<String> getServiceTransport() {
-      return Collections.singletonList(microservices.transportBootstrap.toString());
+    public Collection<String> getClientServiceTransport() {
+      return Collections.singletonList(microservices.transportBootstrap.clientTransport.toString());
+    }
+
+    @Override
+    public Collection<String> getServerServiceTransport() {
+      return Collections.singletonList(microservices.transportBootstrap.serverTransport.toString());
     }
 
     @Override
     public Collection<String> getServiceDiscovery() {
-      return Collections.singletonList(serviceDiscovery.toString());
+      return Collections.singletonList(microservices.discovery().toString());
     }
   }
 }
