@@ -62,9 +62,9 @@ public class GatewayRunner {
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(opts, config))
-        .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
-        .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
-        .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).port(9090).build())
+        .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
+        .gateway(opts -> new HttpGateway(opts.id("http").port(8080)))
+        .gateway(opts -> new RSocketGateway(opts.id("rsws").port(9090)))
         .metrics(metrics)
         .startAwait();
 

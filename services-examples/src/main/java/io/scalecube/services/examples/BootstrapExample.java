@@ -11,7 +11,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.gateway.HttpGatewayStub;
 import io.scalecube.services.examples.gateway.WebsocketGatewayStub;
-import io.scalecube.services.gateway.GatewayConfig;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -34,20 +33,9 @@ public class BootstrapExample {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
-            .gateway(
-                GatewayConfig.builder("http", HttpGatewayStub.class)
-                    .port(8181)
-                    .build()) // override default port
-            .gateway(
-                GatewayConfig.builder("ws", WebsocketGatewayStub.class)
-                    .port(9191)
-                    .addOption(
-                        WebsocketGatewayStub.WS_SPECIFIC_OPTION_NAME,
-                        "500") // override default value of specific option
-                    .build())
+            .gateway(opts -> new HttpGatewayStub(opts.id("http").port(8181)))
+            .gateway(opts -> new WebsocketGatewayStub(opts.id("ws").port(9191)))
             .startAwait();
-
-    System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =

@@ -6,7 +6,6 @@ import io.scalecube.services.benchmarks.ServiceTransports;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
-import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;

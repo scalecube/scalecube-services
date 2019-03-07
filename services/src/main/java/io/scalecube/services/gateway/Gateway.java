@@ -1,43 +1,30 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.ServiceLoaderUtil;
-import io.scalecube.services.metrics.Metrics;
-import java.net.InetSocketAddress;
-import java.util.concurrent.Executor;
+import io.scalecube.services.transport.api.Address;
 import reactor.core.publisher.Mono;
 
 public interface Gateway {
 
   /**
-   * Get {@link Gateway} instance by type.
+   * Returns gateway id.
    *
-   * @param gatewayClass - type of {@link Gateway} to be returned.
-   * @return - instance of {@link Gateway} of given <code>gatewayClass</code>.
+   * @return gateway id
    */
-  static Gateway getGateway(Class<? extends Gateway> gatewayClass) {
-    return ServiceLoaderUtil.findFirst(
-            Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
-        .orElseThrow(() -> new IllegalStateException("Gateway is not found in classpath"));
-  }
+  String id();
 
   /**
-   * Starts the gateway with given configuration. In case some options are not overridden, default
-   * values will be used.
+   * Returns gateway address.
    *
-   * @param config gateway configuration
-   * @param workerPool worker service transport executor service
-   * @param call service call definition
-   * @param metrics @return IP socket address on which gateway is listening to requests
+   * @return gateway listen address
    */
-  Mono<Gateway> start(GatewayConfig config, Executor workerPool, Call call, Metrics metrics);
+  Address address();
 
   /**
-   * Returns Gateway's address if it's started, {@code null} otherwise.
+   * Starts the gateway.
    *
-   * @return Mono of listening address of gateway if it's started.
+   * @return mono result
    */
-  InetSocketAddress address();
+  Mono<Gateway> start();
 
   /**
    * Stops the gateway.

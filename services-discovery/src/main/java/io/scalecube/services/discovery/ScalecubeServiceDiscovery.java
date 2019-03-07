@@ -114,7 +114,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           ScalecubeServiceDiscovery serviceDiscovery =
               new ScalecubeServiceDiscovery(this, clusterConfig);
 
-          LOGGER.info("Start ScalecubeServiceDiscovery with config: {}", clusterConfig);
           return Cluster.join(clusterConfig)
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
               .doOnSuccess(serviceDiscovery::listen)

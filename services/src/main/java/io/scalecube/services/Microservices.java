@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static java.util.stream.Collectors.toMap;
-
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -10,7 +8,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
@@ -21,19 +19,16 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -42,6 +37,8 @@ import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
@@ -111,6 +108,8 @@ import reactor.core.publisher.ReplayProcessor;
  */
 public class Microservices {
 
+  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+
   private final String id;
   private final Metrics metrics;
   private final Map<String, String> tags;
@@ -149,8 +148,9 @@ public class Microservices {
         .start(methodRegistry)
         .flatMap(
             input -> {
-              ClientTransport clientTransport = transportBootstrap.clientTransport;
-              Address serviceAddress = transportBootstrap.address;
+              final ClientTransport clientTransport = transportBootstrap.clientTransport;
+              final Address serviceAddress = transportBootstrap.address;
+              final Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
 
               Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
@@ -173,7 +173,7 @@ public class Microservices {
               return discoveryBootstrap
                   .start(serviceRegistry, serviceEndpoint)
                   .then(Mono.fromCallable(this::doInjection))
-                  .then(Mono.defer(() -> startGateway(call)))
+                  .then(Mono.defer(() -> startGateway(call, workerPool)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .thenReturn(this);
             })
@@ -184,9 +184,9 @@ public class Microservices {
             });
   }
 
-  private Mono<GatewayBootstrap> startGateway(Call call) {
-    Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
-    return gatewayBootstrap.start(workerPool, call, metrics);
+  private Mono<GatewayBootstrap> startGateway(Call call, Executor workerPool) {
+    return gatewayBootstrap.start(
+        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
   }
 
   private Microservices doInjection() {
@@ -217,12 +217,8 @@ public class Microservices {
     return new Call(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
   }
 
-  public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
-    return gatewayBootstrap.gatewayAddress(name, gatewayClass);
-  }
-
-  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-    return gatewayBootstrap.gatewayAddresses();
+  public Gateway gateway(String id) {
+    return gatewayBootstrap.gateway(id);
   }
 
   public ServiceDiscovery discovery() {
@@ -322,8 +318,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder gateway(GatewayConfig config) {
-      gatewayBootstrap.addConfig(config);
+    public Builder gateway(Function<GatewayOptions, Gateway> factory) {
+      gatewayBootstrap.addFactory(factory);
       return this;
     }
 
@@ -348,15 +344,24 @@ public class Microservices {
     private Mono<ServiceDiscovery> start(
         ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
       return Mono.defer(
-          () ->
-              discoveryFactory
-                  .apply(serviceEndpoint)
-                  .start()
-                  .doOnSuccess(
-                      discovery -> {
-                        this.discovery = discovery;
-                        listenDiscoveryEvents(serviceRegistry);
-                      }));
+          () -> {
+            ServiceDiscovery serviceDiscovery = discoveryFactory.apply(serviceEndpoint);
+            LOGGER.info("Starting service discovery -- {}", serviceDiscovery);
+            return serviceDiscovery
+                .start()
+                .doOnSuccess(
+                    discovery -> {
+                      this.discovery = discovery;
+                      LOGGER.info("Successfully started service discovery -- {}", this.discovery);
+                      listenDiscoveryEvents(serviceRegistry);
+                    })
+                .doOnError(
+                    ex ->
+                        LOGGER.error(
+                            "Failed to start service discovery -- {}, cause: {}",
+                            serviceDiscovery,
+                            ex));
+          });
     }
 
     private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
@@ -378,69 +383,70 @@ public class Microservices {
           () ->
               Optional.ofNullable(discovery) //
                   .map(ServiceDiscovery::shutdown)
-                  .orElse(Mono.empty()));
+                  .orElse(Mono.empty())
+                  .doFinally(
+                      s -> {
+                        if (discovery != null) {
+                          LOGGER.info("Service discovery -- {} has been stopped", discovery);
+                        }
+                      }));
     }
   }
 
   private static class GatewayBootstrap {
 
-    private Set<GatewayConfig> gatewayConfigs = new HashSet<>(); // config
-    private Map<GatewayConfig, Gateway> gatewayInstances = new HashMap<>(); // calculated
+    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
+    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
 
-    private GatewayBootstrap addConfig(GatewayConfig config) {
-      if (!gatewayConfigs.add(config)) {
-        throw new IllegalArgumentException(
-            "GatewayConfig with name: '"
-                + config.name()
-                + "' and gatewayClass: '"
-                + config.gatewayClass().getName()
-                + "' was already defined");
-      }
+    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
+      this.factories.add(factory);
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
-      return Flux.fromIterable(gatewayConfigs)
+    private Mono<GatewayBootstrap> start(GatewayOptions options) {
+      return Flux.fromIterable(factories)
           .flatMap(
-              gwConfig ->
-                  Gateway.getGateway(gwConfig.gatewayClass())
-                      .start(gwConfig, workerPool, call, metrics)
-                      .doOnSuccess(gw -> gatewayInstances.put(gwConfig, gw)))
+              factory -> {
+                Gateway gateway = factory.apply(options);
+                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
+                return gateway
+                    .start()
+                    .doOnSuccess(gateways::add)
+                    .doOnSuccess(
+                        result ->
+                            LOGGER.info(
+                                "Successfully started gateway -- {} on {}",
+                                result,
+                                result.address()))
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "Failed to start gateway -- {} with {}, cause: {}",
+                                gateway,
+                                options,
+                                ex));
+              })
           .then(Mono.just(this));
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              gatewayInstances != null && !gatewayInstances.isEmpty()
-                  ? Mono.whenDelayError(
-                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
-                  : Mono.empty());
+              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
+                  .doFinally(
+                      s -> {
+                        if (!gateways.isEmpty()) {
+                          LOGGER.info("Gateways have been stopped");
+                        }
+                      }));
     }
 
-    private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
-      Optional<GatewayConfig> result =
-          gatewayInstances.keySet().stream()
-              .filter(config -> config.name().equals(name))
-              .filter(config -> config.gatewayClass() == gatewayClass)
-              .findFirst();
-
-      if (!result.isPresent()) {
-        throw new IllegalArgumentException(
-            "Didn't find gateway address under name: '"
-                + name
-                + "' and gateway class: '"
-                + gatewayClass.getName()
-                + "'");
-      }
-
-      return gatewayInstances.get(result.get()).address();
-    }
-
-    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-      return Collections.unmodifiableMap(
-          gatewayInstances.entrySet().stream()
-              .collect(toMap(Entry::getKey, e -> e.getValue().address())));
+    private Gateway gateway(String id) {
+      return gateways.stream()
+          .filter(gw -> gw.id().equals(id))
+          .findFirst()
+          .orElseThrow(
+              () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
     }
   }
 
@@ -538,15 +544,29 @@ public class Microservices {
               resources -> {
                 // keep transport resources
                 this.resources = resources;
+                LOGGER.info(
+                    "Successfully started service transport resources -- {}", this.resources);
               })
+          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: {}", ex))
           .flatMap(
               resources -> {
-                this.serverTransport = serverTransportFactory.apply(resources);
                 // bind server transport
-                return serverTransport.bind(port, methodRegistry);
+                ServerTransport serverTransport = serverTransportFactory.apply(resources);
+                return serverTransport
+                    .bind(port, methodRegistry)
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "Failed to bind server service "
+                                    + "transport -- {} on port: {}, cause: {}",
+                                serverTransport,
+                                port,
+                                ex));
               })
           .doOnSuccess(
               serverTransport -> {
+                this.serverTransport = serverTransport;
+
                 // prepare service host:port for exposing
                 int port = serverTransport.address().port();
                 String host =
@@ -554,8 +574,15 @@ public class Microservices {
                         .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
                 this.address = Address.create(host, port);
 
-                // create client transpotr
+                LOGGER.info(
+                    "Successfully bound server service transport -- {} on address {}",
+                    this.serverTransport,
+                    this.address);
+
+                // create client transport
                 this.clientTransport = clientTransportFactory.apply(resources);
+                LOGGER.info(
+                    "Successfully created client service transport -- {}", this.clientTransport);
               })
           .thenReturn(this);
     }
@@ -564,10 +591,18 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  resources.shutdown()));
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()),
+                      Optional.ofNullable(resources)
+                          .map(TransportResources::shutdown)
+                          .orElse(Mono.empty()))
+                  .doFinally(
+                      s -> {
+                        if (resources != null) {
+                          LOGGER.info("Service transport have been stopped");
+                        }
+                      }));
     }
 
     @Override
@@ -592,8 +627,6 @@ public class Microservices {
     Collection<String> getId();
 
     Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
 
     Collection<String> getServiceEndpoint();
 
@@ -639,13 +672,6 @@ public class Microservices {
     @Override
     public Collection<String> getDiscoveryAddress() {
       return Collections.singletonList(microservices.discovery().address().toString());
-    }
-
-    @Override
-    public Collection<String> getGatewayAddresses() {
-      return microservices.gatewayAddresses().entrySet().stream()
-          .map(entry -> entry.getKey() + " : " + entry.getValue())
-          .collect(Collectors.toList());
     }
 
     @Override

@@ -5,46 +5,39 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.GatewayLoopResources;
-import io.scalecube.services.gateway.GatewayMetrics;
+import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
-import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import java.util.Optional;
-import java.util.concurrent.Executor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 
 public class RSocketGateway extends GatewayTemplate {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
-
   private CloseableChannel server;
   private LoopResources loopResources;
 
-  @Override
-  public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
+  public RSocketGateway(GatewayOptions options) {
+    super(options);
+  }
 
+  @Override
+  public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Starting gateway with {}", config);
+          RSocketGatewayAcceptor acceptor =
+              new RSocketGatewayAcceptor(options.call().create(), gatewayMetrics);
 
-          GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
-
-          if (workerPool != null) {
-            loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);
+          if (options.workerPool() != null) {
+            loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
           }
 
           WebsocketServerTransport rsocketTransport =
               WebsocketServerTransport.create(
-                  prepareHttpServer(loopResources, config.port(), metrics1));
+                  prepareHttpServer(loopResources, options.port(), gatewayMetrics));
 
           return RSocketFactory.receive()
               .frameDecoder(
@@ -55,17 +48,14 @@ public class RSocketGateway extends GatewayTemplate {
               .transport(rsocketTransport)
               .start()
               .doOnSuccess(server -> this.server = server)
-              .doOnSuccess(
-                  server ->
-                      LOGGER.info(
-                          "Rsocket Gateway has been started successfully on {}", server.address()))
               .thenReturn(this);
         });
   }
 
   @Override
-  public InetSocketAddress address() {
-    return server.address();
+  public Address address() {
+    InetSocketAddress address = server.address();
+    return Address.create(address.getHostString(), address.getPort());
   }
 
   @Override
@@ -80,10 +70,7 @@ public class RSocketGateway extends GatewayTemplate {
                 .map(
                     server -> {
                       server.dispose();
-                      return server
-                          .onClose()
-                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
-                          .onErrorResume(e -> Mono.empty());
+                      return server.onClose().onErrorResume(e -> Mono.empty());
                     })
                 .orElse(Mono.empty()));
   }

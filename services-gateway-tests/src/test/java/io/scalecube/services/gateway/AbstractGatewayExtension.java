@@ -59,7 +59,7 @@ public abstract class AbstractGatewayExtension
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = gateway.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
+    gatewayAddress = gateway.gateway(gatewayAliasName());
     startServices();
   }
 
