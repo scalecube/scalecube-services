@@ -34,7 +34,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private Cluster cluster;
 
   private final EmitterProcessor<ServiceDiscoveryEvent> subject =
-      EmitterProcessor.create(EVENT_BUFFER_SIZE);
+      EmitterProcessor.create(EVENT_BUFFER_SIZE, false);
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
   /**
