@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.channel.EventLoopGroup;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.GatewayLoopResources;
@@ -25,14 +25,14 @@ public class WebsocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
+      GatewayConfig config, Executor workerPool, ServiceCall call, Metrics metrics) {
 
     return Mono.defer(
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call.create(), metrics1);
+          WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call, metrics1);
 
           if (workerPool != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);

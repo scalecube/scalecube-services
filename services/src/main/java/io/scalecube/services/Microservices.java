@@ -1,9 +1,8 @@
 package io.scalecube.services;
 
 import static java.util.stream.Collectors.toMap;
-
 import com.codahale.metrics.MetricRegistry;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -99,7 +98,7 @@ import reactor.core.publisher.ReplayProcessor;
  *      .startAwait();
  *
  *  // Create microservice proxy to GreetingService.class interface:
- *  GreetingService service = microservices.call().create()
+ *  GreetingService service = microservices.call()
  *      .api(GreetingService.class);
  *
  *  // Invoke the greeting service async:
@@ -152,10 +151,11 @@ public class Microservices {
               ClientTransport clientTransport = transportBootstrap.clientTransport;
               Address serviceAddress = transportBootstrap.address;
 
-              Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
+              ServiceCall call = new ServiceCall(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
-              serviceProviders.stream()
+              serviceProviders
+                  .stream()
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
@@ -184,7 +184,7 @@ public class Microservices {
             });
   }
 
-  private Mono<GatewayBootstrap> startGateway(Call call) {
+  private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
     Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
     return gatewayBootstrap.start(workerPool, call, metrics);
   }
@@ -213,8 +213,8 @@ public class Microservices {
     return transportBootstrap.address;
   }
 
-  public Call call() {
-    return new Call(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
+  public ServiceCall call() {
+    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
   }
 
   public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -399,7 +399,7 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(Executor workerPool, ServiceCall call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gwConfig ->
@@ -420,7 +420,9 @@ public class Microservices {
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
       Optional<GatewayConfig> result =
-          gatewayInstances.keySet().stream()
+          gatewayInstances
+              .keySet()
+              .stream()
               .filter(config -> config.name().equals(name))
               .filter(config -> config.gatewayClass() == gatewayClass)
               .findFirst();
@@ -439,7 +441,9 @@ public class Microservices {
 
     private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(
-          gatewayInstances.entrySet().stream()
+          gatewayInstances
+              .entrySet()
+              .stream()
               .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }
@@ -622,7 +626,10 @@ public class Microservices {
 
     @Override
     public Collection<String> getGatewayAddresses() {
-      return microservices.gatewayAddresses().entrySet().stream()
+      return microservices
+          .gatewayAddresses()
+          .entrySet()
+          .stream()
           .map(entry -> entry.getKey() + " : " + entry.getValue())
           .collect(Collectors.toList());
     }
@@ -641,7 +648,10 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceEndpoints() {
-      return microservices.serviceRegistry.listServiceEndpoints().stream()
+      return microservices
+          .serviceRegistry
+          .listServiceEndpoints()
+          .stream()
           .map(ServiceEndpoint::toString)
           .collect(Collectors.toList());
     }

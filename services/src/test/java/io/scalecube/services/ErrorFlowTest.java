@@ -63,7 +63,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req =
         consumer
             .call()
-            .create()
             .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
     assertThrows(InternalServiceException.class, () -> from(req).block());
   }
@@ -73,7 +72,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req =
         consumer
             .call()
-            .create()
             .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
     assertThrows(UnauthorizedException.class, () -> from(req).block());
   }
@@ -83,14 +81,13 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req =
         consumer
             .call()
-            .create()
             .requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
   @Test
   public void testServiceUnavailable() {
-    StepVerifier.create(consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ))
+    StepVerifier.create(consumer.call().requestOne(TestRequests.NOT_FOUND_REQ))
         .expectError(ServiceUnavailableException.class)
         .verify();
   }

@@ -1,7 +1,6 @@
 package io.scalecube.services.examples.helloworld;
 
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
-
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
@@ -43,7 +42,7 @@ public class Example1 {
             .startAwait();
 
     // Create service proxy
-    GreetingsService service = seed.call().create().api(GreetingsService.class);
+    GreetingsService service = seed.call().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
     service

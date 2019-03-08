@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.gateway;
 
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
@@ -17,7 +17,7 @@ public class WebsocketGatewayStub implements Gateway {
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
+      GatewayConfig config, Executor workerPool, ServiceCall call, Metrics metrics) {
 
     this.address = new InetSocketAddress(config.port());
     return Mono.defer(
