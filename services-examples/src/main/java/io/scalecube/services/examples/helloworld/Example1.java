@@ -1,6 +1,7 @@
 package io.scalecube.services.examples.helloworld;
 
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
