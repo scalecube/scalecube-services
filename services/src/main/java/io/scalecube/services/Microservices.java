@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static java.util.stream.Collectors.toMap;
+
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ServiceScanner;
