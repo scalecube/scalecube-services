@@ -60,8 +60,8 @@ public class BootstrapExample {
                         ServiceInfo.fromServiceInstance(
                                 new HelloWorldServiceImpl(
                                     new BusinessLogicFacade(
-                                        call.create().api(ServiceHello.class),
-                                        call.create().api(ServiceWorld.class))))
+                                        call.api(ServiceHello.class),
+                                        call.api(ServiceWorld.class))))
                             .build()))
             .startAwait();
 
@@ -85,7 +85,7 @@ public class BootstrapExample {
     TimeUnit.SECONDS.sleep(3);
 
     System.out.println("Making hello world business logic ...");
-    HelloWorldService helloWorldService = node1.call().create().api(HelloWorldService.class);
+    HelloWorldService helloWorldService = node1.call().api(HelloWorldService.class);
 
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);

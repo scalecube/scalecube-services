@@ -1,7 +1,7 @@
 package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ClusterAddresses;
@@ -49,13 +49,13 @@ public class Example2 {
             .startAwait();
 
     // Create a proxy to the seed service node
-    Call service = seed.call();
+    ServiceCall service = seed.call();
 
     // Create a ServiceMessage request with service qualifier and data
     ServiceMessage request =
         ServiceMessage.builder().qualifier(SERVICE_QUALIFIER).data("joe").build();
     // Execute the Greeting Service to emit a single Greeting response
-    Publisher<ServiceMessage> publisher = service.create().requestOne(request, Greeting.class);
+    Publisher<ServiceMessage> publisher = service.requestOne(request, Greeting.class);
 
     // Convert the Publisher using the Mono API which ensures it will emit 0 or 1 item.
     Mono.from(publisher)

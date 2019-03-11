@@ -52,7 +52,7 @@ public class ServiceLocalTest extends BaseTest {
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    GreetingService service = microservices.call().create().api(GreetingService.class);
+    GreetingService service = microservices.call().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -255,7 +255,6 @@ public class ServiceLocalTest extends BaseTest {
   private GreetingService createProxy(Microservices gateway) {
     return gateway
         .call()
-        .create()
         .api(GreetingService.class); // create proxy for GreetingService API
   }
 }

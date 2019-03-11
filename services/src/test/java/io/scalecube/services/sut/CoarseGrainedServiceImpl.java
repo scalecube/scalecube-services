@@ -33,7 +33,6 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   public Mono<String> callGreetingWithDispatcher(String request) {
     return microservices
         .call()
-        .create()
         .requestOne(
             ServiceMessage.builder()
                 .qualifier(GreetingService.SERVICE_NAME, "greeting")

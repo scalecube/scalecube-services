@@ -5,7 +5,7 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.GatewayLoopResources;
@@ -29,14 +29,14 @@ public class RSocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
+      GatewayConfig config, Executor workerPool, ServiceCall call, Metrics metrics) {
 
     return Mono.defer(
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
+          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call, metrics1);
 
           if (workerPool != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);

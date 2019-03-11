@@ -7,12 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceTransports;
@@ -104,7 +102,7 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_round_robin() {
 
-    ServiceCall service = gateway.call().create();
+    ServiceCall service = gateway.call();
 
     // call the service.
     GreetingResponse result1 =
@@ -128,7 +126,6 @@ public class RoutersTest extends BaseTest {
         gateway
             .call()
             .router(Routers.getRouter(WeightedRandomRouter.class))
-            .create()
             .api(CanaryService.class);
 
     Thread.sleep(1000);
@@ -153,19 +150,20 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_tag_selection_logic() {
 
-    Call service =
+    ServiceCall service =
         gateway
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences().stream()
+                    reg.listServiceReferences()
+                        .stream()
                         .filter(ref -> "2".equals(ref.tags().get("SENDER")))
                         .findFirst());
 
     // call the service.
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
               .timeout(timeout)
               .block()
               .data();
@@ -181,14 +179,14 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences().stream()
+                    reg.listServiceReferences()
+                        .stream()
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())
                                     .getName()
                                     .equals(ref.tags().get("ONLYFOR")))
-                        .findFirst())
-            .create();
+                        .findFirst());
 
     // call the service.
     for (int i = 0; i < 1e2; i++) {
@@ -205,7 +203,7 @@ public class RoutersTest extends BaseTest {
   public void test_service_tags() throws Exception {
 
     TimeUnit.SECONDS.sleep(3);
-    ServiceCall service = gateway.call().router(WeightedRandomRouter.class).create();
+    ServiceCall service = gateway.call().router(WeightedRandomRouter.class);
 
     ServiceMessage req =
         ServiceMessage.builder()

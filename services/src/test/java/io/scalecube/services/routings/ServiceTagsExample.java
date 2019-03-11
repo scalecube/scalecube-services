@@ -52,7 +52,7 @@ public class ServiceTagsExample {
             .startAwait();
 
     CanaryService service =
-        gateway.call().router(WeightedRandomRouter.class).create().api(CanaryService.class);
+        gateway.call().router(WeightedRandomRouter.class).api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {
       Mono.from(service.greeting(new GreetingRequest("joe")))

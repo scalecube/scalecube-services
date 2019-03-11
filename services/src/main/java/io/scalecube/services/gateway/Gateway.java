@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
@@ -30,7 +30,7 @@ public interface Gateway {
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
-  Mono<Gateway> start(GatewayConfig config, Executor workerPool, Call call, Metrics metrics);
+  Mono<Gateway> start(GatewayConfig config, Executor workerPool, ServiceCall call, Metrics metrics);
 
   /**
    * Returns Gateway's address if it's started, {@code null} otherwise.

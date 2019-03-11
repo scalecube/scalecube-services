@@ -71,11 +71,11 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
     return seed;
   }
 
-  public <T> T service(Class<T> c) {
-    return seed.call().create().api(c);
+  public <T> T api(Class<T> c) {
+    return call().api(c);
   }
 
-  public ServiceCall serviceCall() {
-    return seed.call().create();
+  public ServiceCall call() {
+    return seed.call();
   }
 }
