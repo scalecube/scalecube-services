@@ -29,7 +29,7 @@ public class RSocketGateway extends GatewayTemplate {
     return Mono.defer(
         () -> {
           RSocketGatewayAcceptor acceptor =
-              new RSocketGatewayAcceptor(options.call().create(), gatewayMetrics);
+              new RSocketGatewayAcceptor(options.call(), gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

@@ -25,7 +25,7 @@ public class WebsocketGateway extends GatewayTemplate {
     return Mono.defer(
         () -> {
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(options.call().create(), gatewayMetrics);
+              new WebsocketGatewayAcceptor(options.call(), gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

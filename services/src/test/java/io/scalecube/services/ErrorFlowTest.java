@@ -79,9 +79,7 @@ public class ErrorFlowTest {
   @Test
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req =
-        consumer
-            .call()
-            .requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
+        consumer.call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     assertThrows(BadRequestException.class, () -> from(req).block());
   }
 

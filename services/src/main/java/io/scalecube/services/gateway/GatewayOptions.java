@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.metrics.Metrics;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 public class GatewayOptions {
 
   private Executor workerPool;
-  private Call call;
+  private ServiceCall call;
   private Metrics metrics;
   private String id;
   private int port = 0;
@@ -53,11 +53,11 @@ public class GatewayOptions {
     return workerPool;
   }
 
-  public GatewayOptions call(Call call) {
+  public GatewayOptions call(ServiceCall call) {
     return set(o -> o.call = call);
   }
 
-  public Call call() {
+  public ServiceCall call() {
     return call;
   }
 

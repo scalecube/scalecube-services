@@ -22,7 +22,7 @@ public class RemoteInfiniteStreamBenchmark {
                 benchmarkSettings,
                 WS_PORT,
                 (address, loopResources) ->
-                    Client.onWebsocket(
+                    Client.websocket(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

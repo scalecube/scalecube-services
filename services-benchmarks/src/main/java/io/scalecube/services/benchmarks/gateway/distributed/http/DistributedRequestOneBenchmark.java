@@ -20,7 +20,7 @@ public class DistributedRequestOneBenchmark {
                 benchmarkSettings,
                 "http",
                 (address, loopResources) ->
-                    Client.onHttp(
+                    Client.http(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

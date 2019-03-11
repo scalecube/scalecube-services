@@ -90,9 +90,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_void_greeting() {
     // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ))
-        .expectComplete()
-        .verify(timeout);
+    StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ)).expectComplete().verify(timeout);
   }
 
   @Test
@@ -119,10 +117,7 @@ public class ServiceCallRemoteTest extends BaseTest {
         assertThrows(
             ServiceException.class,
             () ->
-                Mono.from(
-                        gateway
-                            .call()
-                            .requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
+                Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
                     .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -135,10 +130,7 @@ public class ServiceCallRemoteTest extends BaseTest {
         assertThrows(
             ServiceException.class,
             () ->
-                Mono.from(
-                        gateway
-                            .call()
-                            .requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
+                Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
                     .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -146,8 +138,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_async_greeting_return_string() {
 
-    Publisher<ServiceMessage> resultFuture =
-        gateway.call().requestOne(GREETING_REQ, String.class);
+    Publisher<ServiceMessage> resultFuture = gateway.call().requestOne(GREETING_REQ, String.class);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));

@@ -24,8 +24,7 @@ public class HttpGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          HttpGatewayAcceptor acceptor =
-              new HttpGatewayAcceptor(options.call().create(), gatewayMetrics);
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call(), gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

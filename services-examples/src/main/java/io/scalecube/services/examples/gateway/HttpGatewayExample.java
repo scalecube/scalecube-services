@@ -8,12 +8,12 @@ import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import reactor.core.publisher.Mono;
 
-public class HttpGatewayStub implements Gateway {
+public class HttpGatewayExample implements Gateway {
 
   private final GatewayOptions options;
   private final InetSocketAddress address;
 
-  public HttpGatewayStub(GatewayOptions options) {
+  public HttpGatewayExample(GatewayOptions options) {
     this.options = options;
     this.address = new InetSocketAddress(options.port());
   }

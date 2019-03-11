@@ -382,9 +382,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private GreetingService createProxy() {
-    return gateway
-        .call()
-        .api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {

@@ -10,7 +10,7 @@ import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
-import java.net.InetSocketAddress;
+import io.scalecube.services.transport.api.Address;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
@@ -24,7 +24,7 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
   public StandaloneBenchmarkState(
       BenchmarkSettings settings,
       String gatewayName,
-      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+      BiFunction<Address, LoopResources, Client> clientBuilder) {
     super(settings, clientBuilder);
     this.gatewayName = gatewayName;
   }

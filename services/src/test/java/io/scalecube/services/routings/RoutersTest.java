@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
@@ -155,8 +156,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(ref -> "2".equals(ref.tags().get("SENDER")))
                         .findFirst());
 
@@ -179,8 +179,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())
