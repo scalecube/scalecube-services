@@ -216,6 +216,10 @@ public class Microservices {
     return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
   }
 
+  public List<Gateway> gateways() {
+    return gatewayBootstrap.gateways();
+  }
+
   public Gateway gateway(String id) {
     return gatewayBootstrap.gateway(id);
   }
@@ -440,6 +444,10 @@ public class Microservices {
                       }));
     }
 
+    private List<Gateway> gateways() {
+      return new ArrayList<>(gateways);
+    }
+
     private Gateway gateway(String id) {
       return gateways.stream()
           .filter(gw -> gw.id().equals(id))
@@ -627,6 +635,8 @@ public class Microservices {
 
     Collection<String> getDiscoveryAddress();
 
+    Collection<String> getGatewayAddresses();
+
     Collection<String> getServiceEndpoint();
 
     Collection<String> getServiceEndpoints();
@@ -671,6 +681,13 @@ public class Microservices {
     @Override
     public Collection<String> getDiscoveryAddress() {
       return Collections.singletonList(microservices.discovery().address().toString());
+    }
+
+    @Override
+    public Collection<String> getGatewayAddresses() {
+      return microservices.gateways().stream()
+          .map(gw -> gw.id() + " -> " + gw.address())
+          .collect(Collectors.toList());
     }
 
     @Override

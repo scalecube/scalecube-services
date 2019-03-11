@@ -54,7 +54,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
       Microservices gateway,
       String gatewayName,
       BiFunction<Address, LoopResources, Client> clientBuilder) {
-    return Mono.defer(() -> createClient(gatewayAddress(gateway, gatewayName), clientBuilder));
+    return Mono.defer(() -> createClient(gateway.gateway(gatewayName).address(), clientBuilder));
   }
 
   protected final Mono<Client> createClient(
@@ -72,9 +72,5 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
               .then(Mono.just(client))
               .doOnNext(c -> LOGGER.info("benchmark-client: {}", c));
         });
-  }
-
-  private Address gatewayAddress(Microservices gateway, String gatewayName) {
-    return gateway.gateway(gatewayName).address();
   }
 }
