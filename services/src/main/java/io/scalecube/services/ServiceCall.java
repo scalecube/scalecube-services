@@ -40,15 +40,67 @@ public class ServiceCall {
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
-  private final Router router;
-  private final ServiceClientErrorMapper errorMapper;
+  private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+  private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
-  private ServiceCall(Call call) {
-    this.transport = call.transport;
-    this.methodRegistry = call.methodRegistry;
-    this.serviceRegistry = call.serviceRegistry;
-    this.router = call.router;
-    this.errorMapper = call.errorMapper;
+  /**
+   * Creates new {@link ServiceCall}'s definition.
+   *
+   * @param transport transport to be used by {@link ServiceCall}
+   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
+   * @param serviceRegistry serviceRegistry to be used by {@link ServiceCall}
+   */
+  public ServiceCall(
+      ClientTransport transport,
+      ServiceMethodRegistry methodRegistry,
+      ServiceRegistry serviceRegistry) {
+    this.transport = transport;
+    this.serviceRegistry = serviceRegistry;
+    this.methodRegistry = methodRegistry;
+  }
+
+  private ServiceCall(ServiceCall other) {
+    this.transport = other.transport;
+    this.methodRegistry = other.methodRegistry;
+    this.serviceRegistry = other.serviceRegistry;
+    this.router = other.router;
+    this.errorMapper = other.errorMapper;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given router.
+   *
+   * @param routerType given class of the router.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall router(Class<? extends Router> routerType) {
+    ServiceCall target = new ServiceCall(this);
+    target.router = Routers.getRouter(routerType);
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given router.
+   *
+   * @param router given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall router(Router router) {
+    ServiceCall target = new ServiceCall(this);
+    target.router = router;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given error mapper.
+   *
+   * @param errorMapper given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall errorMapper(ServiceClientErrorMapper errorMapper) {
+    ServiceCall target = new ServiceCall(this);
+    target.errorMapper = errorMapper;
+    return target;
   }
 
   /**
@@ -387,56 +439,5 @@ public class ServiceCall {
     }
 
     return message;
-  }
-
-  /**
-   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
-   * out of this definition.
-   */
-  public static class Call {
-
-    private final ClientTransport transport;
-    private final ServiceMethodRegistry methodRegistry;
-    private final ServiceRegistry serviceRegistry;
-    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
-    private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-
-    /**
-     * Creates new {@link ServiceCall}'s definition.
-     *
-     * @param transport - transport to be used by {@link ServiceCall} that is created form this
-     *     {@link Call}
-     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
-     *     this {@link Call}
-     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
-     *     form this {@link Call}
-     */
-    public Call(
-        ClientTransport transport,
-        ServiceMethodRegistry methodRegistry,
-        ServiceRegistry serviceRegistry) {
-      this.transport = transport;
-      this.serviceRegistry = serviceRegistry;
-      this.methodRegistry = methodRegistry;
-    }
-
-    public Call router(Class<? extends Router> routerType) {
-      this.router = Routers.getRouter(routerType);
-      return this;
-    }
-
-    public Call router(Router router) {
-      this.router = router;
-      return this;
-    }
-
-    public Call errorMapper(ServiceClientErrorMapper errorMapper) {
-      this.errorMapper = errorMapper;
-      return this;
-    }
-
-    public ServiceCall create() {
-      return new ServiceCall(this);
-    }
   }
 }

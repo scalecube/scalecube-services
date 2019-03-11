@@ -36,7 +36,7 @@ public class RequestOneBenchmark {
               BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
               BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
-              ServiceCall serviceCall = state.serviceCall();
+              ServiceCall serviceCall = state.call();
 
               return i -> {
                 clientToServiceMeter.mark();

@@ -40,7 +40,6 @@ public class ExceptionMapperExample {
                   ServiceA serviceA =
                       call.errorMapper(
                               new ServiceAClientErrorMapper()) // service client error mapper
-                          .create()
                           .api(ServiceA.class);
 
                   ServiceB serviceB = new ServiceBImpl(serviceA);
@@ -52,7 +51,6 @@ public class ExceptionMapperExample {
     System.err.println("ms2 started: " + ms2.serviceAddress());
 
     ms2.call()
-        .create()
         .api(ServiceB.class)
         .doAnotherStuff(0)
         .subscribe(

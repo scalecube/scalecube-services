@@ -284,13 +284,13 @@ public final class Reflect {
       Inject injection = field.getAnnotation(Inject.class);
       Class<? extends Router> routerClass = injection.router();
 
-      final ServiceCall.Call call = microservices.call();
+      final ServiceCall call = microservices.call();
 
       if (!routerClass.isInterface()) {
         call.router(routerClass);
       }
 
-      final Object targetProxy = call.create().api(field.getType());
+      final Object targetProxy = call.api(field.getType());
 
       setField(field, service, targetProxy);
     }
@@ -323,7 +323,7 @@ public final class Reflect {
                               if (mapper.getType().equals(Microservices.class)) {
                                 return microservices;
                               } else if (isService(mapper.getType())) {
-                                return microservices.call().create().api(mapper.getType());
+                                return microservices.call().api(mapper.getType());
                               } else {
                                 return null;
                               }

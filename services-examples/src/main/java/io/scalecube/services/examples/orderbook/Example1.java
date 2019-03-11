@@ -50,7 +50,7 @@ public class Example1 {
             .services(new DefaultMarketDataService())
             .startAwait();
 
-    MarketDataService marketService = ms.call().create().api(MarketDataService.class);
+    MarketDataService marketService = ms.call().api(MarketDataService.class);
 
     marketService.orderBook().subscribe(Example1::print);
 
