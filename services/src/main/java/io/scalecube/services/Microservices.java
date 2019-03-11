@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static java.util.stream.Collectors.toMap;
 
 import com.codahale.metrics.MetricRegistry;
-import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -155,8 +154,7 @@ public class Microservices {
               ServiceCall call = new ServiceCall(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
-              serviceProviders
-                  .stream()
+              serviceProviders.stream()
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
@@ -421,9 +419,7 @@ public class Microservices {
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
       Optional<GatewayConfig> result =
-          gatewayInstances
-              .keySet()
-              .stream()
+          gatewayInstances.keySet().stream()
               .filter(config -> config.name().equals(name))
               .filter(config -> config.gatewayClass() == gatewayClass)
               .findFirst();
@@ -442,9 +438,7 @@ public class Microservices {
 
     private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(
-          gatewayInstances
-              .entrySet()
-              .stream()
+          gatewayInstances.entrySet().stream()
               .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }
@@ -627,10 +621,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getGatewayAddresses() {
-      return microservices
-          .gatewayAddresses()
-          .entrySet()
-          .stream()
+      return microservices.gatewayAddresses().entrySet().stream()
           .map(entry -> entry.getKey() + " : " + entry.getValue())
           .collect(Collectors.toList());
     }
@@ -649,10 +640,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceEndpoints() {
-      return microservices
-          .serviceRegistry
-          .listServiceEndpoints()
-          .stream()
+      return microservices.serviceRegistry.listServiceEndpoints().stream()
           .map(ServiceEndpoint::toString)
           .collect(Collectors.toList());
     }

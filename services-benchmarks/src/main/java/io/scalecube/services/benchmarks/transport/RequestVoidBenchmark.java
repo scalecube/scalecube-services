@@ -23,7 +23,7 @@ public class RequestVoidBenchmark {
     new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runForAsync(
             state -> {
-              BenchmarkService benchmarkService = state.service(BenchmarkService.class);
+              BenchmarkService benchmarkService = state.api(BenchmarkService.class);
               BenchmarkTimer timer = state.timer("timer");
               BenchmarkMeter meter = state.meter("meter");
               ServiceMessage message = ServiceMessage.builder().qualifier(QUALIFIER).build();

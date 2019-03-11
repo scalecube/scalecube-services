@@ -43,7 +43,7 @@ public class InfiniteStreamBenchmark {
 
     new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runWithRampUp(
-            (rampUpTick, state) -> Mono.just(state.service(BenchmarkService.class)),
+            (rampUpTick, state) -> Mono.just(state.api(BenchmarkService.class)),
             state -> {
               LatencyHelper latencyHelper = new LatencyHelper(state);
 

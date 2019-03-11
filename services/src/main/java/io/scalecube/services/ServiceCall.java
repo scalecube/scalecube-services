@@ -46,12 +46,9 @@ public class ServiceCall {
   /**
    * Creates new {@link ServiceCall}'s definition.
    *
-   * @param transport - transport to be used by {@link ServiceCall} that is created form this {@link
-   *     Call}
-   * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
-   *     this {@link Call}
-   * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created form
-   *     this {@link Call}
+   * @param transport transport to be used by {@link ServiceCall}
+   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
+   * @param serviceRegistry serviceRegistry to be used by {@link ServiceCall}
    */
   public ServiceCall(
       ClientTransport transport,
