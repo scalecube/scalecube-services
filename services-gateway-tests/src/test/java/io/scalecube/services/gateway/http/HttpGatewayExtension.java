@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.http;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
-import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
@@ -15,7 +14,7 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
   private static final String GATEWAY_ALIAS_NAME = "http";
 
   HttpGatewayExtension(Object serviceInstance) {
-    super(serviceInstance, GatewayConfig.builder(GATEWAY_ALIAS_NAME, HttpGateway.class).build());
+    super(serviceInstance, opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)));
   }
 
   @Override

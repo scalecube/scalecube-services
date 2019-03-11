@@ -20,7 +20,7 @@ public class StandaloneRequestOneBenchmark {
                 benchmarkSettings,
                 "http",
                 (address, loopResources) ->
-                    Client.onHttp(
+                    Client.http(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

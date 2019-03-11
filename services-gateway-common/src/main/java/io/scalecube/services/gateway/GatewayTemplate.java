@@ -13,6 +13,19 @@ public abstract class GatewayTemplate implements Gateway {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayTemplate.class);
 
+  protected final GatewayOptions options;
+  protected final GatewayMetrics gatewayMetrics;
+
+  protected GatewayTemplate(GatewayOptions options) {
+    this.options = options;
+    this.gatewayMetrics = new GatewayMetrics(options.id(), options.metrics());
+  }
+
+  @Override
+  public final String id() {
+    return options.id();
+  }
+
   /**
    * Builds generic http server with given parameters.
    *

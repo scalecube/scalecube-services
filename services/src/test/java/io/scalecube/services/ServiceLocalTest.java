@@ -253,8 +253,6 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway
-        .call()
-        .api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 }

@@ -22,7 +22,7 @@ public class RemoteRequestOneBenchmark {
                 benchmarkSettings,
                 HTTP_PORT,
                 (address, loopResources) ->
-                    Client.onHttp(
+                    Client.http(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

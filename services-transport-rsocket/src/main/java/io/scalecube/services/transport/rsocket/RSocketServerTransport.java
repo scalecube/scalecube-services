@@ -45,8 +45,8 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Address address() {
-    InetSocketAddress socketAddress = server.address();
-    return Address.create(socketAddress.getAddress().getHostName(), socketAddress.getPort());
+    InetSocketAddress address = server.address();
+    return Address.create(address.getHostString(), address.getPort());
   }
 
   @Override

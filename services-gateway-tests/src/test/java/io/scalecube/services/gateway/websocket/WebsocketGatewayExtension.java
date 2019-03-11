@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
-import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.gateway.clientsdk.websocket.WebsocketClientCodec;
@@ -16,8 +15,7 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
   private static final String GATEWAY_ALIAS_NAME = "ws";
 
   WebsocketGatewayExtension(Object serviceInstance) {
-    super(
-        serviceInstance, GatewayConfig.builder(GATEWAY_ALIAS_NAME, WebsocketGateway.class).build());
+    super(serviceInstance, opts -> new WebsocketGateway(opts.id(GATEWAY_ALIAS_NAME)));
   }
 
   @Override

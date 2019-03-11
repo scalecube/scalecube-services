@@ -20,7 +20,7 @@ public class DistributedRequestOneBenchmark {
                 benchmarkSettings,
                 "ws",
                 (address, loopResources) ->
-                    Client.onWebsocket(
+                    Client.websocket(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

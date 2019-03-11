@@ -55,7 +55,7 @@ public final class Client {
    * @param clientSettings client settings
    * @return client
    */
-  public static Client onRSocket(ClientSettings clientSettings) {
+  public static Client rsocket(ClientSettings clientSettings) {
     RSocketClientCodec clientCodec =
         new RSocketClientCodec(
             HeadersCodec.getInstance(clientSettings.contentType()),
@@ -73,7 +73,7 @@ public final class Client {
    * @param clientSettings client settings
    * @return client
    */
-  public static Client onWebsocket(ClientSettings clientSettings) {
+  public static Client websocket(ClientSettings clientSettings) {
     WebsocketClientCodec clientCodec =
         new WebsocketClientCodec(DataCodec.getInstance(clientSettings.contentType()));
 
@@ -89,7 +89,7 @@ public final class Client {
    * @param clientSettings client settings
    * @return client
    */
-  public static Client onHttp(ClientSettings clientSettings) {
+  public static Client http(ClientSettings clientSettings) {
     HttpClientCodec clientCodec =
         new HttpClientCodec(DataCodec.getInstance(clientSettings.contentType()));
 

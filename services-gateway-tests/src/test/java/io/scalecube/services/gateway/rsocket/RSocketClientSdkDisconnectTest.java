@@ -8,7 +8,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
-import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.ServiceTransports;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
@@ -30,10 +29,7 @@ import reactor.test.StepVerifier;
 class RSocketClientSdkDisconnectTest {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
-  private static final GatewayConfig gatewayConfig =
-      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
-
   private static final String JOHN = "John";
 
   private LoopResources clientLoopResources;
@@ -46,15 +42,14 @@ class RSocketClientSdkDisconnectTest {
     seed =
         Microservices.builder()
             .services(new GreetingServiceImpl())
-            .gateway(gatewayConfig)
+            .gateway(opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)))
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
 
-    int gatewayPort =
-        seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
+    int gatewayPort = seed.gateway(GATEWAY_ALIAS_NAME).address().port();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
 
     ClientCodec clientCodec =
@@ -62,6 +57,7 @@ class RSocketClientSdkDisconnectTest {
             HeadersCodec.getInstance(settings.contentType()),
             DataCodec.getInstance(settings.contentType()));
 
+    //noinspection unchecked
     ClientTransport clientTransport =
         new RSocketClientTransport(settings, clientCodec, clientLoopResources);
 

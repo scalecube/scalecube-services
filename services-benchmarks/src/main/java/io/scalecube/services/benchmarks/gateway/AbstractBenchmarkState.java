@@ -6,8 +6,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
-import java.net.InetSocketAddress;
-import java.util.Map.Entry;
+import io.scalecube.services.transport.api.Address;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.logging.Level;
@@ -26,11 +25,10 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
       ClientMessage.builder().qualifier("/benchmarks/one").build();
 
   protected LoopResources loopResources;
-  protected BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder;
+  protected BiFunction<Address, LoopResources, Client> clientBuilder;
 
   public AbstractBenchmarkState(
-      BenchmarkSettings settings,
-      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+      BenchmarkSettings settings, BiFunction<Address, LoopResources, Client> clientBuilder) {
     super(settings);
     this.clientBuilder = clientBuilder;
   }
@@ -55,13 +53,12 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected final Mono<Client> createClient(
       Microservices gateway,
       String gatewayName,
-      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
-    return Mono.defer(() -> createClient(gatewayAddress(gateway, gatewayName), clientBuilder));
+      BiFunction<Address, LoopResources, Client> clientBuilder) {
+    return Mono.defer(() -> createClient(gateway.gateway(gatewayName).address(), clientBuilder));
   }
 
   protected final Mono<Client> createClient(
-      InetSocketAddress gatewayAddress,
-      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+      Address gatewayAddress, BiFunction<Address, LoopResources, Client> clientBuilder) {
     return Mono.defer(
         () -> {
           Client client = clientBuilder.apply(gatewayAddress, loopResources);
@@ -75,16 +72,5 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
               .then(Mono.just(client))
               .doOnNext(c -> LOGGER.info("benchmark-client: {}", c));
         });
-  }
-
-  private InetSocketAddress gatewayAddress(Microservices gateway, String gatewayName) {
-    return gateway.gatewayAddresses().entrySet().stream()
-        .filter(entry -> entry.getKey().name().equals(gatewayName))
-        .map(Entry::getValue)
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalArgumentException(
-                    "Can't find address for gateway with name '" + gatewayName + "'"));
   }
 }

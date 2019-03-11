@@ -1,25 +1,35 @@
 package io.scalecube.services.examples.gateway;
 
-import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayConfig;
-import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import reactor.core.publisher.Mono;
 
-public class WebsocketGatewayStub implements Gateway {
+public class WebsocketGatewayExample implements Gateway {
 
-  public static final String WS_SPECIFIC_OPTION_NAME = "ws.specific.option";
-  private InetSocketAddress address;
+  private final GatewayOptions options;
+  private final InetSocketAddress address;
+
+  public WebsocketGatewayExample(GatewayOptions options) {
+    this.options = options;
+    this.address = new InetSocketAddress(options.port());
+  }
 
   @Override
-  public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, ServiceCall call, Metrics metrics) {
+  public String id() {
+    return options.id();
+  }
 
-    this.address = new InetSocketAddress(config.port());
+  @Override
+  public Address address() {
+    return Address.create(address.getHostString(), address.getPort());
+  }
+
+  @Override
+  public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
           System.out.println("Starting WS gateway...");
@@ -37,10 +47,5 @@ public class WebsocketGatewayStub implements Gateway {
           System.out.println("Stopping WS gateway...");
           return Mono.empty();
         });
-  }
-
-  @Override
-  public InetSocketAddress address() {
-    return address;
   }
 }
