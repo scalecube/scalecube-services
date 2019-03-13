@@ -41,6 +41,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -143,8 +145,13 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    // Create bootstrap scheduler
+    String schedulerName = "microservices-" + Integer.toHexString(hashCode());
+    Scheduler scheduler = Schedulers.newSingle(schedulerName, true);
+
     return transportBootstrap
         .start(methodRegistry)
+        .publishOn(scheduler)
         .flatMap(
             input -> {
               final ClientTransport clientTransport = transportBootstrap.clientTransport;
@@ -171,16 +178,18 @@ public class Microservices {
               // configure discovery and publish to the cluster
               return discoveryBootstrap
                   .start(serviceRegistry, serviceEndpoint)
-                  .then(Mono.fromCallable(this::doInjection))
-                  .then(Mono.defer(() -> startGateway(call, workerPool)))
-                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
+                  .publishOn(scheduler)
+                  .then(Mono.fromCallable(this::doInjection).publishOn(scheduler))
+                  .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
+                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)).publishOn(scheduler))
                   .thenReturn(this);
             })
         .onErrorResume(
             ex -> {
               // return original error then shutdown
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
-            });
+            })
+        .doOnTerminate(scheduler::dispose);
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
