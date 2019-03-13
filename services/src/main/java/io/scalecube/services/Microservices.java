@@ -145,9 +145,13 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    Scheduler scheduler = Schedulers.newSingle("microservices-start", true);
+    // Create bootstrap scheduler
+    String schedulerName = "microservices-" + Integer.toHexString(hashCode());
+    Scheduler scheduler = Schedulers.newSingle(schedulerName, true);
+
     return transportBootstrap
-        .start(methodRegistry, scheduler)
+        .start(methodRegistry)
+        .publishOn(scheduler)
         .flatMap(
             input -> {
               final ClientTransport clientTransport = transportBootstrap.clientTransport;
@@ -549,11 +553,9 @@ public class Microservices {
       return c;
     }
 
-    private Mono<ServiceTransportBootstrap> start(
-        ServiceMethodRegistry methodRegistry, Scheduler scheduler) {
+    private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.fromSupplier(resourcesSupplier)
           .flatMap(TransportResources::start)
-          .publishOn(scheduler)
           .doOnSuccess(
               resources -> {
                 // keep transport resources
@@ -568,7 +570,6 @@ public class Microservices {
                 ServerTransport serverTransport = serverTransportFactory.apply(resources);
                 return serverTransport
                     .bind(port, methodRegistry)
-                    .publishOn(scheduler)
                     .doOnError(
                         ex ->
                             LOGGER.error(
