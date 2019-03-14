@@ -1,10 +1,10 @@
 package io.scalecube.services.examples;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage.Builder;
 import java.util.concurrent.Callable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 public class BenchmarkServiceImpl implements BenchmarkService {
 
@@ -34,11 +34,8 @@ public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
   public Flux<ServiceMessage> infiniteStream(ServiceMessage message) {
-    Callable<ServiceMessage> callable =
-        () ->
-            ServiceMessage.from(message)
-                .header(SERVICE_SEND_TIME, System.currentTimeMillis())
-                .build();
-    return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
+    Builder builder = ServiceMessage.from(message);
+    return Flux.range(0, Integer.MAX_VALUE)
+        .map(i -> builder.header(SERVICE_SEND_TIME, System.currentTimeMillis()).build());
   }
 }
