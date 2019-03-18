@@ -7,9 +7,15 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.ServiceTransportBootstrap;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -48,21 +54,30 @@ public class ExamplesRunner {
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     Microservices.builder()
-        .discovery(
-            options ->
-                options
-                    .seeds(
-                        Arrays.stream(config.seedAddresses())
-                            .map(address -> Address.create(address.host(), address.port()))
-                            .toArray(Address[]::new))
-                    .port(config.discoveryPort())
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()))
-        .transport(options -> options.numOfThreads(numOfThreads).port(config.servicePort()))
+        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
+        .transport(opts -> serviceTransport(numOfThreads, opts, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceTransportBootstrap serviceTransport(
+      int numOfThreads, ServiceTransportBootstrap opts, Config config) {
+    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
+        .client(RSocketServiceTransport.INSTANCE::clientTransport)
+        .server(RSocketServiceTransport.INSTANCE::serverTransport)
+        .port(config.servicePort());
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(
+            opts ->
+                opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))
+                    .port(config.discoveryPort())
+                    .memberHost(config.memberHost())
+                    .memberPort(config.memberPort()));
   }
 
   public static class Config {

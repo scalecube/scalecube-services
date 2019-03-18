@@ -1,6 +1,12 @@
 package io.scalecube.services.examples.orderbook;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.services.examples.orderbook.service.OrderRequest;
@@ -8,6 +14,7 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
+import io.scalecube.services.transport.api.Address;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
@@ -29,15 +36,21 @@ public class Example1 {
    */
   public static void main(String[] args) throws InterruptedException {
 
-    Microservices gateway = Microservices.builder().startAwait();
+    Microservices gateway =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     Microservices ms =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(
+                serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway.discovery().address()))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new DefaultMarketDataService())
             .startAwait();
 
-    MarketDataService marketService = ms.call().create().api(MarketDataService.class);
+    MarketDataService marketService = ms.call().api(MarketDataService.class);
 
     marketService.orderBook().subscribe(Example1::print);
 
@@ -76,6 +89,12 @@ public class Example1 {
             TimeUnit.MILLISECONDS);
 
     Thread.currentThread().join();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceEndpoint serviceEndpoint, Address address) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(address)));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {

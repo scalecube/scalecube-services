@@ -1,6 +1,10 @@
 package io.scalecube.services.examples.helloworld;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 
@@ -21,17 +25,25 @@ public class Example1 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed = Microservices.builder().startAwait();
+    Microservices seed =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     // Create service proxy
-    GreetingsService service = seed.call().create().api(GreetingsService.class);
+    GreetingsService service = seed.call().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
     service

@@ -1,43 +1,48 @@
 package io.scalecube.services;
 
-import static java.util.stream.Collectors.toMap;
-
 import com.codahale.metrics.MetricRegistry;
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.ServiceTransportConfig;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
-import io.scalecube.services.transport.api.ServiceTransport;
-import java.net.InetSocketAddress;
+import io.scalecube.services.transport.api.TransportResources;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -92,7 +97,7 @@ import reactor.core.publisher.Mono;
  *      .startAwait();
  *
  *  // Create microservice proxy to GreetingService.class interface:
- *  GreetingService service = microservices.call().create()
+ *  GreetingService service = microservices.call()
  *      .api(GreetingService.class);
  *
  *  // Invoke the greeting service async:
@@ -104,6 +109,8 @@ import reactor.core.publisher.Mono;
  */
 public class Microservices {
 
+  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+
   private final String id;
   private final Metrics metrics;
   private final Map<String, String> tags;
@@ -113,8 +120,7 @@ public class Microservices {
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscovery discovery;
-  private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
+  private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
 
   private Microservices(Builder builder) {
@@ -125,11 +131,8 @@ public class Microservices {
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.discovery = builder.discovery;
-    this.discoveryOptions = builder.discoveryOptions;
-    this.transportBootstrap =
-        new ServiceTransportBootstrap(
-            ServiceTransportConfig.builder(builder.transportOptions).build());
+    this.discoveryBootstrap = builder.discoveryBootstrap;
+    this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
   }
 
@@ -142,57 +145,62 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    // Create bootstrap scheduler
+    String schedulerName = "microservices-" + Integer.toHexString(hashCode());
+    Scheduler scheduler = Schedulers.newSingle(schedulerName, true);
+
     return transportBootstrap
         .start(methodRegistry)
+        .publishOn(scheduler)
         .flatMap(
             input -> {
-              ClientTransport clientTransport = transportBootstrap.clientTransport();
-              InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
+              final ClientTransport clientTransport = transportBootstrap.clientTransport;
+              final Address serviceAddress = transportBootstrap.address;
+              final Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
 
-              Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
+              ServiceCall call = new ServiceCall(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
-              serviceProviders
-                  .stream()
+              serviceProviders.stream()
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
               // register services in service registry
-              ServiceEndpoint endpoint = null;
+              ServiceEndpoint serviceEndpoint = null;
               if (!serviceInfos.isEmpty()) {
-                String serviceHost = serviceAddress.getHostString();
-                int servicePort = serviceAddress.getPort();
-                endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-                serviceRegistry.registerService(endpoint);
+                String serviceHost = serviceAddress.host();
+                int servicePort = serviceAddress.port();
+                serviceEndpoint =
+                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
+                serviceRegistry.registerService(serviceEndpoint);
               }
 
               // configure discovery and publish to the cluster
-              ServiceDiscoveryConfig discoveryConfig =
-                  ServiceDiscoveryConfig.builder(discoveryOptions)
-                      .serviceRegistry(serviceRegistry)
-                      .endpoint(endpoint)
-                      .build();
-              return discovery
-                  .start(discoveryConfig)
-                  .then(Mono.defer(this::doInjection))
-                  .then(Mono.defer(() -> startGateway(call)))
+              return discoveryBootstrap
+                  .start(serviceRegistry, serviceEndpoint)
+                  .publishOn(scheduler)
+                  .then(Mono.fromCallable(this::doInjection).publishOn(scheduler))
+                  .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
+                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)).publishOn(scheduler))
                   .thenReturn(this);
             })
         .onErrorResume(
             ex -> {
               // return original error then shutdown
-              return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
-            });
+              return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
+            })
+        .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<GatewayBootstrap> startGateway(Call call) {
-    return gatewayBootstrap.start(transportBootstrap.workerPool(), call, metrics);
+  private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
+    return gatewayBootstrap.start(
+        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
   }
 
-  private Mono<Microservices> doInjection() {
+  private Microservices doInjection() {
     List<Object> serviceInstances =
         serviceInfos.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
-    return Mono.just(Reflect.inject(this, serviceInstances));
+    return Reflect.inject(this, serviceInstances);
   }
 
   private void collectAndRegister(ServiceInfo serviceInfo) {
@@ -209,24 +217,24 @@ public class Microservices {
     return this.metrics;
   }
 
-  public InetSocketAddress serviceAddress() {
-    return transportBootstrap.serviceAddress();
+  public Address serviceAddress() {
+    return transportBootstrap.address;
   }
 
-  public Call call() {
-    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
+  public ServiceCall call() {
+    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
   }
 
-  public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
-    return gatewayBootstrap.gatewayAddress(name, gatewayClass);
+  public List<Gateway> gateways() {
+    return gatewayBootstrap.gateways();
   }
 
-  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-    return gatewayBootstrap.gatewayAddresses();
+  public Gateway gateway(String id) {
+    return gatewayBootstrap.gateway(id);
   }
 
   public ServiceDiscovery discovery() {
-    return this.discovery;
+    return discoveryBootstrap.discovery;
   }
 
   /**
@@ -237,14 +245,10 @@ public class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () ->
-            Mono.when(
-                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
-                Optional.ofNullable(gatewayBootstrap)
-                    .map(GatewayBootstrap::shutdown)
-                    .orElse(Mono.empty()),
-                Optional.ofNullable(transportBootstrap)
-                    .map(ServiceTransportBootstrap::shutdown)
-                    .orElse(Mono.empty())));
+            Mono.whenDelayError(
+                discoveryBootstrap.shutdown(),
+                gatewayBootstrap.shutdown(),
+                transportBootstrap.shutdown()));
   }
 
   public static final class Builder {
@@ -254,9 +258,8 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
-    private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
-    private Consumer<ServiceTransportConfig.Builder> transportOptions;
+    private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
+    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
@@ -307,18 +310,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(ServiceDiscovery discovery) {
-      this.discovery = discovery;
+    public Builder discovery(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryBootstrap = new ServiceDiscoveryBootstrap(factory);
       return this;
     }
 
-    public Builder discovery(Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions) {
-      this.discoveryOptions = discoveryOptions;
-      return this;
-    }
-
-    public Builder transport(Consumer<ServiceTransportConfig.Builder> transportOptions) {
-      this.transportOptions = transportOptions;
+    public Builder transport(UnaryOperator<ServiceTransportBootstrap> op) {
+      this.transportBootstrap = op.apply(this.transportBootstrap);
       return this;
     }
 
@@ -332,8 +330,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder gateway(GatewayConfig config) {
-      gatewayBootstrap.addConfig(config);
+    public Builder gateway(Function<GatewayOptions, Gateway> factory) {
+      gatewayBootstrap.addFactory(factory);
       return this;
     }
 
@@ -343,143 +341,396 @@ public class Microservices {
     }
   }
 
+  public static class ServiceDiscoveryBootstrap {
+
+    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory;
+
+    private ServiceDiscovery discovery;
+
+    private ServiceDiscoveryBootstrap() {}
+
+    private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
+      this.discoveryFactory = factory;
+    }
+
+    private Mono<ServiceDiscovery> start(
+        ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+      return Mono.defer(
+          () -> {
+            ServiceDiscovery serviceDiscovery = discoveryFactory.apply(serviceEndpoint);
+            LOGGER.info("Starting service discovery -- {}", serviceDiscovery);
+            return serviceDiscovery
+                .start()
+                .doOnSuccess(
+                    discovery -> {
+                      this.discovery = discovery;
+                      LOGGER.info("Successfully started service discovery -- {}", this.discovery);
+                      listenDiscoveryEvents(serviceRegistry);
+                    })
+                .doOnError(
+                    ex ->
+                        LOGGER.error(
+                            "Failed to start service discovery -- {}, cause: {}",
+                            serviceDiscovery,
+                            ex));
+          });
+    }
+
+    private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
+      discovery.listen().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+    }
+
+    private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
+      ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
+      if (event.isRegistered()) {
+        serviceRegistry.registerService(serviceEndpoint);
+      }
+      if (event.isUnregistered()) {
+        serviceRegistry.unregisterService(serviceEndpoint.id());
+      }
+    }
+
+    private Mono<Void> shutdown() {
+      return Mono.defer(
+          () ->
+              Optional.ofNullable(discovery) //
+                  .map(ServiceDiscovery::shutdown)
+                  .orElse(Mono.empty())
+                  .doFinally(
+                      s -> {
+                        if (discovery != null) {
+                          LOGGER.info("Service discovery -- {} has been stopped", discovery);
+                        }
+                      }));
+    }
+  }
+
   private static class GatewayBootstrap {
 
-    private Set<GatewayConfig> gatewayConfigs = new HashSet<>(); // config
-    private Map<GatewayConfig, Gateway> gatewayInstances = new HashMap<>(); // calculated
+    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
+    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
 
-    private GatewayBootstrap addConfig(GatewayConfig config) {
-      if (!gatewayConfigs.add(config)) {
-        throw new IllegalArgumentException(
-            "GatewayConfig with name: '"
-                + config.name()
-                + "' and gatewayClass: '"
-                + config.gatewayClass().getName()
-                + "' was already defined");
-      }
+    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
+      this.factories.add(factory);
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
-      return Flux.fromIterable(gatewayConfigs)
+    private Mono<GatewayBootstrap> start(GatewayOptions options) {
+      return Flux.fromIterable(factories)
           .flatMap(
-              gatewayConfig ->
-                  Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerPool, call, metrics)
-                      .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
+              factory -> {
+                Gateway gateway = factory.apply(options);
+                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
+                return gateway
+                    .start()
+                    .doOnSuccess(gateways::add)
+                    .doOnSuccess(
+                        result ->
+                            LOGGER.info(
+                                "Successfully started gateway -- {} on {}",
+                                result,
+                                result.address()))
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "Failed to start gateway -- {} with {}, cause: {}",
+                                gateway,
+                                options,
+                                ex));
+              })
           .then(Mono.just(this));
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              gatewayInstances != null && !gatewayInstances.isEmpty()
-                  ? Mono.when(
-                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
-                  : Mono.empty());
+              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
+                  .doFinally(
+                      s -> {
+                        if (!gateways.isEmpty()) {
+                          LOGGER.info("Gateways have been stopped");
+                        }
+                      }));
     }
 
-    private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
-      Optional<GatewayConfig> result =
-          gatewayInstances
-              .keySet()
-              .stream()
-              .filter(config -> config.name().equals(name))
-              .filter(config -> config.gatewayClass() == gatewayClass)
-              .findFirst();
-
-      if (!result.isPresent()) {
-        throw new IllegalArgumentException(
-            "Didn't find gateway address under name: '"
-                + name
-                + "' and gateway class: '"
-                + gatewayClass.getName()
-                + "'");
-      }
-
-      return gatewayInstances.get(result.get()).address();
+    private List<Gateway> gateways() {
+      return new ArrayList<>(gateways);
     }
 
-    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-      return Collections.unmodifiableMap(
-          gatewayInstances
-              .entrySet()
-              .stream()
-              .collect(toMap(Entry::getKey, e -> e.getValue().address())));
+    private Gateway gateway(String id) {
+      return gateways.stream()
+          .filter(gw -> gw.id().equals(id))
+          .findFirst()
+          .orElseThrow(
+              () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
     }
   }
 
-  private static class ServiceTransportBootstrap {
+  public static class ServiceTransportBootstrap {
 
-    private static final int DEFAULT_NUM_OF_THREADS = Runtime.getRuntime().availableProcessors();
+    private String host = "localhost";
+    private int port = 0;
+    private Supplier<TransportResources> resourcesSupplier;
+    private Function<TransportResources, ClientTransport> clientTransportFactory;
+    private Function<TransportResources, ServerTransport> serverTransportFactory;
 
-    private String serviceHost; // config
-    private int servicePort; // config
-    private ServiceTransport transport; // config or calculated
-    private ClientTransport clientTransport; // calculated
-    private ServerTransport serverTransport; // calculated
-    private ServiceTransport.Resources transportResources; // calculated
-    private InetSocketAddress serviceAddress; // calculated
-    private int numOfThreads; // calculated
+    private TransportResources resources;
+    private ClientTransport clientTransport;
+    private ServerTransport serverTransport;
+    private Address address;
 
-    public ServiceTransportBootstrap(ServiceTransportConfig options) {
-      this.serviceHost = options.host();
-      this.servicePort = Optional.ofNullable(options.port()).orElse(0);
-      this.numOfThreads =
-          Optional.ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
-      this.transport = options.transport();
+    private ServiceTransportBootstrap() {}
+
+    private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
+      this.host = other.host;
+      this.port = other.port;
+      this.resourcesSupplier = other.resourcesSupplier;
+      this.clientTransportFactory = other.clientTransportFactory;
+      this.serverTransportFactory = other.serverTransportFactory;
     }
 
-    private ServiceTransport transport() {
-      return transport;
+    private ServiceTransportBootstrap copy() {
+      return new ServiceTransportBootstrap(this);
     }
 
-    private ClientTransport clientTransport() {
-      return clientTransport;
+    /**
+     * Setting for service host.
+     *
+     * @param host service host
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap host(String host) {
+      ServiceTransportBootstrap c = copy();
+      c.host = host;
+      return c;
     }
 
-    private Executor workerPool() {
-      return transportResources.workerPool().orElse(null);
+    /**
+     * Setting for service port.
+     *
+     * @param port service port
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap port(int port) {
+      ServiceTransportBootstrap c = copy();
+      c.port = port;
+      return c;
     }
 
-    private InetSocketAddress serviceAddress() {
-      return serviceAddress;
+    /**
+     * Setting for service transpotr resoruces.
+     *
+     * @param supplier transport resources provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
+      ServiceTransportBootstrap c = copy();
+      c.resourcesSupplier = supplier;
+      return c;
+    }
+
+    /**
+     * Setting for client trnaspotr provider.
+     *
+     * @param factory client transptr provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
+      ServiceTransportBootstrap c = copy();
+      c.clientTransportFactory = factory;
+      return c;
+    }
+
+    /**
+     * Setting for service transport provider.
+     *
+     * @param factory server transport provider
+     * @return new {@code ServiceTransportBootstrap} instance
+     */
+    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
+      ServiceTransportBootstrap c = copy();
+      c.serverTransportFactory = factory;
+      return c;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      return Mono.defer(
-          () -> {
-            this.transport =
-                Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
+      return Mono.fromSupplier(resourcesSupplier)
+          .flatMap(TransportResources::start)
+          .doOnSuccess(
+              resources -> {
+                // keep transport resources
+                this.resources = resources;
+                LOGGER.info(
+                    "Successfully started service transport resources -- {}", this.resources);
+              })
+          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: {}", ex))
+          .flatMap(
+              resources -> {
+                // bind server transport
+                ServerTransport serverTransport = serverTransportFactory.apply(resources);
+                return serverTransport
+                    .bind(port, methodRegistry)
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "Failed to bind server service "
+                                    + "transport -- {} on port: {}, cause: {}",
+                                serverTransport,
+                                port,
+                                ex));
+              })
+          .doOnSuccess(
+              serverTransport -> {
+                this.serverTransport = serverTransport;
 
-            this.transportResources = transport.resources(numOfThreads);
-            this.clientTransport = transport.clientTransport(transportResources);
-            this.serverTransport = transport.serverTransport(transportResources);
+                // prepare service host:port for exposing
+                int port = serverTransport.address().port();
+                String host =
+                    Optional.ofNullable(this.host)
+                        .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
+                this.address = Address.create(host, port);
 
-            // bind service serverTransport transport
-            return serverTransport
-                .bind(servicePort, methodRegistry)
-                .map(
-                    listenAddress -> {
-                      // prepare service host:port for exposing
-                      int port = listenAddress.getPort();
-                      String host =
-                          Optional.ofNullable(serviceHost)
-                              .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
-                      this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
-                      return this;
-                    });
-          });
+                LOGGER.info(
+                    "Successfully bound server service transport -- {} on address {}",
+                    this.serverTransport,
+                    this.address);
+
+                // create client transport
+                this.clientTransport = clientTransportFactory.apply(resources);
+                LOGGER.info(
+                    "Successfully created client service transport -- {}", this.clientTransport);
+              })
+          .thenReturn(this);
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              Mono.when(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  transportResources.shutdown()));
+              Mono.whenDelayError(
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()),
+                      Optional.ofNullable(resources)
+                          .map(TransportResources::shutdown)
+                          .orElse(Mono.empty()))
+                  .doFinally(
+                      s -> {
+                        if (resources != null) {
+                          LOGGER.info("Service transport have been stopped");
+                        }
+                      }));
+    }
+
+    @Override
+    public String toString() {
+      return "ServiceTransportBootstrap{"
+          + "host="
+          + host
+          + ", port="
+          + port
+          + ", clientTransport="
+          + clientTransport.getClass()
+          + ", serverTransport="
+          + serverTransport.getClass()
+          + ", resources="
+          + resources.getClass()
+          + "}";
+    }
+  }
+
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
+  }
+
+  private static class JmxMonitorMBean implements MonitorMBean {
+
+    public static final int MAX_CACHE_SIZE = 128;
+
+    private final Microservices microservices;
+    private final ReplayProcessor<ServiceDiscoveryEvent> processor;
+
+    private static JmxMonitorMBean start(Microservices instance) throws Exception {
+      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
+      ObjectName objectName =
+          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
+      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
+      mbeanServer.registerMBean(standardMBean, objectName);
+      return jmxMBean;
+    }
+
+    private JmxMonitorMBean(Microservices microservices) {
+      this.microservices = microservices;
+      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
+      microservices.discovery().listen().subscribe(processor);
+    }
+
+    @Override
+    public Collection<String> getId() {
+      return Collections.singletonList(microservices.id());
+    }
+
+    @Override
+    public Collection<String> getDiscoveryAddress() {
+      return Collections.singletonList(microservices.discovery().address().toString());
+    }
+
+    @Override
+    public Collection<String> getGatewayAddresses() {
+      return microservices.gateways().stream()
+          .map(gw -> gw.id() + " -> " + gw.address())
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<String> getServiceEndpoint() {
+      return Collections.singletonList(String.valueOf(microservices.discovery().endpoint()));
+    }
+
+    @Override
+    public Collection<String> getRecentServiceDiscoveryEvents() {
+      List<String> recentEvents = new ArrayList<>(MAX_CACHE_SIZE);
+      processor.map(ServiceDiscoveryEvent::toString).subscribe(recentEvents::add);
+      return recentEvents;
+    }
+
+    @Override
+    public Collection<String> getServiceEndpoints() {
+      return microservices.serviceRegistry.listServiceEndpoints().stream()
+          .map(ServiceEndpoint::toString)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public Collection<String> getClientServiceTransport() {
+      return Collections.singletonList(microservices.transportBootstrap.clientTransport.toString());
+    }
+
+    @Override
+    public Collection<String> getServerServiceTransport() {
+      return Collections.singletonList(microservices.transportBootstrap.serverTransport.toString());
+    }
+
+    @Override
+    public Collection<String> getServiceDiscovery() {
+      return Collections.singletonList(microservices.discovery().toString());
     }
   }
 }

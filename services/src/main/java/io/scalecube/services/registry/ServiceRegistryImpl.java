@@ -13,8 +13,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -29,9 +33,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> listServiceReferences() {
-    return referencesByQualifier
-        .values()
-        .stream()
+    return referencesByQualifier.values().stream()
         .flatMap(Collection::stream)
         .collect(Collectors.toList());
   }
@@ -43,8 +45,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       return Collections.emptyList();
     }
     String contentType = request.dataFormatOrDefault();
-    return result
-        .stream()
+    return result.stream()
         .filter(ref -> ref.contentTypes().contains(contentType))
         .collect(Collectors.toList());
   }
@@ -53,6 +54,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
+      LOGGER.info("ServiceEndpoint registered: {}", serviceEndpoint);
       serviceEndpoint
           .serviceReferences()
           .forEach(
@@ -68,11 +70,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
+      LOGGER.info("ServiceEndpoint unregistered: {}", serviceEndpoint);
 
       Map<String, ServiceReference> serviceReferencesOfEndpoint =
-          referencesByQualifier
-              .values()
-              .stream()
+          referencesByQualifier.values().stream()
               .flatMap(Collection::stream)
               .filter(sr -> sr.endpointId().equals(endpointId))
               .collect(Collectors.toMap(ServiceReference::qualifier, Function.identity()));

@@ -1,6 +1,5 @@
 package io.scalecube.services.discovery;
 
-import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
@@ -40,14 +39,12 @@ public class ServiceScanner {
       Map<String, String> endpointTags) {
 
     Set<String> contentTypes =
-        DataCodec.getAllInstances()
-            .stream()
+        DataCodec.getAllInstances().stream()
             .map(DataCodec::contentType)
             .collect(Collectors.toSet());
 
     List<ServiceRegistration> serviceRegistrations =
-        serviceInstances
-            .stream()
+        serviceInstances.stream()
             .flatMap(
                 serviceInfo ->
                     Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
@@ -64,13 +61,7 @@ public class ServiceScanner {
                   List<ServiceMethodDefinition> actions =
                       Arrays.stream(serviceInterface.getMethods())
                           .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-                          .map(
-                              method -> {
-                                String action = Reflect.methodName(method);
-                                CommunicationMode communicationMode =
-                                    Reflect.communicationMode(method);
-                                return new ServiceMethodDefinition(action, communicationMode);
-                              })
+                          .map(method -> new ServiceMethodDefinition(Reflect.methodName(method)))
                           .collect(Collectors.toList());
                   return new ServiceRegistration(namespace, serviceTags, actions);
                 })

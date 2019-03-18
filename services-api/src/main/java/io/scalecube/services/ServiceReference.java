@@ -21,7 +21,6 @@ public class ServiceReference {
   private final Set<String> contentTypes;
   private final Map<String, String> tags;
   private final String action;
-  private final CommunicationMode mode;
   private final Address address;
 
   /**
@@ -42,13 +41,8 @@ public class ServiceReference {
     this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
-    this.mode = serviceMethodDefinition.getCommunicationMode();
     this.qualifier = Qualifier.asString(namespace, action);
     this.address = Address.create(this.host(), this.port());
-  }
-
-  public CommunicationMode mode() {
-    return mode;
   }
 
   public String qualifier() {
@@ -81,6 +75,10 @@ public class ServiceReference {
 
   public String action() {
     return action;
+  }
+
+  public Address address() {
+    return this.address;
   }
 
   private Map<String, String> mergeTags(
@@ -119,12 +117,6 @@ public class ServiceReference {
         + ", action='"
         + action
         + '\''
-        + ", mode="
-        + mode
         + '}';
-  }
-
-  public Address address() {
-    return this.address;
   }
 }

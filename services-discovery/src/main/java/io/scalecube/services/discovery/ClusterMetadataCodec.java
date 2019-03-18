@@ -13,9 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 
-public class ClusterMetadataDecoder {
+public class ClusterMetadataCodec {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMetadataDecoder.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMetadataCodec.class);
 
   private static final ObjectMapper objectMapper = newObjectMapper();
 
@@ -42,7 +42,7 @@ public class ClusterMetadataDecoder {
     try {
       return objectMapper.readValue(metadata, ServiceEndpoint.class);
     } catch (IOException e) {
-      LOGGER.error("Can read metadata: " + e, e);
+      LOGGER.error("Failed to read metadata: " + e);
       return null;
     }
   }
@@ -58,7 +58,7 @@ public class ClusterMetadataDecoder {
     try {
       return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
-      LOGGER.error("Can write metadata: " + e, e);
+      LOGGER.error("Failed to write metadata: " + e);
       throw Exceptions.propagate(e);
     }
   }

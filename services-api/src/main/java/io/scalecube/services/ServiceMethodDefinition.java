@@ -11,7 +11,6 @@ public class ServiceMethodDefinition {
 
   private String action;
   private Map<String, String> tags;
-  private CommunicationMode communicationMode;
 
   /**
    * Constructor for SerDe.
@@ -24,11 +23,9 @@ public class ServiceMethodDefinition {
    * Create a new Service Method Definition.
    *
    * @param action method name
-   * @param communicationMode the communication mode: e.g: {@link
-   *     CommunicationMode#REQUEST_RESPONSE}
    */
-  public ServiceMethodDefinition(String action, CommunicationMode communicationMode) {
-    this(action, Collections.emptyMap(), communicationMode);
+  public ServiceMethodDefinition(String action) {
+    this(action, Collections.emptyMap());
   }
 
   /**
@@ -36,14 +33,10 @@ public class ServiceMethodDefinition {
    *
    * @param action method name
    * @param tags tags of this method
-   * @param communicationMode the communication mode: e.g: {@link
-   *     CommunicationMode#REQUEST_RESPONSE}
    */
-  public ServiceMethodDefinition(
-      String action, Map<String, String> tags, CommunicationMode communicationMode) {
+  public ServiceMethodDefinition(String action, Map<String, String> tags) {
     this.action = action;
     this.tags = tags;
-    this.communicationMode = communicationMode;
   }
 
   /**
@@ -67,14 +60,6 @@ public class ServiceMethodDefinition {
   public ServiceMethodDefinition setTags(Map<String, String> tags) {
     this.tags = tags;
     return this;
-  }
-
-  public CommunicationMode getCommunicationMode() {
-    return communicationMode;
-  }
-
-  public void setCommunicationMode(CommunicationMode communicationMode) {
-    this.communicationMode = communicationMode;
   }
 
   @Override

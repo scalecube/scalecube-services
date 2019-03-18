@@ -1,24 +1,36 @@
 package io.scalecube.services.examples.gateway;
 
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayConfig;
-import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import reactor.core.publisher.Mono;
 
-public class HttpGatewayStub implements Gateway {
+public class HttpGatewayExample implements Gateway {
 
-  private InetSocketAddress address;
+  private final GatewayOptions options;
+  private final InetSocketAddress address;
+
+  public HttpGatewayExample(GatewayOptions options) {
+    this.options = options;
+    this.address = new InetSocketAddress(options.port());
+  }
 
   @Override
-  public Mono<Gateway> start(
-      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
+  public String id() {
+    return options.id();
+  }
 
-    this.address = new InetSocketAddress(config.port());
+  @Override
+  public Address address() {
+    return Address.create(address.getHostString(), address.getPort());
+  }
+
+  @Override
+  public Mono<Gateway> start() {
+
     return Mono.defer(
         () -> {
           System.out.println("Starting HTTP gateway...");
@@ -27,11 +39,6 @@ public class HttpGatewayStub implements Gateway {
               .map(tick -> this)
               .doOnSuccess(gw -> System.out.println("HTTP gateway is started on " + gw.address));
         });
-  }
-
-  @Override
-  public InetSocketAddress address() {
-    return address;
   }
 
   @Override

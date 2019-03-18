@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
@@ -32,7 +33,11 @@ public class ServiceLocalTest extends BaseTest {
   public void setUp() {
     microservices =
         Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.port(port.incrementAndGet())))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
   }
@@ -47,7 +52,7 @@ public class ServiceLocalTest extends BaseTest {
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    GreetingService service = microservices.call().create().api(GreetingService.class);
+    GreetingService service = microservices.call().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -248,9 +253,6 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway
-        .call()
-        .create()
-        .api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 }

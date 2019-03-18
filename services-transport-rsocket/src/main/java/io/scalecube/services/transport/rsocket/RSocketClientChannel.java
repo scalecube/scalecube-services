@@ -7,16 +7,17 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.nio.channels.ClosedChannelException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class RSocketServiceClientAdapter implements ClientChannel {
+public class RSocketClientChannel implements ClientChannel {
 
   private Mono<RSocket> rsocket;
   private ServiceMessageCodec messageCodec;
 
-  public RSocketServiceClientAdapter(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
+  public RSocketClientChannel(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
     this.rsocket = rsocket;
     this.messageCodec = codec;
   }
@@ -28,7 +29,9 @@ public class RSocketServiceClientAdapter implements ClientChannel {
             rsocket ->
                 rsocket
                     .requestResponse(toPayload(message))
-                    .takeUntilOther(listenConnectionClose(rsocket)))
+                    .onErrorMap(
+                        ClosedChannelException.class,
+                        e -> new ConnectionClosedException("Connection closed")))
         .map(this::toMessage);
   }
 
@@ -39,7 +42,9 @@ public class RSocketServiceClientAdapter implements ClientChannel {
             rsocket ->
                 rsocket
                     .requestStream(toPayload(message))
-                    .takeUntilOther(listenConnectionClose(rsocket)))
+                    .onErrorMap(
+                        ClosedChannelException.class,
+                        e -> new ConnectionClosedException("Connection closed")))
         .map(this::toMessage);
   }
 
@@ -50,7 +55,9 @@ public class RSocketServiceClientAdapter implements ClientChannel {
             rsocket ->
                 rsocket
                     .requestChannel(Flux.from(publisher).map(this::toPayload))
-                    .takeUntilOther(listenConnectionClose(rsocket)))
+                    .onErrorMap(
+                        ClosedChannelException.class,
+                        e -> new ConnectionClosedException("Connection closed")))
         .map(this::toMessage);
   }
 
@@ -60,17 +67,5 @@ public class RSocketServiceClientAdapter implements ClientChannel {
 
   private ServiceMessage toMessage(Payload payload) {
     return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
-  }
-
-  @SuppressWarnings("unchecked")
-  private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
-    return rsocket
-        .onClose()
-        .map(empty -> (T) empty)
-        .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
-  }
-
-  private <T> Mono<T> toConnectionClosedException() {
-    return Mono.error(new ConnectionClosedException("Connection closed"));
   }
 }

@@ -6,7 +6,6 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.HeadAndTail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
@@ -72,14 +71,20 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     @Override
     public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-      return Flux.from(HeadAndTail.createFrom(Flux.from(payloads).map(this::toMessage)))
-          .flatMap(
-              pair -> {
-                ServiceMessage message = pair.head();
-                validateRequest(message);
-                Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
-                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeBidirectional(messages, ServiceMessageCodec::decodeData);
+      return Flux.from(payloads)
+          .map(this::toMessage)
+          .switchOnFirst(
+              (first, messages) -> {
+                if (first.hasValue()) {
+                  ServiceMessage message = first.get();
+                  validateRequest(message);
+                  ServiceMethodInvoker methodInvoker =
+                      methodRegistry.getInvoker(message.qualifier());
+                  return methodInvoker.invokeBidirectional(
+                      messages, ServiceMessageCodec::decodeData);
+                }
+
+                return messages;
               })
           .map(this::toPayload);
     }

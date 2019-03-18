@@ -80,8 +80,7 @@ public class ServiceEndpoint {
    * @return collection of {@link ServiceReference}
    */
   public Collection<ServiceReference> serviceReferences() {
-    return serviceRegistrations
-        .stream()
+    return serviceRegistrations.stream()
         .flatMap(sr -> sr.methods().stream().map(sm -> new ServiceReference(sm, sr, this)))
         .collect(Collectors.toList());
   }

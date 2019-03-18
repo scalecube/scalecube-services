@@ -1,12 +1,16 @@
 package io.scalecube.services.examples;
 
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
+
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.examples.gateway.HttpGatewayStub;
-import io.scalecube.services.examples.gateway.WebsocketGatewayStub;
-import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.gateway.HttpGatewayExample;
+import io.scalecube.services.examples.gateway.WebsocketGatewayExample;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -27,47 +31,41 @@ public class BootstrapExample {
     System.out.println("Start gateway");
     Microservices gateway =
         Microservices.builder()
-            .gateway(
-                GatewayConfig.builder("http", HttpGatewayStub.class)
-                    .port(8181)
-                    .build()) // override default port
-            .gateway(
-                GatewayConfig.builder("ws", WebsocketGatewayStub.class)
-                    .port(9191)
-                    .addOption(
-                        WebsocketGatewayStub.WS_SPECIFIC_OPTION_NAME,
-                        "500") // override default value of specific option
-                    .build())
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .gateway(opts -> new HttpGatewayExample(opts.id("http").port(8181)))
+            .gateway(opts -> new WebsocketGatewayExample(opts.id("ws").port(9191)))
             .startAwait();
-
-    System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 call ->
                     Collections.singleton(
                         ServiceInfo.fromServiceInstance(
                                 new HelloWorldServiceImpl(
                                     new BusinessLogicFacade(
-                                        call.create().api(ServiceHello.class),
-                                        call.create().api(ServiceWorld.class))))
+                                        call.api(ServiceHello.class),
+                                        call.api(ServiceWorld.class))))
                             .build()))
             .startAwait();
 
     System.out.println("Start ServiceHello");
     final Microservices node2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new ServiceWorldImpl())
             .startAwait();
 
@@ -75,13 +73,19 @@ public class BootstrapExample {
     TimeUnit.SECONDS.sleep(3);
 
     System.out.println("Making hello world business logic ...");
-    HelloWorldService helloWorldService = node1.call().create().api(HelloWorldService.class);
+    HelloWorldService helloWorldService = node1.call().api(HelloWorldService.class);
 
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);
 
     Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown())
         .block(Duration.ofSeconds(5));
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceEndpoint serviceEndpoint, Microservices gateway) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 
   /** Just a service. */

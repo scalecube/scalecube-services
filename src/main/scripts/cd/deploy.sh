@@ -6,7 +6,7 @@ DEPLOY_EXEC_FILES=$(find $DIRNAME -name 'deploy-*.sh')
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
+mvn -P release deploy -Darguments=-DskipTests -B -V -s travis-settings.xml
 pip install --user -r requirements.txt
 $(dirname $0)/external_build.sh
 

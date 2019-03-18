@@ -1,8 +1,13 @@
 package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import org.reactivestreams.Publisher;
@@ -29,23 +34,28 @@ public class Example2 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed = Microservices.builder().startAwait();
+    Microservices seed =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     // Create a proxy to the seed service node
-    Call service = seed.call();
+    ServiceCall service = seed.call();
 
     // Create a ServiceMessage request with service qualifier and data
     ServiceMessage request =
         ServiceMessage.builder().qualifier(SERVICE_QUALIFIER).data("joe").build();
     // Execute the Greeting Service to emit a single Greeting response
-    Publisher<ServiceMessage> publisher = service.create().requestOne(request, Greeting.class);
+    Publisher<ServiceMessage> publisher = service.requestOne(request, Greeting.class);
 
     // Convert the Publisher using the Mono API which ensures it will emit 0 or 1 item.
     Mono.from(publisher)
@@ -59,5 +69,11 @@ public class Example2 {
     // shut down the nodes
     seed.shutdown().block();
     microservices.shutdown().block();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceEndpoint serviceEndpoint, Microservices seed) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(seed.discovery().address())));
   }
 }

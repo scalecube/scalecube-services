@@ -2,7 +2,7 @@ package io.scalecube.services.gateway.clientsdk;
 
 import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.exceptions.DefaultClientErrorMapper;
-import java.net.InetSocketAddress;
+import io.scalecube.services.transport.api.Address;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 
@@ -95,8 +95,8 @@ public class ClientSettings {
       return this;
     }
 
-    public Builder address(InetSocketAddress address) {
-      return host(address.getHostString()).port(address.getPort());
+    public Builder address(Address address) {
+      return host(address.host()).port(address.port());
     }
 
     public Builder contentType(String contentType) {

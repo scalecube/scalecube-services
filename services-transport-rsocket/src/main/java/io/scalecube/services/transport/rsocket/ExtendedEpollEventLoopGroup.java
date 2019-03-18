@@ -19,10 +19,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.BiFunction;
 
-/**
- * Epoll event loop group with provided event executor chooser. Creates instances of {@link
- * io.netty.channel.epoll.EpollEventLoop}.
- */
 public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
   private static final ThreadFactory WORKER_THREAD_FACTORY =

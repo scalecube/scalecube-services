@@ -20,7 +20,7 @@ public class StandaloneRequestOneBenchmark {
                 benchmarkSettings,
                 "rsws",
                 (address, loopResources) ->
-                    Client.onRSocket(
+                    Client.rsocket(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

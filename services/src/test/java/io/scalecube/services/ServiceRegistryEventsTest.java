@@ -2,9 +2,13 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,19 +22,27 @@ public class ServiceRegistryEventsTest {
 
     List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
-    Microservices seed = Microservices.builder().startAwait();
+    Microservices seed =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
 
     seed.discovery().listen().subscribe(events::add);
 
+    Address seedAddress = seed.discovery().address();
+
     Microservices ms1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.discovery().address()))
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -43,5 +55,11 @@ public class ServiceRegistryEventsTest {
     assertEquals(Type.UNREGISTERED, events.get(3).type());
 
     seed.shutdown().block(Duration.ofSeconds(6));
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceEndpoint serviceEndpoint, Address address) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
   }
 }
