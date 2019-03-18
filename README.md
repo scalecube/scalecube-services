@@ -64,14 +64,18 @@ The example provisions 2 cluster nodes and making a remote interaction.
     Microservices seed = Microservices.builder().startAwait();
 
     //2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices microservices = Microservices.builder()
-        .discovery(options -> options.seeds(seed.discovery().address())) // some address so its possible to join the cluster.
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
+    Microservices microservices =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     //3. Create service proxy
-    GreetingsService service = seed.call().create().api(GreetingsService.class);
+    GreetingsService service = seed.call().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
     service.sayHello("joe").subscribe(consumer -> {
@@ -83,7 +87,7 @@ Basic Service Example:
 
 
 * RequestOne: Send single request and expect single reply
-* RequestStream: Send single request and expect stream of responses. 
+* RequestStream: Send single request and expect stream of responses.
 * RequestBidirectional: send stream of requests and expect stream of responses.
 
 A service is nothing but an interface declaring what methods we wish to provision at our cluster.
@@ -98,14 +102,14 @@ public interface ExampleService {
 
   @ServiceMethod
   Flux<MyResponse> helloStream();
-  
+
   @ServiceMethod
   Flux<MyResponse> helloBidirectional(Flux<MyRequest> requests);
 }
 
 ```
 
-## API-Gateway: 
+## API-Gateway:
 
 Available api-gateways are [rsocket](/services-gateway-rsocket), [http](/services-gateway-http) and [websocket](/services-gateway-websocket)
 
@@ -116,11 +120,11 @@ Basic API-Gateway example:
     Microservices.builder()
         .discovery(options -> options.seeds(seed.discovery().address()))
         .services(...) // OPTIONAL: services (if any) as part of this node.
-        
-        // configure list of gateways plugins exposing the apis 
-        .gateway(GatewayConfig.builder("http", HttpGateway.class).port(7070).build())
-        .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(8080).build())
-        .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).port(9090).build())  
+
+        // configure list of gateways plugins exposing the apis
+        .gateway(options -> new WebsocketGateway(options.id("ws").port(8080)))
+        .gateway(options -> new HttpGateway(options.id("http").port(7070)))
+        .gateway(options -> new RSocketGateway(options.id("rsws").port(9090)))
         
         .startAwait();
         
