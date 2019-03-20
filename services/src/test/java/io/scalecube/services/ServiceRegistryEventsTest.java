@@ -7,13 +7,18 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
+import io.scalecube.services.sut.AnnotationService;
+import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
+import reactor.test.StepVerifier;
 
 public class ServiceRegistryEventsTest {
 
@@ -61,5 +66,127 @@ public class ServiceRegistryEventsTest {
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
+  }
+
+  @Test
+  public void test_listen_to_discovery_events() {
+    ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
+
+    List<Microservices> cluster = new CopyOnWriteArrayList<>();
+
+    Microservices seed =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new AnnotationServiceImpl())
+            .startAwait();
+    cluster.add(seed);
+
+    seed.discovery().listen().subscribe(processor);
+
+    Address seedAddress = seed.discovery().address();
+
+    StepVerifier.create(processor)
+        .then(
+            () -> {
+              Microservices ms1 =
+                  Microservices.builder()
+                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .transport(ServiceTransports::rsocketServiceTransport)
+                      .services(new GreetingServiceImpl())
+                      .startAwait();
+              cluster.add(ms1);
+            })
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .then(
+            () -> {
+              Microservices ms2 =
+                  Microservices.builder()
+                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .transport(ServiceTransports::rsocketServiceTransport)
+                      .services(new GreetingServiceImpl())
+                      .startAwait();
+              cluster.add(ms2);
+            })
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .then(
+            () -> {
+              Microservices ms2 = cluster.remove(2);
+              ms2.shutdown().subscribe();
+            })
+        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
+        .then(
+            () -> {
+              Microservices ms1 = cluster.remove(1);
+              ms1.shutdown().subscribe();
+            })
+        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
+        .thenCancel()
+        .verify(Duration.ofSeconds(6));
+
+    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEvents())
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
+        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
+        .thenCancel()
+        .verify(Duration.ofSeconds(6));
+
+    Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
+        .block(Duration.ofSeconds(6));
+  }
+
+  @Test
+  public void test_delayed_listen_to_discovery_events() {
+    ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
+
+    List<Microservices> cluster = new CopyOnWriteArrayList<>();
+
+    Microservices seed =
+        Microservices.builder()
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
+    cluster.add(seed);
+
+    seed.discovery().listen().subscribe(processor);
+
+    Address seedAddress = seed.discovery().address();
+
+    StepVerifier.create(processor)
+        .then(
+            () -> {
+              Microservices ms1 =
+                  Microservices.builder()
+                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .transport(ServiceTransports::rsocketServiceTransport)
+                      .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
+                      .startAwait();
+              cluster.add(ms1);
+            })
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .then(
+            () -> {
+              Microservices ms2 =
+                  Microservices.builder()
+                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .transport(ServiceTransports::rsocketServiceTransport)
+                      .services(new GreetingServiceImpl())
+                      .startAwait();
+              cluster.add(ms2);
+            })
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .thenCancel()
+        .verify(Duration.ofSeconds(6));
+
+    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEvents())
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+        .thenCancel()
+        .verify(Duration.ofSeconds(6));
+
+    Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
+        .block(Duration.ofSeconds(6));
   }
 }
