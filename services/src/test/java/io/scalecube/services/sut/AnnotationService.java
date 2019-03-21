@@ -11,5 +11,5 @@ public interface AnnotationService {
   String SERVICE_NAME = "annotations";
 
   @ServiceMethod
-  Flux<ServiceDiscoveryEvent> serviceDiscoveryEvents();
+  Flux<ServiceDiscoveryEvent.Type> serviceDiscoveryEventTypes();
 }

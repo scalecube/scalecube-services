@@ -124,11 +124,11 @@ public class ServiceRegistryEventsTest {
         .thenCancel()
         .verify(Duration.ofSeconds(6));
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEvents())
-        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
-        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
-        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
-        .assertNext(event -> assertEquals(Type.UNREGISTERED, event.type()))
+    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+        .assertNext(type -> assertEquals(Type.REGISTERED, type))
+        .assertNext(type -> assertEquals(Type.REGISTERED, type))
+        .assertNext(type -> assertEquals(Type.UNREGISTERED, type))
+        .assertNext(type -> assertEquals(Type.UNREGISTERED, type))
         .thenCancel()
         .verify(Duration.ofSeconds(6));
 
@@ -180,9 +180,9 @@ public class ServiceRegistryEventsTest {
         .thenCancel()
         .verify(Duration.ofSeconds(6));
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEvents())
-        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
-        .assertNext(event -> assertEquals(Type.REGISTERED, event.type()))
+    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+        .assertNext(type -> assertEquals(Type.REGISTERED, type))
+        .assertNext(type -> assertEquals(Type.REGISTERED, type))
         .thenCancel()
         .verify(Duration.ofSeconds(6));
 

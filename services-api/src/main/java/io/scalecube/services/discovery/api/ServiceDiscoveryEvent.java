@@ -14,16 +14,8 @@ public class ServiceDiscoveryEvent {
     UNREGISTERED // service endpoint removed
   }
 
-  private ServiceEndpoint serviceEndpoint;
-  private Type type;
-
-  /**
-   * Constructor for SerDe.
-   *
-   * @deprecated exposed only for de/serialization purpose.
-   */
-  ServiceDiscoveryEvent() {
-  }
+  private final ServiceEndpoint serviceEndpoint;
+  private final Type type;
 
   private ServiceDiscoveryEvent(ServiceEndpoint serviceEndpoint, Type type) {
     this.serviceEndpoint = serviceEndpoint;

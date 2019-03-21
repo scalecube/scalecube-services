@@ -17,7 +17,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   }
 
   @Override
-  public Flux<ServiceDiscoveryEvent> serviceDiscoveryEvents() {
-    return serviceDiscoveryEvents;
+  public Flux<ServiceDiscoveryEvent.Type> serviceDiscoveryEventTypes() {
+    return serviceDiscoveryEvents.map(ServiceDiscoveryEvent::type);
   }
 }
