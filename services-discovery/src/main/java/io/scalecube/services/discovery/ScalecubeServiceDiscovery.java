@@ -9,33 +9,24 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.transport.api.Address;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private static final int EVENT_BUFFER_SIZE = 65536;
-
   private final ServiceEndpoint endpoint;
   private final ClusterConfig clusterConfig;
 
   private Cluster cluster;
-
-  private final EmitterProcessor<ServiceDiscoveryEvent> subject =
-      EmitterProcessor.create(EVENT_BUFFER_SIZE, false);
-  private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
   /**
    * Constructor.
@@ -116,30 +107,23 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
           return Cluster.join(clusterConfig)
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
-              .doOnSuccess(serviceDiscovery::listen)
               .thenReturn(serviceDiscovery);
         });
   }
 
-  private void listen(Cluster cluster) {
-    cluster.listenMembership().subscribe(this::onMemberEvent);
-  }
-
   @Override
   public Flux<ServiceDiscoveryEvent> listen() {
-    return subject;
+    return cluster.listenMembership().handle(this::onMemberEvent);
   }
 
   @Override
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () -> {
-          sink.complete();
-          return Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty());
-        });
+        () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()));
   }
 
-  private void onMemberEvent(MembershipEvent membershipEvent) {
+  private void onMemberEvent(
+      MembershipEvent membershipEvent, SynchronousSink<ServiceDiscoveryEvent> sink) {
     final Member member = membershipEvent.member();
 
     Map<String, String> metadata = null;
@@ -152,26 +136,26 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       LOGGER.info("ServiceEndpoint removed, since member {} have left the cluster", member);
     }
 
-    List<ServiceEndpoint> serviceEndpoints =
-        Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
-            .map(ClusterMetadataCodec::decodeMetadata)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
+    Optional.ofNullable(metadata)
+        .orElse(Collections.emptyMap())
+        .values()
+        .stream()
+        .map(ClusterMetadataCodec::decodeMetadata)
+        .filter(Objects::nonNull)
+        .forEach(
+            serviceEndpoint -> {
+              ServiceDiscoveryEvent discoveryEvent = null;
 
-    serviceEndpoints.forEach(
-        serviceEndpoint -> {
-          ServiceDiscoveryEvent discoveryEvent = null;
+              if (membershipEvent.isAdded()) {
+                discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
+              }
+              if (membershipEvent.isRemoved()) {
+                discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
+              }
 
-          if (membershipEvent.isAdded()) {
-            discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
-          }
-          if (membershipEvent.isRemoved()) {
-            discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-          }
-
-          if (discoveryEvent != null) {
-            sink.next(discoveryEvent);
-          }
-        });
+              if (discoveryEvent != null) {
+                sink.next(discoveryEvent);
+              }
+            });
   }
 }
