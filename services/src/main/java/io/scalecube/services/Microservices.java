@@ -468,7 +468,7 @@ public class Microservices {
 
   public static class ServiceTransportBootstrap {
 
-    private String host = "localhost";
+    private String host;
     private int port = 0;
     private Supplier<TransportResources> resourcesSupplier;
     private Function<TransportResources, ClientTransport> clientTransportFactory;
