@@ -488,7 +488,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (!gateways.isEmpty()) {
-                          LOGGER.info("Gateways has been stopped");
+                          LOGGER.info("Gateways have been stopped");
                         }
                       }));
     }
