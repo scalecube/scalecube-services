@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<project
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.scalecube</groupId>
+    <artifactId>scalecube-services-parent</artifactId>
+    <version>2.5.4-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>scalecube-events</artifactId>
+  <name>scalecube-events</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <reactor.aeron.version>0.1.4</reactor.aeron.version>
+    <checkstyle.skip>true</checkstyle.skip>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>reactor-aeron</artifactId>
+      <version>${reactor.aeron.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-cluster</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+</project>
