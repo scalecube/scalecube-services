@@ -1,8 +1,12 @@
 package io.scalecube.events.api;
 
+import reactor.core.publisher.TopicProcessor;
+
 public class Topic {
 
   private String name;
+
+  private final TopicProcessor<String> processor = TopicProcessor.create();
 
   private Topic(String name) {
     this.name = name;
@@ -31,5 +35,9 @@ public class Topic {
 
   public static Topic name(String name) {
     return new Topic(name);
+  }
+
+  public TopicProcessor<String> processor() {
+    return processor;
   }
 }
