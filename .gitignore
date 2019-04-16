@@ -13,3 +13,5 @@
 *.log
 *.zip
 
+# IntelliJ IDEA project files and directories
+*.iml
