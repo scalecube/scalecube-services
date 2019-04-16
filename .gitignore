@@ -1,34 +1,17 @@
-# Eclipse project files
-.project
-.classpath
-.settings
-
-# IntelliJ IDEA project files and directories
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# Geany project file
-.geany
-
-# KDevelop project file and directory
-.kdev4/
-*.kdev4
+# everything that starts with dot (hidden files)
+.*
+# except this file
+!.gitignore
+# except this file-extention
+!.*.yml
 
 # Build targets
-/target
-*/target
+**/target/
 
-# Report directories
-/reports
-*/reports
+# logs and reports
 *.csv
 *.log
 *.zip
 
-# Mac-specific directory that no other operating system needs.
-.DS_Store
-
-# JVM crash logs
-hs_err_pid*.log
+# IntelliJ IDEA project files and directories
+*.iml

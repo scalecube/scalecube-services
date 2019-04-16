@@ -40,9 +40,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+import sun.misc.Signal;
+import sun.misc.SignalHandler;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -122,6 +125,8 @@ public class Microservices {
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
+  private final MonoProcessor<Void> shutdown = MonoProcessor.create();
+  private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
   private Microservices(Builder builder) {
     this.id = UUID.randomUUID().toString();
@@ -134,6 +139,12 @@ public class Microservices {
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
+
+    // Setup cleanup
+    shutdown
+        .then(doShutdown())
+        .doFinally(s -> onShutdown.onComplete())
+        .subscribe(null, ex -> LOGGER.warn("Exception occurred on microservices stop: " + ex));
   }
 
   public static Builder builder() {
@@ -145,8 +156,10 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    LOGGER.info("Starting microservices {}", id);
+
     // Create bootstrap scheduler
-    String schedulerName = "microservices-" + Integer.toHexString(hashCode());
+    String schedulerName = "microservices" + Integer.toHexString(id.hashCode());
     Scheduler scheduler = Schedulers.newSingle(schedulerName, true);
 
     return transportBootstrap
@@ -189,6 +202,7 @@ public class Microservices {
               // return original error then shutdown
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             })
+        .doOnSuccess(m -> listenJvmShutdown())
         .doOnTerminate(scheduler::dispose);
   }
 
@@ -244,11 +258,37 @@ public class Microservices {
    */
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () ->
-            Mono.whenDelayError(
-                discoveryBootstrap.shutdown(),
-                gatewayBootstrap.shutdown(),
-                transportBootstrap.shutdown()));
+        () -> {
+          shutdown.onComplete();
+          return onShutdown;
+        });
+  }
+
+  /**
+   * Returns signal of when shutdown was completed.
+   *
+   * @return signal of when shutdown completed
+   */
+  public Mono<Void> onShutdown() {
+    return onShutdown;
+  }
+
+  private void listenJvmShutdown() {
+    SignalHandler handler = signal -> shutdown.onComplete();
+    Signal.handle(new Signal("TERM"), handler);
+    Signal.handle(new Signal("INT"), handler);
+  }
+
+  private Mono<Void> doShutdown() {
+    return Mono.defer(
+        () -> {
+          LOGGER.info("Shutting down microservices {}", id);
+          return Mono.whenDelayError(
+                  discoveryBootstrap.shutdown(),
+                  gatewayBootstrap.shutdown(),
+                  transportBootstrap.shutdown())
+              .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
+        });
   }
 
   public static final class Builder {
@@ -616,7 +656,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (resources != null) {
-                          LOGGER.info("Service transport have been stopped");
+                          LOGGER.info("Service transport has been stopped");
                         }
                       }));
     }
