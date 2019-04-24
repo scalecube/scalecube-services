@@ -7,24 +7,32 @@ import reactor.core.publisher.Mono;
 /** Service transport resources interface. */
 public interface TransportResources {
 
+  TransportResources NO_TRANSPORT_RESOURCES = new TransportResources() {};
+
   /**
    * Returns optional service transport worker thread pool.
    *
    * @return worker pool
    */
-  Optional<? extends Executor> workerPool();
+  default Optional<? extends Executor> workerPool() {
+    return Optional.empty();
+  }
 
   /**
    * Starts service transport resources.
    *
    * @return mono result
    */
-  Mono<? extends TransportResources> start();
+  default Mono<? extends TransportResources> start() {
+    return Mono.just(this);
+  }
 
   /**
    * Shutdowns service transport resources.
    *
    * @return shutdown completion signal
    */
-  Mono<Void> shutdown();
+  default Mono<Void> shutdown() {
+    return Mono.empty();
+  }
 }

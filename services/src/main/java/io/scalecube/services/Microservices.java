@@ -507,9 +507,12 @@ public class Microservices {
 
     private String host;
     private int port = 0;
-    private Supplier<TransportResources> resourcesSupplier;
-    private Function<TransportResources, ClientTransport> clientTransportFactory;
-    private Function<TransportResources, ServerTransport> serverTransportFactory;
+    private Supplier<TransportResources> resourcesSupplier =
+        () -> TransportResources.NO_TRANSPORT_RESOURCES;
+    private Function<TransportResources, ClientTransport> clientTransportFactory =
+        ignore -> ClientTransport.NO_CLIENT_TRANSPORT;
+    private Function<TransportResources, ServerTransport> serverTransportFactory =
+        ignore -> ServerTransport.NO_SERVER_TRANSPORT;
 
     private TransportResources resources;
     private ClientTransport clientTransport;
