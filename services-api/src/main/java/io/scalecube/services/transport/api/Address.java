@@ -7,8 +7,11 @@ import reactor.core.Exceptions;
 
 public class Address {
 
-  private final String host;
-  private final int port;
+  private String host;
+  private int port;
+
+  Address() {
+  }
 
   private Address(String host, int port) {
     this.host = host;

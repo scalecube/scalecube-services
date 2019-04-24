@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.DataCodec;
 import java.util.Arrays;
 import java.util.List;
@@ -26,16 +27,14 @@ public class ServiceScanner {
    *
    * @param serviceInstances services instances collection
    * @param endpointId endpoint string identifier
-   * @param host endpoint service host
-   * @param port endpoint service port
+   * @param address endpoint service address
    * @param endpointTags map of tags defined at endpoint level
    * @return newly created instance of {@link ServiceEndpoint} object
    */
   public static ServiceEndpoint scan(
       List<ServiceInfo> serviceInstances,
       String endpointId,
-      String host,
-      int port,
+      Address address,
       Map<String, String> endpointTags) {
 
     Set<String> contentTypes =
@@ -68,7 +67,7 @@ public class ServiceScanner {
             .collect(Collectors.toList());
 
     return new ServiceEndpoint(
-        endpointId, host, port, contentTypes, endpointTags, serviceRegistrations);
+        endpointId, address, contentTypes, endpointTags, serviceRegistrations);
   }
 
   /** Tuple class. Contains service interface along with tags map. */

@@ -181,10 +181,7 @@ public class Microservices {
               // register services in service registry
               ServiceEndpoint serviceEndpoint = null;
               if (!serviceInfos.isEmpty()) {
-                String serviceHost = serviceAddress.host();
-                int servicePort = serviceAddress.port();
-                serviceEndpoint =
-                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
+                serviceEndpoint = ServiceScanner.scan(serviceInfos, id, serviceAddress, tags);
                 serviceRegistry.registerService(serviceEndpoint);
               }
 
