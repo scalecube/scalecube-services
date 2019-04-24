@@ -7,7 +7,7 @@ import reactor.core.Exceptions;
 
 public class Address {
 
-  public static final Address NO_ADDRESS = new Address(null, -1);
+  public static final Address NO_ADDRESS = new Address("", -1);
 
   private String host;
   private int port;

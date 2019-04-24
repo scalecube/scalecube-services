@@ -7,13 +7,25 @@ import reactor.core.publisher.Mono;
 
 public interface ServiceDiscovery {
 
-  Address address();
+  ServiceDiscovery NO_SERVICE_DISCOVERY = new ServiceDiscovery() {};
 
-  ServiceEndpoint endpoint();
+  default Address address() {
+    return Address.NO_ADDRESS;
+  }
 
-  Flux<ServiceDiscoveryEvent> listen();
+  default ServiceEndpoint endpoint() {
+    return null;
+  }
 
-  Mono<ServiceDiscovery> start();
+  default Flux<ServiceDiscoveryEvent> listen() {
+    return Flux.never();
+  }
 
-  Mono<Void> shutdown();
+  default Mono<ServiceDiscovery> start() {
+    return Mono.just(this);
+  }
+
+  default Mono<Void> shutdown() {
+    return Mono.empty();
+  }
 }

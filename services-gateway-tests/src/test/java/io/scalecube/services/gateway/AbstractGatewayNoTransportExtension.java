@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
@@ -33,7 +32,6 @@ public abstract class AbstractGatewayNoTransportExtension
     gateway =
         Microservices.builder()
             .services(serviceInstance)
-            .discovery(ScalecubeServiceDiscovery::new)
             .gateway(gatewayFactory)
             .startAwait();
   }

@@ -380,7 +380,8 @@ public class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
-    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory;
+    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
+        ignore -> ServiceDiscovery.NO_SERVICE_DISCOVERY;
 
     private ServiceDiscovery discovery;
 

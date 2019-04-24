@@ -8,6 +8,8 @@ import reactor.core.publisher.Mono;
 /** Client channel interface. */
 public interface ClientChannel {
 
+  ClientChannel NO_CLIENT_CHANNEL = new ClientChannel() {};
+
   default Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return Mono.error(new IllegalStateException("no client channel implemenation"));
   }

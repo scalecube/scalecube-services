@@ -12,6 +12,6 @@ public interface ClientTransport {
    * @return client channel instance.
    */
   default ClientChannel create(Address address) {
-    return new ClientChannel() {};
+    return ClientChannel.NO_CLIENT_CHANNEL;
   }
 }
