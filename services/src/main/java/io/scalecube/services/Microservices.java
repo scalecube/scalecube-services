@@ -177,7 +177,7 @@ public class Microservices {
                 workerPool = input.resources.workerPool().orElse(null);
                 call = new ServiceCall(clientTransport, serviceRegistry, methodRegistry);
               } else {
-                call = new ServiceCall(null, null, methodRegistry);
+                call = new ServiceCall(methodRegistry);
                 serviceAddress = null;
                 workerPool = null;
               }

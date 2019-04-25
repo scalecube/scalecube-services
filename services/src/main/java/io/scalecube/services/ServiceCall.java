@@ -44,6 +44,15 @@ public class ServiceCall {
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
   /**
+   * Creates new local {@link ServiceCall}'s definition.
+   *
+   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
+   */
+  public ServiceCall(ServiceMethodRegistry methodRegistry) {
+    this(null, null, methodRegistry);
+  }
+
+  /**
    * Creates new {@link ServiceCall}'s definition.
    *
    * @param transport transport to be used by {@link ServiceCall}
