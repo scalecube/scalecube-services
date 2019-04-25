@@ -15,8 +15,6 @@ public class ServiceReference {
 
   private final String qualifier;
   private final String endpointId;
-  private final String host;
-  private final int port;
   private final String namespace;
   private final Set<String> contentTypes;
   private final Map<String, String> tags;
@@ -35,14 +33,12 @@ public class ServiceReference {
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
-    this.host = serviceEndpoint.host();
-    this.port = serviceEndpoint.port();
     this.namespace = serviceRegistration.namespace();
     this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
     this.qualifier = Qualifier.asString(namespace, action);
-    this.address = Address.create(this.host(), this.port());
+    this.address = serviceEndpoint.address();
   }
 
   public String qualifier() {
@@ -51,14 +47,6 @@ public class ServiceReference {
 
   public String endpointId() {
     return endpointId;
-  }
-
-  public String host() {
-    return host;
-  }
-
-  public int port() {
-    return port;
   }
 
   public String namespace() {
@@ -101,11 +89,9 @@ public class ServiceReference {
         + ", endpointId='"
         + endpointId
         + '\''
-        + ", host='"
-        + host
+        + ", address='"
+        + address
         + '\''
-        + ", port="
-        + port
         + ", namespace='"
         + namespace
         + '\''
