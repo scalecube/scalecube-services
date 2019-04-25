@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.transport.api.Address;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -8,8 +9,7 @@ import java.util.stream.Collectors;
 public class ServiceEndpoint {
 
   private String id;
-  private String host;
-  private int port;
+  private Address address;
   private Set<String> contentTypes;
   private Map<String, String> tags;
   private Collection<ServiceRegistration> serviceRegistrations;
@@ -25,21 +25,18 @@ public class ServiceEndpoint {
    * Create a service endpoint.
    *
    * @param id the endpoint's id.
-   * @param host the endpoint's host.
-   * @param port the endpoint's port.
+   * @param address the endpoint's address.
    * @param tags the endpoint's tags (if any).
    * @param serviceRegistrations registration for this endpoint.
    */
   public ServiceEndpoint(
       String id,
-      String host,
-      int port,
+      Address address,
       Set<String> contentTypes,
       Map<String, String> tags,
       Collection<ServiceRegistration> serviceRegistrations) {
     this.id = id;
-    this.host = host;
-    this.port = port;
+    this.address = address;
     this.contentTypes = contentTypes;
     this.tags = tags;
     this.serviceRegistrations = serviceRegistrations;
@@ -49,12 +46,8 @@ public class ServiceEndpoint {
     return id;
   }
 
-  public String host() {
-    return host;
-  }
-
-  public int port() {
-    return port;
+  public Address address() {
+    return address;
   }
 
   public Set<String> contentTypes() {
@@ -91,11 +84,9 @@ public class ServiceEndpoint {
         + "id='"
         + id
         + '\''
-        + ", host='"
-        + host
+        + ", address='"
+        + address
         + '\''
-        + ", port="
-        + port
         + ", tags="
         + tags
         + ", serviceRegistrations="
