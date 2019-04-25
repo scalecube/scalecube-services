@@ -6,16 +6,12 @@ import reactor.core.publisher.Mono;
 /** Server service transport interface. */
 public interface ServerTransport {
 
-  ServerTransport NO_OP_SERVER_TRANSPORT = new ServerTransport() {};
-
   /**
    * Returns factual listen server address.
    *
    * @return listen server address
    */
-  default Address address() {
-    return Address.NULL_ADDRESS;
-  }
+  Address address();
 
   /**
    * Starts a server transport.
@@ -24,16 +20,12 @@ public interface ServerTransport {
    * @param methodRegistry service method registry
    * @return bound server address
    */
-  default Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry) {
-    return Mono.just(this);
-  }
+  Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry);
 
   /**
    * Stops server transport.
    *
    * @return srop signal
    */
-  default Mono<Void> stop() {
-    return Mono.empty();
-  }
+  Mono<Void> stop();
 }

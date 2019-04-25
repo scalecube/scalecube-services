@@ -167,12 +167,20 @@ public class Microservices {
         .publishOn(scheduler)
         .flatMap(
             input -> {
-              final ClientTransport clientTransport = transportBootstrap.clientTransport;
-              final Address serviceAddress = transportBootstrap.address;
-              final Executor workerPool = transportBootstrap.resources.workerPool().orElse(null);
+              ServiceCall call;
+              Address serviceAddress;
+              Executor workerPool;
 
-              ServiceCall call = new ServiceCall(clientTransport, methodRegistry, serviceRegistry);
-
+              if (input != ServiceTransportBootstrap.noOpInstance) {
+                ClientTransport clientTransport = input.clientTransport;
+                serviceAddress = input.address;
+                workerPool = input.resources.workerPool().orElse(null);
+                call = new ServiceCall(clientTransport, serviceRegistry, methodRegistry);
+              } else {
+                call = new ServiceCall(null, null, methodRegistry);
+                serviceAddress = null;
+                workerPool = null;
+              }
               // invoke service providers and register services
               serviceProviders.stream()
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
@@ -233,7 +241,7 @@ public class Microservices {
   }
 
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry);
+    return new ServiceCall(transportBootstrap.clientTransport, serviceRegistry, methodRegistry);
   }
 
   public List<Gateway> gateways() {
@@ -380,8 +388,9 @@ public class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
-    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
-        ignore -> ServiceDiscovery.NO_OP_SERVICE_DISCOVERY;
+    public static final ServiceDiscovery noOpInstance = new NoOpServiceDiscovery();
+
+    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory = ignore -> noOpInstance;
 
     private ServiceDiscovery discovery;
 
@@ -396,6 +405,9 @@ public class Microservices {
       return Mono.defer(
           () -> {
             ServiceDiscovery serviceDiscovery = discoveryFactory.apply(serviceEndpoint);
+            if (serviceDiscovery == noOpInstance) {
+              return Mono.just(this.discovery = noOpInstance);
+            }
             LOGGER.info("Starting service discovery -- {}", serviceDiscovery);
             return serviceDiscovery
                 .start()
@@ -440,6 +452,34 @@ public class Microservices {
                           LOGGER.info("Service discovery -- {} has been stopped", discovery);
                         }
                       }));
+    }
+
+    private static class NoOpServiceDiscovery implements ServiceDiscovery {
+
+      @Override
+      public Address address() {
+        return null;
+      }
+
+      @Override
+      public ServiceEndpoint endpoint() {
+        return null;
+      }
+
+      @Override
+      public Flux<ServiceDiscoveryEvent> listen() {
+        return Flux.empty();
+      }
+
+      @Override
+      public Mono<ServiceDiscovery> start() {
+        return Mono.empty();
+      }
+
+      @Override
+      public Mono<Void> shutdown() {
+        return Mono.empty();
+      }
     }
   }
 
@@ -506,14 +546,13 @@ public class Microservices {
 
   public static class ServiceTransportBootstrap {
 
+    public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
+
     private String host;
     private int port = 0;
-    private Supplier<TransportResources> resourcesSupplier =
-        () -> TransportResources.NO_OP_TRANSPORT_RESOURCES;
-    private Function<TransportResources, ClientTransport> clientTransportFactory =
-        ignore -> ClientTransport.NO_OP_CLIENT_TRANSPORT;
-    private Function<TransportResources, ServerTransport> serverTransportFactory =
-        ignore -> ServerTransport.NO_OP_SERVER_TRANSPORT;
+    private Supplier<TransportResources> resourcesSupplier = () -> null;
+    private Function<TransportResources, ClientTransport> clientTransportFactory;
+    private Function<TransportResources, ServerTransport> serverTransportFactory;
 
     private TransportResources resources;
     private ClientTransport clientTransport;
@@ -597,14 +636,14 @@ public class Microservices {
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.fromSupplier(resourcesSupplier)
           .flatMap(TransportResources::start)
-          .doOnSuccess(
+          .map(
               resources -> {
-                // keep transport resources
-                this.resources = resources;
                 LOGGER.info(
                     "Successfully started service transport resources -- {}", this.resources);
+                // keep transport resources
+                return this.resources = resources;
               })
-          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: {}", ex))
+          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: " + ex))
           .flatMap(
               resources -> {
                 // bind server transport
@@ -620,7 +659,7 @@ public class Microservices {
                                 port,
                                 ex));
               })
-          .doOnSuccess(
+          .map(
               serverTransport -> {
                 this.serverTransport = serverTransport;
 
@@ -640,8 +679,9 @@ public class Microservices {
                 this.clientTransport = clientTransportFactory.apply(resources);
                 LOGGER.info(
                     "Successfully created client service transport -- {}", this.clientTransport);
+                return this;
               })
-          .thenReturn(this);
+          .switchIfEmpty(Mono.just(ServiceTransportBootstrap.noOpInstance));
     }
 
     private Mono<Void> shutdown() {

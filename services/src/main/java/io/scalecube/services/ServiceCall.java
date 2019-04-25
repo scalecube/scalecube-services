@@ -47,13 +47,13 @@ public class ServiceCall {
    * Creates new {@link ServiceCall}'s definition.
    *
    * @param transport transport to be used by {@link ServiceCall}
-   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
    * @param serviceRegistry serviceRegistry to be used by {@link ServiceCall}
+   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
    */
   public ServiceCall(
       ClientTransport transport,
-      ServiceMethodRegistry methodRegistry,
-      ServiceRegistry serviceRegistry) {
+      ServiceRegistry serviceRegistry,
+      ServiceMethodRegistry methodRegistry) {
     this.transport = transport;
     this.serviceRegistry = serviceRegistry;
     this.methodRegistry = methodRegistry;
@@ -170,6 +170,7 @@ public class ServiceCall {
     return Mono.defer(
         () -> {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
+          requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
               .requestResponse(request)
@@ -226,6 +227,7 @@ public class ServiceCall {
     return Flux.defer(
         () -> {
           requireNonNull(address, "requestMany address parameter is required and must not be null");
+          requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
               .requestStream(request)
@@ -292,6 +294,7 @@ public class ServiceCall {
         () -> {
           requireNonNull(
               address, "requestBidirectional address parameter is required and must not be null");
+          requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
               .requestChannel(publisher)
@@ -361,11 +364,13 @@ public class ServiceCall {
 
   private Mono<Address> addressLookup(ServiceMessage request) {
     Callable<Address> callable =
-        () ->
-            router
-                .route(serviceRegistry, request)
-                .map(ServiceReference::address)
-                .orElseThrow(() -> noReachableMemberException(request));
+        () -> {
+          requireNonNull(serviceRegistry, "serviceRegistry is required and must not be null");
+          return router
+              .route(serviceRegistry, request)
+              .map(ServiceReference::address)
+              .orElseThrow(() -> noReachableMemberException(request));
+        };
     return Mono.fromCallable(callable)
         .doOnError(
             t -> {
