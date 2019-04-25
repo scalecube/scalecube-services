@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.rsocket;
 
 import io.rsocket.Payload;
-import io.scalecube.services.gateway.AbstractGatewayNoTransportExtension;
+import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
@@ -10,11 +10,11 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import reactor.netty.resources.LoopResources;
 
-class RsocketGatewayNoTransportExtension extends AbstractGatewayNoTransportExtension {
+class RsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
-  RsocketGatewayNoTransportExtension(Object serviceInstance) {
+  RsocketLocalGatewayExtension(Object serviceInstance) {
     super(serviceInstance, opts -> new RSocketGateway(opts.id(GATEWAY_ALIAS_NAME)));
   }
 

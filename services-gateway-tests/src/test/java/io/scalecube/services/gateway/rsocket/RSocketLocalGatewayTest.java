@@ -1,10 +1,10 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.rsocket;
 
+import io.rsocket.exceptions.ApplicationErrorException;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
-import io.scalecube.services.exceptions.InternalServiceException;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,15 +12,16 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class WebsocketGatewayNoTransportTest {
+class RSocketLocalGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  static WebsocketGatewayNoTransportExtension extension =
-      new WebsocketGatewayNoTransportExtension(new GreetingServiceImpl());
+  static RsocketLocalGatewayExtension extension =
+      new RsocketLocalGatewayExtension(new GreetingServiceImpl());
 
   private GreetingService service;
 
@@ -30,7 +31,7 @@ class WebsocketGatewayNoTransportTest {
   }
 
   @Test
-  void shouldReturnSingleResponseWithSimpleRequest() {
+  void shouldReturnSingleResponse() {
     StepVerifier.create(service.one("hello"))
         .expectNext("Echo:hello")
         .expectComplete()
@@ -55,7 +56,7 @@ class WebsocketGatewayNoTransportTest {
   }
 
   @Test
-  void shouldReturnManyResponsesWithSimpleRequest() {
+  void shouldReturnManyResponses() {
     int expectedResponseNum = 3;
     List<String> expected =
         IntStream.range(0, expectedResponseNum)
@@ -84,18 +85,35 @@ class WebsocketGatewayNoTransportTest {
 
   @Test
   void shouldReturnErrorDataWhenServiceFails() {
-    StepVerifier.create(service.failingOne("hello"))
-        .expectErrorMatches(throwable -> throwable instanceof InternalServiceException)
+    String req = "hello";
+    Mono<String> result = service.failingOne(req);
+
+    StepVerifier.create(result)
+        .expectErrorMatches(throwable -> throwable instanceof ApplicationErrorException)
         .verify(TIMEOUT);
   }
 
   @Test
   void shouldReturnErrorDataWhenRequestDataIsEmpty() {
-    StepVerifier.create(service.one(null))
+    Mono<String> result = service.one(null);
+    StepVerifier.create(result)
         .expectErrorMatches(
             throwable ->
                 "Expected service request data of type: class java.lang.String, but received: null"
                     .equals(throwable.getMessage()))
+        .verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldSuccessfullyReuseServiceProxy() {
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
         .verify(TIMEOUT);
   }
 }

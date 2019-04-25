@@ -381,7 +381,7 @@ public class Microservices {
   public static class ServiceDiscoveryBootstrap {
 
     private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
-        ignore -> ServiceDiscovery.NO_SERVICE_DISCOVERY;
+        ignore -> ServiceDiscovery.NO_OP_SERVICE_DISCOVERY;
 
     private ServiceDiscovery discovery;
 
@@ -509,11 +509,11 @@ public class Microservices {
     private String host;
     private int port = 0;
     private Supplier<TransportResources> resourcesSupplier =
-        () -> TransportResources.NO_TRANSPORT_RESOURCES;
+        () -> TransportResources.NO_OP_TRANSPORT_RESOURCES;
     private Function<TransportResources, ClientTransport> clientTransportFactory =
-        ignore -> ClientTransport.NO_CLIENT_TRANSPORT;
+        ignore -> ClientTransport.NO_OP_CLIENT_TRANSPORT;
     private Function<TransportResources, ServerTransport> serverTransportFactory =
-        ignore -> ServerTransport.NO_SERVER_TRANSPORT;
+        ignore -> ServerTransport.NO_OP_SERVER_TRANSPORT;
 
     private TransportResources resources;
     private ClientTransport clientTransport;

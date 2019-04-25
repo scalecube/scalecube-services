@@ -3,7 +3,7 @@ package io.scalecube.services.transport.api;
 /** Client service transport interface. */
 public interface ClientTransport {
 
-  ClientTransport NO_CLIENT_TRANSPORT = new ClientTransport() {};
+  ClientTransport NO_OP_CLIENT_TRANSPORT = new ClientTransport() {};
 
   /**
    * Creates a client channel ready for communication with remote service node.
@@ -12,6 +12,6 @@ public interface ClientTransport {
    * @return client channel instance.
    */
   default ClientChannel create(Address address) {
-    return ClientChannel.NO_CLIENT_CHANNEL;
+    return ClientChannel.NO_OP_CLIENT_CHANNEL;
   }
 }

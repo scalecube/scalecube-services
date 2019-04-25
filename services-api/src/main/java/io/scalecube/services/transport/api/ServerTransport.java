@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 /** Server service transport interface. */
 public interface ServerTransport {
 
-  ServerTransport NO_SERVER_TRANSPORT = new ServerTransport() {};
+  ServerTransport NO_OP_SERVER_TRANSPORT = new ServerTransport() {};
 
   /**
    * Returns factual listen server address.
@@ -14,7 +14,7 @@ public interface ServerTransport {
    * @return listen server address
    */
   default Address address() {
-    return Address.NO_ADDRESS;
+    return Address.NULL_ADDRESS;
   }
 
   /**

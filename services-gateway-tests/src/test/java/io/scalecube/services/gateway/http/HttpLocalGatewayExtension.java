@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.http;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.services.gateway.AbstractGatewayNoTransportExtension;
+import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
@@ -9,11 +9,11 @@ import io.scalecube.services.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import reactor.netty.resources.LoopResources;
 
-class HttpGatewayNoTransportExtension extends AbstractGatewayNoTransportExtension {
+class HttpLocalGatewayExtension extends AbstractLocalGatewayExtension {
 
   private static final String GATEWAY_ALIAS_NAME = "http";
 
-  HttpGatewayNoTransportExtension(Object serviceInstance) {
+  HttpLocalGatewayExtension(Object serviceInstance) {
     super(serviceInstance, opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)));
   }
 

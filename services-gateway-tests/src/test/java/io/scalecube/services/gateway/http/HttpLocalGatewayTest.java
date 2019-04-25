@@ -12,13 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-class HttpGatewayNoTransportTest {
+class HttpLocalGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  static HttpGatewayNoTransportExtension extension =
-      new HttpGatewayNoTransportExtension(new GreetingServiceImpl());
+  static HttpLocalGatewayExtension extension =
+      new HttpLocalGatewayExtension(new GreetingServiceImpl());
 
   private GreetingService service;
 

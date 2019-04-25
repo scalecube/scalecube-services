@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 /** Service transport resources interface. */
 public interface TransportResources {
 
-  TransportResources NO_TRANSPORT_RESOURCES = new TransportResources() {};
+  TransportResources NO_OP_TRANSPORT_RESOURCES = new TransportResources() {};
 
   /**
    * Returns optional service transport worker thread pool.

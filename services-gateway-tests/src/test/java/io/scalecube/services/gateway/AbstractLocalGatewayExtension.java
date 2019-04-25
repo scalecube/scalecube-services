@@ -15,18 +15,18 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractGatewayNoTransportExtension
+public abstract class AbstractLocalGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(AbstractGatewayNoTransportExtension.class);
+      LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
 
   private final Microservices gateway;
 
   private Client client;
   private Address gatewayAddress;
 
-  protected AbstractGatewayNoTransportExtension(
+  protected AbstractLocalGatewayExtension(
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
 
     gateway =
