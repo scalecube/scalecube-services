@@ -53,6 +53,14 @@ class HttpLocalGatewayTest {
   }
 
   @Test
+  void shouldReturnListResponseWithPojoRequest() {
+    StepVerifier.create(service.pojoList(new GreetingRequest("hello")))
+        .expectNextMatches(response -> "Echo:hello".equals(response.get(0).getText()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
   void shouldReturnNoContentWhenResponseIsEmpty() {
     StepVerifier.create(service.emptyOne("hello")).expectComplete().verify(TIMEOUT);
   }

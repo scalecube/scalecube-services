@@ -62,15 +62,10 @@ public final class Reflect {
    * @param method to extract type from.
    * @return the generic type of the return value or object.
    */
-  public static Class<?> parameterizedReturnType(Method method) {
+  public static Type parameterizedReturnType(Method method) {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
-      try {
-        return Class.forName(
-            (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
-      } catch (ClassNotFoundException e) {
-        return Object.class;
-      }
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
     } else {
       return Object.class;
     }

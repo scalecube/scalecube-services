@@ -55,6 +55,14 @@ class WebsocketLocalGatewayTest {
   }
 
   @Test
+  void shouldReturnListResponseWithPojoRequest() {
+    StepVerifier.create(service.pojoList(new GreetingRequest("hello")))
+        .expectNextMatches(response -> "Echo:hello".equals(response.get(0).getText()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
   void shouldReturnManyResponsesWithSimpleRequest() {
     int expectedResponseNum = 3;
     List<String> expected =

@@ -3,13 +3,14 @@ package io.scalecube.services.methods;
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import java.lang.reflect.Type;
 
 public final class MethodInfo {
 
   private final String serviceName;
   private final String methodName;
   private final String qualifier;
-  private final Class<?> parameterizedReturnType;
+  private final Type parameterizedReturnType;
   private final CommunicationMode communicationMode;
   private final int parameterCount;
   private final Class<?> requestType;
@@ -27,7 +28,7 @@ public final class MethodInfo {
   public MethodInfo(
       String serviceName,
       String methodName,
-      Class<?> parameterizedReturnType,
+      Type parameterizedReturnType,
       CommunicationMode communicationMode,
       int parameterCount,
       Class<?> requestType) {
@@ -53,7 +54,7 @@ public final class MethodInfo {
     return qualifier;
   }
 
-  public Class<?> parameterizedReturnType() {
+  public Type parameterizedReturnType() {
     return parameterizedReturnType;
   }
 

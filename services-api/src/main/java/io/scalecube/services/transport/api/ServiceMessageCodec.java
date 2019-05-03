@@ -8,6 +8,7 @@ import io.netty.buffer.Unpooled;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
+import java.lang.reflect.Type;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +105,7 @@ public final class ServiceMessageCodec {
    *     (of type data type)
    * @throws MessageCodecException when decode fails
    */
-  public static ServiceMessage decodeData(ServiceMessage message, Class<?> dataType)
+  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
       throws MessageCodecException {
     if (dataType == null
         || !message.hasData(ByteBuf.class)
@@ -113,7 +114,7 @@ public final class ServiceMessageCodec {
     }
 
     Object data;
-    Class<?> targetType = message.isError() ? ErrorData.class : dataType;
+    Type targetType = message.isError() ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {

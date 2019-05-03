@@ -4,13 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,22 +22,12 @@ public class ServiceLocalTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private static AtomicInteger port = new AtomicInteger(7000);
-
   private Microservices microservices;
 
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.port(port.incrementAndGet())))
-            .transport(ServiceTransports::rsocketServiceTransport)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
   /** Cleanup. */

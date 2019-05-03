@@ -19,6 +19,7 @@ import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -150,7 +151,7 @@ public class ServiceCall {
    * @param responseType type of response.
    * @return mono publisher completing with single response message or with error.
    */
-  public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
+  public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
           String qualifier = request.qualifier();
@@ -175,7 +176,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(
-      ServiceMessage request, Class<?> responseType, Address address) {
+      ServiceMessage request, Type responseType, Address address) {
     return Mono.defer(
         () -> {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
@@ -205,7 +206,7 @@ public class ServiceCall {
    * @param responseType type of responses.
    * @return flux publisher of service responses.
    */
-  public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
+  public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
           String qualifier = request.qualifier();
@@ -232,7 +233,7 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(
-      ServiceMessage request, Class<?> responseType, Address address) {
+      ServiceMessage request, Type responseType, Address address) {
     return Flux.defer(
         () -> {
           requireNonNull(address, "requestMany address parameter is required and must not be null");
@@ -263,7 +264,7 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(
-      Publisher<ServiceMessage> publisher, Class<?> responseType) {
+      Publisher<ServiceMessage> publisher, Type responseType) {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) -> {
@@ -298,7 +299,7 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(
-      Publisher<ServiceMessage> publisher, Class<?> responseType, Address address) {
+      Publisher<ServiceMessage> publisher, Type responseType, Address address) {
     return Flux.defer(
         () -> {
           requireNonNull(
@@ -331,7 +332,7 @@ public class ServiceCall {
             new Class[] {serviceInterface},
             (proxy, method, params) -> {
               final MethodInfo methodInfo = genericReturnTypes.get(method);
-              final Class<?> returnType = methodInfo.parameterizedReturnType();
+              final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
 
               Optional<Object> check =

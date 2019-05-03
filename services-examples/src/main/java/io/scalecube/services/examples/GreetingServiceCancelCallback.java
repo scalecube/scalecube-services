@@ -1,5 +1,6 @@
 package io.scalecube.services.examples;
 
+import java.util.List;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,6 +41,11 @@ public class GreetingServiceCancelCallback implements GreetingService {
   @Override
   public Mono<GreetingResponse> pojoOne(GreetingRequest request) {
     return greetingService.pojoOne(request).doOnCancel(onCancel);
+  }
+
+  @Override
+  public Mono<List<GreetingResponse>> pojoList(GreetingRequest request) {
+    return greetingService.pojoList(request).doOnCancel(onCancel);
   }
 
   @Override
