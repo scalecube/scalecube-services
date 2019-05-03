@@ -1,6 +1,8 @@
 package io.scalecube.services.examples;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.LongStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -45,6 +47,12 @@ public class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<GreetingResponse> pojoOne(GreetingRequest request) {
     return Mono.defer(() -> one(request.getText()).map(GreetingResponse::new));
+  }
+
+  @Override
+  public Mono<List<GreetingResponse>> pojoList(GreetingRequest request) {
+    return Mono.defer(
+        () -> one(request.getText()).map(GreetingResponse::new).map(Collections::singletonList));
   }
 
   @Override

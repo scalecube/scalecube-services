@@ -2,6 +2,7 @@ package io.scalecube.services.examples;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import java.util.List;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +28,9 @@ public interface GreetingService {
 
   @ServiceMethod("pojo/one")
   Mono<GreetingResponse> pojoOne(GreetingRequest request);
+
+  @ServiceMethod("pojo/list")
+  Mono<List<GreetingResponse>> pojoList(GreetingRequest request);
 
   @ServiceMethod("pojo/many")
   Flux<GreetingResponse> pojoMany(GreetingRequest request);
