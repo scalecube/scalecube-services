@@ -5,11 +5,14 @@ import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.StringMapSchema;
 import io.protostuff.runtime.RuntimeSchema;
+import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,14 +43,24 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
   }
 
   @Override
-  public Object decode(InputStream stream, Class<?> type) throws IOException {
-    Schema schema = RuntimeSchema.getSchema(type);
-    Object result = schema.newMessage();
+  public Object decode(InputStream stream, Type type) throws IOException {
+    try {
+      Class<?> clazz = null;
+      if (type instanceof Class<?>) {
+        clazz = (Class<?>) type;
+      } else if (type instanceof ParameterizedType) {
+        clazz = Class.forName(((ParameterizedType) type).getRawType().getTypeName());
+      }
+      Schema schema = RuntimeSchema.getSchema(clazz);
+      Object result = schema.newMessage();
 
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
+      try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
+        ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
+      }
+      return result;
+    } catch (ClassNotFoundException e) {
+      throw new MessageCodecException("Couldn't decode message", e);
     }
-    return result;
   }
 
   @Override

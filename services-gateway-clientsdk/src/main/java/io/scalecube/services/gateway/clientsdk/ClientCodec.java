@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.scalecube.services.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.DataCodec;
+import java.lang.reflect.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,14 +26,14 @@ public interface ClientCodec<T> {
    * @return client message object.
    * @throws MessageCodecException in case if data decoding fails.
    */
-  default ClientMessage decodeData(ClientMessage message, Class<?> dataType)
+  default ClientMessage decodeData(ClientMessage message, Type dataType)
       throws MessageCodecException {
     if (!message.hasData(ByteBuf.class) || dataType == null) {
       return message;
     }
 
     Object data;
-    Class<?> targetType = message.isError() ? ErrorData.class : dataType;
+    Type targetType = message.isError() ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
@@ -48,7 +49,7 @@ public interface ClientCodec<T> {
   /**
    * Returns codec which is used to decode data object of {@link ClientMessage}.
    *
-   * @see ClientCodec#decodeData(ClientMessage, Class)
+   * @see ClientCodec#decodeData(ClientMessage, Type)
    * @return data codec
    */
   DataCodec getDataCodec();

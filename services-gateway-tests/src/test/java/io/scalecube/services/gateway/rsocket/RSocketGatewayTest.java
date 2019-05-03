@@ -56,6 +56,14 @@ class RSocketGatewayTest {
   }
 
   @Test
+  void shouldReturnListResponseWithPojoRequest() {
+    StepVerifier.create(service.pojoList(new GreetingRequest("hello")))
+        .expectNextMatches(response -> "Echo:hello".equals(response.get(0).getText()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
   void shouldReturnManyResponses() {
     int expectedResponseNum = 3;
     List<String> expected =

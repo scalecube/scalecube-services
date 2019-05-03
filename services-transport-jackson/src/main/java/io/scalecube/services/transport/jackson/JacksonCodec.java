@@ -12,6 +12,7 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +54,8 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
   }
 
   @Override
-  public Object decode(InputStream stream, Class<?> type) throws IOException {
-    return mapper.readValue(stream, type);
+  public Object decode(InputStream stream, Type type) throws IOException {
+    return mapper.readValue(stream, mapper.getTypeFactory().constructType(type));
   }
 
   private static ObjectMapper initMapper() {

@@ -4,6 +4,7 @@ import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Map;
 import reactor.core.Exceptions;
 
@@ -42,7 +43,7 @@ public class RemoteInvocationHandler implements InvocationHandler {
             .data(methodInfo.parameterCount() != 0 ? args[0] : null)
             .build();
 
-    Class<?> responseType = methodInfo.parameterizedReturnType();
+    Type responseType = methodInfo.parameterizedReturnType();
 
     switch (methodInfo.communicationMode()) {
       case REQUEST_RESPONSE:
