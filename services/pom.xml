@@ -19,6 +19,12 @@
     </dependency>
 
     <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>services-transport-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
+    <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-core</artifactId>
     </dependency>
