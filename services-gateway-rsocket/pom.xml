@@ -45,7 +45,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-transport-utils</artifactId>
+      <artifactId>services-transport-utils</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

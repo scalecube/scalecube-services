@@ -6,7 +6,7 @@
     <artifactId>scalecube-services-parent</artifactId>
     <version>2.5.7-SNAPSHOT</version>
   </parent>
-  <artifactId>scalecube-services-transport-utils</artifactId>
+  <artifactId>services-transport-utils</artifactId>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
