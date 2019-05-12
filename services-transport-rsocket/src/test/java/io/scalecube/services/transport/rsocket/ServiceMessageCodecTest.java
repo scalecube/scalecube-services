@@ -1,14 +1,12 @@
-package io.scalecube.services.codec;
+package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.BaseTest;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.jackson.JacksonCodec;
 import io.scalecube.services.transport.protostuff.ProtostuffCodec;
 import java.math.BigDecimal;
@@ -39,7 +37,7 @@ class ServiceMessageCodecTest extends BaseTest {
 
     Payload payload = codec.encodeAndTransform(message, ByteBufPayload::create);
 
-    LOGGER.info(
+    BaseTest.LOGGER.info(
         "contentType={}, headers={}, data={}",
         contentType,
         payload.getMetadataUtf8(),

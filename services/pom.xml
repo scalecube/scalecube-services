@@ -19,12 +19,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>services-transport-utils</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    
-    <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-core</artifactId>
     </dependency>
@@ -48,18 +42,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

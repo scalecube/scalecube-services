@@ -16,11 +16,6 @@
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>services-transport-utils</artifactId>
-      <version>${project.version}</version>
-    </dependency>
 
     <dependency>
       <groupId>org.slf4j</groupId>
@@ -51,6 +46,19 @@
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-protostuff</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

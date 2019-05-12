@@ -58,7 +58,6 @@
     <module>services-gateway-runner</module>
     <module>services-examples-runner</module>
     <module>services-gateway-clientsdk</module>
-    <module>services-transport-utils</module>
   </modules>
 
   <dependencyManagement>

@@ -8,6 +8,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.methods.ServiceMessageDataDecoder;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
@@ -125,6 +126,7 @@ public class Microservices {
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
+  private final ServiceMessageDataDecoder dataDecoder;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -139,6 +141,7 @@ public class Microservices {
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
+    this.dataDecoder = builder.dataDecoder;
 
     // Setup cleanup
     shutdown
@@ -229,7 +232,8 @@ public class Microservices {
     // register service
     methodRegistry.registerService(
         serviceInfo.serviceInstance(),
-        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper));
+        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
+        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
   }
 
   public Metrics metrics() {
@@ -307,6 +311,7 @@ public class Microservices {
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+    private ServiceMessageDataDecoder dataDecoder = (message, clazz) -> message;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -382,6 +387,11 @@ public class Microservices {
 
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
+      return this;
+    }
+
+    public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
+      this.dataDecoder = dataDecoder;
       return this;
     }
   }

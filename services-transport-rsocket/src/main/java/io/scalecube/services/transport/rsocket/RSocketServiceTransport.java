@@ -3,7 +3,6 @@ package io.scalecube.services.transport.rsocket;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.TransportResources;
 import reactor.netty.resources.LoopResources;

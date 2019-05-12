@@ -12,8 +12,6 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
-import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.Optional;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -52,7 +50,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMap(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeOne(message, ServiceMessageCodec::decodeData);
+                return methodInvoker.invokeOne(message);
               })
           .map(this::toPayload);
     }
@@ -64,7 +62,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMapMany(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeMany(message, ServiceMessageCodec::decodeData);
+                return methodInvoker.invokeMany(message);
               })
           .map(this::toPayload);
     }
@@ -80,8 +78,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
                       methodRegistry.getInvoker(message.qualifier());
-                  return methodInvoker.invokeBidirectional(
-                      messages, ServiceMessageCodec::decodeData);
+                  return methodInvoker.invokeBidirectional(messages);
                 }
 
                 return messages;

@@ -11,7 +11,10 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
       new ConcurrentHashMap<>();
 
   @Override
-  public void registerService(Object serviceInstance, ServiceProviderErrorMapper errorMapper) {
+  public void registerService(
+      Object serviceInstance,
+      ServiceProviderErrorMapper errorMapper,
+      ServiceMessageDataDecoder dataDecoder) {
     Reflect.serviceInterfaces(serviceInstance)
         .forEach(
             serviceInterface ->
@@ -35,7 +38,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                           methodInvokers.put(
                               methodInfo.qualifier(),
                               new ServiceMethodInvoker(
-                                  method, serviceInstance, methodInfo, errorMapper));
+                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder));
                         }));
   }
 
