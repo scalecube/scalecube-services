@@ -1,8 +1,6 @@
 package io.scalecube.services.methods;
 
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import java.util.function.BiFunction;
 
 public interface ServiceMethodRegistry {
 
