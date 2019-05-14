@@ -58,6 +58,7 @@
     <module>services-gateway-runner</module>
     <module>services-examples-runner</module>
     <module>services-gateway-clientsdk</module>
+    <module>services-rsocket-codec</module>
   </modules>
 
   <dependencyManagement>
