@@ -6,6 +6,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
+import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Type;
 import java.nio.channels.ClosedChannelException;
 import org.reactivestreams.Publisher;

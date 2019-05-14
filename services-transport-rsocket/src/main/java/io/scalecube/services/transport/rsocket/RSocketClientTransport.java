@@ -7,6 +7,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;

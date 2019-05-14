@@ -7,6 +7,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
