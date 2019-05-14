@@ -85,7 +85,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>services-rsocket-codec</artifactId>
+      <artifactId>scalecube-services-rsocket-codec</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

@@ -6,7 +6,7 @@
     <artifactId>scalecube-services-parent</artifactId>
     <version>2.5.7-SNAPSHOT</version>
   </parent>
-  <artifactId>services-rsocket-codec</artifactId>
+  <artifactId>scalecube-services-rsocket-codec</artifactId>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
