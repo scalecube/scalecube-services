@@ -57,7 +57,7 @@ public class HttpGatewayAcceptor
         httpRequest.requestHeaders(),
         httpRequest.params());
 
-    if (httpRequest.method() != OPTIONS) {
+    if (httpRequest.method() == OPTIONS) {
       return crossOriginResourceSharing(httpRequest, httpResponse).status(OK).send().then();
     }
 
