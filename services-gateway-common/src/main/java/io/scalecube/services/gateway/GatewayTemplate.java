@@ -1,17 +1,11 @@
 package io.scalecube.services.gateway;
 
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.http.HttpMethod;
-import io.netty.handler.codec.http.cors.CorsConfig;
-import io.netty.handler.codec.http.cors.CorsConfigBuilder;
-import io.netty.handler.codec.http.cors.CorsHandler;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
-import reactor.netty.channel.BootstrapHandlers;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
@@ -45,23 +39,6 @@ public abstract class GatewayTemplate implements Gateway {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
-              tcpServer =
-                  tcpServer.bootstrap(
-                      b ->
-                          BootstrapHandlers.updateConfiguration(
-                              b,
-                              "CORS-bootstrap-handler",
-                              (connectionObserver, channel) -> {
-                                CorsConfig corsConfig =
-                                    CorsConfigBuilder.forAnyOrigin()
-                                        .allowedRequestMethods(HttpMethod.POST, HttpMethod.OPTIONS)
-                                        .shortCircuit()
-                                        .build();
-                                CorsHandler corsHandler = new CorsHandler(corsConfig);
-
-                                ChannelPipeline pipeline = channel.pipeline();
-                                pipeline.addFirst("CORS", corsHandler);
-                              }));
               if (loopResources != null) {
                 tcpServer = tcpServer.runOn(loopResources);
               }
