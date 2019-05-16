@@ -78,8 +78,6 @@ public class HttpGatewayAcceptor
     String qualifier = httpRequest.uri();
     Builder builder = ServiceMessage.builder().qualifier(qualifier).data(content);
     enrichRequest(httpRequest.requestHeaders(), builder);
-    // todo workaround
-    httpResponse.addHeader("Access-Control-Allow-Origin", "*");
 
     return serviceCall
         .requestOne(builder.build())

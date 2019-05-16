@@ -34,7 +34,7 @@ public abstract class GatewayTemplate implements Gateway {
    * @param metrics gateway metrics
    * @return http server
    */
-  protected final HttpServer prepareHttpServer(
+  protected HttpServer prepareHttpServer(
       LoopResources loopResources, int port, GatewayMetrics metrics) {
     return HttpServer.create()
         .tcpConfiguration(

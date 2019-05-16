@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.http;
 
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
@@ -15,7 +14,6 @@ import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
-import reactor.netty.channel.BootstrapHandlers;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
@@ -38,7 +36,7 @@ public class HttpGateway extends GatewayTemplate {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());
           }
 
-          return httpServer(loopResources, options.port(), null /*metrics*/)
+          return prepareHttpServer(loopResources, options.port(), null /*metrics*/)
               .handle(acceptor)
               .bind()
               .doOnSuccess(server -> this.server = server)
@@ -57,28 +55,11 @@ public class HttpGateway extends GatewayTemplate {
     return shutdownServer(server).then(shutdownLoopResources(loopResources));
   }
 
-  private HttpServer httpServer(
+  protected HttpServer prepareHttpServer(
       LoopResources loopResources, int port, GatewayMetrics metrics) {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
-              tcpServer =
-                  tcpServer.bootstrap(
-                      b ->
-                          BootstrapHandlers.updateConfiguration(
-                              b,
-                              "CORS-bootstrap-handler",
-                              (connectionObserver, channel) -> {
-                                CorsConfig corsConfig =
-                                    CorsConfigBuilder.forAnyOrigin()
-                                        .allowedRequestMethods(HttpMethod.POST, HttpMethod.OPTIONS)
-                                        .shortCircuit()
-                                        .build();
-                                CorsHandler corsHandler = new CorsHandler(corsConfig);
-
-                                ChannelPipeline pipeline = channel.pipeline();
-                                pipeline.addFirst("CORS", corsHandler);
-                              }));
               if (loopResources != null) {
                 tcpServer = tcpServer.runOn(loopResources);
               }
@@ -90,7 +71,18 @@ public class HttpGateway extends GatewayTemplate {
                           connection.onDispose(metrics::decConnection);
                         });
               }
-              return tcpServer.addressSupplier(() -> new InetSocketAddress(port));
+              return tcpServer
+                  .addressSupplier(() -> new InetSocketAddress(port))
+                  .doOnConnection(
+                      connection -> {
+                        CorsConfig corsConfig =
+                            CorsConfigBuilder.forAnyOrigin()
+                                .allowedRequestMethods(HttpMethod.POST)
+                                .allowNullOrigin()
+                                .build();
+                        CorsHandler corsHandler = new CorsHandler(corsConfig);
+                        connection.addHandlerLast(corsHandler);
+                      });
             });
   }
 }
