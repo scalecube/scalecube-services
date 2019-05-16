@@ -17,8 +17,8 @@ public abstract class GatewayTemplate implements Gateway {
   protected final GatewayMetrics gatewayMetrics;
 
   protected GatewayTemplate(GatewayOptions options) {
-    this.options = options;
-    this.gatewayMetrics = new GatewayMetrics(options.id(), options.metrics());
+    this.options = new GatewayOptions(options);
+    this.gatewayMetrics = new GatewayMetrics(this.options.id(), this.options.metrics());
   }
 
   @Override
