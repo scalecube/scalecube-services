@@ -115,7 +115,7 @@ public class HttpGatewayAcceptor
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
-    crossOriginResourceSharing(httpResponse);
+    httpResponse.header("Access-Control-Allow-Origin", "*");
     return httpResponse.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
@@ -128,12 +128,12 @@ public class HttpGatewayAcceptor
             ? encodeData(response.data(), response.dataFormatOrDefault())
             : ((ByteBuf) response.data()).retain();
 
-    crossOriginResourceSharing(httpResponse);
+    httpResponse.header("Access-Control-Allow-Origin", "*");
     return httpResponse.status(status).sendObject(content).then();
   }
 
   private Mono<Void> noContent(HttpServerResponse httpResponse) {
-    crossOriginResourceSharing(httpResponse);
+    httpResponse.header("Access-Control-Allow-Origin", "*");
     return httpResponse.status(NO_CONTENT).send();
   }
 
@@ -143,7 +143,7 @@ public class HttpGatewayAcceptor
             ? ((ByteBuf) response.data()).retain()
             : encodeData(response.data(), response.dataFormatOrDefault());
 
-    crossOriginResourceSharing(httpResponse);
+    httpResponse.header("Access-Control-Allow-Origin", "*");
     return httpResponse.status(OK).sendObject(content).then();
   }
 
