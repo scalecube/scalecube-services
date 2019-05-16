@@ -58,7 +58,7 @@ public class HttpGatewayAcceptor
         httpRequest.params());
 
     if (httpRequest.method() == OPTIONS) {
-      return crossOriginResourceSharing(httpRequest, httpResponse).status(OK).send().then();
+      return crossOriginResourceSharing(httpResponse).status(OK).send().then();
     }
 
     if (httpRequest.method() != POST) {
@@ -82,11 +82,10 @@ public class HttpGatewayAcceptor
    *
    * @return HttpServerResponse with CORS.
    */
-  private HttpServerResponse crossOriginResourceSharing(
-      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    httpResponse.header("Access-Control-Allow-Origin", httpRequest.requestHeaders().get("Origin"));
-    httpResponse.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    httpResponse.header("Access-Control-Allow-Headers", " Origin, Content-Type");
+  private HttpServerResponse crossOriginResourceSharing(HttpServerResponse httpResponse) {
+    httpResponse.header("Access-Control-Allow-Origin", "*");
+    httpResponse.header("Access-Control-Allow-Headers", "*");
+    httpResponse.header("Access-Control-Allow-Methods", "POST");
     return httpResponse;
   }
 
@@ -116,6 +115,7 @@ public class HttpGatewayAcceptor
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
+    crossOriginResourceSharing(httpResponse);
     return httpResponse.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
@@ -128,10 +128,12 @@ public class HttpGatewayAcceptor
             ? encodeData(response.data(), response.dataFormatOrDefault())
             : ((ByteBuf) response.data()).retain();
 
+    crossOriginResourceSharing(httpResponse);
     return httpResponse.status(status).sendObject(content).then();
   }
 
   private Mono<Void> noContent(HttpServerResponse httpResponse) {
+    crossOriginResourceSharing(httpResponse);
     return httpResponse.status(NO_CONTENT).send();
   }
 
@@ -141,6 +143,7 @@ public class HttpGatewayAcceptor
             ? ((ByteBuf) response.data()).retain()
             : encodeData(response.data(), response.dataFormatOrDefault());
 
+    crossOriginResourceSharing(httpResponse);
     return httpResponse.status(OK).sendObject(content).then();
   }
 
