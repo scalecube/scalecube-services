@@ -38,7 +38,6 @@ public class CorsTest {
 
   @BeforeEach
   void beforeEach() {
-
     client = HttpClient.create(ConnectionProvider.newConnection()).port(HTTP_PORT).wiretap(true);
   }
 

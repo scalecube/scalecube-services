@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.http;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
 import io.scalecube.services.gateway.Gateway;
@@ -11,6 +12,7 @@ import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.transport.api.Address;
 import java.net.InetSocketAddress;
+import java.util.Map.Entry;
 import java.util.function.UnaryOperator;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
@@ -66,7 +68,41 @@ public class HttpGateway extends GatewayTemplate {
   }
 
   private CorsConfigBuilder copy(CorsConfigBuilder other) {
-    return null; // TODO
+    CorsConfig config = other.build();
+    CorsConfigBuilder corsConfigBuilder;
+    if (config.isAnyOriginSupported()) {
+      corsConfigBuilder = CorsConfigBuilder.forAnyOrigin();
+    } else {
+      corsConfigBuilder = CorsConfigBuilder.forOrigins(config.origins().toArray(new String[0]));
+    }
+
+    if (!config.isCorsSupportEnabled()) {
+      corsConfigBuilder.disable();
+    }
+
+    corsConfigBuilder
+        .exposeHeaders(config.exposedHeaders().toArray(new String[0]))
+        .allowedRequestHeaders(config.allowedRequestHeaders().toArray(new String[0]))
+        .allowedRequestMethods(config.allowedRequestMethods().toArray(new HttpMethod[0]))
+        .maxAge(config.maxAge());
+
+    for (Entry<String, String> header : config.preflightResponseHeaders()) {
+      corsConfigBuilder.preflightResponseHeader(header.getKey(), header.getValue());
+    }
+
+    if (config.isShortCircuit()) {
+      corsConfigBuilder.shortCircuit();
+    }
+
+    if (config.isNullOriginAllowed()) {
+      corsConfigBuilder.allowNullOrigin();
+    }
+
+    if (config.isCredentialsAllowed()) {
+      corsConfigBuilder.allowCredentials();
+    }
+
+    return corsConfigBuilder;
   }
 
   @Override
