@@ -5,7 +5,6 @@ import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
-import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;

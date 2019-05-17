@@ -48,7 +48,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-rsocket-codec</artifactId>
+      <artifactId>scalecube-services-bytebuf-codec</artifactId>
       <version>${project.version}</version>
     </dependency>
   </dependencies>

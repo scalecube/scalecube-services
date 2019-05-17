@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 

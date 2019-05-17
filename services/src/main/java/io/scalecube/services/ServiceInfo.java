@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.methods.ServiceMessageDataDecoder;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

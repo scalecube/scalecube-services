@@ -1,11 +1,13 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.channel.EventLoopGroup;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
@@ -24,8 +26,10 @@ public class WebsocketGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
+          ServiceCall serviceCall =
+              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
           WebsocketGatewayAcceptor acceptor =
-              new WebsocketGatewayAcceptor(options.call(), gatewayMetrics);
+              new WebsocketGatewayAcceptor(serviceCall, gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

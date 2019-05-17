@@ -1,6 +1,8 @@
 package io.scalecube.services.gateway.http;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.util.ReferenceCountUtil;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
@@ -24,7 +26,8 @@ public class HttpGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call(), gatewayMetrics);
+          ServiceCall serviceCall = options.call().requestReleaser(ReferenceCountUtil::safeRelease);
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(serviceCall, gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

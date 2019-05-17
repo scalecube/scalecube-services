@@ -4,9 +4,9 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-services-parent</artifactId>
-    <version>2.5.7-SNAPSHOT</version>
+    <version>2.5.10-SNAPSHOT</version>
   </parent>
-  <artifactId>scalecube-services-rsocket-codec</artifactId>
+  <artifactId>scalecube-services-bytebuf-codec</artifactId>
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>

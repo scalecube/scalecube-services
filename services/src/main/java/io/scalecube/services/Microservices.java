@@ -8,7 +8,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.methods.ServiceMessageDataDecoder;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
@@ -17,6 +16,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -311,7 +311,9 @@ public class Microservices {
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-    private ServiceMessageDataDecoder dataDecoder = (message, clazz) -> message;
+    private ServiceMessageDataDecoder dataDecoder =
+        Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
+            .orElse((message, dataType) -> message);
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());

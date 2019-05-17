@@ -5,6 +5,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
+import io.netty.util.ReferenceCountUtil;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
@@ -46,7 +47,7 @@ public final class ServiceMessageCodec {
         DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(dataBuffer);
+        ReferenceCountUtil.release(dataBuffer);
         LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), ex);
@@ -58,8 +59,8 @@ public final class ServiceMessageCodec {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(headersBuffer);
-        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
+        ReferenceCountUtil.release(headersBuffer);
+        ReferenceCountUtil.release(dataBuffer); // release data buf as well
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
@@ -88,7 +89,7 @@ public final class ServiceMessageCodec {
       try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
+        ReferenceCountUtil.release(dataBuffer); // release data buf as well
         throw new MessageCodecException("Failed to decode message headers", ex);
       }
     }
