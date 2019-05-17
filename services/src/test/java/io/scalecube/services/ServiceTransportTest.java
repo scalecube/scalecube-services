@@ -31,7 +31,6 @@ public class ServiceTransportTest {
   private Microservices gateway;
   private Microservices serviceNode;
 
-  /** Setup. */
   @BeforeEach
   public void setUp() {
     gateway =
@@ -52,7 +51,6 @@ public class ServiceTransportTest {
             .startAwait();
   }
 
-  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (gateway != null) {

@@ -5,12 +5,13 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
-import io.rsocket.util.ByteBufPayload;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import reactor.core.publisher.Mono;
@@ -29,8 +30,9 @@ public class RSocketGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          RSocketGatewayAcceptor acceptor =
-              new RSocketGatewayAcceptor(options.call(), gatewayMetrics);
+          ServiceCall serviceCall =
+              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
+          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(serviceCall, gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

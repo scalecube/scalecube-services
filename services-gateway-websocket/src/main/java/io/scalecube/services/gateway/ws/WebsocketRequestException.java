@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.ws;
 
-import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Objects;
 import java.util.Optional;
 

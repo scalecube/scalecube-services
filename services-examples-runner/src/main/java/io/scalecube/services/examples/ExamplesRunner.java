@@ -57,9 +57,9 @@ public class ExamplesRunner {
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(numOfThreads, opts, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
-        .startAwait();
-
-    Thread.currentThread().join();
+        .startAwait()
+        .onShutdown()
+        .block();
   }
 
   private static ServiceTransportBootstrap serviceTransport(
