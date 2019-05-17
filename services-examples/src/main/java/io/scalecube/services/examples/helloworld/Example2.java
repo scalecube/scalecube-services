@@ -31,9 +31,8 @@ public class Example2 {
    * Start the example.
    *
    * @param args ignored
-   * @throws InterruptedException joining main.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
