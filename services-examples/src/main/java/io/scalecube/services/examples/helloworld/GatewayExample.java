@@ -15,7 +15,6 @@ public class GatewayExample {
    * Example running gateway service (ws,http) and provisioning greeting service.
    *
    * @param args none needed.
-   * @throws InterruptedException joining main thread.
    */
   public static void main(String[] args) {
     // 1. ScaleCube Node node with no members
