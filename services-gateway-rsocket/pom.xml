@@ -11,42 +11,17 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-gateway-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-transport-netty</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <!-- Tests -->
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-bytebuf-codec</artifactId>
-      <version>${project.version}</version>
     </dependency>
   </dependencies>
 

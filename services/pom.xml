@@ -33,6 +33,7 @@
       <artifactId>jctools-core</artifactId>
     </dependency>
 
+    <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
@@ -51,8 +52,8 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-bytebuf-codec</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
