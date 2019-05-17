@@ -41,12 +41,24 @@ public class HttpGateway extends GatewayTemplate {
     this.corsConfigBuilder = copy(other.corsConfigBuilder);
   }
 
+  /**
+   * CORS enable.
+   *
+   * @param corsEnabled if set to true.
+   * @return HttpGateway with CORS settings.
+   */
   public HttpGateway corsEnabled(boolean corsEnabled) {
     HttpGateway g = new HttpGateway(this);
     g.corsEnabled = corsEnabled;
     return g;
   }
 
+  /**
+   * Configure CORS with options.
+   *
+   * @param op for CORS.
+   * @return HttpGateway with CORS settings.
+   */
   public HttpGateway corsConfig(UnaryOperator<CorsConfigBuilder> op) {
     HttpGateway g = new HttpGateway(this);
     g.corsConfigBuilder = copy(op.apply(g.corsConfigBuilder));
