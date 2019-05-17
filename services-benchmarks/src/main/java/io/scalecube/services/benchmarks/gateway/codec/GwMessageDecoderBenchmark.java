@@ -1,12 +1,12 @@
 package io.scalecube.services.benchmarks.gateway.codec;
 
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.gateway.ws.GatewayMessage;
 import io.scalecube.services.gateway.ws.GatewayMessageCodec;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -31,7 +31,7 @@ public class GwMessageDecoderBenchmark {
               return i -> {
                 Context timerContext = timer.time();
                 GatewayMessage message = codec.decode(state.byteBufExample().retain());
-                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safeRelease);
+                Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 timerContext.stop();
                 meter.mark();
                 return message;

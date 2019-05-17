@@ -1,12 +1,12 @@
 package io.scalecube.services.benchmarks.transport.codec;
 
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -44,8 +44,8 @@ public class SmFullEncodeScenario {
                 messageCodec.encodeAndTransform(
                     message,
                     (dataByteBuf, headersByteBuf) -> {
-                      ReferenceCountUtil.release(dataByteBuf);
-                      ReferenceCountUtil.release(headersByteBuf);
+                      ReferenceCountUtil.safestRelease(dataByteBuf);
+                      ReferenceCountUtil.safestRelease(headersByteBuf);
                       return dataByteBuf;
                     });
             timeContext.stop();
