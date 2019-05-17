@@ -196,8 +196,7 @@ public class ServiceCall {
         () -> {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
           requireNonNull(
-              transport,
-              "transport is required did you forget to provide transport?");
+              transport, "requestOne address parameter is required and must not be null");
           return transport
               .create(address)
               .requestResponse(request, responseType)
