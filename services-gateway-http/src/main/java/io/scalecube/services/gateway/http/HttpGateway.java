@@ -5,12 +5,14 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.transport.api.Address;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.function.UnaryOperator;
@@ -109,7 +111,9 @@ public class HttpGateway extends GatewayTemplate {
   public Mono<Gateway> start() {
     return Mono.defer(
         () -> {
-          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(options.call(), gatewayMetrics);
+          ServiceCall serviceCall =
+              options.call().requestReleaser(ReferenceCountUtil::safestRelease);
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(serviceCall, gatewayMetrics);
 
           if (options.workerPool() != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) options.workerPool());

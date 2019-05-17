@@ -35,7 +35,6 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
     Hooks.onOperatorDebug();
@@ -43,7 +42,6 @@ public class ServiceRemoteTest extends BaseTest {
     provider = serviceProvider();
   }
 
-  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     try {
@@ -83,7 +81,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Mono<GreetingResponse> result =
         Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
-    assertTrue(" hello to: joe".equals(result.block(Duration.ofSeconds(10)).getResult()));
+    assertEquals(" hello to: joe", result.block(Duration.ofSeconds(10)).getResult());
   }
 
   @Test
@@ -100,7 +98,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_failing_void_greeting() throws Exception {
+  public void test_remote_failing_void_greeting() {
 
     GreetingService service = gateway.call().api(GreetingService.class);
 
@@ -112,7 +110,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_throwing_void_greeting() throws Exception {
+  public void test_remote_throwing_void_greeting() {
     GreetingService service = gateway.call().api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
@@ -129,7 +127,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
-    assertTrue(" hello to: joe".equals(future.block(Duration.ofSeconds(3))));
+    assertEquals(" hello to: joe", future.block(Duration.ofSeconds(3)));
   }
 
   @Test
@@ -140,7 +138,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
 
-    assertTrue("hello unknown".equals(future.block(Duration.ofSeconds(1))));
+    assertEquals("hello unknown", future.block(Duration.ofSeconds(1)));
   }
 
   @Test
@@ -160,8 +158,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertTrue(
-        " hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(10000)).getResult()));
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(10000)).getResult());
   }
 
   @Test
@@ -190,7 +187,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1)).getResult()));
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)).getResult());
   }
 
   @Test
@@ -210,7 +207,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     Publisher<String> future = service.callGreeting("joe");
 
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
     provider.shutdown().block();
   }
 
@@ -231,7 +228,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
     provider.shutdown().block();
   }
 
@@ -260,7 +257,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_serviceA_calls_serviceB_with_dispatcher() throws Exception {
+  public void test_remote_serviceA_calls_serviceB_with_dispatcher() {
 
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();

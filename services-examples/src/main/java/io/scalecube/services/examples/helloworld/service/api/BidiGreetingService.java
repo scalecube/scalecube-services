@@ -9,5 +9,4 @@ public interface BidiGreetingService {
 
   @ServiceMethod()
   public Flux<String> greeting(Flux<String> request);
-  
 }

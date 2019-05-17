@@ -24,7 +24,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.exceptions.MessageCodecException;
-import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
