@@ -10,8 +10,7 @@ public class Address {
   private String host;
   private int port;
 
-  Address() {
-  }
+  Address() {}
 
   private Address(String host, int port) {
     this.host = host;

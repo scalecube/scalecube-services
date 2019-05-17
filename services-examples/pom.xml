@@ -27,6 +27,11 @@
       <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-protostuff</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>

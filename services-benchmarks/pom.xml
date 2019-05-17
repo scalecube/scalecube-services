@@ -29,6 +29,12 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-bytebuf-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
       <version>${project.version}</version>
     </dependency>

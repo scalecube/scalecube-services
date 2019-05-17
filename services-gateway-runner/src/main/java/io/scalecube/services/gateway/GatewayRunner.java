@@ -66,9 +66,9 @@ public class GatewayRunner {
         .gateway(opts -> new HttpGateway(opts.id("http").port(8080)))
         .gateway(opts -> new RSocketGateway(opts.id("rsws").port(9090)))
         .metrics(metrics)
-        .startAwait();
-
-    Thread.currentThread().join();
+        .startAwait()
+        .onShutdown()
+        .block();
   }
 
   private static ServiceTransportBootstrap serviceTransport(

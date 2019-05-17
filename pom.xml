@@ -45,6 +45,7 @@
     <module>services-api</module>
     <module>services-transport-rsocket</module>
     <module>services-discovery</module>
+    <module>services-bytebuf-codec</module>
     <module>services-transport-jackson</module>
     <module>services-transport-protostuff</module>
     <module>services</module>

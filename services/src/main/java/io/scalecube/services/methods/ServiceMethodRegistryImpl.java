@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -11,7 +12,10 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
       new ConcurrentHashMap<>();
 
   @Override
-  public void registerService(Object serviceInstance, ServiceProviderErrorMapper errorMapper) {
+  public void registerService(
+      Object serviceInstance,
+      ServiceProviderErrorMapper errorMapper,
+      ServiceMessageDataDecoder dataDecoder) {
     Reflect.serviceInterfaces(serviceInstance)
         .forEach(
             serviceInterface ->
@@ -35,7 +39,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                           methodInvokers.put(
                               methodInfo.qualifier(),
                               new ServiceMethodInvoker(
-                                  method, serviceInstance, methodInfo, errorMapper));
+                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder));
                         }));
   }
 

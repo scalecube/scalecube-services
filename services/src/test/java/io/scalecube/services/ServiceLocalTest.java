@@ -24,13 +24,11 @@ public class ServiceLocalTest extends BaseTest {
 
   private Microservices microservices;
 
-  /** Setup. */
   @BeforeEach
   public void setUp() {
     microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
-  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
@@ -39,7 +37,7 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_greeting_request_completes_before_timeout() throws Exception {
+  public void test_local_greeting_request_completes_before_timeout() {
     GreetingService service = microservices.call().api(GreetingService.class);
 
     // call the service.
@@ -63,7 +61,7 @@ public class ServiceLocalTest extends BaseTest {
     future
         .doOnNext(
             onNext -> {
-              assertTrue(onNext.equals(" hello to: joe"));
+              assertEquals(" hello to: joe", onNext);
               // print the greeting.
               System.out.println("3. local_async_greeting :" + onNext);
             })
@@ -90,7 +88,7 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_void_greeting() throws Exception {
+  public void test_local_void_greeting() {
     GreetingService service = createProxy(microservices);
 
     // call the service.
@@ -142,7 +140,7 @@ public class ServiceLocalTest extends BaseTest {
             })
         .block(Duration.ofSeconds(1));
 
-    assertTrue(result.get().getResult().equals(" hello to: joe"));
+    assertEquals(" hello to: joe", result.get().getResult());
   }
 
   @Test
@@ -172,7 +170,7 @@ public class ServiceLocalTest extends BaseTest {
     future
         .doOnNext(
             result -> {
-              assertTrue(result.getResult().equals(" hello to: joe"));
+              assertEquals(" hello to: joe", result.getResult());
               // print the greeting.
               System.out.println("9. local_async_greeting_return_Message :" + result);
             })
