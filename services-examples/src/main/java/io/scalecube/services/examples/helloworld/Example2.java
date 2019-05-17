@@ -42,11 +42,12 @@ public class Example2 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices.builder()
-        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
-        .transport(ServiceTransports::rsocketServiceTransport)
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    Microservices ms =
+        Microservices.builder()
+            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     // Create a proxy to the seed service node
     ServiceCall service = seed.call();
@@ -66,7 +67,8 @@ public class Example2 {
               System.out.println(greeting.message());
             });
 
-    Thread.currentThread().join();
+    seed.onShutdown().block();
+    ms.onShutdown().block();
   }
 
   private static ServiceDiscovery serviceDiscovery(

@@ -23,9 +23,8 @@ public class Example3 {
    * Start the example.
    *
    * @param args ignored
-   * @throws InterruptedException joining main thread.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
@@ -34,14 +33,15 @@ public class Example3 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices.builder()
-        .discovery(
-            serviceEndpoint ->
-                new ScalecubeServiceDiscovery(serviceEndpoint)
-                    .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
-        .transport(ServiceTransports::rsocketServiceTransport)
-        .services(new BidiGreetingImpl())
-        .startAwait();
+    Microservices ms =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new BidiGreetingImpl())
+            .startAwait();
 
     // Create service proxy
     BidiGreetingService service = seed.call().api(BidiGreetingService.class);
@@ -52,6 +52,7 @@ public class Example3 {
         .doOnNext(onNext -> System.out.println(onNext))
         .blockLast();
 
-    Thread.currentThread().join();
+    seed.onShutdown().block();
+    ms.onShutdown().block();
   }
 }

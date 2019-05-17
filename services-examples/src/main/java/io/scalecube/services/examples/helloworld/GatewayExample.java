@@ -17,7 +17,7 @@ public class GatewayExample {
    * @param args none needed.
    * @throws InterruptedException joining main thread.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     // 1. ScaleCube Node node with no members
     Microservices gateway =
         Microservices.builder()
@@ -32,14 +32,15 @@ public class GatewayExample {
         Address.create(gateway.discovery().address().host(), gateway.discovery().address().port());
 
     // 2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices.builder()
-        .discovery(
-            serviceEndpoint ->
-                new ScalecubeServiceDiscovery(serviceEndpoint)
-                    .options(opts -> opts.seedMembers(seedAddress)))
-        .transport(ServiceTransports::rsocketServiceTransport)
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    Microservices ms =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(seedAddress)))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     // 3. Create service proxy
     GreetingsService service = gateway.call().api(GreetingsService.class);
@@ -52,6 +53,7 @@ public class GatewayExample {
               System.out.println(consumer.message());
             });
 
-    Thread.currentThread().join();
+    gateway.onShutdown().block();
+    ms.onShutdown().block();
   }
 }
