@@ -51,7 +51,7 @@ public class Example3 {
         .greeting(Flux.fromArray(new String[] {"joe", "dan", "roni"}))
         .doOnNext(onNext -> System.out.println(onNext))
         .blockLast();
-        
+
     // shut down the nodes
     seed.shutdown().block();
     microservices.shutdown().block();

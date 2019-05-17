@@ -1,13 +1,13 @@
 package io.scalecube.services.benchmarks.transport.codec;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -43,7 +43,7 @@ public class SmPartialDecodeScenario {
             ByteBuf dataBuffer = state.dataBuffer().retain();
             ByteBuf headersBuffer = state.headersBuffer().retain();
             ServiceMessage message = messageCodec.decode(dataBuffer, headersBuffer);
-            ReferenceCountUtil.release(message.data());
+            ReferenceCountUtil.safestRelease(message.data());
             timeContext.stop();
             meter.mark();
             return message;

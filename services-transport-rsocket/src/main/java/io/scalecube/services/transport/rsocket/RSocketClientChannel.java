@@ -7,6 +7,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.lang.reflect.Type;
 import java.nio.channels.ClosedChannelException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -23,7 +24,7 @@ public class RSocketClientChannel implements ClientChannel {
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType) {
     return rsocket
         .flatMap(
             rsocket ->
@@ -32,11 +33,12 @@ public class RSocketClientChannel implements ClientChannel {
                     .onErrorMap(
                         ClosedChannelException.class,
                         e -> new ConnectionClosedException("Connection closed")))
-        .map(this::toMessage);
+        .map(this::toMessage)
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
 
   @Override
-  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType) {
     return rsocket
         .flatMapMany(
             rsocket ->
@@ -45,11 +47,13 @@ public class RSocketClientChannel implements ClientChannel {
                     .onErrorMap(
                         ClosedChannelException.class,
                         e -> new ConnectionClosedException("Connection closed")))
-        .map(this::toMessage);
+        .map(this::toMessage)
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
 
   @Override
-  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
+  public Flux<ServiceMessage> requestChannel(
+      Publisher<ServiceMessage> publisher, Type responseType) {
     return rsocket
         .flatMapMany(
             rsocket ->
@@ -58,7 +62,8 @@ public class RSocketClientChannel implements ClientChannel {
                     .onErrorMap(
                         ClosedChannelException.class,
                         e -> new ConnectionClosedException("Connection closed")))
-        .map(this::toMessage);
+        .map(this::toMessage)
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
 
   private Payload toPayload(ServiceMessage request) {

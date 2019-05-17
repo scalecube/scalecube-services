@@ -11,6 +11,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -24,19 +25,20 @@ public class StreamingServiceTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices node;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(ServiceTransports::rsocketServiceTransport)
+            .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
     node =
         Microservices.builder()
             .discovery(StreamingServiceTest::serviceDiscovery)
             .transport(ServiceTransports::rsocketServiceTransport)
+            .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -56,7 +58,7 @@ public class StreamingServiceTest extends BaseTest {
                 });
     latch.await(4, TimeUnit.SECONDS);
     sub.dispose();
-    assertTrue(latch.getCount() == 0);
+    assertEquals(0, latch.getCount());
   }
 
   @Test
@@ -78,27 +80,14 @@ public class StreamingServiceTest extends BaseTest {
 
     QuoteService service = gateway.call().api(QuoteService.class);
 
-    Disposable sub1 =
-        service
-            .snapshot(3)
-            .subscribe(
-                onNext -> {
-                  latch1.countDown();
-                });
-
-    Disposable sub2 =
-        service
-            .snapshot(3)
-            .subscribe(
-                onNext -> {
-                  latch2.countDown();
-                });
+    service.snapshot(3).subscribe(onNext -> latch1.countDown());
+    service.snapshot(3).subscribe(onNext -> latch2.countDown());
 
     latch1.await(5, TimeUnit.SECONDS);
     latch2.await(5, TimeUnit.SECONDS);
 
-    assertTrue(latch1.getCount() == 0);
-    assertTrue(latch2.getCount() == 0);
+    assertEquals(0, latch1.getCount());
+    assertEquals(0, latch2.getCount());
   }
 
   @Test

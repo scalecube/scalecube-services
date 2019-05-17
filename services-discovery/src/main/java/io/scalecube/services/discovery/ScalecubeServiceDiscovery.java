@@ -136,10 +136,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       LOGGER.info("ServiceEndpoint removed, since member {} have left the cluster", member);
     }
 
-    Optional.ofNullable(metadata)
-        .orElse(Collections.emptyMap())
-        .values()
-        .stream()
+    Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
         .map(ClusterMetadataCodec::decodeMetadata)
         .filter(Objects::nonNull)
         .forEach(

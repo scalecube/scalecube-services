@@ -4,6 +4,7 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
 import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,7 +46,6 @@ public class RoutersTest extends BaseTest {
   private static Microservices provider1;
   private static Microservices provider2;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway =
@@ -84,7 +84,6 @@ public class RoutersTest extends BaseTest {
             .startAwait();
   }
 
-  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     gateway.shutdown();
@@ -117,7 +116,7 @@ public class RoutersTest extends BaseTest {
             .block()
             .data();
 
-    assertTrue(!result1.sender().equals(result2.sender()));
+    assertNotEquals(result1.sender(), result2.sender());
   }
 
   @Test
