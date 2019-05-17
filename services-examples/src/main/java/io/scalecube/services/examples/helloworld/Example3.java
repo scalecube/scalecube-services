@@ -23,8 +23,9 @@ public class Example3 {
    * Start the example.
    *
    * @param args ignored
+   * @throws InterruptedException joining main thread.
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
@@ -33,15 +34,14 @@ public class Example3 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
-            .transport(ServiceTransports::rsocketServiceTransport)
-            .services(new BidiGreetingImpl())
-            .startAwait();
+    Microservices.builder()
+        .discovery(
+            serviceEndpoint ->
+                new ScalecubeServiceDiscovery(serviceEndpoint)
+                    .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+        .transport(ServiceTransports::rsocketServiceTransport)
+        .services(new BidiGreetingImpl())
+        .startAwait();
 
     // Create service proxy
     BidiGreetingService service = seed.call().api(BidiGreetingService.class);
@@ -51,9 +51,7 @@ public class Example3 {
         .greeting(Flux.fromArray(new String[] {"joe", "dan", "roni"}))
         .doOnNext(onNext -> System.out.println(onNext))
         .blockLast();
-        
-    // shut down the nodes
-    seed.shutdown().block();
-    microservices.shutdown().block();
+
+    Thread.currentThread().join();
   }
 }

@@ -22,8 +22,9 @@ public class Example1 {
    * Start the example.
    *
    * @param args ignored
+   * @throws InterruptedException blocking main.
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
@@ -32,15 +33,14 @@ public class Example1 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
-            .transport(ServiceTransports::rsocketServiceTransport)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    Microservices.builder()
+        .discovery(
+            serviceEndpoint ->
+                new ScalecubeServiceDiscovery(serviceEndpoint)
+                    .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+        .transport(ServiceTransports::rsocketServiceTransport)
+        .services(new GreetingServiceImpl())
+        .startAwait();
 
     // Create service proxy
     GreetingsService service = seed.call().api(GreetingsService.class);
@@ -53,8 +53,6 @@ public class Example1 {
               System.out.println(consumer.message());
             });
 
-    // shut down the nodes
-    seed.shutdown().block();
-    microservices.shutdown().block();
+    Thread.currentThread().join();
   }
 }
