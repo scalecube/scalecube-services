@@ -195,8 +195,7 @@ public class ServiceCall {
     return Mono.defer(
         () -> {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
-          requireNonNull(
-              transport, "requestOne address parameter is required and must not be null");
+          requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
               .requestResponse(request, responseType)
