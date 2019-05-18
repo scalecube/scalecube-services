@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
-import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
 import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
@@ -19,8 +18,8 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
-import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -57,10 +56,6 @@ public class HttpGatewayAcceptor
         httpRequest.requestHeaders(),
         httpRequest.params());
 
-    if (httpRequest.method() == OPTIONS) {
-      return crossOriginResourceSharing(httpRequest, httpResponse).status(OK).send().then();
-    }
-
     if (httpRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
       return methodNotAllowed(httpResponse);
@@ -75,19 +70,6 @@ public class HttpGatewayAcceptor
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .doOnSuccess(avoid -> metrics.markResponse())
         .onErrorResume(t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(t)));
-  }
-
-  /**
-   * enable CORS, cross origin resource sharing.
-   *
-   * @return HttpServerResponse with CORS.
-   */
-  private HttpServerResponse crossOriginResourceSharing(
-      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    httpResponse.header("Access-Control-Allow-Origin", httpRequest.requestHeaders().get("Origin"));
-    httpResponse.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    httpResponse.header("Access-Control-Allow-Headers", " Origin, Content-Type");
-    return httpResponse;
   }
 
   private Mono<Void> handleRequest(

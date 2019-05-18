@@ -18,8 +18,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractLocalGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractLocalGatewayExtension.class);
 
   private final Microservices gateway;
 
@@ -30,10 +29,7 @@ public abstract class AbstractLocalGatewayExtension
       Object serviceInstance, Function<GatewayOptions, Gateway> gatewayFactory) {
 
     gateway =
-        Microservices.builder()
-            .services(serviceInstance)
-            .gateway(gatewayFactory)
-            .startAwait();
+        Microservices.builder().services(serviceInstance).gateway(gatewayFactory).startAwait();
   }
 
   @Override

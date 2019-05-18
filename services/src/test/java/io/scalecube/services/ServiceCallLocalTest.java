@@ -36,13 +36,11 @@ public class ServiceCallLocalTest extends BaseTest {
 
   private static Microservices provider;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
     provider = serviceProvider();
   }
 
-  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     provider.shutdown().block();

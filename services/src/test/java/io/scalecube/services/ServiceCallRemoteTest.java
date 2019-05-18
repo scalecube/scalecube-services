@@ -42,14 +42,12 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = gateway();
     provider = serviceProvider(new GreetingServiceImpl());
   }
 
-  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     try {
@@ -84,7 +82,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     ServiceMessage message = Mono.from(future).block(timeout);
 
-    assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
+    assertEquals("hello unknown", ((GreetingResponse) message.data()).getResult());
   }
 
   @Test
@@ -186,7 +184,7 @@ public class ServiceCallRemoteTest extends BaseTest {
               System.out.println("10. remote_async_greeting_return_Message :" + result.data());
               // print the greeting.
               assertThat(result.data(), instanceOf(GreetingResponse.class));
-              assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
+              assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
             });
   }
 
@@ -198,7 +196,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
-    assertTrue(greetings.getResult().equals(" hello to: joe"));
+    assertEquals(" hello to: joe", greetings.getResult());
   }
 
   @Test

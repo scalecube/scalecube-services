@@ -15,14 +15,13 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -43,6 +42,10 @@ public class ServiceCall {
   private final ServiceRegistry serviceRegistry;
   private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+  private Consumer<Object> requestReleaser =
+      req -> {
+        // no-op
+      };
 
   /**
    * Creates new local {@link ServiceCall}'s definition.
@@ -114,6 +117,18 @@ public class ServiceCall {
   }
 
   /**
+   * Creates new {@link ServiceCall}'s definition with a given requestReleaser.
+   *
+   * @param requestReleaser given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall requestReleaser(Consumer<Object> requestReleaser) {
+    ServiceCall target = new ServiceCall(this);
+    target.requestReleaser = requestReleaser;
+    return target;
+  }
+
+  /**
    * Issues fire-and-forget request.
    *
    * @param request request message to send.
@@ -158,7 +173,7 @@ public class ServiceCall {
           if (methodRegistry.containsInvoker(qualifier)) { // local service.
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeOne(request, ServiceMessageCodec::decodeData)
+                .invokeOne(request)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)
@@ -183,8 +198,7 @@ public class ServiceCall {
           requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
-              .requestResponse(request)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .requestResponse(request, responseType)
               .map(this::throwIfError);
         });
   }
@@ -213,7 +227,7 @@ public class ServiceCall {
           if (methodRegistry.containsInvoker(qualifier)) { // local service.
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeMany(request, ServiceMessageCodec::decodeData)
+                .invokeMany(request)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)
@@ -240,8 +254,7 @@ public class ServiceCall {
           requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
-              .requestStream(request)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .requestStream(request, responseType)
               .map(this::throwIfError);
         });
   }
@@ -275,7 +288,7 @@ public class ServiceCall {
                 if (methodRegistry.containsInvoker(qualifier)) { // local service.
                   return methodRegistry
                       .getInvoker(qualifier)
-                      .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
+                      .invokeBidirectional(messages)
                       .map(this::throwIfError);
                 } else {
                   // remote service
@@ -307,8 +320,7 @@ public class ServiceCall {
           requireNonNull(transport, "transport is required and must not be null");
           return transport
               .create(address)
-              .requestChannel(publisher)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .requestChannel(publisher, responseType)
               .map(this::throwIfError);
         });
   }
@@ -382,11 +394,7 @@ public class ServiceCall {
               .orElseThrow(() -> noReachableMemberException(request));
         };
     return Mono.fromCallable(callable)
-        .doOnError(
-            t -> {
-              Optional<Object> dataOptional = Optional.ofNullable(request.data());
-              dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
-            });
+        .doOnError(t -> Optional.ofNullable(request.data()).ifPresent(requestReleaser));
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {

@@ -15,7 +15,12 @@ public class GatewayOptions {
 
   public GatewayOptions() {}
 
-  private GatewayOptions(GatewayOptions other) {
+  /**
+   * GatewayOptions copy contractor.
+   *
+   * @param other GatewayOptions to copy.
+   */
+  public GatewayOptions(GatewayOptions other) {
     this.id = other.id;
     this.port = other.port;
     this.workerPool = other.workerPool;
