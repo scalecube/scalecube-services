@@ -41,7 +41,7 @@ public class Example2 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices microservices =
+    Microservices ms =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
             .transport(ServiceTransports::rsocketServiceTransport)
@@ -66,9 +66,8 @@ public class Example2 {
               System.out.println(greeting.message());
             });
 
-    // shut down the nodes
-    seed.shutdown().block();
-    microservices.shutdown().block();
+    seed.onShutdown().block();
+    ms.onShutdown().block();
   }
 
   private static ServiceDiscovery serviceDiscovery(
