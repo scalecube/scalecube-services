@@ -63,7 +63,7 @@ public class GatewayRunner {
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(opts, config))
         .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
-        .gateway(opts -> new HttpGateway(opts.id("http").port(8080)))
+        .gateway(opts -> new HttpGateway(opts.id("http").port(8080)).corsEnabled(true))
         .gateway(opts -> new RSocketGateway(opts.id("rsws").port(9090)))
         .metrics(metrics)
         .startAwait()
