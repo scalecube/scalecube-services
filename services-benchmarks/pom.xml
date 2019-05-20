@@ -66,26 +66,6 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-http</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-websocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-rsocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-clientsdk</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
