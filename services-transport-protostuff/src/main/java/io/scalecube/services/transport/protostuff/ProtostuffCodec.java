@@ -1,5 +1,6 @@
 package io.scalecube.services.transport.protostuff;
 
+import io.protostuff.LinkedBuffer;
 import io.protostuff.ProtobufIOUtil;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
@@ -20,8 +21,6 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
 
   public static final String CONTENT_TYPE = "application/protostuff";
 
-  private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer();
-
   @Override
   public String contentType() {
     return CONTENT_TYPE;
@@ -30,16 +29,14 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
   @Override
   public void encode(OutputStream stream, Object value) throws IOException {
     Schema schema = RuntimeSchema.getSchema(value.getClass());
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtobufIOUtil.writeTo(stream, value, schema, rlb.buffer());
-    }
+    //noinspection unchecked
+    ProtobufIOUtil.writeTo(stream, value, schema, LinkedBuffer.allocate());
   }
 
   @Override
   public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtostuffIOUtil.writeTo(stream, headers, StringMapSchema.VALUE_STRING, rlb.buffer());
-    }
+    ProtostuffIOUtil.writeTo(
+        stream, headers, StringMapSchema.VALUE_STRING, LinkedBuffer.allocate());
   }
 
   @Override
@@ -53,10 +50,8 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
       }
       Schema schema = RuntimeSchema.getSchema(clazz);
       Object result = schema.newMessage();
-
-      try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-        ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
-      }
+      //noinspection unchecked
+      ProtobufIOUtil.mergeFrom(stream, result, schema, LinkedBuffer.allocate());
       return result;
     } catch (ClassNotFoundException e) {
       throw new MessageCodecException("Couldn't decode message", e);
@@ -66,9 +61,7 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
   @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
     HashMap<String, String> map = new HashMap<>();
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtostuffIOUtil.mergeFrom(stream, map, StringMapSchema.VALUE_STRING, rlb.buffer());
-    }
+    ProtostuffIOUtil.mergeFrom(stream, map, StringMapSchema.VALUE_STRING, LinkedBuffer.allocate());
     return map;
   }
 }
