@@ -62,12 +62,9 @@ public class GatewayRunner {
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
         .transport(opts -> serviceTransport(opts, config))
-        .gateway(opts -> new WebsocketGateway(opts.id("ws").port(config.websocketPort())))
-        .gateway(
-            opts ->
-                new HttpGateway(opts.id("http").port(config.httpPort()))
-                    .corsEnabled(config.corsEnabled()))
-        .gateway(opts -> new RSocketGateway(opts.id("rsws").port(config.rsocketPort())))
+        .gateway(opts -> new WebsocketGateway(opts.id("ws").port(7070)))
+        .gateway(opts -> new HttpGateway(opts.id("http").port(8080)).corsEnabled(true))
+        .gateway(opts -> new RSocketGateway(opts.id("rsws").port(9090)))
         .metrics(metrics)
         .startAwait()
         .onShutdown()
@@ -116,27 +113,6 @@ public class GatewayRunner {
     private List<String> seeds;
     private String memberHost;
     private Integer memberPort;
-    private int websocketPort;
-    private int rsocketPort;
-    private int httpPort;
-
-    private boolean corsEnabled;
-
-    public int websocketPort() {
-      return websocketPort;
-    }
-
-    public int rsocketPort() {
-      return rsocketPort;
-    }
-
-    public boolean corsEnabled() {
-      return corsEnabled;
-    }
-
-    public int httpPort() {
-      return httpPort;
-    }
 
     public int servicePort() {
       return servicePort;
