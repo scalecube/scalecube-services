@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
-import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -197,12 +196,13 @@ public class Microservices {
                     ServiceScanner.scanServiceInfos(serviceInfos);
 
                 serviceEndpoint =
-                    new ServiceEndpoint(
-                        id,
-                        serviceAddress,
-                        DataCodec.getAllContentTypes(),
-                        tags,
-                        serviceRegistrations);
+                    ServiceEndpoint.builder()
+                        .id(id)
+                        .address(serviceAddress)
+                        .contentTypes(DataCodec.getAllContentTypes())
+                        .tags(tags)
+                        .serviceRegistrations(serviceRegistrations)
+                        .build();
 
                 serviceRegistry.registerService(serviceEndpoint);
               }

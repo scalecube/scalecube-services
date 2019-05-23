@@ -1,10 +1,5 @@
-package io.scalecube.services.discovery;
+package io.scalecube.services;
 
-import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServiceMethodDefinition;
-import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import java.util.Arrays;
