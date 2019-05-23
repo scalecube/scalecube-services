@@ -2,9 +2,9 @@ package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceGroupDiscovery;
 import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import java.util.ArrayList;
@@ -29,24 +29,30 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
   private ServiceDiscovery serviceDiscovery;
   private Map<String, Collection<ServiceEndpoint>> endpointGroups = new HashMap<>();
 
+  /**
+   * Construcotr.
+   *
+   * @param serviceEndpoint service endpint
+   */
   public ScalecubeServiceGroupDiscovery(ServiceEndpoint serviceEndpoint) {
     this(serviceEndpoint, ClusterConfig.defaultLanConfig());
   }
 
+  /**
+   * Construcotr.
+   *
+   * @param serviceEndpoint service endpoint
+   * @param clusterConfig cluster config
+   */
   public ScalecubeServiceGroupDiscovery(
       ServiceEndpoint serviceEndpoint, ClusterConfig clusterConfig) {
-
-    Map<String, String> tags = serviceEndpoint.tags();
-    String groupId = tags.get(ServiceGroup.GROUP_ID);
-    String groupSize = tags.get(ServiceGroup.GROUP_SIZE);
-
-    // Add myself to the group if grouping tags are present
-    if (groupId != null && groupSize != null) {
-      addToGroup(groupId, serviceEndpoint);
-    }
-
     this.serviceEndpoint = serviceEndpoint;
     this.clusterConfig = clusterConfig;
+    // Add myself to the group if grouping tags are present
+    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
+    if (serviceGroup != null) {
+      addToGroup(serviceGroup.id(), serviceEndpoint);
+    }
   }
 
   private ScalecubeServiceGroupDiscovery(
@@ -76,53 +82,51 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
   }
 
   private void onDiscoveryEvent(
-      ServiceDiscoveryEvent event, SynchronousSink<ServiceGroupDiscoveryEvent> sink) {
+      ServiceDiscoveryEvent discoveryEvent, SynchronousSink<ServiceGroupDiscoveryEvent> sink) {
 
-    ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
-    Map<String, String> tags = serviceEndpoint.tags();
-    String groupId = tags.get(ServiceGroup.GROUP_ID);
-    Optional<String> groupSizeOptional = Optional.ofNullable(tags.get(ServiceGroup.GROUP_SIZE));
-
-    if (groupId == null) {
-      LOGGER.trace("Discovered (but not registering) {}", serviceEndpoint);
-      return;
-    }
-    if (!groupSizeOptional.isPresent()) {
-      LOGGER.error("Group size is absent in discovered member {}", serviceEndpoint);
+    ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
+    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
+    if (serviceGroup == null) {
+      LOGGER.trace(
+          "Discovered service endpoint {}, but not registering it (serviceGroup is null)",
+          serviceEndpoint.id());
       return;
     }
 
-    int groupSize = groupSizeOptional.map(Integer::valueOf).orElse(null);
-    ServiceGroupDiscoveryEvent discoveryEvent = null;
+    ServiceGroupDiscoveryEvent groupDiscoveryEvent = null;
+    String groupId = serviceGroup.id();
 
-    if (event.isRegistered()) {
+    if (discoveryEvent.isRegistered()) {
       Collection<ServiceEndpoint> endpoints = addToGroup(groupId, serviceEndpoint);
 
-      LOGGER.trace("Added to group {} (size now {})", groupId, endpoints.size());
+      LOGGER.trace(
+          "Added service endpoint {} to group {} (size now {})",
+          serviceEndpoint.id(),
+          groupId,
+          endpoints.size());
 
-      if (endpoints.size() == groupSize) {
-        ServiceGroup group = new ServiceGroup(groupId, endpoints);
-        LOGGER.info("Service group added to the cluster: {}", group);
-        discoveryEvent = ServiceGroupDiscoveryEvent.registered(group);
+      if (endpoints.size() == serviceGroup.size()) {
+        LOGGER.info("Service group {} added to the cluster", serviceGroup);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.registered(groupId, endpoints);
       }
     }
-    if (event.isUnregistered() && endpointGroups.containsKey(groupId)) {
+    if (discoveryEvent.isUnregistered() && endpointGroups.containsKey(groupId)) {
       Collection<ServiceEndpoint> endpoints = removeFromGroup(groupId, serviceEndpoint);
 
       LOGGER.trace(
-          "Removed from group {} (size now {})",
+          "Removed service endpoint {} from group {} (size now {})",
+          serviceEndpoint.id(),
           groupId,
           Optional.ofNullable(endpoints).map(Collection::size).orElse(0));
 
       if (endpoints == null || containsOnlySelf(endpoints)) {
-        ServiceGroup group = new ServiceGroup(groupId);
-        LOGGER.info("Service group removed from the cluster: {}", group);
-        discoveryEvent = ServiceGroupDiscoveryEvent.unregistered(group);
+        LOGGER.info("Service group {} removed from the cluster", serviceGroup);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.unregistered(groupId);
       }
     }
 
-    if (discoveryEvent != null) {
-      sink.next(discoveryEvent);
+    if (groupDiscoveryEvent != null) {
+      sink.next(groupDiscoveryEvent);
     }
   }
 

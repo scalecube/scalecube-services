@@ -1,5 +1,10 @@
 package io.scalecube.services.discovery.api;
 
+import io.scalecube.services.ServiceEndpoint;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 public class ServiceGroupDiscoveryEvent {
 
   public enum Type {
@@ -8,19 +13,23 @@ public class ServiceGroupDiscoveryEvent {
   }
 
   private final Type type;
-  private final ServiceGroup endpointGroup;
+  private final String groupId;
+  private final Collection<ServiceEndpoint> serviceEndpoints;
 
-  private ServiceGroupDiscoveryEvent(Type type, ServiceGroup endpointGroup) {
+  private ServiceGroupDiscoveryEvent(
+      Type type, String groupId, Collection<ServiceEndpoint> serviceEndpoints) {
     this.type = type;
-    this.endpointGroup = endpointGroup;
+    this.groupId = groupId;
+    this.serviceEndpoints = Collections.unmodifiableCollection(serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent registered(ServiceGroup endpointGroup) {
-    return new ServiceGroupDiscoveryEvent(Type.REGISTERED, endpointGroup);
+  public static ServiceGroupDiscoveryEvent registered(
+      String groupId, Collection<ServiceEndpoint> serviceEndpoints) {
+    return new ServiceGroupDiscoveryEvent(Type.REGISTERED, groupId, serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent unregistered(ServiceGroup endpointGroup) {
-    return new ServiceGroupDiscoveryEvent(Type.UNREGISTERED, endpointGroup);
+  public static ServiceGroupDiscoveryEvent unregistered(String groupId) {
+    return new ServiceGroupDiscoveryEvent(Type.UNREGISTERED, groupId, Collections.emptyList());
   }
 
   public boolean isRegistered() {
@@ -31,8 +40,16 @@ public class ServiceGroupDiscoveryEvent {
     return Type.UNREGISTERED.equals(this.type);
   }
 
-  public ServiceGroup endpointGroup() {
-    return endpointGroup;
+  public String groupId() {
+    return groupId;
+  }
+
+  public int groupSize() {
+    return serviceEndpoints.size();
+  }
+
+  public Collection<ServiceEndpoint> serviceEndpoints() {
+    return serviceEndpoints;
   }
 
   public Type type() {
@@ -44,8 +61,13 @@ public class ServiceGroupDiscoveryEvent {
     return "ServiceGroupDiscoveryEvent{"
         + "type="
         + type
-        + ", endpointGroup="
-        + endpointGroup
+        + ", groupId='"
+        + groupId
+        + '\''
+        + ", serviceEndpoints="
+        + serviceEndpoints.stream() //
+            .map(ServiceEndpoint::id)
+            .collect(Collectors.joining(","))
         + '}';
   }
 }

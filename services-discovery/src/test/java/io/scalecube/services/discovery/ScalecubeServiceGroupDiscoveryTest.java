@@ -3,13 +3,9 @@ package io.scalecube.services.discovery;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceGroupDiscovery;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -26,6 +22,40 @@ class ScalecubeServiceGroupDiscoveryTest extends BaseTest {
   @BeforeAll
   public static void setUp() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
+  }
+
+  @Test
+  public void testGroupIsRegistered(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    ServiceDiscovery seed = new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block();
+
+    Address seedAddress = seed.address();
+
+    int groupSize = 3;
+    // Verify that Group under grop id has been built
+    StepVerifier.create(
+            Flux.merge(
+                startDiscoveryGroup(seedAddress, groupId, groupSize)
+                    .flatMapMany(ServiceGroupDiscovery::listen), //
+                startDiscoveryGroup(seedAddress, groupId, groupSize)
+                    .flatMapMany(ServiceGroupDiscovery::listen),
+                startDiscoveryGroup(seedAddress, groupId, groupSize)
+                    .flatMapMany(ServiceGroupDiscovery::listen)))
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void testGroupIsUnregistered(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    ServiceDiscovery seed = new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block();
+
+    Address seedAddress = seed.address();
   }
 
   @Test
@@ -47,10 +77,8 @@ class ScalecubeServiceGroupDiscoveryTest extends BaseTest {
                 startDiscoveryGroup(seedAddress, groupId, groupSize)
                     .doOnSuccess(startedGroupDiscoveries::onNext)
                     .flatMapMany(ServiceGroupDiscovery::listen)))
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
         .thenCancel()
         .verify();
 
@@ -58,74 +86,26 @@ class ScalecubeServiceGroupDiscoveryTest extends BaseTest {
     StepVerifier.create(
             startDiscoveryGroup(seedAddress) //
                 .flatMapMany(ServiceGroupDiscovery::listen))
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
+        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
         .then(
             () -> {
               // Start shutdown process
               startedGroupDiscoveries.flatMap(ServiceGroupDiscovery::shutdown).then().subscribe();
             })
-        .expectNextMatches(
-            event ->
-                event.isUnregistered()
-                    && !event.endpointGroup().serviceEndpoints().isPresent()
-                    && event.endpointGroup().groupSize() == 0)
+        .expectNextMatches(event -> event.isUnregistered() && event.groupSize() == 0)
         .thenCancel()
         .verify();
-  }
-
-  @Test
-  public void testGroupIsRegistered(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
-
-    ServiceDiscovery seed = new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block();
-
-    Address seedAddress = seed.address();
-
-    int groupSize = 3;
-    // Verify that Group under grop id has been built
-    StepVerifier.create(
-            Flux.merge(
-                startDiscoveryGroup(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceGroupDiscovery::listen), //
-                startDiscoveryGroup(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceGroupDiscovery::listen),
-                startDiscoveryGroup(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceGroupDiscovery::listen)))
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
-        .expectNextMatches(
-            event -> event.isRegistered() && event.endpointGroup().groupSize() == groupSize)
-        .thenCancel()
-        .verify();
-  }
-
-  @Test
-  public void testGroupIsUnregistered(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
-
-    ServiceDiscovery seed = new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block();
-
-    Address seedAddress = seed.address();
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return new ServiceEndpoint(
-        UUID.randomUUID().toString(),
-        null,
-        Collections.emptySet(),
-        Collections.emptyMap(),
-        Collections.emptyList());
+    return ServiceEndpoint.builder().id(UUID.randomUUID().toString()).build();
   }
 
   public static ServiceEndpoint newServiceGroupEndpoint(String groupId, int groupSize) {
-    Map<String, String> tags = new HashMap<>();
-    tags.put(ServiceGroup.GROUP_ID, groupId);
-    tags.put(ServiceGroup.GROUP_SIZE, "" + groupSize);
-    return new ServiceEndpoint(
-        UUID.randomUUID().toString(), null, Collections.emptySet(), tags, Collections.emptyList());
+    return ServiceEndpoint.builder()
+        .id(UUID.randomUUID().toString())
+        .serviceGroup(groupId, groupSize)
+        .build();
   }
 
   public static io.scalecube.transport.Address toAddress(Address address) {

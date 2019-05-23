@@ -129,11 +129,11 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     Map<String, String> metadata = null;
     if (membershipEvent.isAdded()) {
       metadata = membershipEvent.newMetadata();
-      LOGGER.info("ServiceEndpoint added, since member {} has joined the cluster", member);
+      LOGGER.info("Service endpoint added, since member {} has joined the cluster", member);
     }
     if (membershipEvent.isRemoved()) {
       metadata = membershipEvent.oldMetadata();
-      LOGGER.info("ServiceEndpoint removed, since member {} have left the cluster", member);
+      LOGGER.info("Service endpoint removed, since member {} have left the cluster", member);
     }
 
     Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
