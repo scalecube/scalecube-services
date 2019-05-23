@@ -15,6 +15,7 @@ import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.TransportResources;
@@ -192,7 +193,17 @@ public class Microservices {
               // register services in service registry
               ServiceEndpoint serviceEndpoint = null;
               if (!serviceInfos.isEmpty()) {
-                serviceEndpoint = ServiceScanner.scan(serviceInfos, id, serviceAddress, tags);
+                List<ServiceRegistration> serviceRegistrations =
+                    ServiceScanner.scanServiceInfos(serviceInfos);
+
+                serviceEndpoint =
+                    new ServiceEndpoint(
+                        id,
+                        serviceAddress,
+                        DataCodec.getAllContentTypes(),
+                        tags,
+                        serviceRegistrations);
+
                 serviceRegistry.registerService(serviceEndpoint);
               }
 

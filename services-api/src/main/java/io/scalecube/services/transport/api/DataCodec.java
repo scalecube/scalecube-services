@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,10 @@ public interface DataCodec {
 
   static Collection<DataCodec> getAllInstances() {
     return INSTANCES.values();
+  }
+
+  static Set<String> getAllContentTypes() {
+    return getAllInstances().stream().map(DataCodec::contentType).collect(Collectors.toSet());
   }
 
   /**

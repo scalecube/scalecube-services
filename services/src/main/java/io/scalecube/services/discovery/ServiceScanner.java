@@ -7,12 +7,9 @@ import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.transport.api.Address;
-import io.scalecube.services.transport.api.DataCodec;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ServiceScanner {
@@ -25,49 +22,31 @@ public class ServiceScanner {
    * Scans all passed services instances along with service address information and builds a {@link
    * ServiceEndpoint} object.
    *
-   * @param serviceInstances services instances collection
-   * @param endpointId endpoint string identifier
-   * @param address endpoint service address
-   * @param endpointTags map of tags defined at endpoint level
+   * @param serviceInfos services instances collection
    * @return newly created instance of {@link ServiceEndpoint} object
    */
-  public static ServiceEndpoint scan(
-      List<ServiceInfo> serviceInstances,
-      String endpointId,
-      Address address,
-      Map<String, String> endpointTags) {
-
-    Set<String> contentTypes =
-        DataCodec.getAllInstances().stream()
-            .map(DataCodec::contentType)
-            .collect(Collectors.toSet());
-
-    List<ServiceRegistration> serviceRegistrations =
-        serviceInstances.stream()
-            .flatMap(
-                serviceInfo ->
-                    Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
-                        .map(
-                            serviceInterface ->
-                                new InterfaceInfo(serviceInterface, serviceInfo.tags())))
-            .filter(
-                interfaceInfo -> interfaceInfo.serviceInterface.isAnnotationPresent(Service.class))
-            .map(
-                interfaceInfo -> {
-                  Class<?> serviceInterface = interfaceInfo.serviceInterface;
-                  Map<String, String> serviceTags = interfaceInfo.tags;
-                  String namespace = Reflect.serviceName(serviceInterface);
-                  List<ServiceMethodDefinition> actions =
-                      Arrays.stream(serviceInterface.getMethods())
-                          .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-                          .map(method -> new ServiceMethodDefinition(Reflect.methodName(method)))
-                          .collect(Collectors.toList());
-                  return new ServiceRegistration(namespace, serviceTags, actions);
-                })
-            .collect(Collectors.toList());
-
-    return new ServiceEndpoint(
-        endpointId, address, contentTypes, endpointTags, serviceRegistrations);
+  public static List<ServiceRegistration> scanServiceInfos(List<ServiceInfo> serviceInfos) {
+    return serviceInfos.stream()
+        .flatMap(
+            serviceInfo ->
+                Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
+                    .map(
+                        serviceInterface ->
+                            new InterfaceInfo(serviceInterface, serviceInfo.tags())))
+        .filter(interfaceInfo -> interfaceInfo.serviceInterface.isAnnotationPresent(Service.class))
+        .map(
+            interfaceInfo -> {
+              Class<?> serviceInterface = interfaceInfo.serviceInterface;
+              Map<String, String> serviceTags = interfaceInfo.tags;
+              String namespace = Reflect.serviceName(serviceInterface);
+              List<ServiceMethodDefinition> actions =
+                  Arrays.stream(serviceInterface.getMethods())
+                      .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+                      .map(method -> new ServiceMethodDefinition(Reflect.methodName(method)))
+                      .collect(Collectors.toList());
+              return new ServiceRegistration(namespace, serviceTags, actions);
+            })
+        .collect(Collectors.toList());
   }
 
   /** Tuple class. Contains service interface along with tags map. */
