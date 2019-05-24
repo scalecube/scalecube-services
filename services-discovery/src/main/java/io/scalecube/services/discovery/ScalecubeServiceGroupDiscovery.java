@@ -27,7 +27,7 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
   private final ClusterConfig clusterConfig;
 
   private ServiceDiscovery serviceDiscovery;
-  private Map<String, Collection<ServiceEndpoint>> endpointGroups = new HashMap<>();
+  private Map<ServiceGroup, Collection<ServiceEndpoint>> endpointGroups = new HashMap<>();
 
   /**
    * Construcotr.
@@ -51,7 +51,7 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
     // Add myself to the group if grouping tags are present
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
     if (serviceGroup != null) {
-      addToGroup(serviceGroup.id(), serviceEndpoint);
+      addToGroup(serviceGroup, serviceEndpoint);
     }
   }
 
@@ -97,7 +97,7 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
     String groupId = serviceGroup.id();
 
     if (discoveryEvent.isRegistered()) {
-      Collection<ServiceEndpoint> endpoints = addToGroup(groupId, serviceEndpoint);
+      Collection<ServiceEndpoint> endpoints = addToGroup(serviceGroup, serviceEndpoint);
 
       LOGGER.trace(
           "Added service endpoint {} to group {} (size now {})",
@@ -110,8 +110,8 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
         groupDiscoveryEvent = ServiceGroupDiscoveryEvent.registered(groupId, endpoints);
       }
     }
-    if (discoveryEvent.isUnregistered() && endpointGroups.containsKey(groupId)) {
-      Collection<ServiceEndpoint> endpoints = removeFromGroup(groupId, serviceEndpoint);
+    if (discoveryEvent.isUnregistered() && endpointGroups.containsKey(serviceGroup)) {
+      Collection<ServiceEndpoint> endpoints = removeFromGroup(serviceGroup, serviceEndpoint);
 
       LOGGER.trace(
           "Removed service endpoint {} from group {} (size now {})",
@@ -134,9 +134,9 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
     return endpoints.size() == 1 && endpoints.contains(serviceEndpoint);
   }
 
-  private Collection<ServiceEndpoint> addToGroup(String groupId, ServiceEndpoint endpoint) {
+  private Collection<ServiceEndpoint> addToGroup(ServiceGroup group, ServiceEndpoint endpoint) {
     return endpointGroups.compute(
-        groupId,
+        group,
         (key, endpoints) -> {
           if (endpoints == null) {
             endpoints = new ArrayList<>();
@@ -146,9 +146,10 @@ public class ScalecubeServiceGroupDiscovery implements ServiceGroupDiscovery {
         });
   }
 
-  private Collection<ServiceEndpoint> removeFromGroup(String groupId, ServiceEndpoint endpoint) {
+  private Collection<ServiceEndpoint> removeFromGroup(
+      ServiceGroup group, ServiceEndpoint endpoint) {
     return endpointGroups.compute(
-        groupId,
+        group,
         (key, endpoints) -> {
           if (endpoints == null) {
             return null;

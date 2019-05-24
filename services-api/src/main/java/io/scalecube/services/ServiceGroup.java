@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import java.util.Objects;
+
 public class ServiceGroup {
 
   private String id;
@@ -23,6 +25,23 @@ public class ServiceGroup {
 
   public int size() {
     return size;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    ServiceGroup that = (ServiceGroup) o;
+    return size == that.size && id.equals(that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, size);
   }
 
   @Override
