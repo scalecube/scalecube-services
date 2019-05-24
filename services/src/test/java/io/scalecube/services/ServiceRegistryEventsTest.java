@@ -33,7 +33,7 @@ public class ServiceRegistryEventsTest {
             .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
-    seed.discovery().listen().subscribe(events::add);
+    seed.discovery().listenDiscovery().subscribe(events::add);
 
     Address seedAddress = seed.discovery().address();
 
@@ -82,7 +82,7 @@ public class ServiceRegistryEventsTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().listen().subscribe(processor);
+    seed.discovery().listenDiscovery().subscribe(processor);
 
     Address seedAddress = seed.discovery().address();
 
@@ -150,7 +150,7 @@ public class ServiceRegistryEventsTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().listen().subscribe(processor);
+    seed.discovery().listenDiscovery().subscribe(processor);
 
     Address seedAddress = seed.discovery().address();
 

@@ -67,7 +67,7 @@ public class ServiceGroupDiscoveryEvent {
         + ", serviceEndpoints="
         + serviceEndpoints.stream() //
             .map(ServiceEndpoint::id)
-            .collect(Collectors.joining(","))
+            .collect(Collectors.joining(",", "[", "]"))
         + '}';
   }
 }

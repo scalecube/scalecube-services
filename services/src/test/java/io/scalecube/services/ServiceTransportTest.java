@@ -82,7 +82,7 @@ public class ServiceTransportTest {
 
     gateway
         .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -111,7 +111,7 @@ public class ServiceTransportTest {
 
     gateway
         .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -144,7 +144,7 @@ public class ServiceTransportTest {
 
     gateway
         .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 

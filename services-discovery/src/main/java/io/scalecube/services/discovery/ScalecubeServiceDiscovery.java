@@ -5,10 +5,15 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.transport.api.Address;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,20 +28,27 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private final ServiceEndpoint endpoint;
+  private final ServiceEndpoint serviceEndpoint;
   private final ClusterConfig clusterConfig;
 
   private Cluster cluster;
 
+  private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
+
   /**
    * Constructor.
    *
-   * @param endpoint service endpoiintg
+   * @param serviceEndpoint service endpoiintg
    * @param clusterConfig slcaluecibe cluster config
    */
-  public ScalecubeServiceDiscovery(ServiceEndpoint endpoint, ClusterConfig clusterConfig) {
-    this.endpoint = endpoint;
+  public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint, ClusterConfig clusterConfig) {
+    this.serviceEndpoint = serviceEndpoint;
     this.clusterConfig = clusterConfig;
+    // Add myself to the group if 'groupness' is defined
+    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
+    if (serviceGroup != null) {
+      addToGroup(serviceGroup, serviceEndpoint);
+    }
   }
 
   /**
@@ -49,7 +61,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private ScalecubeServiceDiscovery(ScalecubeServiceDiscovery that, ClusterConfig clusterConfig) {
-    this(that.endpoint, clusterConfig);
+    this(that.serviceEndpoint, clusterConfig);
   }
 
   private ClusterConfig.Builder copyFrom(ClusterConfig config) {
@@ -82,8 +94,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   @Override
-  public ServiceEndpoint endpoint() {
-    return endpoint;
+  public ServiceEndpoint serviceEndpoint() {
+    return serviceEndpoint;
   }
 
   /**
@@ -96,24 +108,31 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           Map<String, String> metadata =
-              endpoint != null
+              serviceEndpoint != null
                   ? Collections.singletonMap(
-                      endpoint.id(), ClusterMetadataCodec.encodeMetadata(endpoint))
+                      serviceEndpoint.id(), ClusterMetadataCodec.encodeMetadata(serviceEndpoint))
                   : Collections.emptyMap();
 
-          ClusterConfig clusterConfig = copyFrom(this.clusterConfig).addMetadata(metadata).build();
-          ScalecubeServiceDiscovery serviceDiscovery =
-              new ScalecubeServiceDiscovery(this, clusterConfig);
+          ClusterConfig newClusterConfig = //
+              copyFrom(clusterConfig).addMetadata(metadata).build();
 
-          return Cluster.join(clusterConfig)
+          ScalecubeServiceDiscovery serviceDiscovery =
+              new ScalecubeServiceDiscovery(this, newClusterConfig);
+
+          return Cluster.join(newClusterConfig)
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
               .thenReturn(serviceDiscovery);
         });
   }
 
   @Override
-  public Flux<ServiceDiscoveryEvent> listen() {
-    return cluster.listenMembership().handle(this::onMemberEvent);
+  public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+    return cluster.listenMembership().handle(this::onMembershipEvent);
+  }
+
+  @Override
+  public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
+    return listenDiscovery().handle(this::onDiscoveryEvent);
   }
 
   @Override
@@ -122,7 +141,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()));
   }
 
-  private void onMemberEvent(
+  private void onMembershipEvent(
       MembershipEvent membershipEvent, SynchronousSink<ServiceDiscoveryEvent> sink) {
     final Member member = membershipEvent.member();
 
@@ -154,5 +173,96 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
                 sink.next(discoveryEvent);
               }
             });
+  }
+
+  private void onDiscoveryEvent(
+      ServiceDiscoveryEvent discoveryEvent, SynchronousSink<ServiceGroupDiscoveryEvent> sink) {
+
+    ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
+    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
+    if (serviceGroup == null) {
+      LOGGER.trace(
+          "Discovered service endpoint {}, but not registering it (serviceGroup is null)",
+          serviceEndpoint.id());
+      return;
+    }
+
+    ServiceGroupDiscoveryEvent groupDiscoveryEvent = null;
+    String groupId = serviceGroup.id();
+
+    if (discoveryEvent.isRegistered()) {
+      if (!addToGroup(serviceGroup, serviceEndpoint)) {
+        LOGGER.warn(
+            "Failed to add service endpoint {} to group {}, group is full aready",
+            serviceEndpoint.id(),
+            groupId);
+        return;
+      }
+
+      Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
+      LOGGER.trace(
+          "Added service endpoint {} to group {} (size now {})",
+          serviceEndpoint.id(),
+          groupId,
+          endpoints.size());
+
+      if (endpoints.size() == serviceGroup.size()) {
+        LOGGER.info("Service group {} added to the cluster", serviceGroup);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.registered(groupId, endpoints);
+      }
+    }
+    if (discoveryEvent.isUnregistered()) {
+      if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
+        LOGGER.warn(
+            "Failed to remove service endpoint {} from group {}, "
+                + "there were no such group or service endpoint was never registered in group",
+            serviceEndpoint.id(),
+            groupId);
+        return;
+      }
+
+      Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
+      LOGGER.trace(
+          "Removed service endpoint {} from group {} (size now {})",
+          serviceEndpoint.id(),
+          groupId,
+          endpoints.size());
+
+      if (endpoints.isEmpty() || containsOnlySelf(endpoints)) {
+        LOGGER.info("Service group {} removed from the cluster", serviceGroup);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.unregistered(groupId);
+      }
+    }
+
+    if (groupDiscoveryEvent != null) {
+      sink.next(groupDiscoveryEvent);
+    }
+  }
+
+  private boolean containsOnlySelf(Collection<ServiceEndpoint> endpoints) {
+    return endpoints.size() == 1 && endpoints.contains(serviceEndpoint);
+  }
+
+  public Collection<ServiceEndpoint> getEndpointsFromGroup(ServiceGroup group) {
+    return groups.getOrDefault(group, Collections.emptyList());
+  }
+
+  private boolean addToGroup(ServiceGroup group, ServiceEndpoint endpoint) {
+    Collection<ServiceEndpoint> endpoints =
+        groups.computeIfAbsent(group, group1 -> new ArrayList<>());
+    // check an actual group size is it still ok to add
+    return endpoints.size() < group.size() && endpoints.add(endpoint);
+  }
+
+  private boolean removeFromGroup(ServiceGroup group, ServiceEndpoint endpoint) {
+    if (!groups.containsKey(group)) {
+      return false;
+    }
+    Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(group);
+    boolean removed = endpoints.removeIf(input -> input.id().equals(endpoint.id()));
+    if (removed && endpoints.isEmpty()) {
+      groups.remove(group); // cleanup
+    }
+    return removed;
   }
 }

@@ -3,6 +3,7 @@ package io.scalecube.services;
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -450,7 +451,7 @@ public class Microservices {
     }
 
     private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
-      discovery.listen().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+      discovery.listenDiscovery().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
     }
 
     private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
@@ -485,12 +486,17 @@ public class Microservices {
       }
 
       @Override
-      public ServiceEndpoint endpoint() {
+      public ServiceEndpoint serviceEndpoint() {
         return null;
       }
 
       @Override
-      public Flux<ServiceDiscoveryEvent> listen() {
+      public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+        return Flux.empty();
+      }
+
+      @Override
+      public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
         return Flux.empty();
       }
 
@@ -783,7 +789,7 @@ public class Microservices {
     private JmxMonitorMBean(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery().listen().subscribe(processor);
+      microservices.discovery().listenDiscovery().subscribe(processor);
     }
 
     @Override
@@ -805,7 +811,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceEndpoint() {
-      return Collections.singletonList(String.valueOf(microservices.discovery().endpoint()));
+      return Collections.singletonList(String.valueOf(microservices.discovery().serviceEndpoint()));
     }
 
     @Override
