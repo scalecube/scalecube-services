@@ -190,27 +190,21 @@ public class Microservices {
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
-              // register services in service registry
-              ServiceEndpoint serviceEndpoint = null;
+              ServiceEndpoint.Builder serviceEndpointBuilder =
+                  ServiceEndpoint.builder()
+                      .id(id)
+                      .address(serviceAddress)
+                      .contentTypes(DataCodec.getAllContentTypes())
+                      .tags(tags);
+
               if (!serviceInfos.isEmpty()) {
-                List<ServiceRegistration> serviceRegistrations =
-                    ServiceScanner.scanServiceInfos(serviceInfos);
-
-                serviceEndpoint =
-                    ServiceEndpoint.builder()
-                        .id(id)
-                        .address(serviceAddress)
-                        .contentTypes(DataCodec.getAllContentTypes())
-                        .tags(tags)
-                        .serviceRegistrations(serviceRegistrations)
-                        .build();
-
-                serviceRegistry.registerService(serviceEndpoint);
+                serviceEndpointBuilder.serviceRegistrations(
+                    ServiceScanner.scanServiceInfos(serviceInfos));
               }
 
               // configure discovery and publish to the cluster
               return discoveryBootstrap
-                  .start(serviceRegistry, serviceEndpoint)
+                  .start(serviceRegistry, serviceEndpointBuilder.build())
                   .publishOn(scheduler)
                   .then(Mono.fromCallable(this::doInjection).publishOn(scheduler))
                   .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
