@@ -171,17 +171,14 @@ public class Microservices {
         .publishOn(scheduler)
         .flatMap(
             input -> {
-              final ServiceCall call;
+              final ServiceCall call = call();
               final Address serviceAddress;
               final Executor workerPool;
 
               if (input != ServiceTransportBootstrap.noOpInstance) {
-                ClientTransport clientTransport = input.clientTransport;
                 serviceAddress = input.address;
                 workerPool = input.resources.workerPool().orElse(null);
-                call = new ServiceCall(clientTransport, serviceRegistry, methodRegistry);
               } else {
-                call = new ServiceCall(methodRegistry);
                 serviceAddress = null;
                 workerPool = null;
               }
