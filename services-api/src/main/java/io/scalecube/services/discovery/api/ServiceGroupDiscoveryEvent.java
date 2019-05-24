@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
 public class ServiceGroupDiscoveryEvent {
 
   public enum Type {
-    ENDPOINT_ADDED_TO_THE_GROUP, // service endpoint added to the group
+    ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
     REGISTERED, // service endpoint group added
-    ENDPOINT_REMOVED_FROM_THE_GROUP, // service endpoint added from the group
+    ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
     UNREGISTERED // service endpoint group removed
   }
 
@@ -40,12 +40,20 @@ public class ServiceGroupDiscoveryEvent {
         Type.UNREGISTERED, groupId, null, Collections.emptyList());
   }
 
-  public static ServiceGroupDiscoveryEvent endpointAddedToTheGroup(
+  public static ServiceGroupDiscoveryEvent endpointAddedToGroup(
       String groupId,
       ServiceEndpoint serviceEndpoint,
       Collection<ServiceEndpoint> serviceEndpoints) {
     return new ServiceGroupDiscoveryEvent(
-        Type.ENDPOINT_ADDED_TO_THE_GROUP, groupId, serviceEndpoint, serviceEndpoints);
+        Type.ENDPOINT_ADDED_TO_GROUP, groupId, serviceEndpoint, serviceEndpoints);
+  }
+
+  public static ServiceGroupDiscoveryEvent endpointRemovedFromGroup(
+      String groupId,
+      ServiceEndpoint serviceEndpoint,
+      Collection<ServiceEndpoint> serviceEndpoints) {
+    return new ServiceGroupDiscoveryEvent(
+        Type.ENDPOINT_REMOVED_FROM_GROUP, groupId, serviceEndpoint, serviceEndpoints);
   }
 
   public boolean isGroupRegistered() {
@@ -57,11 +65,11 @@ public class ServiceGroupDiscoveryEvent {
   }
 
   public boolean isEndpointAddedToTheGroup() {
-    return Type.ENDPOINT_ADDED_TO_THE_GROUP.equals(this.type);
+    return Type.ENDPOINT_ADDED_TO_GROUP.equals(this.type);
   }
 
   public boolean isEndpointRemovedFromTheGroup() {
-    return Type.ENDPOINT_REMOVED_FROM_THE_GROUP.equals(this.type);
+    return Type.ENDPOINT_REMOVED_FROM_GROUP.equals(this.type);
   }
 
   public String groupId() {

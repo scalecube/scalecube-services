@@ -204,7 +204,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       sink.next(
-          ServiceGroupDiscoveryEvent.endpointAddedToTheGroup(groupId, serviceEndpoint, endpoints));
+          ServiceGroupDiscoveryEvent.endpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
       LOGGER.trace(
           "Added service endpoint {} to group {} (size now {})",
@@ -228,6 +228,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       }
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
+
+      sink.next(
+          ServiceGroupDiscoveryEvent.endpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
+
       LOGGER.trace(
           "Removed service endpoint {} from group {} (size now {})",
           serviceEndpoint.id(),
