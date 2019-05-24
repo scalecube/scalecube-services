@@ -1,11 +1,16 @@
 package io.scalecube.services.discovery;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -30,20 +35,41 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     Address seedAddress = startSeed();
 
     int groupSize = 3;
+    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
+    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
+    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
+
     // Verify that Group under group id has been built
     StepVerifier.create(
             Flux.merge(
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery), //
+                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+                    .doOnNext(rp1::onNext), //
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery),
+                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+                    .doOnNext(rp2::onNext),
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+                    .doOnNext(rp3::onNext)))
+        .expectNextCount(9)
+        .expectNoEvent(Duration.ofSeconds(1))
         .thenCancel()
         .verify();
+
+    Stream.of(rp1, rp2, rp3)
+        .forEach(
+            rp ->
+                StepVerifier.create(Flux.concat(rp))
+                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(
+                        event -> {
+                          assertTrue(event.isGroupRegistered());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(Duration.ofSeconds(1))
+                    .thenCancel()
+                    .verify());
   }
 
   @Test
@@ -65,19 +91,19 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
         .expectNextMatches(
             event ->
-                event.isRegistered()
+                event.isGroupRegistered()
                     && (event.groupSize() == groupSize_1 || event.groupSize() == groupSize_2))
         .expectNextMatches(
             event ->
-                event.isRegistered()
+                event.isGroupRegistered()
                     && (event.groupSize() == groupSize_1 || event.groupSize() == groupSize_2))
         .expectNextMatches(
             event ->
-                event.isRegistered()
+                event.isGroupRegistered()
                     && (event.groupSize() == groupSize_1 || event.groupSize() == groupSize_2))
         .expectNextMatches(
             event ->
-                event.isRegistered()
+                event.isGroupRegistered()
                     && (event.groupSize() == groupSize_1 || event.groupSize() == groupSize_2))
         .thenCancel()
         .verify();
@@ -100,13 +126,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
                     .doOnSuccess(startedServiceDiscoveries::onNext)
                     .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
         .then(
             () -> {
               // Start shutdown process
               startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
             })
-        .expectNextMatches(event -> event.isUnregistered() && event.groupSize() == 0)
+        .expectNextMatches(event -> event.isGroupUnregistered() && event.groupSize() == 0)
         .thenCancel()
         .verify();
   }
@@ -128,8 +154,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
                     .doOnSuccess(startedServiceDiscoveries::onNext) // track started
                     .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
         .thenCancel()
         .verify();
 
@@ -137,13 +163,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     StepVerifier.create(
             startServiceDiscovery(seedAddress) //
                 .flatMapMany(ServiceDiscovery::listenGroupDiscovery))
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
         .then(
             () -> {
               // Start shutdown process
               startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
             })
-        .expectNextMatches(event -> event.isUnregistered() && event.groupSize() == 0)
+        .expectNextMatches(event -> event.isGroupUnregistered() && event.groupSize() == 0)
         .thenCancel()
         .verify();
   }
@@ -167,15 +193,15 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
                     .doOnSuccess(startedServiceDiscoveries::onNext) // track started
                     .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
-        .expectNextMatches(event -> event.isRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
+        .expectNextMatches(event -> event.isGroupRegistered() && event.groupSize() == groupSize)
         .then(
             () -> {
               // Start shutdown process
               startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
             })
-        .expectNextMatches(event -> event.isUnregistered() && event.groupSize() == 0)
+        .expectNextMatches(event -> event.isGroupUnregistered() && event.groupSize() == 0)
         .thenCancel()
         .verify();
   }

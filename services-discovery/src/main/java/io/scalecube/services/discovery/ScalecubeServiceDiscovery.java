@@ -21,8 +21,8 @@ import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SynchronousSink;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -127,12 +127,14 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return cluster.listenMembership().handle(this::onMembershipEvent);
+    return cluster
+        .listenMembership()
+        .flatMap(event -> Flux.create(sink -> onMembershipEvent(event, sink)));
   }
 
   @Override
   public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
-    return listenDiscovery().handle(this::onDiscoveryEvent);
+    return listenDiscovery().flatMap(event -> Flux.create(sink -> onDiscoveryEvent(event, sink)));
   }
 
   @Override
@@ -142,7 +144,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private void onMembershipEvent(
-      MembershipEvent membershipEvent, SynchronousSink<ServiceDiscoveryEvent> sink) {
+      MembershipEvent membershipEvent, FluxSink<ServiceDiscoveryEvent> sink) {
     final Member member = membershipEvent.member();
 
     Map<String, String> metadata = null;
@@ -176,7 +178,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private void onDiscoveryEvent(
-      ServiceDiscoveryEvent discoveryEvent, SynchronousSink<ServiceGroupDiscoveryEvent> sink) {
+      ServiceDiscoveryEvent discoveryEvent, FluxSink<ServiceGroupDiscoveryEvent> sink) {
 
     ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
@@ -200,6 +202,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       }
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
+
+      sink.next(
+          ServiceGroupDiscoveryEvent.endpointAddedToTheGroup(groupId, serviceEndpoint, endpoints));
+
       LOGGER.trace(
           "Added service endpoint {} to group {} (size now {})",
           serviceEndpoint.id(),
@@ -208,7 +214,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       if (endpoints.size() == serviceGroup.size()) {
         LOGGER.info("Service group {} added to the cluster", serviceGroup);
-        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.registered(groupId, endpoints);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.groupRegistered(groupId, endpoints);
       }
     }
     if (discoveryEvent.isUnregistered()) {
@@ -230,7 +236,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       if (endpoints.isEmpty() || containsOnlySelf(endpoints)) {
         LOGGER.info("Service group {} removed from the cluster", serviceGroup);
-        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.unregistered(groupId);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.groupUnregistered(groupId);
       }
     }
 
