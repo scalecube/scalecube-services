@@ -14,20 +14,14 @@ public class ServiceScanner {
   }
 
   /**
-   * Scans all passed services instances along with service address information and builds a {@link
-   * ServiceEndpoint} object.
+   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration}-s
    *
-   * @param serviceInfos services instances collection
-   * @return newly created instance of {@link ServiceEndpoint} object
+   * @param serviceInfo service info instance
+   * @return list of {@code ServiceRegistration}-s
    */
-  public static List<ServiceRegistration> scanServiceInfos(List<ServiceInfo> serviceInfos) {
-    return serviceInfos.stream()
-        .flatMap(
-            serviceInfo ->
-                Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
-                    .map(
-                        serviceInterface ->
-                            new InterfaceInfo(serviceInterface, serviceInfo.tags())))
+  public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
+    return Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
+        .map(serviceInterface -> new InterfaceInfo(serviceInterface, serviceInfo.tags()))
         .filter(interfaceInfo -> interfaceInfo.serviceInterface.isAnnotationPresent(Service.class))
         .map(
             interfaceInfo -> {

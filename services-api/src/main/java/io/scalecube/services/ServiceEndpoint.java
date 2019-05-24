@@ -102,7 +102,7 @@ public class ServiceEndpoint {
     private Address address;
     private Set<String> contentTypes = Collections.emptySet();
     private Map<String, String> tags = Collections.emptyMap();
-    private Collection<ServiceRegistration> serviceRegistrations = Collections.emptyList();
+    private Collection<ServiceRegistration> serviceRegistrations = new ArrayList<>();
     private ServiceGroup serviceGroup;
 
     private Builder() {}
@@ -124,6 +124,12 @@ public class ServiceEndpoint {
 
     public Builder tags(Map<String, String> tags) {
       this.tags = tags;
+      return this;
+    }
+
+    public Builder appendServiceRegistrations(
+        Collection<ServiceRegistration> serviceRegistrations) {
+      this.serviceRegistrations.addAll(serviceRegistrations);
       return this;
     }
 

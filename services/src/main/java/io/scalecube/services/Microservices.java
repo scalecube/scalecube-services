@@ -119,7 +119,6 @@ public class Microservices {
   private final String id;
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final List<ServiceInfo> serviceInfos = new ArrayList<>();
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
@@ -182,28 +181,33 @@ public class Microservices {
                 serviceAddress = null;
                 workerPool = null;
               }
-              // invoke service providers and register services
-              serviceProviders.stream()
-                  .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                  .forEach(this::collectAndRegister);
 
-              ServiceEndpoint.Builder serviceEndpointBuilder =
+              final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
                       .id(id)
                       .address(serviceAddress)
                       .contentTypes(DataCodec.getAllContentTypes())
                       .tags(tags);
 
-              if (!serviceInfos.isEmpty()) {
-                serviceEndpointBuilder.serviceRegistrations(
-                    ServiceScanner.scanServiceInfos(serviceInfos));
-              }
+              // invoke service providers and register services
+              List<Object> serviceInstances =
+                  serviceProviders.stream()
+                      .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
+                      .peek(this::registerInMethodRegistry)
+                      .peek(
+                          serviceInfo ->
+                              serviceEndpointBuilder.appendServiceRegistrations(
+                                  ServiceScanner.scanServiceInfo(serviceInfo)))
+                      .map(ServiceInfo::serviceInstance)
+                      .collect(Collectors.toList());
 
               // configure discovery and publish to the cluster
               return discoveryBootstrap
                   .start(serviceRegistry, serviceEndpointBuilder.build())
                   .publishOn(scheduler)
-                  .then(Mono.fromCallable(this::doInjection).publishOn(scheduler))
+                  .then(
+                      Mono.fromCallable(() -> Reflect.inject(this, serviceInstances))
+                          .publishOn(scheduler))
                   .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)).publishOn(scheduler))
                   .thenReturn(this);
@@ -217,26 +221,16 @@ public class Microservices {
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
-    return gatewayBootstrap.start(
-        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
-  }
-
-  private Microservices doInjection() {
-    List<Object> serviceInstances =
-        serviceInfos.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
-    return Reflect.inject(this, serviceInstances);
-  }
-
-  private void collectAndRegister(ServiceInfo serviceInfo) {
-    // collect
-    serviceInfos.add(serviceInfo);
-
-    // register service
+  private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
         serviceInfo.serviceInstance(),
         Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
         Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
+  }
+
+  private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
+    return gatewayBootstrap.start(
+        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
