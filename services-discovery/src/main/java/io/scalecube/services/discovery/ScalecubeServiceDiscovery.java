@@ -126,15 +126,15 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   @Override
-  public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+  public Flux<ServiceDiscoveryEvent> events() {
     return cluster
         .listenMembership()
         .flatMap(event -> Flux.create(sink -> onMembershipEvent(event, sink)));
   }
 
   @Override
-  public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
-    return listenDiscovery().flatMap(event -> Flux.create(sink -> onDiscoveryEvent(event, sink)));
+  public Flux<ServiceGroupDiscoveryEvent> groupEvents() {
+    return events().flatMap(event -> Flux.create(sink -> onDiscoveryEvent(event, sink)));
   }
 
   @Override

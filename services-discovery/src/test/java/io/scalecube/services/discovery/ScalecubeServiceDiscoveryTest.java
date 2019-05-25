@@ -43,13 +43,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp1);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp2);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp3);
 
     // Verify that Group under group id has been built
@@ -82,13 +82,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize_1)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp1);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize_2)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp2);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize_2)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp3);
 
     // Verify that Group under group id has been built
@@ -136,10 +136,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     StepVerifier.create(
             Flux.merge(
                 startServiceDiscovery(seedAddress) //
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery),
+                    .flatMapMany(ServiceDiscovery::groupEvents),
                 startServiceGroupDiscovery(seedAddress, groupId, groupSize)
                     .doOnSuccess(startedServiceDiscoveries::onNext)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
+                    .flatMapMany(ServiceDiscovery::groupEvents)))
         .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
         .assertNext(
             event -> {
@@ -175,11 +175,11 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp1);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp2);
 
     // Verify that Group under group id has been built
@@ -200,7 +200,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     // Verify registered/unregistered group events on non-group member
     StepVerifier.create(
             startServiceDiscovery(seedAddress) //
-                .flatMapMany(ServiceDiscovery::listenGroupDiscovery))
+                .flatMapMany(ServiceDiscovery::groupEvents))
         .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
         .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
         .assertNext(
@@ -239,15 +239,15 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp1);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp2);
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
+        .flatMapMany(ServiceDiscovery::groupEvents)
         .subscribe(rp3);
 
     StepVerifier.create(
@@ -288,13 +288,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     StepVerifier.create(
             Flux.merge(
                 startServiceGroupDiscovery(seedAddress, groupId, 1)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery), //
+                    .flatMapMany(ServiceDiscovery::groupEvents), //
                 startServiceGroupDiscovery(seedAddress, groupId, 1)
                     .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery),
+                    .flatMapMany(ServiceDiscovery::groupEvents),
                 startServiceGroupDiscovery(seedAddress, groupId, 1)
                     .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
+                    .flatMapMany(ServiceDiscovery::groupEvents)))
         .expectSubscription()
         .expectNoEvent(TIMEOUT)
         .then(

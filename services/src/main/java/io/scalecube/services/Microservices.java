@@ -436,7 +436,7 @@ public class Microservices {
     }
 
     private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
-      discovery.listenDiscovery().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+      discovery.events().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
     }
 
     private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
@@ -476,12 +476,12 @@ public class Microservices {
       }
 
       @Override
-      public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+      public Flux<ServiceDiscoveryEvent> events() {
         return Flux.empty();
       }
 
       @Override
-      public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
+      public Flux<ServiceGroupDiscoveryEvent> groupEvents() {
         return Flux.empty();
       }
 
@@ -774,7 +774,7 @@ public class Microservices {
     private JmxMonitorMBean(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery().listenDiscovery().subscribe(processor);
+      microservices.discovery().events().subscribe(processor);
     }
 
     @Override
