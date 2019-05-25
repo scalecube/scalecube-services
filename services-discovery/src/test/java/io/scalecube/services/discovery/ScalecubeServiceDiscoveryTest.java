@@ -38,7 +38,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
-  public void testEndpointIsRegisteredThenUnregistered() {
+  public void testEndpointIsAddedThenRemoved() {
     Address seedAddress = startSeed();
 
     ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
@@ -56,7 +56,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .flatMapMany(ServiceDiscovery::listenDiscovery))) // track instance
         .thenConsumeWhile(
             event -> {
-              assertEquals(Type.REGISTERED, event.type());
+              assertEquals(Type.ENDPOINT_ADDED, event.type());
               assertNotNull(event.serviceEndpoint());
               return registeredCount.incrementAndGet() < 9;
             })
@@ -68,7 +68,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
             })
         .thenConsumeWhile(
             event -> {
-              assertEquals(Type.UNREGISTERED, event.type());
+              assertEquals(Type.ENDPOINT_REMOVED, event.type());
               assertNotNull(event.serviceEndpoint());
               return unregisteredCount.incrementAndGet() < 2;
             })

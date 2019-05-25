@@ -441,10 +441,10 @@ public class Microservices {
 
     private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
       ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
-      if (event.isRegistered()) {
+      if (event.isEndpointAdded()) {
         serviceRegistry.registerService(serviceEndpoint);
       }
-      if (event.isUnregistered()) {
+      if (event.isEndpointRemoved()) {
         serviceRegistry.unregisterService(serviceEndpoint.id());
       }
     }

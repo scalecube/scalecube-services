@@ -165,10 +165,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
               ServiceDiscoveryEvent discoveryEvent = null;
 
               if (membershipEvent.isAdded()) {
-                discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
+                discoveryEvent = ServiceDiscoveryEvent.newEndpointAdded(serviceEndpoint);
               }
               if (membershipEvent.isRemoved()) {
-                discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
+                discoveryEvent = ServiceDiscoveryEvent.newEndpointRemoved(serviceEndpoint);
               }
 
               if (discoveryEvent != null) {
@@ -192,7 +192,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceGroupDiscoveryEvent groupDiscoveryEvent = null;
     String groupId = serviceGroup.id();
 
-    if (discoveryEvent.isRegistered()) {
+    if (discoveryEvent.isEndpointAdded()) {
       if (!addToGroup(serviceGroup, serviceEndpoint)) {
         LOGGER.warn(
             "Failed to add service endpoint {} to group {}, group is full aready",
@@ -217,7 +217,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         groupDiscoveryEvent = ServiceGroupDiscoveryEvent.groupRegistered(groupId, endpoints);
       }
     }
-    if (discoveryEvent.isUnregistered()) {
+    if (discoveryEvent.isEndpointRemoved()) {
       if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
         LOGGER.warn(
             "Failed to remove service endpoint {} from group {}, "

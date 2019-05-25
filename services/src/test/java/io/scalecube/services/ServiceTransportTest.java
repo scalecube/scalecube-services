@@ -83,7 +83,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listenDiscovery()
-        .filter(ServiceDiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -112,7 +112,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listenDiscovery()
-        .filter(ServiceDiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -145,7 +145,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listenDiscovery()
-        .filter(ServiceDiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
