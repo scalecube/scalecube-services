@@ -26,7 +26,7 @@ import reactor.core.publisher.Mono;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ScalecubeServiceDiscovery.class);
 
   private final ServiceEndpoint serviceEndpoint;
   private final ClusterConfig clusterConfig;
@@ -204,7 +204,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       sink.next(
-          ServiceGroupDiscoveryEvent.endpointAddedToGroup(groupId, serviceEndpoint, endpoints));
+          ServiceGroupDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
       LOGGER.trace(
           "Added service endpoint {} to group {} (size now {})",
@@ -214,7 +214,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       if (endpoints.size() == serviceGroup.size()) {
         LOGGER.info("Service group {} added to the cluster", serviceGroup);
-        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.groupRegistered(groupId, endpoints);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.newGroupAdded(groupId, endpoints);
       }
     }
     if (discoveryEvent.isEndpointRemoved()) {
@@ -230,7 +230,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       sink.next(
-          ServiceGroupDiscoveryEvent.endpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
+          ServiceGroupDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
 
       LOGGER.trace(
           "Removed service endpoint {} from group {} (size now {})",
@@ -240,7 +240,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       if (endpoints.isEmpty() || containsOnlySelf(endpoints)) {
         LOGGER.info("Service group {} removed from the cluster", serviceGroup);
-        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.groupUnregistered(groupId);
+        groupDiscoveryEvent = ServiceGroupDiscoveryEvent.newGroupRemoved(groupId);
       }
     }
 

@@ -1,5 +1,9 @@
 package io.scalecube.services.discovery;
 
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_ADDED;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED;
+import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.ENDPOINT_ADDED_TO_GROUP;
+import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.GROUP_ADDED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -10,7 +14,6 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
@@ -56,19 +59,19 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .flatMapMany(ServiceDiscovery::listenDiscovery))) // track instance
         .thenConsumeWhile(
             event -> {
-              assertEquals(Type.ENDPOINT_ADDED, event.type());
+              assertEquals(ENDPOINT_ADDED, event.type());
               assertNotNull(event.serviceEndpoint());
               return registeredCount.incrementAndGet() < 9;
             })
         .expectNoEvent(SHORT_TIMEOUT)
         .then(
             () -> {
-              // Start shutdown process and verify again that not events will be pusblished
+              // shutdown tracked instances
               startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
             })
         .thenConsumeWhile(
             event -> {
-              assertEquals(Type.ENDPOINT_REMOVED, event.type());
+              assertEquals(ENDPOINT_REMOVED, event.type());
               assertNotNull(event.serviceEndpoint());
               return unregisteredCount.incrementAndGet() < 2;
             })
@@ -78,93 +81,115 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
-  public void testGroupIsRegistered(TestInfo testInfo) {
+  public void testGroupIsAdded(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
     Address seedAddress = startSeed();
 
     int groupSize = 3;
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp1);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp2);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp3);
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
 
-    // Verify that Group under group id has been built
-    Stream.of(rp1, rp2, rp3)
+    Stream.of(r1.groupDiscoveryEvents, r2.groupDiscoveryEvents, r3.groupDiscoveryEvents)
         .forEach(
             rp ->
                 StepVerifier.create(rp)
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupRegistered());
+                          assertEquals(GROUP_ADDED, event.type());
                           assertEquals(groupSize, event.groupSize());
                         })
-                    .expectNoEvent(Duration.ofMillis(200))
+                    .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
   }
 
   @Test
-  public void testRegisterMoreThanDeclaredInTheGroup(TestInfo testInfo) {
+  public void testSameGroupIdDifferentGroupSizes(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
     Address seedAddress = startSeed();
 
     int groupSize_1 = 1;
     int groupSize_2 = 2;
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize_1)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp1);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize_2)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp2);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize_2)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp3);
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize_1));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize_2));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize_2));
 
-    // Verify that Group under group id has been built
-    Stream.of(rp1)
+    // Verify that group with groupSize_1 has been built
+    Stream.of(r1.groupDiscoveryEvents)
         .forEach(
             rp ->
                 StepVerifier.create(rp)
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupRegistered());
+                          assertEquals(GROUP_ADDED, event.type());
                           assertEquals(groupSize_2, event.groupSize());
                         })
-                    .expectNoEvent(Duration.ofMillis(200))
+                    .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
 
-    // Verify that Group under group id has been built
-    Stream.of(rp2, rp3)
+    // Verify that group with groupSize_2 has been built as well
+    Stream.of(r2.groupDiscoveryEvents, r3.groupDiscoveryEvents)
         .forEach(
             rp ->
                 StepVerifier.create(rp)
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupRegistered());
+                          assertEquals(GROUP_ADDED, event.type());
                           assertThat(event.groupSize(), isOneOf(groupSize_1, groupSize_2));
                         })
-                    .expectNoEvent(Duration.ofMillis(200))
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+  }
+
+  @Test
+  public void testSameGroupIdSameGroupSizeWithSeveralInstances(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    Address seedAddress = startSeed();
+
+    int groupSize = 1;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    // Verify that only one group with groupSize and groupId combination has been built
+    Stream.of(r1.groupDiscoveryEvents, r2.groupDiscoveryEvents, r3.groupDiscoveryEvents)
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .expectSubscription()
+                    .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
   }
@@ -189,7 +214,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupRegistered());
+              assertTrue(event.isGroupAdded());
               assertEquals(groupSize, event.groupSize());
             })
         .then(
@@ -200,7 +225,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .assertNext(event -> assertTrue(event.isEndpointRemovedFromTheGroup()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupUnregistered());
+              assertTrue(event.isGroupRemoved());
               assertEquals(0, event.groupSize());
             })
         .expectNoEvent(Duration.ofMillis(200))
@@ -236,7 +261,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupRegistered());
+                          assertTrue(event.isGroupAdded());
                           assertEquals(groupSize, event.groupSize());
                         })
                     .expectNoEvent(Duration.ofMillis(200))
@@ -251,7 +276,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupRegistered());
+              assertTrue(event.isGroupAdded());
               assertEquals(groupSize, event.groupSize());
             })
         .then(
@@ -263,7 +288,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .assertNext(event -> assertTrue(event.isEndpointRemovedFromTheGroup()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupUnregistered());
+              assertTrue(event.isGroupRemoved());
               assertEquals(0, event.groupSize());
             })
         .expectNoEvent(Duration.ofMillis(200))
@@ -306,14 +331,14 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupRegistered());
+                          assertTrue(event.isGroupAdded());
                           assertEquals(groupSize, event.groupSize());
                         })
                     .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
                     .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupUnregistered());
+                          assertTrue(event.isGroupRemoved());
                           assertEquals(0, event.groupSize());
                         })
                     .thenCancel()
@@ -389,28 +414,26 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   private static class RecordingServiceDiscovery {
 
-    final ReplayProcessor<ServiceDiscovery> instance;
-    final ReplayProcessor<ServiceDiscoveryEvent> events;
+    final ReplayProcessor<ServiceDiscovery> instance = ReplayProcessor.create();
+    final ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
+    final ReplayProcessor<ServiceGroupDiscoveryEvent> groupDiscoveryEvents =
+        ReplayProcessor.create();
 
-    private RecordingServiceDiscovery(
-        ReplayProcessor<ServiceDiscovery> instance, ReplayProcessor<ServiceDiscoveryEvent> events) {
-      this.instance = instance;
-      this.events = events;
-    }
-
-    static RecordingServiceDiscovery startWith(Supplier<Mono<ServiceDiscovery>> starter) {
-      RecordingServiceDiscovery result =
-          new RecordingServiceDiscovery(ReplayProcessor.create(), ReplayProcessor.create());
-      starter
+    static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
+      RecordingServiceDiscovery result = new RecordingServiceDiscovery();
+      supplier
           .get()
           .doOnNext(result.instance::onNext)
-          .flatMapMany(ServiceDiscovery::listenDiscovery)
-          .subscribe(result.events);
+          .subscribe(
+              sd -> {
+                sd.listenDiscovery().subscribe(result.discoveryEvents);
+                sd.listenGroupDiscovery().subscribe(result.groupDiscoveryEvents);
+              });
       return result;
     }
 
-    RecordingServiceDiscovery recordEventsAgain() {
-      return new RecordingServiceDiscovery(this.instance, ReplayProcessor.create());
+    RecordingServiceDiscovery recordAgain() {
+      return create(() -> instance.as(Mono::from));
     }
 
     void shutdown() {

@@ -9,9 +9,9 @@ public class ServiceGroupDiscoveryEvent {
 
   public enum Type {
     ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
-    REGISTERED, // service endpoint group added
+    GROUP_ADDED, // service endpoint group added
     ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
-    UNREGISTERED // service endpoint group removed
+    GROUP_REMOVED // service endpoint group removed
   }
 
   private final Type type;
@@ -30,17 +30,17 @@ public class ServiceGroupDiscoveryEvent {
     this.serviceEndpoints = Collections.unmodifiableCollection(serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent groupRegistered(
+  public static ServiceGroupDiscoveryEvent newGroupAdded(
       String groupId, Collection<ServiceEndpoint> serviceEndpoints) {
-    return new ServiceGroupDiscoveryEvent(Type.REGISTERED, groupId, null, serviceEndpoints);
+    return new ServiceGroupDiscoveryEvent(Type.GROUP_ADDED, groupId, null, serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent groupUnregistered(String groupId) {
+  public static ServiceGroupDiscoveryEvent newGroupRemoved(String groupId) {
     return new ServiceGroupDiscoveryEvent(
-        Type.UNREGISTERED, groupId, null, Collections.emptyList());
+        Type.GROUP_REMOVED, groupId, null, Collections.emptyList());
   }
 
-  public static ServiceGroupDiscoveryEvent endpointAddedToGroup(
+  public static ServiceGroupDiscoveryEvent newEndpointAddedToGroup(
       String groupId,
       ServiceEndpoint serviceEndpoint,
       Collection<ServiceEndpoint> serviceEndpoints) {
@@ -48,7 +48,7 @@ public class ServiceGroupDiscoveryEvent {
         Type.ENDPOINT_ADDED_TO_GROUP, groupId, serviceEndpoint, serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent endpointRemovedFromGroup(
+  public static ServiceGroupDiscoveryEvent newEndpointRemovedFromGroup(
       String groupId,
       ServiceEndpoint serviceEndpoint,
       Collection<ServiceEndpoint> serviceEndpoints) {
@@ -56,12 +56,12 @@ public class ServiceGroupDiscoveryEvent {
         Type.ENDPOINT_REMOVED_FROM_GROUP, groupId, serviceEndpoint, serviceEndpoints);
   }
 
-  public boolean isGroupRegistered() {
-    return Type.REGISTERED.equals(this.type);
+  public boolean isGroupAdded() {
+    return Type.GROUP_ADDED.equals(this.type);
   }
 
-  public boolean isGroupUnregistered() {
-    return Type.UNREGISTERED.equals(this.type);
+  public boolean isGroupRemoved() {
+    return Type.GROUP_REMOVED.equals(this.type);
   }
 
   public boolean isEndpointAddedToTheGroup() {
