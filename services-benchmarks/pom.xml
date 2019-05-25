@@ -79,7 +79,7 @@
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <configuration>
-          <excludeScope>test</excludeScope>
+          <includeScope>runtime</includeScope>
         </configuration>
       </plugin>
       <plugin>
