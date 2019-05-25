@@ -23,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import reactor.core.publisher.Flux;
@@ -313,38 +312,6 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .verify();
   }
 
-  @Disabled
-  @Test
-  public void testGroupSizeDefinition(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
-
-    Address seedAddress = startSeed();
-
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
-    // Start a few instances with incorrect groupSize (1),
-    // and Verify that Group under group id has NOT been built
-    StepVerifier.create(
-            Flux.merge(
-                startServiceGroupDiscovery(seedAddress, groupId, 1)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery), //
-                startServiceGroupDiscovery(seedAddress, groupId, 1)
-                    .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery),
-                startServiceGroupDiscovery(seedAddress, groupId, 1)
-                    .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .expectSubscription()
-        .expectNoEvent(TIMEOUT)
-        .then(
-            () -> {
-              // shutdown tracked instances
-              startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
-            })
-        .expectNoEvent(TIMEOUT)
-        .thenCancel()
-        .verify();
-  }
-
   public static ServiceEndpoint newServiceEndpoint() {
     return ServiceEndpoint.builder().id(UUID.randomUUID().toString()).build();
   }
@@ -397,10 +364,6 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 sd.listenGroupDiscovery().subscribe(result.groupDiscoveryEvents);
               });
       return result;
-    }
-
-    RecordingServiceDiscovery recordAgain() {
-      return create(() -> instance.as(Mono::from));
     }
 
     void shutdown() {
