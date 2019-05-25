@@ -3,15 +3,20 @@ package io.scalecube.services.discovery;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -25,10 +30,51 @@ import reactor.test.StepVerifier;
 class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
 
   @BeforeAll
   public static void setUp() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
+  }
+
+  @Test
+  public void testEndpointIsRegisteredThenUnregistered() {
+    Address seedAddress = startSeed();
+
+    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
+    AtomicInteger registeredCount = new AtomicInteger();
+    AtomicInteger unregisteredCount = new AtomicInteger();
+
+    StepVerifier.create(
+            Flux.merge(
+                startServiceDiscovery(seedAddress)
+                    .flatMapMany(ServiceDiscovery::listenDiscovery), // dont track
+                startServiceDiscovery(seedAddress)
+                    .flatMapMany(ServiceDiscovery::listenDiscovery), // track instance
+                startServiceDiscovery(seedAddress)
+                    .doOnSuccess(startedServiceDiscoveries::onNext)
+                    .flatMapMany(ServiceDiscovery::listenDiscovery))) // track instance
+        .thenConsumeWhile(
+            event -> {
+              assertEquals(Type.REGISTERED, event.type());
+              assertNotNull(event.serviceEndpoint());
+              return registeredCount.incrementAndGet() < 9;
+            })
+        .expectNoEvent(SHORT_TIMEOUT)
+        .then(
+            () -> {
+              // Start shutdown process and verify again that not events will be pusblished
+              startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
+            })
+        .thenConsumeWhile(
+            event -> {
+              assertEquals(Type.UNREGISTERED, event.type());
+              assertNotNull(event.serviceEndpoint());
+              return unregisteredCount.incrementAndGet() < 2;
+            })
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
   }
 
   @Test
@@ -132,7 +178,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     int groupSize = 1; // group of size 1
 
     // Verify that group has been built and notified about that
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create(1);
+    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
     StepVerifier.create(
             Flux.merge(
                 startServiceDiscovery(seedAddress) //
@@ -169,7 +215,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     Address seedAddress = startSeed();
 
     int groupSize = 2;
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create(groupSize);
+    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
     ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
     ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
 
@@ -339,5 +385,36 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   private Address startSeed() {
     return new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block().address();
+  }
+
+  private static class RecordingServiceDiscovery {
+
+    final ReplayProcessor<ServiceDiscovery> instance;
+    final ReplayProcessor<ServiceDiscoveryEvent> events;
+
+    private RecordingServiceDiscovery(
+        ReplayProcessor<ServiceDiscovery> instance, ReplayProcessor<ServiceDiscoveryEvent> events) {
+      this.instance = instance;
+      this.events = events;
+    }
+
+    static RecordingServiceDiscovery startWith(Supplier<Mono<ServiceDiscovery>> starter) {
+      RecordingServiceDiscovery result =
+          new RecordingServiceDiscovery(ReplayProcessor.create(), ReplayProcessor.create());
+      starter
+          .get()
+          .doOnNext(result.instance::onNext)
+          .flatMapMany(ServiceDiscovery::listenDiscovery)
+          .subscribe(result.events);
+      return result;
+    }
+
+    RecordingServiceDiscovery recordEventsAgain() {
+      return new RecordingServiceDiscovery(this.instance, ReplayProcessor.create());
+    }
+
+    void shutdown() {
+      instance.flatMap(ServiceDiscovery::shutdown).then().subscribe();
+    }
   }
 }
