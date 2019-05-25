@@ -49,6 +49,9 @@
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+          <excludeScope>test</excludeScope>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>com.spotify</groupId>
