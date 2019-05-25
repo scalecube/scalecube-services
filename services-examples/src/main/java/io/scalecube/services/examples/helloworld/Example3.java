@@ -46,7 +46,7 @@ public class Example3 {
     // Create service proxy
     BidiGreetingService service = seed.call().api(BidiGreetingService.class);
 
-    // Execute the services and subscribe to service listenDiscovery
+    // Execute the services and subscribe to service events
     service
         .greeting(Flux.fromArray(new String[] {"joe", "dan", "roni"}))
         .doOnNext(onNext -> System.out.println(onNext))
