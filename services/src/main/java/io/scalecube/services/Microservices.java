@@ -3,7 +3,7 @@ package io.scalecube.services;
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryGroupEvent;
+import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -436,7 +436,7 @@ public class Microservices {
     }
 
     private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
-      discovery.events().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
+      discovery.listenDiscovery().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
     }
 
     private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
@@ -476,12 +476,12 @@ public class Microservices {
       }
 
       @Override
-      public Flux<ServiceDiscoveryEvent> events() {
+      public Flux<ServiceDiscoveryEvent> listenDiscovery() {
         return Flux.empty();
       }
 
       @Override
-      public Flux<ServiceDiscoveryGroupEvent> groupEvents() {
+      public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
         return Flux.empty();
       }
 
@@ -774,7 +774,7 @@ public class Microservices {
     private JmxMonitorMBean(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery().events().subscribe(processor);
+      microservices.discovery().listenDiscovery().subscribe(processor);
     }
 
     @Override

@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.test.StepVerifier;
 
-public class ServiceRegistryEventsTest {
+public class ServiceRegistryTest {
 
   @Test
   public void test_added_removed_registration_events() {
@@ -33,7 +33,7 @@ public class ServiceRegistryEventsTest {
             .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
-    seed.discovery().events().subscribe(events::add);
+    seed.discovery().listenDiscovery().subscribe(events::add);
 
     Address seedAddress = seed.discovery().address();
 
@@ -82,7 +82,7 @@ public class ServiceRegistryEventsTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().events().subscribe(processor);
+    seed.discovery().listenDiscovery().subscribe(processor);
 
     Address seedAddress = seed.discovery().address();
 
@@ -150,7 +150,7 @@ public class ServiceRegistryEventsTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().events().subscribe(processor);
+    seed.discovery().listenDiscovery().subscribe(processor);
 
     Address seedAddress = seed.discovery().address();
 

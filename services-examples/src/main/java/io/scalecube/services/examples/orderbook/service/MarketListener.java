@@ -2,7 +2,7 @@ package io.scalecube.services.examples.orderbook.service;
 
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
 
-/** The interface for outbound events from a market. */
+/** The interface for outbound listenDiscovery from a market. */
 public interface MarketListener {
 
   /**

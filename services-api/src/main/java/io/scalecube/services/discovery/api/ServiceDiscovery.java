@@ -22,18 +22,18 @@ public interface ServiceDiscovery {
   ServiceEndpoint serviceEndpoint();
 
   /**
-   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
+   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} listenDiscovery.
    *
-   * @return stream of {@code ServiceDiscoveryEvent} events
+   * @return stream of {@code ServiceDiscoveryEvent} listenDiscovery
    */
-  Flux<ServiceDiscoveryEvent> events();
+  Flux<ServiceDiscoveryEvent> listenDiscovery();
 
   /**
-   * Function to subscribe and listen on {@code ServiceGroupDiscoveryEvent} events.
+   * Function to subscribe and listen on {@code ServiceGroupDiscoveryEvent} listenDiscovery.
    *
-   * @return stream of {@code ServiceGroupDiscoveryEvent} events
+   * @return stream of {@code ServiceGroupDiscoveryEvent} listenDiscovery
    */
-  Flux<ServiceDiscoveryGroupEvent> groupEvents();
+  Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery();
 
   /**
    * Starting this {@code ServiceDiscovery} instance.
