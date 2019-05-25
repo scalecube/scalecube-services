@@ -230,7 +230,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       sink.next(
-          ServiceGroupDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
+          ServiceGroupDiscoveryEvent.newEndpointRemovedFromGroup(
+              groupId, serviceEndpoint, endpoints));
 
       LOGGER.trace(
           "Removed service endpoint {} from group {} (size now {})",
@@ -238,7 +239,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           groupId,
           endpoints.size());
 
-      if (endpoints.isEmpty() || containsOnlySelf(endpoints)) {
+      if (endpoints.isEmpty()) {
         LOGGER.info("Service group {} removed from the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceGroupDiscoveryEvent.newGroupRemoved(groupId);
       }
@@ -247,10 +248,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     if (groupDiscoveryEvent != null) {
       sink.next(groupDiscoveryEvent);
     }
-  }
-
-  private boolean containsOnlySelf(Collection<ServiceEndpoint> endpoints) {
-    return endpoints.size() == 1 && endpoints.contains(serviceEndpoint);
   }
 
   public Collection<ServiceEndpoint> getEndpointsFromGroup(ServiceGroup group) {

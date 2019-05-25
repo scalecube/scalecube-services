@@ -3,12 +3,13 @@ package io.scalecube.services.discovery;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_ADDED;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED;
 import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.ENDPOINT_ADDED_TO_GROUP;
+import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.ENDPOINT_REMOVED_FROM_GROUP;
 import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.GROUP_ADDED;
+import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.GROUP_REMOVED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
@@ -44,19 +45,17 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   public void testEndpointIsAddedThenRemoved() {
     Address seedAddress = startSeed();
 
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
     AtomicInteger registeredCount = new AtomicInteger();
     AtomicInteger unregisteredCount = new AtomicInteger();
 
-    StepVerifier.create(
-            Flux.merge(
-                startServiceDiscovery(seedAddress)
-                    .flatMapMany(ServiceDiscovery::listenDiscovery), // dont track
-                startServiceDiscovery(seedAddress)
-                    .flatMapMany(ServiceDiscovery::listenDiscovery), // track instance
-                startServiceDiscovery(seedAddress)
-                    .doOnSuccess(startedServiceDiscoveries::onNext)
-                    .flatMapMany(ServiceDiscovery::listenDiscovery))) // track instance
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> startServiceDiscovery(seedAddress));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(() -> startServiceDiscovery(seedAddress));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(() -> startServiceDiscovery(seedAddress));
+
+    StepVerifier.create(Flux.merge(r1.discoveryEvents, r2.discoveryEvents, r3.discoveryEvents))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -64,11 +63,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
               return registeredCount.incrementAndGet() < 9;
             })
         .expectNoEvent(SHORT_TIMEOUT)
-        .then(
-            () -> {
-              // shutdown tracked instances
-              startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
-            })
+        .then(r3::shutdown)
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_REMOVED, event.type());
@@ -202,33 +197,28 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     int groupSize = 1; // group of size 1
 
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> startServiceDiscovery(seedAddress));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
     // Verify that group has been built and notified about that
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
-    StepVerifier.create(
-            Flux.merge(
-                startServiceDiscovery(seedAddress) //
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery),
-                startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-                    .doOnSuccess(startedServiceDiscoveries::onNext)
-                    .flatMapMany(ServiceDiscovery::listenGroupDiscovery)))
-        .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+    StepVerifier.create(Flux.merge(r1.groupDiscoveryEvents, r2.groupDiscoveryEvents))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupAdded());
+              assertEquals(GROUP_ADDED, event.type());
               assertEquals(groupSize, event.groupSize());
             })
-        .then(
-            () -> {
-              // Start shutdown process
-              startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
-            })
-        .assertNext(event -> assertTrue(event.isEndpointRemovedFromTheGroup()))
+        .then(r2::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupRemoved());
+              assertEquals(GROUP_REMOVED, event.type());
               assertEquals(0, event.groupSize());
             })
-        .expectNoEvent(Duration.ofMillis(200))
+        .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
   }
@@ -240,31 +230,26 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     Address seedAddress = startSeed();
 
     int groupSize = 2;
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
 
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp1);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp2);
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
 
     // Verify that Group under group id has been built
-    Stream.of(rp1, rp2)
+    Stream.of(r1.groupDiscoveryEvents, r2.groupDiscoveryEvents)
         .forEach(
             rp ->
                 StepVerifier.create(rp)
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
                     .assertNext(
                         event -> {
-                          assertTrue(event.isGroupAdded());
+                          assertEquals(GROUP_ADDED, event.type());
                           assertEquals(groupSize, event.groupSize());
                         })
-                    .expectNoEvent(Duration.ofMillis(200))
+                    .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
 
@@ -272,78 +257,60 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     StepVerifier.create(
             startServiceDiscovery(seedAddress) //
                 .flatMapMany(ServiceDiscovery::listenGroupDiscovery))
-        .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
-        .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupAdded());
+              assertEquals(GROUP_ADDED, event.type());
               assertEquals(groupSize, event.groupSize());
             })
-        .then(
-            () -> {
-              // Start shutdown process
-              startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
-            })
-        .assertNext(event -> assertTrue(event.isEndpointRemovedFromTheGroup()))
-        .assertNext(event -> assertTrue(event.isEndpointRemovedFromTheGroup()))
+        .then(r1::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+        .then(r2::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
         .assertNext(
             event -> {
-              assertTrue(event.isGroupRemoved());
+              assertEquals(GROUP_REMOVED, event.type());
               assertEquals(0, event.groupSize());
             })
-        .expectNoEvent(Duration.ofMillis(200))
+        .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
   }
 
-  @Disabled
   @Test
-  public void testLastOneInTheGroupStillReceiveEvents(TestInfo testInfo) {
+  public void testGroupIsNotRemovedAsLongAsOneIsLeft(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
     Address seedAddress = startSeed();
 
     int groupSize = 3;
-    ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
 
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp1);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp2);
-    startServiceGroupDiscovery(seedAddress, groupId, groupSize)
-        .doOnSuccess(startedServiceDiscoveries::onNext) // track started
-        .flatMapMany(ServiceDiscovery::listenGroupDiscovery)
-        .subscribe(rp3);
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> startServiceGroupDiscovery(seedAddress, groupId, groupSize));
 
-    StepVerifier.create(
-            startedServiceDiscoveries //
-                .flatMap(ServiceDiscovery::shutdown)
-                .then())
-        .then(
-            () ->
-                StepVerifier.create(rp1)
-                    .assertNext(event -> assertTrue(event.isEndpointAddedToTheGroup()))
-                    .assertNext(
-                        event -> {
-                          assertTrue(event.isGroupAdded());
-                          assertEquals(groupSize, event.groupSize());
-                        })
-                    .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
-                    .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
-                    .assertNext(
-                        event -> {
-                          assertTrue(event.isGroupRemoved());
-                          assertEquals(0, event.groupSize());
-                        })
-                    .thenCancel()
-                    .verify())
-        .verifyComplete();
+    StepVerifier.create(r1.groupDiscoveryEvents)
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(
+            event -> {
+              assertEquals(GROUP_ADDED, event.type());
+              assertEquals(groupSize, event.groupSize());
+            })
+        .then(r2::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+        .then(r3::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
   }
 
   @Disabled
@@ -370,7 +337,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .expectNoEvent(TIMEOUT)
         .then(
             () -> {
-              // Start shutdown process and verify again that not events will be pusblished
+              // shutdown tracked instances
               startedServiceDiscoveries.flatMap(ServiceDiscovery::shutdown).then().subscribe();
             })
         .expectNoEvent(TIMEOUT)
