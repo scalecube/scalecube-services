@@ -14,7 +14,7 @@ public class ServiceScanner {
   }
 
   /**
-   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration}-s
+   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration}-s.
    *
    * @param serviceInfo service info instance
    * @return list of {@code ServiceRegistration}-s
