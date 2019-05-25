@@ -26,14 +26,14 @@ public interface ServiceDiscovery {
    *
    * @return stream of {@code ServiceDiscoveryEvent} events
    */
-  Flux<ServiceDiscoveryEvent> listenDiscovery();
+  Flux<ServiceDiscoveryEvent> events();
 
   /**
    * Function to subscribe and listen on {@code ServiceGroupDiscoveryEvent} events.
    *
    * @return stream of {@code ServiceGroupDiscoveryEvent} events
    */
-  Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery();
+  Flux<ServiceDiscoveryGroupEvent> groupEvents();
 
   /**
    * Starting this {@code ServiceDiscovery} instance.
