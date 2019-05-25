@@ -33,7 +33,7 @@ public interface ServiceDiscovery {
    *
    * @return stream of {@code ServiceGroupDiscoveryEvent} events
    */
-  Flux<ServiceGroupDiscoveryEvent> groupEvents();
+  Flux<ServiceDiscoveryGroupEvent> groupEvents();
 
   /**
    * Starting this {@code ServiceDiscovery} instance.

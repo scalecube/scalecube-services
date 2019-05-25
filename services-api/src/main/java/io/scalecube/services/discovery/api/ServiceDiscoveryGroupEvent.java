@@ -5,7 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-public class ServiceGroupDiscoveryEvent {
+public class ServiceDiscoveryGroupEvent {
 
   public enum Type {
     ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
@@ -19,7 +19,7 @@ public class ServiceGroupDiscoveryEvent {
   private final ServiceEndpoint serviceEndpoint;
   private final Collection<ServiceEndpoint> serviceEndpoints;
 
-  private ServiceGroupDiscoveryEvent(
+  private ServiceDiscoveryGroupEvent(
       Type type,
       String groupId,
       ServiceEndpoint serviceEndpoint,
@@ -30,29 +30,29 @@ public class ServiceGroupDiscoveryEvent {
     this.serviceEndpoints = Collections.unmodifiableCollection(serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent groupRegistered(
+  public static ServiceDiscoveryGroupEvent groupRegistered(
       String groupId, Collection<ServiceEndpoint> serviceEndpoints) {
-    return new ServiceGroupDiscoveryEvent(Type.REGISTERED, groupId, null, serviceEndpoints);
+    return new ServiceDiscoveryGroupEvent(Type.REGISTERED, groupId, null, serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent groupUnregistered(String groupId) {
-    return new ServiceGroupDiscoveryEvent(
+  public static ServiceDiscoveryGroupEvent groupUnregistered(String groupId) {
+    return new ServiceDiscoveryGroupEvent(
         Type.UNREGISTERED, groupId, null, Collections.emptyList());
   }
 
-  public static ServiceGroupDiscoveryEvent endpointAddedToGroup(
+  public static ServiceDiscoveryGroupEvent endpointAddedToGroup(
       String groupId,
       ServiceEndpoint serviceEndpoint,
       Collection<ServiceEndpoint> serviceEndpoints) {
-    return new ServiceGroupDiscoveryEvent(
+    return new ServiceDiscoveryGroupEvent(
         Type.ENDPOINT_ADDED_TO_GROUP, groupId, serviceEndpoint, serviceEndpoints);
   }
 
-  public static ServiceGroupDiscoveryEvent endpointRemovedFromGroup(
+  public static ServiceDiscoveryGroupEvent endpointRemovedFromGroup(
       String groupId,
       ServiceEndpoint serviceEndpoint,
       Collection<ServiceEndpoint> serviceEndpoints) {
-    return new ServiceGroupDiscoveryEvent(
+    return new ServiceDiscoveryGroupEvent(
         Type.ENDPOINT_REMOVED_FROM_GROUP, groupId, serviceEndpoint, serviceEndpoints);
   }
 

@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryGroupEvent;
 import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.UUID;
@@ -38,9 +38,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     Address seedAddress = startSeed();
 
     int groupSize = 3;
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp1 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp2 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .flatMapMany(ServiceDiscovery::groupEvents)
@@ -77,9 +77,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     int groupSize_1 = 1;
     int groupSize_2 = 2;
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp1 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp2 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize_1)
         .flatMapMany(ServiceDiscovery::groupEvents)
@@ -170,8 +170,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     int groupSize = 2;
     ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create(groupSize);
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp1 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp2 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .doOnSuccess(startedServiceDiscoveries::onNext) // track started
@@ -234,9 +234,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     int groupSize = 3;
     ReplayProcessor<ServiceDiscovery> startedServiceDiscoveries = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp1 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp2 = ReplayProcessor.create();
-    ReplayProcessor<ServiceGroupDiscoveryEvent> rp3 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp1 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp2 = ReplayProcessor.create();
+    ReplayProcessor<ServiceDiscoveryGroupEvent> rp3 = ReplayProcessor.create();
 
     startServiceGroupDiscovery(seedAddress, groupId, groupSize)
         .flatMapMany(ServiceDiscovery::groupEvents)
@@ -263,8 +263,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                           assertTrue(event.isGroupRegistered());
                           assertEquals(groupSize, event.groupSize());
                         })
-                    .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
-                    .assertNext(ServiceGroupDiscoveryEvent::isEndpointRemovedFromTheGroup)
+                    .assertNext(ServiceDiscoveryGroupEvent::isEndpointRemovedFromTheGroup)
+                    .assertNext(ServiceDiscoveryGroupEvent::isEndpointRemovedFromTheGroup)
                     .assertNext(
                         event -> {
                           assertTrue(event.isGroupUnregistered());
