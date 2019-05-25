@@ -355,7 +355,7 @@ public class ServiceRemoteTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
+    assertTrue(ms.discovery().serviceEndpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test
