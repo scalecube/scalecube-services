@@ -1,17 +1,16 @@
 package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.registry.api.ServiceRegistry;
 
 /**
- * Service registration event. This event is being fired when {@link ServiceEndpoint} is being added
- * (or removed from) to (from) {@link ServiceRegistry}.
+ * This event is being fired from {@link ServiceDiscovery} when it detects that service endpoint was
+ * being added or removed to/from cluster.
  */
 public class ServiceDiscoveryEvent {
 
   public enum Type {
-    REGISTERED, // service endpoint added
-    UNREGISTERED // service endpoint removed
+    ENDPOINT_ADDED, // service endpoint added
+    ENDPOINT_REMOVED // service endpoint removed
   }
 
   private final ServiceEndpoint serviceEndpoint;
@@ -22,12 +21,12 @@ public class ServiceDiscoveryEvent {
     this.type = type;
   }
 
-  public static ServiceDiscoveryEvent registered(ServiceEndpoint serviceEndpoint) {
-    return new ServiceDiscoveryEvent(serviceEndpoint, Type.REGISTERED);
+  public static ServiceDiscoveryEvent newEndpointAdded(ServiceEndpoint serviceEndpoint) {
+    return new ServiceDiscoveryEvent(serviceEndpoint, Type.ENDPOINT_ADDED);
   }
 
-  public static ServiceDiscoveryEvent unregistered(ServiceEndpoint serviceEndpoint) {
-    return new ServiceDiscoveryEvent(serviceEndpoint, Type.UNREGISTERED);
+  public static ServiceDiscoveryEvent newEndpointRemoved(ServiceEndpoint serviceEndpoint) {
+    return new ServiceDiscoveryEvent(serviceEndpoint, Type.ENDPOINT_REMOVED);
   }
 
   public ServiceEndpoint serviceEndpoint() {
@@ -38,12 +37,12 @@ public class ServiceDiscoveryEvent {
     return this.type;
   }
 
-  public boolean isRegistered() {
-    return Type.REGISTERED.equals(this.type);
+  public boolean isEndpointAdded() {
+    return Type.ENDPOINT_ADDED.equals(this.type);
   }
 
-  public boolean isUnregistered() {
-    return Type.UNREGISTERED.equals(this.type);
+  public boolean isEndpointRemoved() {
+    return Type.ENDPOINT_REMOVED.equals(this.type);
   }
 
   @Override

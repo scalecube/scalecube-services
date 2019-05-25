@@ -7,13 +7,45 @@ import reactor.core.publisher.Mono;
 
 public interface ServiceDiscovery {
 
+  /**
+   * Returns service discovery address.
+   *
+   * @return discovery address
+   */
   Address address();
 
-  ServiceEndpoint endpoint();
+  /**
+   * Returns service endpoint.
+   *
+   * @return service endpoint
+   */
+  ServiceEndpoint serviceEndpoint();
 
-  Flux<ServiceDiscoveryEvent> listen();
+  /**
+   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
+   *
+   * @return stream of {@code ServiceDiscoveryEvent} events
+   */
+  Flux<ServiceDiscoveryEvent> listenDiscovery();
 
+  /**
+   * Function to subscribe and listen on {@code ServiceGroupDiscoveryEvent} events.
+   *
+   * @return stream of {@code ServiceGroupDiscoveryEvent} events
+   */
+  Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery();
+
+  /**
+   * Starting this {@code ServiceDiscovery} instance.
+   *
+   * @return started {@code ServiceDiscovery} instance
+   */
   Mono<ServiceDiscovery> start();
 
+  /**
+   * Shutting down this {@code ServiceDiscovery} instance.
+   *
+   * @return async signal of the result
+   */
   Mono<Void> shutdown();
 }
