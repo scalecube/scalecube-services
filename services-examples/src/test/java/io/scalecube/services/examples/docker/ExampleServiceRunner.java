@@ -12,6 +12,8 @@ public class ExampleServiceRunner {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExampleServiceRunner.class);
 
+  static final int DEFAULT_DISCOVERY_PORT = 4801;
+
   /**
    * Runner.
    *
@@ -19,7 +21,7 @@ public class ExampleServiceRunner {
    */
   public static void main(String[] args) {
 
-    int discoveryPort = Integer.getInteger("discovery.port", 4801);
+    int discoveryPort = Integer.getInteger("discovery.port", DEFAULT_DISCOVERY_PORT);
     Address seeds = Address.from(System.getProperty("seeds", "localhost:" + discoveryPort));
     String memberHost = System.getProperty("member.host", null);
     Integer memberPort = Integer.getInteger("member.port", null);

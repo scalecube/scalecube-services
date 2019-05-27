@@ -1,6 +1,7 @@
 package io.scalecube.services.examples.docker;
 
-import com.github.dockerjava.api.model.PortBinding;
+import static io.scalecube.services.examples.docker.ExampleServiceRunner.DEFAULT_DISCOVERY_PORT;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -9,63 +10,53 @@ import java.nio.file.Paths;
 import org.apache.commons.compress.utils.IOUtils;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy;
 import org.testcontainers.images.builder.ImageFromDockerfile;
 import reactor.core.Exceptions;
 
 public class ExampleServiceRunnaerViaDockerTest {
 
+  public static final String SEED_ALIAS = "seed";
+  public static final String SERVICE_NODE_ALIAS = "serviceNode";
+
   public static void main(String[] args) throws Exception {
+    ImageFromDockerfile image = createImage();
 
-    File targetJar = getTargetJar();
-
-    ImageFromDockerfile image =
-        new ImageFromDockerfile()
-            .withFileFromFile("services-examples/target/tests.jar", targetJar)
-            .withFileFromFile(
-                "services-examples/target/lib", new File("services-examples/target/lib"))
-            .withFileFromClasspath("Dockerfile", "TestServiceRunnerDockerfile");
-
-    GenericContainer container =
+    GenericContainer seed =
         new GenericContainer<>(image)
-            .withExposedPorts(4801)
-            .withEnv("JAVA_OPTS", "-Dseeds=localhost:4801 -Ddiscovery.port=4801 -Dmember.host=seed")
-            //        .withEnv("MEMBER_HOST", "4801")
-            //        .withEnv("MEMBER_PORT", "4801")
+            .withExposedPorts(DEFAULT_DISCOVERY_PORT)
             .withEnv("logLevel", "DEBUG")
             .withNetwork(Network.SHARED)
-            .withNetworkAliases("seed")
-            .withCreateContainerCmdModifier(
-                cmd -> {
-                  cmd.withName("seed").withPortBindings(PortBinding.parse(4801 + ":" + 4801));
-                })
-        //            .waitingFor(new HostPortWaitStrategy())
-        ;
+            .withNetworkAliases(SEED_ALIAS)
+            .withCreateContainerCmdModifier(cmd -> cmd.withName(SEED_ALIAS))
+            .waitingFor(new HostPortWaitStrategy());
 
-    container.start();
+    seed.start();
 
-    GenericContainer container2 =
+    GenericContainer serviceNode =
         new GenericContainer<>(image)
-            .withExposedPorts(4802)
-            .withEnv(
-                "JAVA_OPTS", "-Dseeds=localhost:4802 -Ddiscovery.port=4802 -Dmember.host=follower")
-            //        .withEnv("MEMBER_HOST", "4801")
-            //        .withEnv("MEMBER_PORT", "4801")
+            .withExposedPorts(DEFAULT_DISCOVERY_PORT)
+            .withEnv("JAVA_OPTS", "-Dseeds=seed:" + DEFAULT_DISCOVERY_PORT)
             .withEnv("logLevel", "DEBUG")
             .withNetwork(Network.SHARED)
-            .withNetworkAliases("follower")
-            .withCreateContainerCmdModifier(
-                cmd -> {
-                  cmd.withName("follower").withPortBindings(PortBinding.parse(4802 + ":" + 4802));
-                })
-        //            .waitingFor(new HostPortWaitStrategy())
-        ;
+            .withNetworkAliases(SERVICE_NODE_ALIAS)
+            .withCreateContainerCmdModifier(cmd -> cmd.withName(SERVICE_NODE_ALIAS))
+            .waitingFor(new HostPortWaitStrategy());
 
-    container2.start();
+    serviceNode.start();
 
     Thread.currentThread().join();
   }
 
-  private static File getTargetJar() throws IOException {
+  private static ImageFromDockerfile createImage() throws IOException {
+    File targetJar = findTargetJar();
+    return new ImageFromDockerfile()
+        .withFileFromFile("services-examples/target/tests.jar", targetJar)
+        .withFileFromFile("services-examples/target/lib", new File("services-examples/target/lib"))
+        .withFileFromClasspath("Dockerfile", "TestServiceRunnerDockerfile");
+  }
+
+  private static File findTargetJar() throws IOException {
     return Files.list(Paths.get("services-examples", "target"))
         .filter(p -> p.toString().endsWith("tests.jar"))
         .findFirst()
