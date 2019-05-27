@@ -23,9 +23,9 @@
 
   <properties>
     <jackson.version>2.9.9</jackson.version>
-    <scalecube-cluster.version>2.2.6</scalecube-cluster.version>
+    <scalecube-cluster.version>2.2.7</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.6</scalecube-config.version>
+    <scalecube-config.version>0.3.11</scalecube-config.version>
     <reactor.version>Californium-SR8</reactor.version>
     <rsocket.version>0.12.2-RC2</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
