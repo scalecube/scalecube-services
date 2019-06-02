@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-services-examples-parent</artifactId>
+  <artifactId>scalecube-services-transport-parent</artifactId>
   <version>2.6.3-SNAPSHOT</version>
 
   <parent>
@@ -13,8 +13,9 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>services-examples</module>
-    <module>services-examples-runner</module>
+    <module>services-transport-jackson</module>
+    <module>services-transport-protostuff</module>
+    <module>services-transport-rsocket</module>
   </modules>
 
 </project>
