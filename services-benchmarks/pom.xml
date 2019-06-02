@@ -11,6 +11,7 @@
   <artifactId>scalecube-services-benchmarks</artifactId>
 
   <properties>
+    <!--suppress UnresolvedMavenProperty -->
     <extratags>${env.TRAVIS_COMMIT}</extratags>
   </properties>
 

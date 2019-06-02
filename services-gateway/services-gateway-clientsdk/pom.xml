@@ -2,19 +2,29 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-services-parent</artifactId>
+    <artifactId>services-gateway</artifactId>
     <version>2.4.11-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-services-gateway-websocket</artifactId>
+  <artifactId>scalecube-services-gateway-clientsdk</artifactId>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-common</artifactId>
+      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+
+    <dependency>
+      <groupId>io.rsocket</groupId>
+      <artifactId>rsocket-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.rsocket</groupId>
+      <artifactId>rsocket-transport-netty</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
@@ -27,25 +37,13 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
-
-    <!-- Tests -->
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
+      <groupId>org.jctools</groupId>
+      <artifactId>jctools-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
   </dependencies>
 

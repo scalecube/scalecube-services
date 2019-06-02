@@ -9,7 +9,6 @@
   </parent>
 
   <artifactId>scalecube-services</artifactId>
-  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>

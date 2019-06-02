@@ -1,6 +1,8 @@
 package io.scalecube.services.transport.api;
 
-/** Client service transport interface. */
+/**
+ * Client service transport interface.
+ */
 public interface ClientTransport {
 
   /**

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="8.12">
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\Client.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ClientCodec.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ClientMessage.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ClientSettings.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ClientTransport.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ErrorData.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\exceptions\ClientErrorMapper.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\exceptions\ConnectionClosedException.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\exceptions\DefaultClientErrorMapper.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\exceptions\MessageCodecException.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\http\HttpClientCodec.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\http\HttpClientTransport.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\ReferenceCountUtil.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\Reflect.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\RemoteInvocationHandler.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\rsocket\RSocketClientCodec.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\rsocket\RSocketClientTransport.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\websocket\Signal.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\websocket\WebsocketClientCodec.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\websocket\WebsocketClientTransport.java">
+</file>
+<file name="D:\projects\scalecube-services\services-gateway\services-gateway-clientsdk\src\main\java\io\scalecube\services\gateway\clientsdk\websocket\WebsocketSession.java">
+</file>
+</checkstyle>

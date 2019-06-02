@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <parent>
+    <artifactId>scalecube-services-parent</artifactId>
+    <groupId>io.scalecube</groupId>
+    <version>2.4.11-SNAPSHOT</version>
+  </parent>
+
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>services-gateway</artifactId>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>services-gateway-common</module>
+    <module>services-gateway-rsocket</module>
+    <module>services-gateway-websocket</module>
+    <module>services-gateway-http</module>
+    <module>services-gateway-clientsdk</module>
+    <module>services-gateway-runner</module>
+    <module>services-gateway-tests</module>
+  </modules>
+
+</project>

@@ -1,54 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
-    <artifactId>scalecube-services-parent</artifactId>
+    <artifactId>scalecube-services-examples-parent</artifactId>
     <groupId>io.scalecube</groupId>
     <version>2.4.11-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-services-gateway-runner</artifactId>
+  <artifactId>scalecube-services-examples-runner</artifactId>
 
   <properties>
+    <!--suppress UnresolvedMavenProperty -->
     <extratags>${env.TRAVIS_COMMIT}</extratags>
-    <mainClass>io.scalecube.services.gateway.GatewayRunner</mainClass>
+    <mainClass>io.scalecube.services.examples.ExamplesRunner</mainClass>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-http</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-rsocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-websocket</artifactId>
+      <artifactId>scalecube-services-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>config</artifactId>
-      <version>${scalecube-config.version}</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
