@@ -8,6 +8,7 @@ jdk: openjdk8
 before_install:
 - "./src/main/scripts/ci/before-install.sh"
 - "./src/main/scripts/cd/before-deploy.sh"
+script: "mvn verify -B"
 after_success: "./src/main/scripts/ci/after-success.sh"
 deploy:
 - provider: script
