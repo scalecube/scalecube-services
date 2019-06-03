@@ -44,15 +44,12 @@
 
   <modules>
     <module>services-api</module>
-    <module>services-transport-rsocket</module>
+    <module>services-transport</module>
     <module>services-discovery</module>
     <module>services-bytebuf-codec</module>
-    <module>services-transport-jackson</module>
-    <module>services-transport-protostuff</module>
     <module>services</module>
     <module>services-benchmarks</module>
     <module>services-examples</module>
-    <module>services-examples-runner</module>
   </modules>
 
   <dependencyManagement>
