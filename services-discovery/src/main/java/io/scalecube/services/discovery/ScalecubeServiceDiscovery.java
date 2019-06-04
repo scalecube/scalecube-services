@@ -2,6 +2,7 @@ package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.cluster.ClusterImpl;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.net.Address;
@@ -107,6 +108,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   public Mono<ServiceDiscovery> start() {
     return Mono.defer(
         () -> {
+        	
           Map<String, String> metadata =
               serviceEndpoint != null
                   ? Collections.singletonMap(

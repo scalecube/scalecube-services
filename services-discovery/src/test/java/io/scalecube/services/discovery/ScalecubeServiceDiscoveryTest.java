@@ -12,11 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
-import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -323,8 +323,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .build();
   }
 
-  public static io.scalecube.transport.Address toAddress(Address address) {
-    return io.scalecube.transport.Address.create(address.host(), address.port());
+  public static Address toAddress(Address address) {
+    return Address.create(address.host(), address.port());
   }
 
   public Mono<ServiceDiscovery> startServiceGroupDiscovery(
