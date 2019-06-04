@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
+import io.scalecube.net.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent;
@@ -13,7 +14,6 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;

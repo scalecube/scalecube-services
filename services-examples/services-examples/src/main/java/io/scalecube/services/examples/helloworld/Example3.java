@@ -1,7 +1,5 @@
 package io.scalecube.services.examples.helloworld;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
-
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
@@ -38,7 +36,7 @@ public class Example3 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+                        .options(opts -> opts.seedMembers(seed.discovery().address())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new BidiGreetingImpl())
             .startAwait();

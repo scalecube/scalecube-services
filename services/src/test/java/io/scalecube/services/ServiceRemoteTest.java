@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -384,6 +383,6 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

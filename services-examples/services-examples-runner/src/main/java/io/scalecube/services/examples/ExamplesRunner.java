@@ -6,13 +6,12 @@ import io.scalecube.config.audit.Slf4JConfigEventListener;
 import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
@@ -74,7 +73,7 @@ public class ExamplesRunner {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
             opts ->
-                opts.seedMembers(ClusterAddresses.toAddresses(config.seedAddresses()))
+                opts.seedMembers(config.seedAddresses())
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));

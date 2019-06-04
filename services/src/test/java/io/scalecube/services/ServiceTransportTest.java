@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,7 +44,7 @@ public class ServiceTransportTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
-                            opts -> opts.seedMembers(toAddress(gateway.discovery().address()))))
+                            opts -> opts.seedMembers(gateway.discovery().address())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new SimpleQuoteService())
             .startAwait();

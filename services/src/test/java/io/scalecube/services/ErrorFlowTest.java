@@ -3,8 +3,8 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
@@ -37,8 +37,7 @@ public class ErrorFlowTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    io.scalecube.transport.Address seedAddress =
-        ClusterAddresses.toAddress(provider.discovery().address());
+    Address seedAddress = provider.discovery().address();
 
     consumer =
         Microservices.builder()

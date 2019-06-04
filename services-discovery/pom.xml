@@ -10,6 +10,7 @@
   <artifactId>scalecube-services-discovery</artifactId>
 
   <dependencies>
+  
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-cluster</artifactId>

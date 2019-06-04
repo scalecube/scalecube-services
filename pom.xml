@@ -23,7 +23,8 @@
 
   <properties>
     <jackson.version>2.9.9</jackson.version>
-    <scalecube-cluster.version>2.2.7</scalecube-cluster.version>
+    <scalecube-cluster.version>2.3.0-SNAPSHOT</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.1</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.11</scalecube-config.version>
     <reactor.version>Californium-SR8</reactor.version>
@@ -55,6 +56,13 @@
   <dependencyManagement>
 
     <dependencies>
+
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-commons</artifactId>
+        <version>${scalecube-commons.version}</version>
+      </dependency>
+
       <!-- Scalecube cluster -->
       <dependency>
         <groupId>io.scalecube</groupId>
