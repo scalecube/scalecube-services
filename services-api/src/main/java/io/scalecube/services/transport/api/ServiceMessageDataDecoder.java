@@ -1,7 +1,7 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.utils.ServiceLoaderUtil;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.utils.ServiceLoaderUtil;
 import java.util.function.BiFunction;
 
 @FunctionalInterface

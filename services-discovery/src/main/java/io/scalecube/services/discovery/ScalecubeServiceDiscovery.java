@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -32,14 +31,14 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ScalecubeServiceDiscovery.class);
 
+  private final EmitterProcessor<MembershipEvent> membershipEvents = EmitterProcessor.create();
+  private final FluxSink<MembershipEvent> sink = membershipEvents.sink();
+
   private final ServiceEndpoint serviceEndpoint;
   private final ClusterConfig clusterConfig;
 
   private Cluster cluster;
-  private EmitterProcessor<MembershipEvent> membershipEvents =
-		  EmitterProcessor.create();
-  FluxSink<MembershipEvent> sink = membershipEvents.sink();
-  
+
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
   /**
@@ -128,9 +127,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
           return new ClusterImpl()
               .config(options -> copyFrom(newClusterConfig))
-              .handler(
-                  cluster -> createHandler() //
-                  )
+              .handler(cluster -> createHandler())
               .start()
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
               .thenReturn(serviceDiscovery);
