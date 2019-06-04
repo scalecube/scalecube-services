@@ -3,8 +3,10 @@ package io.scalecube.services.discovery;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterImpl;
+import io.scalecube.cluster.ClusterMessageHandler;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipEvent;
+import io.scalecube.cluster.transport.api.Message;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceGroup;
@@ -21,6 +23,8 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -36,6 +40,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
+  final EmitterProcessor<MembershipEvent> membershipProcessor =
+		  EmitterProcessor.<MembershipEvent>create();
+
   /**
    * Constructor.
    *
@@ -49,6 +56,13 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
     if (serviceGroup != null) {
       addToGroup(serviceGroup, serviceEndpoint);
+    }
+  }
+
+  private class DiscoveryHandler implements ClusterMessageHandler {
+    @Override
+    public void onMembershipEvent(MembershipEvent event) {
+      membershipProcessor.onNext(event);
     }
   }
 
@@ -108,7 +122,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   public Mono<ServiceDiscovery> start() {
     return Mono.defer(
         () -> {
-        	
           Map<String, String> metadata =
               serviceEndpoint != null
                   ? Collections.singletonMap(
@@ -121,7 +134,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           ScalecubeServiceDiscovery serviceDiscovery =
               new ScalecubeServiceDiscovery(this, newClusterConfig);
 
-          return Cluster.join(newClusterConfig)
+          return new ClusterImpl()
+              .config(options -> copyFrom(newClusterConfig))
+              .handler(cluster -> new DiscoveryHandler())
+              .start()
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
               .thenReturn(serviceDiscovery);
         });
@@ -129,9 +145,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return cluster
-        .listenMembership()
-        .flatMap(event -> Flux.create(sink -> onMembershipEvent(event, sink)));
+    return Flux.from(membershipProcessor).flatMap(
+        event -> Flux.create(sink -> onMembershipEvent(event, sink)));
   }
 
   @Override
@@ -159,7 +174,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
       LOGGER.info("Service endpoint removed, since member {} have left the cluster", member);
     }
 
-    Optional.ofNullable(metadata).orElse(Collections.emptyMap()).values().stream()
+    Optional.ofNullable(metadata)
+        .orElse(Collections.emptyMap())
+        .values()
+        .stream()
         .map(ClusterMetadataCodec::decodeMetadata)
         .filter(Objects::nonNull)
         .forEach(
