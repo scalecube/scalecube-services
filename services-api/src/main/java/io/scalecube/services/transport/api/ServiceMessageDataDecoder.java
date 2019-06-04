@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.services.ServiceLoaderUtil;
+import io.scalecube.utils.ServiceLoaderUtil;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.function.BiFunction;
 
