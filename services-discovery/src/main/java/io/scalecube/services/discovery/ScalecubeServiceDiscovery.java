@@ -23,6 +23,7 @@ import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -33,9 +34,12 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private final ServiceEndpoint serviceEndpoint;
   private final ClusterConfig clusterConfig;
-  
+
   private Cluster cluster;
-  private DirectProcessor<MembershipEvent> membershipEvents = DirectProcessor.<MembershipEvent>create();
+  private EmitterProcessor<MembershipEvent> membershipEvents =
+		  EmitterProcessor.create();
+  FluxSink<MembershipEvent> sink = membershipEvents.sink();
+  
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
   /**
@@ -125,14 +129,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           return new ClusterImpl()
               .config(options -> copyFrom(newClusterConfig))
               .handler(
-                  cluster -> //
-                  new ClusterMessageHandler() {
-                    FluxSink<MembershipEvent> sink = membershipEvents.sink();
-                    @Override
-                    public void onMembershipEvent(MembershipEvent event) {
-                    sink.next(event);
-                    }
-                  })
+                  cluster -> createHandler() //
+                  )
               .start()
               .doOnSuccess(cluster -> serviceDiscovery.cluster = cluster)
               .thenReturn(serviceDiscovery);
@@ -141,8 +139,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return membershipEvents
-        .flatMap(event -> Flux.create(sink -> onMembershipEvent(event, sink)));
+    return membershipEvents.flatMap(event -> Flux.create(sink -> onMembershipEvent(event, sink)));
   }
 
   @Override
@@ -154,6 +151,15 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()));
+  }
+
+  private ClusterMessageHandler createHandler() {
+    return new ClusterMessageHandler() {
+      @Override
+      public void onMembershipEvent(MembershipEvent event) {
+        sink.next(event);
+      }
+    };
   }
 
   private void onMembershipEvent(
