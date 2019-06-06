@@ -1,40 +1,102 @@
 package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
-/**
- * This event is being fired from {@link ServiceDiscovery} when it detects that service endpoint was
- * being added or removed to/from cluster.
- */
 public class ServiceDiscoveryEvent {
 
   public enum Type {
     ENDPOINT_ADDED, // service endpoint added
-    ENDPOINT_REMOVED // service endpoint removed
+    ENDPOINT_REMOVED, // service endpoint removed
+    ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
+    GROUP_ADDED, // service endpoint group added
+    ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
+    GROUP_REMOVED // service endpoint group removed
   }
 
-  private final ServiceEndpoint serviceEndpoint;
   private final Type type;
+  private final ServiceEndpoint serviceEndpoint;
+  private final String groupId;
+  private final Collection<ServiceEndpoint> serviceEndpoints;
 
-  private ServiceDiscoveryEvent(ServiceEndpoint serviceEndpoint, Type type) {
-    this.serviceEndpoint = serviceEndpoint;
+  /**
+   * Constructor.
+   *
+   * @param type type
+   * @param serviceEndpoint service endpoint
+   */
+  private ServiceDiscoveryEvent(Type type, ServiceEndpoint serviceEndpoint) {
+    this(type, serviceEndpoint, null, Collections.emptyList());
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param type type
+   * @param serviceEndpoint service endpoint
+   * @param groupId group id
+   * @param serviceEndpoints service endpoints
+   */
+  private ServiceDiscoveryEvent(
+      Type type,
+      ServiceEndpoint serviceEndpoint,
+      String groupId,
+      Collection<ServiceEndpoint> serviceEndpoints) {
     this.type = type;
+    this.serviceEndpoint = serviceEndpoint;
+    this.groupId = groupId;
+    this.serviceEndpoints = serviceEndpoints;
   }
 
   public static ServiceDiscoveryEvent newEndpointAdded(ServiceEndpoint serviceEndpoint) {
-    return new ServiceDiscoveryEvent(serviceEndpoint, Type.ENDPOINT_ADDED);
+    return new ServiceDiscoveryEvent(Type.ENDPOINT_ADDED, serviceEndpoint);
   }
 
   public static ServiceDiscoveryEvent newEndpointRemoved(ServiceEndpoint serviceEndpoint) {
-    return new ServiceDiscoveryEvent(serviceEndpoint, Type.ENDPOINT_REMOVED);
+    return new ServiceDiscoveryEvent(Type.ENDPOINT_REMOVED, serviceEndpoint);
+  }
+
+  public static ServiceDiscoveryEvent newGroupAdded(
+      String groupId, Collection<ServiceEndpoint> serviceEndpoints) {
+    return new ServiceDiscoveryEvent(Type.GROUP_ADDED, null, groupId, serviceEndpoints);
+  }
+
+  public static ServiceDiscoveryEvent newGroupRemoved(String groupId) {
+    return new ServiceDiscoveryEvent(Type.GROUP_REMOVED, null, groupId, Collections.emptyList());
+  }
+
+  public static ServiceDiscoveryEvent newEndpointAddedToGroup(
+      String groupId,
+      ServiceEndpoint serviceEndpoint,
+      Collection<ServiceEndpoint> serviceEndpoints) {
+    return new ServiceDiscoveryEvent(
+        Type.ENDPOINT_ADDED_TO_GROUP, serviceEndpoint, groupId, serviceEndpoints);
+  }
+
+  public static ServiceDiscoveryEvent newEndpointRemovedFromGroup(
+      String groupId,
+      ServiceEndpoint serviceEndpoint,
+      Collection<ServiceEndpoint> serviceEndpoints) {
+    return new ServiceDiscoveryEvent(
+        Type.ENDPOINT_REMOVED_FROM_GROUP, serviceEndpoint, groupId, serviceEndpoints);
+  }
+
+  public String groupId() {
+    return groupId;
+  }
+
+  public int groupSize() {
+    return serviceEndpoints.size();
+  }
+
+  public Collection<ServiceEndpoint> serviceEndpoints() {
+    return serviceEndpoints;
   }
 
   public ServiceEndpoint serviceEndpoint() {
-    return this.serviceEndpoint;
-  }
-
-  public Type type() {
-    return this.type;
+    return serviceEndpoint;
   }
 
   public boolean isEndpointAdded() {
@@ -45,12 +107,36 @@ public class ServiceDiscoveryEvent {
     return Type.ENDPOINT_REMOVED.equals(this.type);
   }
 
+  public boolean isGroupAdded() {
+    return Type.GROUP_ADDED.equals(this.type);
+  }
+
+  public boolean isGroupRemoved() {
+    return Type.GROUP_REMOVED.equals(this.type);
+  }
+
+  public boolean isEndpointAddedToTheGroup() {
+    return Type.ENDPOINT_ADDED_TO_GROUP.equals(this.type);
+  }
+
+  public boolean isEndpointRemovedFromTheGroup() {
+    return Type.ENDPOINT_REMOVED_FROM_GROUP.equals(this.type);
+  }
+
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("ServiceDiscoveryEvent{");
-    sb.append("serviceEndpoint=").append(serviceEndpoint);
-    sb.append(", type=").append(type);
-    sb.append('}');
-    return sb.toString();
+    return "ServiceGroupDiscoveryEvent{"
+        + "type="
+        + type
+        + ", groupId='"
+        + groupId
+        + '\''
+        + ", serviceEndpoint="
+        + serviceEndpoint.id()
+        + ", serviceEndpoints="
+        + serviceEndpoints.stream() //
+            .map(ServiceEndpoint::id)
+            .collect(Collectors.joining(",", "[", "]"))
+        + '}';
   }
 }
