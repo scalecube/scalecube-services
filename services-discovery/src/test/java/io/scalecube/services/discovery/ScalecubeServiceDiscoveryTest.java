@@ -1,17 +1,16 @@
 package io.scalecube.services.discovery;
 
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_ADDED;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_ADDED_TO_GROUP;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED;
-import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.ENDPOINT_ADDED_TO_GROUP;
-import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.ENDPOINT_REMOVED_FROM_GROUP;
-import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.GROUP_ADDED;
-import static io.scalecube.services.discovery.api.ServiceGroupDiscoveryEvent.Type.GROUP_REMOVED;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED_FROM_GROUP;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.GROUP_ADDED;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.GROUP_REMOVED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -254,7 +253,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     // Verify registered/unregistered group events on non-group member
     StepVerifier.create(
             startServiceDiscovery(seedAddress) //
-                .flatMapMany(ServiceDiscovery::listenGroupDiscovery))
+                .flatMapMany(ServiceDiscovery::listenDiscovery))
         .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
         .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
         .assertNext(
@@ -322,23 +321,19 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .build();
   }
 
-  public static Address toAddress(Address address) {
-    return Address.create(address.host(), address.port());
-  }
-
   public Mono<ServiceDiscovery> startServiceGroupDiscovery(
       Address seedAddress, String groupId, int groupSize) {
-    ClusterConfig clusterConfig =
-        ClusterConfig.builder().seedMembers(toAddress(seedAddress)).build();
     ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
-    return new ScalecubeServiceDiscovery(serviceEndpoint, clusterConfig).start();
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(builder -> builder.seedMembers(seedAddress))
+        .start();
   }
 
   private Mono<ServiceDiscovery> startServiceDiscovery(Address seedAddress) {
-    ClusterConfig clusterConfig =
-        ClusterConfig.builder().seedMembers(toAddress(seedAddress)).build();
     ServiceEndpoint serviceEndpoint = newServiceEndpoint();
-    return new ScalecubeServiceDiscovery(serviceEndpoint, clusterConfig).start();
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(builder -> builder.seedMembers(seedAddress))
+        .start();
   }
 
   private Address startSeed() {
@@ -349,8 +344,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     final ReplayProcessor<ServiceDiscovery> instance = ReplayProcessor.create();
     final ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
-    final ReplayProcessor<ServiceGroupDiscoveryEvent> groupDiscoveryEvents =
-        ReplayProcessor.create();
+    final ReplayProcessor<ServiceDiscoveryEvent> groupDiscoveryEvents = ReplayProcessor.create();
 
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery();
@@ -359,8 +353,20 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
           .doOnNext(result.instance::onNext)
           .subscribe(
               sd -> {
-                sd.listenDiscovery().subscribe(result.discoveryEvents);
-                sd.listenGroupDiscovery().subscribe(result.groupDiscoveryEvents);
+                sd.listenDiscovery()
+                    .log("### discoveryEvents")
+                    .filter(event -> event.isEndpointAdded() || event.isEndpointRemoved())
+                    .subscribe(result.discoveryEvents);
+
+                sd.listenDiscovery()
+                    .log("### groupDiscoveryEvents")
+                    .filter(
+                        event ->
+                            event.isEndpointAddedToTheGroup()
+                                || event.isEndpointRemovedFromTheGroup()
+                                || event.isGroupAdded()
+                                || event.isGroupRemoved())
+                    .subscribe(result.groupDiscoveryEvents);
               });
       return result;
     }

@@ -3,6 +3,7 @@ package io.scalecube.services.discovery.api;
 import io.scalecube.services.ServiceEndpoint;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ServiceDiscoveryEvent {
@@ -83,6 +84,10 @@ public class ServiceDiscoveryEvent {
         Type.ENDPOINT_REMOVED_FROM_GROUP, serviceEndpoint, groupId, serviceEndpoints);
   }
 
+  public Type type() {
+    return type;
+  }
+
   public String groupId() {
     return groupId;
   }
@@ -100,39 +105,41 @@ public class ServiceDiscoveryEvent {
   }
 
   public boolean isEndpointAdded() {
-    return Type.ENDPOINT_ADDED.equals(this.type);
+    return Type.ENDPOINT_ADDED.equals(type);
   }
 
   public boolean isEndpointRemoved() {
-    return Type.ENDPOINT_REMOVED.equals(this.type);
+    return Type.ENDPOINT_REMOVED.equals(type);
   }
 
   public boolean isGroupAdded() {
-    return Type.GROUP_ADDED.equals(this.type);
+    return Type.GROUP_ADDED.equals(type);
   }
 
   public boolean isGroupRemoved() {
-    return Type.GROUP_REMOVED.equals(this.type);
+    return Type.GROUP_REMOVED.equals(type);
   }
 
   public boolean isEndpointAddedToTheGroup() {
-    return Type.ENDPOINT_ADDED_TO_GROUP.equals(this.type);
+    return Type.ENDPOINT_ADDED_TO_GROUP.equals(type);
   }
 
   public boolean isEndpointRemovedFromTheGroup() {
-    return Type.ENDPOINT_REMOVED_FROM_GROUP.equals(this.type);
+    return Type.ENDPOINT_REMOVED_FROM_GROUP.equals(type);
   }
 
   @Override
   public String toString() {
-    return "ServiceGroupDiscoveryEvent{"
+    return "ServiceDiscoveryEvent{"
         + "type="
         + type
         + ", groupId='"
         + groupId
         + '\''
         + ", serviceEndpoint="
-        + serviceEndpoint.id()
+        + Optional.ofNullable(serviceEndpoint) //
+            .map(ServiceEndpoint::id)
+            .orElse(null)
         + ", serviceEndpoints="
         + serviceEndpoints.stream() //
             .map(ServiceEndpoint::id)

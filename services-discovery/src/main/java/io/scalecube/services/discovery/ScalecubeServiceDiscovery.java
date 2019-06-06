@@ -17,8 +17,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -85,13 +87,16 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    return Address.create(cluster.address().host(), cluster.address().port());
+    return cluster.address();
   }
 
   @Override
   public ServiceEndpoint serviceEndpoint() {
     return serviceEndpoint;
   }
+
+  private EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(false);
+  private FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
 
   /**
    * Starts scalecube service discovery. Joins a cluster with local services as metadata.
@@ -100,29 +105,34 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
    */
   @Override
   public Mono<ServiceDiscovery> start() {
-    return Mono.just(this);
+    return Mono.defer(
+        () -> {
+          LOGGER.info(
+              "### groups: "
+                  + groups.values().stream()
+                      .flatMap(Collection::stream)
+                      .map(ServiceEndpoint::id)
+                      .collect(Collectors.joining(", ", "[", "]")));
+          return new ClusterImpl()
+              .config(options -> ClusterConfig.from(clusterConfig))
+              .handler(
+                  cluster -> {
+                    return new ClusterMessageHandler() {
+                      @Override
+                      public void onMembershipEvent(MembershipEvent event) {
+                        ScalecubeServiceDiscovery.this.onMembershipEvent(event, sink);
+                      }
+                    };
+                  })
+              .start()
+              .doOnSuccess(cluster -> this.cluster = cluster)
+              .thenReturn(this);
+        });
   }
 
   @Override
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    // return membershipEvents.flatMap(event -> Flux.create(sink -> onMembershipEvent(event,
-    // sink)));
-    return Flux.<ServiceDiscoveryEvent>create(
-            sink -> {
-              new ClusterImpl()
-                  .config(options -> ClusterConfig.from(clusterConfig))
-                  .handler(
-                      cluster -> {
-                        return new ClusterMessageHandler() {
-                          @Override
-                          public void onMembershipEvent(MembershipEvent event) {}
-                        };
-                      })
-                  .start()
-                  .doOnSuccess(cluster -> this.cluster = cluster)
-                  .thenReturn(this);
-            })
-        .share();
+    return subject.onBackpressureBuffer();
   }
 
   @Override

@@ -480,11 +480,6 @@ public class Microservices {
       }
 
       @Override
-      public Flux<ServiceGroupDiscoveryEvent> listenGroupDiscovery() {
-        return Flux.empty();
-      }
-
-      @Override
       public Mono<ServiceDiscovery> start() {
         return Mono.empty();
       }
