@@ -56,7 +56,7 @@
   <dependencyManagement>
 
     <dependencies>
-
+      <!-- Scalecube commons -->
       <dependency>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-commons</artifactId>
