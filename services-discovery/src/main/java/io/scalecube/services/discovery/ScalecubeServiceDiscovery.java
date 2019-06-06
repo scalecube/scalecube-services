@@ -40,6 +40,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
+  private final EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(false);
+  private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+
   /**
    * Constructor.
    *
@@ -93,9 +96,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return serviceEndpoint;
   }
 
-  private EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(false);
-  private FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
-
   /**
    * Starts scalecube service discovery. Joins a cluster with local services as metadata.
    *
@@ -135,7 +135,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   @Override
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()));
+            () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()))
+        .then(Mono.fromRunnable(sink::complete));
   }
 
   private void onMembershipEvent(
