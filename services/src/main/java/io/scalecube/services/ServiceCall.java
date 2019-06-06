@@ -334,15 +334,17 @@ public class ServiceCall {
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
             (proxy, method, params) -> {
+
+              Optional<Object> check =
+                      toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+              if (check.isPresent()) {
+                return check.get(); // toString, hashCode was invoked.
+              }
+
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
 
-              Optional<Object> check =
-                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
-              if (check.isPresent()) {
-                return check.get(); // toString, hashCode was invoked.
-              }
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:
