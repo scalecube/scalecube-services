@@ -105,27 +105,27 @@ public class ServiceDiscoveryEvent {
   }
 
   public boolean isEndpointAdded() {
-    return Type.ENDPOINT_ADDED.equals(type);
+    return Type.ENDPOINT_ADDED == type;
   }
 
   public boolean isEndpointRemoved() {
-    return Type.ENDPOINT_REMOVED.equals(type);
+    return Type.ENDPOINT_REMOVED == type;
   }
 
   public boolean isGroupAdded() {
-    return Type.GROUP_ADDED.equals(type);
+    return Type.GROUP_ADDED == type;
   }
 
   public boolean isGroupRemoved() {
-    return Type.GROUP_REMOVED.equals(type);
+    return Type.GROUP_REMOVED == type;
   }
 
   public boolean isEndpointAddedToTheGroup() {
-    return Type.ENDPOINT_ADDED_TO_GROUP.equals(type);
+    return Type.ENDPOINT_ADDED_TO_GROUP == type;
   }
 
   public boolean isEndpointRemovedFromTheGroup() {
-    return Type.ENDPOINT_REMOVED_FROM_GROUP.equals(type);
+    return Type.ENDPOINT_REMOVED_FROM_GROUP == type;
   }
 
   @Override
