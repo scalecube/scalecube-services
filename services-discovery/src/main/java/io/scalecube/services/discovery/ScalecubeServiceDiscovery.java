@@ -135,8 +135,11 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   @Override
   public Mono<Void> shutdown() {
     return Mono.defer(
-            () -> Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty()))
-        .then(Mono.fromRunnable(sink::complete));
+        () ->
+            Optional.ofNullable(cluster) //
+                .map(Cluster::shutdown)
+                .orElse(Mono.empty())
+                .then(Mono.fromRunnable(sink::complete)));
   }
 
   private void onMembershipEvent(
