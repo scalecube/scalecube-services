@@ -39,6 +39,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
@@ -200,15 +201,13 @@ public class Microservices {
                       .map(ServiceInfo::serviceInstance)
                       .collect(Collectors.toList());
 
-              // configure discovery and publish to the cluster
               return discoveryBootstrap
-                  .start(serviceRegistry, serviceEndpointBuilder.build())
+                  .create(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
-                  .then(
-                      Mono.fromCallable(() -> Reflect.inject(this, serviceInstances))
-                          .publishOn(scheduler))
                   .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
-                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)).publishOn(scheduler))
+                  .then(Mono.fromCallable(() -> Reflect.inject(this, serviceInstances)))
+                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
+                  .then(Mono.defer(() -> discoveryBootstrap.discovery.start()).publishOn(scheduler))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -396,11 +395,11 @@ public class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
-    public static final ServiceDiscovery noOpInstance = new NoOpServiceDiscovery();
-
-    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory = ignore -> noOpInstance;
+    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
+        ignore -> NoOpServiceDiscovery.INSTANCE;
 
     private ServiceDiscovery discovery;
+    private Disposable disposable;
 
     private ServiceDiscoveryBootstrap() {}
 
@@ -408,44 +407,60 @@ public class Microservices {
       this.discoveryFactory = factory;
     }
 
-    private Mono<ServiceDiscovery> start(
-        ServiceRegistry serviceRegistry, ServiceEndpoint serviceEndpoint) {
+    /**
+     * Creates instance of {@code ServiceDiscovery}.
+     *
+     * @param serviceEndpoint local service endpoint
+     * @param serviceRegistry service registry
+     * @return new {@code ServiceDiscovery} instance
+     */
+    private Mono<ServiceDiscovery> create(
+        ServiceEndpoint serviceEndpoint, ServiceRegistry serviceRegistry) {
       return Mono.defer(
           () -> {
-            ServiceDiscovery serviceDiscovery = discoveryFactory.apply(serviceEndpoint);
-            if (serviceDiscovery == noOpInstance) {
-              return Mono.just(this.discovery = noOpInstance);
+            discovery = discoveryFactory.apply(serviceEndpoint);
+            disposable =
+                discovery
+                    .listenDiscovery()
+                    .subscribe(
+                        discoveryEvent -> {
+                          ServiceEndpoint serviceEndpoint1 = discoveryEvent.serviceEndpoint();
+                          if (discoveryEvent.isEndpointAdded()) {
+                            serviceRegistry.registerService(serviceEndpoint1);
+                          }
+                          if (discoveryEvent.isEndpointRemoved()) {
+                            serviceRegistry.unregisterService(serviceEndpoint1.id());
+                          }
+                        });
+            return Mono.just(discovery);
+          });
+    }
+
+    /**
+     * Starts {@code ServiceDiscovery} instance.
+     *
+     * @return started {@code ServiceDiscovery} instance
+     */
+    private Mono<ServiceDiscovery> start() {
+      return Mono.defer(
+          () -> {
+            if (discovery == null) {
+              throw new IllegalStateException(
+                  "Create service discovery instance before starting it");
             }
-            LOGGER.info("Starting service discovery -- {}", serviceDiscovery);
-            return serviceDiscovery
+            LOGGER.info("Starting service discovery -- {}", discovery);
+            return discovery
                 .start()
                 .doOnSuccess(
-                    discovery -> {
-                      this.discovery = discovery;
-                      LOGGER.info("Successfully started service discovery -- {}", this.discovery);
-                      listenDiscoveryEvents(serviceRegistry);
+                    serviceDiscovery -> {
+                      discovery = serviceDiscovery;
+                      LOGGER.info("Successfully started service discovery -- {}", discovery);
                     })
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Failed to start service discovery -- {}, cause: {}",
-                            serviceDiscovery,
-                            ex));
+                            "Failed to start service discovery -- {}, cause: {}", discovery, ex));
           });
-    }
-
-    private void listenDiscoveryEvents(ServiceRegistry serviceRegistry) {
-      discovery.listenDiscovery().subscribe(event -> onDiscoveryEvent(serviceRegistry, event));
-    }
-
-    private void onDiscoveryEvent(ServiceRegistry serviceRegistry, ServiceDiscoveryEvent event) {
-      ServiceEndpoint serviceEndpoint = event.serviceEndpoint();
-      if (event.isEndpointAdded()) {
-        serviceRegistry.registerService(serviceEndpoint);
-      }
-      if (event.isEndpointRemoved()) {
-        serviceRegistry.unregisterService(serviceEndpoint.id());
-      }
     }
 
     private Mono<Void> shutdown() {
@@ -456,38 +471,13 @@ public class Microservices {
                   .orElse(Mono.empty())
                   .doFinally(
                       s -> {
+                        if (disposable != null) {
+                          disposable.dispose();
+                        }
                         if (discovery != null) {
                           LOGGER.info("Service discovery -- {} has been stopped", discovery);
                         }
                       }));
-    }
-
-    private static class NoOpServiceDiscovery implements ServiceDiscovery {
-
-      @Override
-      public Address address() {
-        return null;
-      }
-
-      @Override
-      public ServiceEndpoint serviceEndpoint() {
-        return null;
-      }
-
-      @Override
-      public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-        return Flux.empty();
-      }
-
-      @Override
-      public Mono<ServiceDiscovery> start() {
-        return Mono.empty();
-      }
-
-      @Override
-      public Mono<Void> shutdown() {
-        return Mono.empty();
-      }
     }
   }
 

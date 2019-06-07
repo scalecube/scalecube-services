@@ -19,12 +19,12 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-public class ScalecubeServiceDiscovery implements ServiceDiscovery {
+public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceDiscovery");
@@ -40,7 +40,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
-  private final EmitterProcessor<ServiceDiscoveryEvent> subject = EmitterProcessor.create(false);
+  private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
 
   /**
