@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +32,12 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private static final Logger LOGGER_GROUP =
       LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceGroupDiscovery");
 
+  public static final JacksonServiceEndpointMetadataCodec SERVICE_ENDPOINT_METADATA_CODEC =
+      JacksonServiceEndpointMetadataCodec.INSTANCE;
+
   private final ServiceEndpoint serviceEndpoint;
 
-  private ClusterConfig clusterConfig =
-      ClusterConfig.from(ClusterConfig.defaultLanConfig()).build();
+  private ClusterConfig clusterConfig;
 
   private Cluster cluster;
 
@@ -55,11 +58,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     Optional.ofNullable(serviceEndpoint.serviceGroup())
         .ifPresent(serviceGroup -> addToGroup(serviceGroup, serviceEndpoint));
 
-    // Add local metadata
-    Map<String, String> metadata =
-        Collections.singletonMap(
-            serviceEndpoint.id(), ClusterMetadataCodec.encodeMetadata(serviceEndpoint));
-    clusterConfig = ClusterConfig.from(clusterConfig).addMetadata(metadata).build();
+    // Setup default cluster config
+    clusterConfig =
+        ClusterConfig.from(ClusterConfig.defaultLanConfig())
+            .metadata(serviceEndpoint)
+            .metadataEncoder(SERVICE_ENDPOINT_METADATA_CODEC)
+            .metadataDecoder(SERVICE_ENDPOINT_METADATA_CODEC)
+            .build();
   }
 
   /**
@@ -108,15 +113,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
           // Start scalecube-cluster and listen membership events
           return new ClusterImpl()
               .config(options -> ClusterConfig.from(clusterConfig))
-              .handler(
-                  cluster -> {
-                    return new ClusterMessageHandler() {
-                      @Override
-                      public void onMembershipEvent(MembershipEvent event) {
-                        ScalecubeServiceDiscovery.this.onMembershipEvent(event, sink);
-                      }
-                    };
-                  })
+              .handler(newClusterMessageHandler())
               .start()
               .doOnSuccess(
                   cluster -> {
@@ -125,6 +122,17 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
                   })
               .thenReturn(this);
         });
+  }
+
+  private Function<Cluster, ClusterMessageHandler> newClusterMessageHandler() {
+    return cluster -> {
+      return new ClusterMessageHandler() {
+        @Override
+        public void onMembershipEvent(MembershipEvent membershipEvent) {
+          ScalecubeServiceDiscovery.this.onMembershipEvent(membershipEvent, sink);
+        }
+      };
+    };
   }
 
   @Override
@@ -145,14 +153,31 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private void onMembershipEvent(
       MembershipEvent membershipEvent, FluxSink<ServiceDiscoveryEvent> sink) {
 
-    if (membershipEvent.isAdded()) {
-      LOGGER.debug("Member {} has joined the cluster", membershipEvent.member());
-    }
-    if (membershipEvent.isRemoved()) {
-      LOGGER.debug("Member {} has left the cluster", membershipEvent.member());
+    switch (membershipEvent.type()) {
+      case ADDED:
+        LOGGER.debug("Member {} has joined the cluster", membershipEvent.member());
+        break;
+      case REMOVED:
+        LOGGER.debug("Member {} has left the cluster", membershipEvent.member());
+        break;
+      default:
+        LOGGER.warn(
+            "Member {} will be ignored (unsupported membership event type '{}')",
+            membershipEvent.member(),
+            membershipEvent.type());
+        return;
     }
 
-    ServiceEndpoint serviceEndpoint = getServiceEndpoint(membershipEvent);
+    ServiceEndpoint serviceEndpoint;
+    try {
+      serviceEndpoint = getServiceEndpoint(membershipEvent);
+    } catch (Exception ex) {
+      LOGGER.warn(
+          "Exception occurred on getting service endpoint out of {}, cause: {}",
+          membershipEvent,
+          ex.toString());
+      return;
+    }
 
     if (serviceEndpoint == null) {
       return;
@@ -282,20 +307,12 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private ServiceEndpoint getServiceEndpoint(MembershipEvent membershipEvent) {
-    Map<String, String> metadata = null;
-
-    if (membershipEvent.isAdded()) {
-      metadata = membershipEvent.newMetadata();
+    if (membershipEvent.isAdded() && membershipEvent.newMetadata() != null) {
+      return SERVICE_ENDPOINT_METADATA_CODEC.decode(membershipEvent.newMetadata());
     }
-    if (membershipEvent.isRemoved()) {
-      metadata = membershipEvent.oldMetadata();
+    if (membershipEvent.isRemoved() && membershipEvent.oldMetadata() != null) {
+      return SERVICE_ENDPOINT_METADATA_CODEC.decode(membershipEvent.oldMetadata());
     }
-
-    if (metadata == null) {
-      return null;
-    }
-
-    String metadataValue = metadata.values().stream().findFirst().orElse(null);
-    return ClusterMetadataCodec.decodeMetadata(metadataValue);
+    return null;
   }
 }

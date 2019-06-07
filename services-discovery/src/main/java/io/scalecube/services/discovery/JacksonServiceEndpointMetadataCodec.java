@@ -6,16 +6,19 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.scalecube.cluster.metadata.MetadataDecoder;
+import io.scalecube.cluster.metadata.MetadataEncoder;
 import io.scalecube.services.ServiceEndpoint;
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.nio.ByteBuffer;
 import reactor.core.Exceptions;
 
-public class ClusterMetadataCodec {
+public final class JacksonServiceEndpointMetadataCodec implements MetadataDecoder, MetadataEncoder {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMetadataCodec.class);
+  public static final JacksonServiceEndpointMetadataCodec INSTANCE =
+      new JacksonServiceEndpointMetadataCodec();
 
   private static final ObjectMapper objectMapper = newObjectMapper();
 
@@ -35,31 +38,31 @@ public class ClusterMetadataCodec {
   /**
    * Decodes metadata into {@link ServiceEndpoint}.
    *
-   * @param metadata - raw metadata to decode from.
-   * @return decoded {@link ServiceEndpoint}. In case of deserialization error returns {@code null}
+   * @param byteBuffer - raw metadata to decode from.
+   * @return decoded {@link ServiceEndpoint}
    */
-  public static ServiceEndpoint decodeMetadata(String metadata) {
+  @SuppressWarnings("unchecked")
+  @Override
+  public ServiceEndpoint decode(ByteBuffer byteBuffer) {
     try {
-      return objectMapper.readValue(metadata, ServiceEndpoint.class);
-    } catch (IOException e) {
-      LOGGER.error("Failed to read metadata: " + e);
-      return null;
+      return objectMapper.readValue(
+          new ByteBufferBackedInputStream(byteBuffer), ServiceEndpoint.class);
+    } catch (IOException ex) {
+      throw Exceptions.propagate(ex);
     }
   }
 
   /**
-   * Encodes {@link ServiceEndpoint} into raw String.
+   * Encodes {@link ServiceEndpoint} into bytes.
    *
-   * @param serviceEndpoint - service endpoint to encode.
-   * @return encoded {@link ServiceEndpoint}. In case of deserialization error throws {@link
-   *     IOException}
+   * @param serviceEndpoint - service endpoint to encode
    */
-  public static String encodeMetadata(ServiceEndpoint serviceEndpoint) {
+  @Override
+  public ByteBuffer encode(Object serviceEndpoint) {
     try {
-      return objectMapper.writeValueAsString(serviceEndpoint);
-    } catch (IOException e) {
-      LOGGER.error("Failed to write metadata: " + e);
-      throw Exceptions.propagate(e);
+      return ByteBuffer.wrap(objectMapper.writeValueAsBytes(serviceEndpoint));
+    } catch (IOException ex) {
+      throw Exceptions.propagate(ex);
     }
   }
 }
