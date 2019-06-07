@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.transport.api.Address;
+import io.scalecube.net.Address;
 import reactor.core.publisher.Mono;
 
 public interface Gateway {

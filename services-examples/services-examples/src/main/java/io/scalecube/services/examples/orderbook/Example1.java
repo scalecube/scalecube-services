@@ -1,7 +1,6 @@
 package io.scalecube.services.examples.orderbook;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
-
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -14,7 +13,6 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
-import io.scalecube.services.transport.api.Address;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
@@ -94,7 +92,7 @@ public class Example1 {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(address)));
+        .options(opts -> opts.seedMembers(address));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {

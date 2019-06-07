@@ -1,10 +1,10 @@
 package io.scalecube.services.routings;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceTransports;
-import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -12,7 +12,6 @@ import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
 import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
-import io.scalecube.services.transport.api.Address;
 import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
@@ -67,6 +66,6 @@ public class ServiceTagsExample {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
+        .options(opts -> opts.seedMembers(address));
   }
 }

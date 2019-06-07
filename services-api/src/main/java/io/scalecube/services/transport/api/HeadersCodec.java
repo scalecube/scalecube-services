@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.services.ServiceLoaderUtil;
+import io.scalecube.utils.ServiceLoaderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
