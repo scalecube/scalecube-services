@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -23,19 +25,29 @@ public class ErrorFlowTest {
   private static Microservices provider;
   private static Microservices consumer;
 
-  /** Setup. */
   @BeforeAll
   public static void initNodes() {
     provider =
         Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.port(port.incrementAndGet())))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
+
+    io.scalecube.transport.Address seedAddress =
+        ClusterAddresses.toAddress(provider.discovery().address());
+
     consumer =
         Microservices.builder()
             .discovery(
-                options ->
-                    options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(
+                            opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
   }
 
@@ -50,7 +62,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req =
         consumer
             .call()
-            .create()
             .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
     assertThrows(InternalServiceException.class, () -> from(req).block());
   }
@@ -60,7 +71,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req =
         consumer
             .call()
-            .create()
             .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
     assertThrows(UnauthorizedException.class, () -> from(req).block());
   }
@@ -68,16 +78,13 @@ public class ErrorFlowTest {
   @Test
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req =
-        consumer
-            .call()
-            .create()
-            .requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
+        consumer.call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
   @Test
   public void testServiceUnavailable() {
-    StepVerifier.create(consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ))
+    StepVerifier.create(consumer.call().requestOne(TestRequests.NOT_FOUND_REQ))
         .expectError(ServiceUnavailableException.class)
         .verify();
   }

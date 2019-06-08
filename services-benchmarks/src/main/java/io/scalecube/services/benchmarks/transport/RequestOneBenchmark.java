@@ -9,7 +9,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
-import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,7 @@ public class RequestOneBenchmark {
               BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
               BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
-              ServiceCall serviceCall = state.serviceCall();
+              ServiceCall serviceCall = state.call();
 
               return i -> {
                 clientToServiceMeter.mark();

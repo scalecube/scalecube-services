@@ -4,8 +4,10 @@ import io.scalecube.services.ServiceLoaderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,10 @@ public interface DataCodec {
 
   static Collection<DataCodec> getAllInstances() {
     return INSTANCES.values();
+  }
+
+  static Set<String> getAllContentTypes() {
+    return getAllInstances().stream().map(DataCodec::contentType).collect(Collectors.toSet());
   }
 
   /**
@@ -41,5 +47,5 @@ public interface DataCodec {
 
   void encode(OutputStream stream, Object value) throws IOException;
 
-  Object decode(InputStream stream, Class<?> type) throws IOException;
+  Object decode(InputStream stream, Type type) throws IOException;
 }

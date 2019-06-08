@@ -9,7 +9,6 @@ import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,21 +22,13 @@ public class ServiceLocalTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private static AtomicInteger port = new AtomicInteger(7000);
-
   private Microservices microservices;
 
-  /** Setup. */
   @BeforeEach
   public void setUp() {
-    microservices =
-        Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
-  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
@@ -46,8 +37,8 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    GreetingService service = microservices.call().create().api(GreetingService.class);
+  public void test_local_greeting_request_completes_before_timeout() {
+    GreetingService service = microservices.call().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -70,7 +61,7 @@ public class ServiceLocalTest extends BaseTest {
     future
         .doOnNext(
             onNext -> {
-              assertTrue(onNext.equals(" hello to: joe"));
+              assertEquals(" hello to: joe", onNext);
               // print the greeting.
               System.out.println("3. local_async_greeting :" + onNext);
             })
@@ -97,7 +88,7 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_void_greeting() throws Exception {
+  public void test_local_void_greeting() {
     GreetingService service = createProxy(microservices);
 
     // call the service.
@@ -149,7 +140,7 @@ public class ServiceLocalTest extends BaseTest {
             })
         .block(Duration.ofSeconds(1));
 
-    assertTrue(result.get().getResult().equals(" hello to: joe"));
+    assertEquals(" hello to: joe", result.get().getResult());
   }
 
   @Test
@@ -179,7 +170,7 @@ public class ServiceLocalTest extends BaseTest {
     future
         .doOnNext(
             result -> {
-              assertTrue(result.getResult().equals(" hello to: joe"));
+              assertEquals(" hello to: joe", result.getResult());
               // print the greeting.
               System.out.println("9. local_async_greeting_return_Message :" + result);
             })
@@ -248,9 +239,6 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway
-        .call()
-        .create()
-        .api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 }

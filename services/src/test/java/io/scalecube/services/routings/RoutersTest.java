@@ -2,7 +2,9 @@ package io.scalecube.services.routings;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
+import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,9 +13,12 @@ import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -41,40 +46,44 @@ public class RoutersTest extends BaseTest {
   private static Microservices provider1;
   private static Microservices provider2;
 
-  /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().startAwait();
+    gateway =
+        Microservices.builder() //
+            .discovery(ScalecubeServiceDiscovery::new)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(RoutersTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
                     .tag("SENDER", "1")
                     .build(),
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
-                    .tag("Weight", "0.3")
+                    .tag("Weight", "0.1")
                     .build())
             .startAwait();
 
     // Create microservices instance cluster.
     provider2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .discovery(RoutersTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
                     .tag("SENDER", "2")
                     .build(),
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
-                    .tag("Weight", "0.7")
+                    .tag("Weight", "0.9")
                     .build())
             .startAwait();
   }
 
-  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     gateway.shutdown();
@@ -93,7 +102,7 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_round_robin() {
 
-    ServiceCall service = gateway.call().create();
+    ServiceCall service = gateway.call();
 
     // call the service.
     GreetingResponse result1 =
@@ -107,7 +116,7 @@ public class RoutersTest extends BaseTest {
             .block()
             .data();
 
-    assertTrue(!result1.sender().equals(result2.sender()));
+    assertNotEquals(result1.sender(), result2.sender());
   }
 
   @Test
@@ -117,14 +126,13 @@ public class RoutersTest extends BaseTest {
         gateway
             .call()
             .router(Routers.getRouter(WeightedRandomRouter.class))
-            .create()
             .api(CanaryService.class);
 
     Thread.sleep(1000);
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
-    int n = (int) 1e2;
+    int n = (int) 1e3;
 
     Flux.range(0, n)
         .flatMap(i -> service.greeting(new GreetingRequest("joe")))
@@ -132,28 +140,29 @@ public class RoutersTest extends BaseTest {
         .doOnNext(response -> serviceBCount.incrementAndGet())
         .blockLast(Duration.ofSeconds(3));
 
-    System.out.println("Service B was called: " + serviceBCount.get() + " times.");
+    System.out.println("Service B was called: " + serviceBCount.get() + " times out of " + n);
 
-    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.25d);
+    assertTrue(
+        (serviceBCount.doubleValue() / n) > 0.5,
+        "Service B's Weight=0.9; more than half of invocations have to be routed to Service B");
   }
 
   @Test
   public void test_tag_selection_logic() {
 
-    Call service =
+    ServiceCall service =
         gateway
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(ref -> "2".equals(ref.tags().get("SENDER")))
                         .findFirst());
 
     // call the service.
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
               .timeout(timeout)
               .block()
               .data();
@@ -169,15 +178,13 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())
                                     .getName()
                                     .equals(ref.tags().get("ONLYFOR")))
-                        .findFirst())
-            .create();
+                        .findFirst());
 
     // call the service.
     for (int i = 0; i < 1e2; i++) {
@@ -194,7 +201,7 @@ public class RoutersTest extends BaseTest {
   public void test_service_tags() throws Exception {
 
     TimeUnit.SECONDS.sleep(3);
-    ServiceCall service = gateway.call().router(WeightedRandomRouter.class).create();
+    ServiceCall service = gateway.call().router(WeightedRandomRouter.class);
 
     ServiceMessage req =
         ServiceMessage.builder()
@@ -204,7 +211,7 @@ public class RoutersTest extends BaseTest {
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
-    int n = (int) 1e2;
+    int n = (int) 1e3;
     for (int i = 0; i < n; i++) {
       ServiceMessage message = service.requestOne(req, GreetingResponse.class).block(timeout);
       if (message.data().toString().contains("SERVICE_B_TALKING")) {
@@ -212,8 +219,16 @@ public class RoutersTest extends BaseTest {
       }
     }
 
-    System.out.println("Service B was called: " + serviceBCount.get() + " times.");
+    System.out.println("Service B was called: " + serviceBCount.get() + " times out of " + n);
 
-    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.25d);
+    assertTrue(
+        (serviceBCount.doubleValue() / n) > 0.5,
+        "Service B's Weight=0.9; at least more than half "
+            + "of invocations have to be routed to Service B");
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
   }
 }

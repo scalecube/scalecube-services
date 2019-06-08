@@ -62,15 +62,10 @@ public final class Reflect {
    * @param method to extract type from.
    * @return the generic type of the return value or object.
    */
-  public static Class<?> parameterizedReturnType(Method method) {
+  public static Type parameterizedReturnType(Method method) {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
-      try {
-        return Class.forName(
-            (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
-      } catch (ClassNotFoundException e) {
-        return Object.class;
-      }
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
     } else {
       return Object.class;
     }
@@ -134,9 +129,7 @@ public final class Reflect {
    */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface)
-            .values()
-            .stream()
+        serviceMethods(serviceInterface).values().stream()
             .collect(
                 Collectors.toMap(
                     Function.identity(),
@@ -286,13 +279,13 @@ public final class Reflect {
       Inject injection = field.getAnnotation(Inject.class);
       Class<? extends Router> routerClass = injection.router();
 
-      final ServiceCall.Call call = microservices.call();
+      final ServiceCall call = microservices.call();
 
       if (!routerClass.isInterface()) {
         call.router(routerClass);
       }
 
-      final Object targetProxy = call.create().api(field.getType());
+      final Object targetProxy = call.api(field.getType());
 
       setField(field, service, targetProxy);
     }
@@ -325,7 +318,7 @@ public final class Reflect {
                               if (mapper.getType().equals(Microservices.class)) {
                                 return microservices;
                               } else if (isService(mapper.getType())) {
-                                return microservices.call().create().api(mapper.getType());
+                                return microservices.call().api(mapper.getType());
                               } else {
                                 return null;
                               }

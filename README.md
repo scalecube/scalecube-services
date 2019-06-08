@@ -64,14 +64,18 @@ The example provisions 2 cluster nodes and making a remote interaction.
     Microservices seed = Microservices.builder().startAwait();
 
     //2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices microservices = Microservices.builder()
-        .seeds(seed.cluster().address()) // some address so its possible to join the cluster.
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
+    Microservices microservices =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     //3. Create service proxy
-    GreetingsService service = seed.call().create().api(GreetingsService.class);
+    GreetingsService service = seed.call().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
     service.sayHello("joe").subscribe(consumer -> {
@@ -83,7 +87,7 @@ Basic Service Example:
 
 
 * RequestOne: Send single request and expect single reply
-* RequestStream: Send single request and expect stream of responses. 
+* RequestStream: Send single request and expect stream of responses.
 * RequestBidirectional: send stream of requests and expect stream of responses.
 
 A service is nothing but an interface declaring what methods we wish to provision at our cluster.
@@ -98,36 +102,35 @@ public interface ExampleService {
 
   @ServiceMethod
   Flux<MyResponse> helloStream();
-  
+
   @ServiceMethod
   Flux<MyResponse> helloBidirectional(Flux<MyRequest> requests);
 }
 
 ```
 
-## API-Gateway: 
+## API-Gateway:
 
-api gateway plugins are managed at: https://github.com/scalecube/scalecube-gateway
+Available api-gateways are [rsocket](/services-gateway-rsocket), [http](/services-gateway-http) and [websocket](/services-gateway-websocket)
 
 Basic API-Gateway example:
 
 ```java
 
     Microservices.builder()
-        .seeds(....) // OPTIONAL: seed address list (if any to connect to)
+        .discovery(options -> options.seeds(seed.discovery().address()))
         .services(...) // OPTIONAL: services (if any) as part of this node.
-        
-        // configure list of gateways plugins exposing the apis 
-        .gateway(GatewayConfig.builder("http", HttpGateway.class).port(7070).build())
-        .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(8080).build())
-        .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).port(9090).build())  
+
+        // configure list of gateways plugins exposing the apis
+        .gateway(options -> new WebsocketGateway(options.id("ws").port(8080)))
+        .gateway(options -> new HttpGateway(options.id("http").port(7070)))
+        .gateway(options -> new RSocketGateway(options.id("rsws").port(9090)))
         
         .startAwait();
         
         // HINT: you can try connect using the api sandbox to these ports to try the api.
         // http://scalecube.io/api-sandbox/app/index.html
 ```
-
 
 ### Maven
 
@@ -150,24 +153,20 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 * scalecube-services-discovery: using scalecue-cluster do locate service Endpoint within the cluster
    https://github.com/scalecube/scalecube-cluster
     
-**Service API-Gateway providers:**
-
-releases: https://github.com/scalecube/scalecube-gateway/releases
-
-* HTTP-Gateway - scalecube-services-gateway-http
-* RSocket-Gateway - scalecube-services-gateway-rsocket
-* WebSocket - scalecube-services-gateway-websocket
-
 
 Binaries and dependency information for Maven can be found at http://search.maven.org.
 
 https://mvnrepository.com/artifact/io.scalecube
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
-
 To add a dependency on ScaleCube Services using Maven, use the following:
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
+
 ```xml
+
+ <properties>
+   <scalecube.version>2.x.x</scalecube.version>
+ </properties>
 
  <!-- -------------------------------------------
    scalecube core and api:   
@@ -177,14 +176,14 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-api</artifactId>
-  <version>2.x.x</version>
+  <version>${scalecube.version}</version>
  </dependency>
  
  <!-- scalecube services module   -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
-  <version>2.x.x</version>
+  <version>${scalecube.version}</version>
  </dependency>
  
 
@@ -195,68 +194,10 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
   -->
 
- <!-- -------------------------------------------
-   scalecube transport providers:   
- ------------------------------------------- -->
+ <!-- scalecube transport providers:  -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-transport-rsocket</artifactId>
-  <version>2.x.x</version>
+  <version>${scalecube.version}</version>
  </dependency>
  
- <!-- -------------------------------------------
-   scalecube message serialization providers:
-   ------------------------------------------- -->
-
- <!-- jackson scalecube messages codec -->
- <dependency>
-  <groupId>io.scalecube</groupId>
-  <artifactId>scalecube-services-transport-jackson</artifactId>
-  <version>2.x.x</version>
- </dependency>
-
-<!-- protostuff scalecube messages codec -->
- <dependency>
-  <groupId>io.scalecube</groupId>
-  <artifactId>scalecube-services-transport-protostuff</artifactId>
-  <version>2.x.x</version>
- </dependency>
-
- <!-- -------------------------------------------
-    scalecube service discovery provider   
-   ------------------------------------------- -->
- <dependency>
-  <groupId>io.scalecube</groupId>
-  <artifactId>scalecube-services-discovery</artifactId>
-  <version>2.x.x</version>
- </dependency>
-
-
-
- <!-- -------------------------------------------
-    scalecube api-gateway providers:   
-    please see: https://github.com/scalecube/scalecube-gateway
-   ------------------------------------------- -->
-   
-  <!-- HTTP https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-http-->
-  <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-http</artifactId>
-      <version>2.x.x</version>
-    </dependency>
-
-    <!-- RSocket WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-rsocket -->
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-rsocket</artifactId>
-      <version>2.x.x</version>
-    </dependency>
-
-    <!-- WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-websocket -->
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-gateway-websocket</artifactId>
-      <version>2.x.x</version>
-    </dependency>
-
-```

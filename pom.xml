@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.4.0-SNAPSHOT</version>
+  <version>2.6.3-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.14</version>
+    <version>0.0.19</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -22,43 +22,34 @@
   </scm>
 
   <properties>
-    <jackson.version>2.9.6</jackson.version>
-    <scalecube-cluster.version>2.1.6</scalecube-cluster.version>
+    <jackson.version>2.9.9</jackson.version>
+    <scalecube-cluster.version>2.2.7</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.4</scalecube-config.version>
-    <reactor.version>3.2.1.RELEASE</reactor.version>
-    <reactor-test.version>3.2.1.RELEASE</reactor-test.version>
-    <reactivestreams.version>1.0.2</reactivestreams.version>
+    <scalecube-config.version>0.3.11</scalecube-config.version>
+    <reactor.version>Californium-SR8</reactor.version>
+    <rsocket.version>0.12.2-RC2</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.8</rsocket.version>
-    <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.29.Final</netty.version>
+    <netty.version>4.1.36.Final</netty.version>
+    <reactor-netty.version>0.8.8.RELEASE</reactor-netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
-    <hamcrest-all.version>1.3</hamcrest-all.version>
+    <junit.version>5.1.1</junit.version>
+    <mockito.version>2.24.5</mockito.version>
+    <hamcrest.version>1.3</hamcrest.version>
   </properties>
 
   <modules>
     <module>services-api</module>
-    <module>services-transport-rsocket</module>
+    <module>services-transport</module>
     <module>services-discovery</module>
-    <module>services-transport-jackson</module>
-    <module>services-transport-protostuff</module>
+    <module>services-bytebuf-codec</module>
     <module>services</module>
     <module>services-benchmarks</module>
     <module>services-examples</module>
-    <module>services-gateway-common</module>
-    <module>services-gateway-websocket</module>
-    <module>services-gateway-http</module>
-    <module>services-gateway-rsocket</module>
-    <module>services-gateway-tests</module>
-    <module>services-gateway-runner</module>
-    <module>services-examples-runner</module>
-    <module>services-gateway-clientsdk</module>
   </modules>
 
   <dependencyManagement>
@@ -81,15 +72,10 @@
       <!-- Reactor -->
       <dependency>
         <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
+        <artifactId>reactor-bom</artifactId>
         <version>${reactor.version}</version>
-      </dependency>
-
-      <!-- Reactive Streams -->
-      <dependency>
-        <groupId>org.reactivestreams</groupId>
-        <artifactId>reactive-streams</artifactId>
-        <version>${reactivestreams.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Logging -->
@@ -125,13 +111,6 @@
         <groupId>io.rsocket</groupId>
         <artifactId>rsocket-transport-netty</artifactId>
         <version>${rsocket.version}</version>
-      </dependency>
-
-      <!-- Reactor Netty -->
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
       </dependency>
 
       <!-- Jackson -->
@@ -175,6 +154,11 @@
 
       <!-- Netty -->
       <dependency>
+        <groupId>io.projectreactor.netty</groupId>
+        <artifactId>reactor-netty</artifactId>
+        <version>${reactor-netty.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-common</artifactId>
         <version>${netty.version}</version>
@@ -182,37 +166,6 @@
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-codec</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-codec-http</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-handler-proxy</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-transport-native-epoll</artifactId>
-        <classifier>linux-x86_64</classifier>
         <version>${netty.version}</version>
       </dependency>
 
@@ -241,14 +194,6 @@
         <artifactId>jctools-core</artifactId>
         <version>${jctools.version}</version>
       </dependency>
-
-      <!-- Test dependencies -->
-      <dependency>
-        <groupId>org.hamcrest</groupId>
-        <artifactId>hamcrest-all</artifactId>
-        <version>${hamcrest-all.version}</version>
-        <scope>test</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -257,34 +202,36 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
+      <version>${junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
+      <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest-all.version}</version>
+      <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
-      <version>${hamcrest-all.version}</version>
+      <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
-      <version>${reactor.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

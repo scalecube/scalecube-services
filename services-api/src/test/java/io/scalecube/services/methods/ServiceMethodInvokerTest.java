@@ -2,8 +2,9 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
-import java.util.function.BiFunction;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -14,8 +15,7 @@ class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
 
-  private final BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder =
-      (message, type) -> message;
+  private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
@@ -36,12 +36,14 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeOne(message, dataDecoder)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
 
   @Test
@@ -60,12 +62,14 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeMany(message, dataDecoder)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message)).verifyComplete();
   }
 
   @Test
@@ -84,12 +88,14 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder))
+    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
         .verifyComplete();
   }
 
@@ -109,15 +115,17 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, dataDecoder);
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
 
-    StepVerifier.create(invokeOne).verifyError(RuntimeException.class);
+    StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
 
   @Test
@@ -136,14 +144,16 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message, dataDecoder);
+    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message);
 
-    StepVerifier.create(invokeOne).verifyError(RuntimeException.class);
+    StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
 
   @Test
@@ -162,15 +172,17 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE);
 
-    serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder);
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message));
 
-    StepVerifier.create(invokeOne).verifyError(RuntimeException.class);
+    StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
 }
