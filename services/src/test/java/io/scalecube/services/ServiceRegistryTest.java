@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.services.discovery.ClusterAddresses;
+import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -10,7 +10,6 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.api.Address;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +64,7 @@ public class ServiceRegistryTest {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(address)));
+        .options(opts -> opts.seedMembers(address));
   }
 
   @Test

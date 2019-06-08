@@ -1,9 +1,8 @@
 package io.scalecube.services.benchmarks.transport;
 
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
-
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.benchmarks.ServiceTransports;
@@ -38,7 +37,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
             .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
-    io.scalecube.transport.Address seedAddress = toAddress(seed.discovery().address());
+    Address seedAddress = seed.discovery().address();
 
     node =
         Microservices.builder()

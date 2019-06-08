@@ -4,7 +4,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
@@ -73,6 +72,6 @@ public class Example2 {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Microservices seed) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(seed.discovery().address())));
+        .options(opts -> opts.seedMembers(seed.discovery().address()));
   }
 }

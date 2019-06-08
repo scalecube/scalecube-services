@@ -9,7 +9,6 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -233,6 +232,6 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

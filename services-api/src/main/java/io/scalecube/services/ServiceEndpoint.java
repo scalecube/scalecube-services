@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.services.transport.api.Address;
+import io.scalecube.net.Address;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
