@@ -207,7 +207,7 @@ public class Microservices {
                   .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
                   .then(Mono.fromCallable(() -> Reflect.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(Mono.defer(() -> discoveryBootstrap.discovery.start()).publishOn(scheduler))
+                  .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
                   .thenReturn(this);
             })
         .onErrorResume(
