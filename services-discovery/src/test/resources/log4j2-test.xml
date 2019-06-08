@@ -12,11 +12,11 @@
   <Loggers>
     <Logger name="io.netty" level="info"/>
     <Logger name="reactor.netty" level="info"/>
-    <Logger name="io.scalecube.transport" level="debug"/>
-    <Logger name="io.scalecube.cluster" level="debug"/>
-    <Logger name="io.scalecube.services" level="debug"/>
+    <Logger name="io.scalecube.transport" level="info"/>
+    <Logger name="io.scalecube.cluster" level="info"/>
+    <Logger name="io.scalecube.services" level="info"/>
 
-    <Root level="debug">
+    <Root level="info">
       <AppenderRef ref="console"/>
     </Root>
   </Loggers>
