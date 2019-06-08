@@ -2,7 +2,6 @@ package io.scalecube.services.routings;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
-import static io.scalecube.services.discovery.ClusterAddresses.toAddress;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -229,6 +228,6 @@ public class RoutersTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(toAddress(gateway.discovery().address())));
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

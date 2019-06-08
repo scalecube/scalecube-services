@@ -3,7 +3,6 @@ package io.scalecube.services.examples.exceptions;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.discovery.ClusterAddresses;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.ServiceTransports;
@@ -68,6 +67,6 @@ public class ExceptionMapperExample {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Microservices ms1) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(ClusterAddresses.toAddress(ms1.discovery().address())));
+        .options(opts -> opts.seedMembers(ms1.discovery().address()));
   }
 }
