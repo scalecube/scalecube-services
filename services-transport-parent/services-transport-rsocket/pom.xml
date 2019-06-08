@@ -3,7 +3,7 @@
 
   <parent>
     <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-services-parent</artifactId>
+    <artifactId>scalecube-services-transport-parent</artifactId>
     <version>2.6.3-SNAPSHOT</version>
   </parent>
 
