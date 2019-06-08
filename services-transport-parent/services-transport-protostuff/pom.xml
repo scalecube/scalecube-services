@@ -1,13 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
+    <artifactId>scalecube-services-transport-parent</artifactId>
     <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-services-parent</artifactId>
     <version>2.6.3-SNAPSHOT</version>
   </parent>
 
-  <artifactId>scalecube-services-transport-jackson</artifactId>
+  <artifactId>scalecube-services-transport-protostuff</artifactId>
 
   <dependencies>
     <dependency>
@@ -17,16 +18,16 @@
     </dependency>
 
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-collectionschema</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.datatype</groupId>
-      <artifactId>jackson-datatype-jsr310</artifactId>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-runtime</artifactId>
     </dependency>
   </dependencies>
 

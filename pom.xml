@@ -45,12 +45,12 @@
 
   <modules>
     <module>services-api</module>
-    <module>services-transport</module>
+    <module>services-transport-parent</module>
     <module>services-discovery</module>
     <module>services-bytebuf-codec</module>
     <module>services</module>
     <module>services-benchmarks</module>
-    <module>services-examples</module>
+    <module>services-examples-parent</module>
   </modules>
 
   <dependencyManagement>
