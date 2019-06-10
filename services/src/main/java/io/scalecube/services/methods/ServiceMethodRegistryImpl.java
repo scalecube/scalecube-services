@@ -12,8 +12,6 @@ import java.util.concurrent.ConcurrentMap;
 
 public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodRegistryImpl.class);
-
   private final ConcurrentMap<String, ServiceMethodInvoker> methodInvokers =
       new ConcurrentHashMap<>();
 
@@ -43,17 +41,14 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
                           // register new service method invoker
                           String qualifier = methodInfo.qualifier();
+                          if (methodInvokers.containsKey(qualifier)) {
+                            throw new IllegalStateException(
+                                String.format(
+                                    "MethodInvoker for api '%s' already exists", qualifier));
+                          }
                           ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
                                   method, serviceInstance, methodInfo, errorMapper, dataDecoder);
-
-                          if (methodInvokers.containsKey(qualifier)) {
-                            LOGGER.warn(
-                                "<{}> for API <{}> will be replaced by the following methodInvoker: <{}>",
-                                methodInvokers.get(qualifier),
-                                qualifier,
-                                invoker);
-                          }
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }
