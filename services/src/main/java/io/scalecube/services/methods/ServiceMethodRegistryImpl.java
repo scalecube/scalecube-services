@@ -2,11 +2,17 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodRegistryImpl.class);
 
   private final ConcurrentMap<String, ServiceMethodInvoker> methodInvokers =
       new ConcurrentHashMap<>();
@@ -36,10 +42,14 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.requestType(method));
 
                           // register new service method invoker
-                          methodInvokers.put(
-                              methodInfo.qualifier(),
-                              new ServiceMethodInvoker(
-                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder));
+                          String qualifier = methodInfo.qualifier();
+                          ServiceMethodInvoker invoker = new ServiceMethodInvoker(
+                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder);
+
+                          if (methodInvokers.containsKey(qualifier)) {
+                            LOGGER.warn("<{}> for API <{}> will be replaced by the following methodInvoker: <{}>", methodInvokers.get(qualifier), qualifier, invoker);
+                          }
+                          methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }
 
