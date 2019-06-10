@@ -4,17 +4,15 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.joining;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Invoker of service method. Prepares service message request before call as well as doing some
@@ -134,10 +132,11 @@ public final class ServiceMethodInvoker {
 
   @Override
   public String toString() {
-    String prefix = service.getClass().getCanonicalName() + "#" + method.getName() + "(";
-    return Stream.of(method.getParameters())
-        .map(Parameter::getType)
-        .map(Class::getSimpleName)
-        .collect(joining(", ", prefix, ")"));
+    String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
+    String args = Stream.of(method.getParameters())
+            .map(Parameter::getType)
+            .map(Class::getSimpleName)
+            .collect(Collectors.joining(", ", "(", ")"));
+    return classAndMethod + args;
   }
 }
