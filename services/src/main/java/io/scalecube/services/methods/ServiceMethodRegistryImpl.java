@@ -43,11 +43,16 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
                           // register new service method invoker
                           String qualifier = methodInfo.qualifier();
-                          ServiceMethodInvoker invoker = new ServiceMethodInvoker(
+                          ServiceMethodInvoker invoker =
+                              new ServiceMethodInvoker(
                                   method, serviceInstance, methodInfo, errorMapper, dataDecoder);
 
                           if (methodInvokers.containsKey(qualifier)) {
-                            LOGGER.warn("<{}> for API <{}> will be replaced by the following methodInvoker: <{}>", methodInvokers.get(qualifier), qualifier, invoker);
+                            LOGGER.warn(
+                                "<{}> for API <{}> will be replaced by the following methodInvoker: <{}>",
+                                methodInvokers.get(qualifier),
+                                qualifier,
+                                invoker);
                           }
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
