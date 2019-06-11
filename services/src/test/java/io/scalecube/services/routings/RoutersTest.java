@@ -157,7 +157,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_tags_from_annotation() {
+  public void tesTagsFromAnnotation() {
     ServiceCall serviceCall =
             provider3
             .call()
