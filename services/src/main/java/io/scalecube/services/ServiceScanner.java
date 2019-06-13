@@ -2,7 +2,10 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -21,8 +24,16 @@ public class ServiceScanner {
    */
   public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
     return Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
-        .map(serviceInterface -> new InterfaceInfo(serviceInterface, serviceInfo.tags()))
-        .filter(interfaceInfo -> interfaceInfo.serviceInterface.isAnnotationPresent(Service.class))
+        .filter(serviceInterface -> serviceInterface.isAnnotationPresent(Service.class))
+        .map(
+            serviceInterface -> {
+              Map<String, String> serviceInfoTags = serviceInfo.tags();
+              Map<String, String> apiTags = Reflect.serviceTags(serviceInterface);
+              Map<String, String> buffer = new HashMap<>(apiTags);
+              // service tags override tags from @Service
+              buffer.putAll(serviceInfoTags);
+              return new InterfaceInfo(serviceInterface, Collections.unmodifiableMap(buffer));
+            })
         .map(
             interfaceInfo -> {
               Class<?> serviceInterface = interfaceInfo.serviceInterface;
@@ -31,7 +42,10 @@ public class ServiceScanner {
               List<ServiceMethodDefinition> actions =
                   Arrays.stream(serviceInterface.getMethods())
                       .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-                      .map(method -> new ServiceMethodDefinition(Reflect.methodName(method)))
+                      .map(
+                          method ->
+                              new ServiceMethodDefinition(
+                                  Reflect.methodName(method), Reflect.serviceMethodTags(method)))
                       .collect(Collectors.toList());
               return new ServiceRegistration(namespace, serviceTags, actions);
             })
