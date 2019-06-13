@@ -27,11 +27,11 @@ public class ServiceScanner {
         .filter(serviceInterface -> serviceInterface.isAnnotationPresent(Service.class))
         .map(
             serviceInterface -> {
-              Map<String, String> userTags = serviceInfo.tags();
+              Map<String, String> serviceInfoTags = serviceInfo.tags();
               Map<String, String> apiTags = Reflect.serviceTags(serviceInterface);
               Map<String, String> buffer = new HashMap<>(apiTags);
-              // user tags override tags from @Service
-              buffer.putAll(userTags);
+              // service tags override tags from @Service
+              buffer.putAll(serviceInfoTags);
               return new InterfaceInfo(serviceInterface, Collections.unmodifiableMap(buffer));
             })
         .map(
@@ -44,8 +44,8 @@ public class ServiceScanner {
                       .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
                       .map(
                           method ->
-                              new ServiceMethodDefinition(Reflect.methodName(method))
-                                  .setTags(Reflect.serviceMethodTags(method)))
+                              new ServiceMethodDefinition(
+                                  Reflect.methodName(method), Reflect.serviceMethodTags(method)))
                       .collect(Collectors.toList());
               return new ServiceRegistration(namespace, serviceTags, actions);
             })
