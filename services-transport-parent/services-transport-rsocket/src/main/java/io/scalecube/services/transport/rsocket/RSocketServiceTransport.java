@@ -16,7 +16,6 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   /**
    * Default Instance.
-   *
    */
   public static final RSocketServiceTransport INSTANCE = new RSocketServiceTransport();
 
@@ -25,7 +24,6 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   /**
    * Default instance.
-   *
    */
   public RSocketServiceTransport() {
     HeadersCodec headersCodec = HeadersCodec.getInstance("application/json");
@@ -53,11 +51,11 @@ public class RSocketServiceTransport implements ServiceTransport {
   @Override
   public ClientTransport clientTransport(TransportResources resources) {
     return new RSocketClientTransport(
-            messageCodec,
-            ((RSocketTransportResources) resources)
-                    .workerPool()
-                    .<LoopResources>map(DelegatedLoopResources::newClientLoopResources)
-                    .orElse(loopResources));
+        messageCodec,
+        ((RSocketTransportResources) resources)
+            .workerPool()
+            .<LoopResources>map(DelegatedLoopResources::newClientLoopResources)
+            .orElse(loopResources));
   }
 
   /**
@@ -69,10 +67,10 @@ public class RSocketServiceTransport implements ServiceTransport {
   @Override
   public ServerTransport serverTransport(TransportResources resources) {
     return new RSocketServerTransport(
-            messageCodec,
-            ((RSocketTransportResources) resources)
-                    .workerPool()
-                    .<LoopResources>map(DelegatedLoopResources::newServerLoopResources)
-                    .orElse(loopResources));
+        messageCodec,
+        ((RSocketTransportResources) resources)
+            .workerPool()
+            .<LoopResources>map(DelegatedLoopResources::newServerLoopResources)
+            .orElse(loopResources));
   }
 }
