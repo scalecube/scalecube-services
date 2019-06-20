@@ -16,7 +16,7 @@ public class OrderBookSnapshoot {
   /**
    * Create a new snapshot of the orderbook.
    *
-   * @param orderBook an order book to take snapshot from.
+   * @param orderBook    an order book to take snapshot from.
    * @param currentPrice the current price.
    */
   public OrderBookSnapshoot(OrderBook orderBook, Long currentPrice) {

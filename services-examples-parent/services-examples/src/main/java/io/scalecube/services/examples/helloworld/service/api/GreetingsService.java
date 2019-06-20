@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
  */
 @Service("io.scalecube.Greetings")
 public interface GreetingsService {
+
   /**
    * Call this method to be greeted by the this ScaleCube service.
    *

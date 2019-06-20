@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 
 /** RSocket service transport Resources implementation. Holds inside custom EventLoopGroup. */
-public class RSocketTransportResources implements TransportResources {
+public class RSocketTransportResources implements TransportResources<RSocketTransportResources> {
 
   private final int numOfWorkers;
 

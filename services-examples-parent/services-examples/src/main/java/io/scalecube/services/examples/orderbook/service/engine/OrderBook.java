@@ -11,7 +11,9 @@ import java.util.Set;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 
-/** An order book. */
+/**
+ * An order book.
+ */
 public class OrderBook {
 
   private String instrument;
@@ -21,11 +23,13 @@ public class OrderBook {
 
   private Long2ObjectOpenHashMap<Order> orders;
 
-  EmitterProcessor<MatchOrder> matchListener = EmitterProcessor.<MatchOrder>create();
-  EmitterProcessor<AddOrder> addListener = EmitterProcessor.<AddOrder>create();
-  EmitterProcessor<CancelOrder> cancelListener = EmitterProcessor.<CancelOrder>create();
+  EmitterProcessor<MatchOrder> matchListener = EmitterProcessor.create();
+  EmitterProcessor<AddOrder> addListener = EmitterProcessor.create();
+  EmitterProcessor<CancelOrder> cancelListener = EmitterProcessor.create();
 
-  /** Create an order book. */
+  /**
+   * Create an order book.
+   */
   public OrderBook() {
     this.bids = new Long2ObjectRBTreeMap<>(LongComparators.OPPOSITE_COMPARATOR);
     this.asks = new Long2ObjectRBTreeMap<>(LongComparators.NATURAL_COMPARATOR);
@@ -44,9 +48,9 @@ public class OrderBook {
    * <p>If the order identifier is known, do nothing.
    *
    * @param orderId an order identifier
-   * @param side the side
-   * @param price the limit price
-   * @param size the size
+   * @param side    the side
+   * @param price   the limit price
+   * @param size    the size
    */
   public void enter(long orderId, Side side, long price, long size) {
     if (orders.containsKey(orderId)) {
@@ -107,7 +111,7 @@ public class OrderBook {
    * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
-   * @param size the new size
+   * @param size    the new size
    */
   public void cancel(long orderId, long size) {
     Order order = orders.get(orderId);

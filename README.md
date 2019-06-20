@@ -70,7 +70,8 @@ The example provisions 2 cluster nodes and making a remote interaction.
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .setupTransport(RSocketTransportResources::new)
+            .transportFactory(RSocketServiceTransportFactory::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 

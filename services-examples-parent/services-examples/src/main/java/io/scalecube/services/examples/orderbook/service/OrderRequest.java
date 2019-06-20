@@ -7,7 +7,8 @@ public class OrderRequest {
   private String instrument;
   private Order order;
 
-  public OrderRequest() {}
+  public OrderRequest() {
+  }
 
   public OrderRequest(Order order, String instrument) {
     this.order = order;

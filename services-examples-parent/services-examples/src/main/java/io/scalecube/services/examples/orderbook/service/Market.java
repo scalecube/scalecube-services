@@ -3,8 +3,11 @@ package io.scalecube.services.examples.orderbook.service;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
-/** A market. */
+/**
+ * A market.
+ */
 public class Market {
+
   private Long2ObjectOpenHashMap<OrderBook> books;
 
   private Long2ObjectOpenHashMap<Order> orders;
@@ -50,13 +53,14 @@ public class Market {
    *
    * <p>An update event is triggered.
    *
-   * <p>If the order book for the instrument is closed or the order identifier is known, do nothing.
+   * <p>If the order book for the instrument is closed or the order identifier is known, do
+   * nothing.
    *
    * @param instrument the instrument
-   * @param orderId the order identifier
-   * @param side the side
-   * @param price the price
-   * @param size the size
+   * @param orderId    the order identifier
+   * @param side       the side
+   * @param price      the price
+   * @param size       the size
    */
   public void add(long instrument, long orderId, Side side, long price, long size) {
     if (orders.containsKey(orderId)) {
@@ -86,7 +90,7 @@ public class Market {
    * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
-   * @param size the new size
+   * @param size    the new size
    */
   public void modify(long orderId, long size) {
     Order order = orders.get(orderId);
@@ -118,7 +122,7 @@ public class Market {
    *
    * <p>If the order identifier is unknown, do nothing.
    *
-   * @param orderId the order identifier
+   * @param orderId  the order identifier
    * @param quantity the executed quantity
    * @return the remaining quantity
    */
@@ -139,9 +143,9 @@ public class Market {
    *
    * <p>If the order identifier is unknown, do nothing.
    *
-   * @param orderId the order identifier
+   * @param orderId  the order identifier
    * @param quantity the executed quantity
-   * @param price the execution price
+   * @param price    the execution price
    * @return the remaining quantity
    */
   public long execute(long orderId, long quantity, long price) {
@@ -185,7 +189,7 @@ public class Market {
    *
    * <p>If the order identifier is unknown, do nothing.
    *
-   * @param orderId the order identifier
+   * @param orderId  the order identifier
    * @param quantity the canceled quantity
    * @return the remaining quantity
    */

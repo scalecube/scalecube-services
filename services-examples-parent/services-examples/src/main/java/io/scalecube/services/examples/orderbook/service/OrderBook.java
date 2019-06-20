@@ -5,7 +5,9 @@ import it.unimi.dsi.fastutil.longs.Long2LongRBTreeMap;
 import it.unimi.dsi.fastutil.longs.LongComparators;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 
-/** An order book. */
+/**
+ * An order book.
+ */
 public class OrderBook {
 
   private long instrument;

@@ -9,8 +9,8 @@ public class MarketData {
   /**
    * Create a new Market Data.
    *
-   * @param type the type
-   * @param price the price
+   * @param type   the type
+   * @param price  the price
    * @param amount the amount
    */
   public MarketData(String type, Integer price, Integer amount) {

@@ -24,6 +24,8 @@ import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransportFactory;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -65,7 +67,8 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
         .discovery(ServiceCallRemoteTest::serviceDiscovery)
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .setupTransport(RSocketTransportResources::new)
+            .transportFactory(RSocketServiceTransportFactory::new)
         .services(service)
         .startAwait();
   }
@@ -226,7 +229,8 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .setupTransport(RSocketTransportResources::new)
+            .transportFactory(RSocketServiceTransportFactory::new)
         .startAwait();
   }
 

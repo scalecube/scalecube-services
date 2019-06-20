@@ -17,7 +17,7 @@ public class PriceLevel {
   /**
    * Create a new price level.
    *
-   * @param side the side of this level (either {@link Side#BUY} or {@link Side#SELL})
+   * @param side  the side of this level (either {@link Side#BUY} or {@link Side#SELL})
    * @param price the price this level should hold.
    */
   public PriceLevel(Side side, long price) {
@@ -42,7 +42,7 @@ public class PriceLevel {
    * Add a new order.
    *
    * @param orderId the order id
-   * @param size the size
+   * @param size    the size
    * @return the order added to this price level
    */
   public Order add(long orderId, long size) {
@@ -54,9 +54,9 @@ public class PriceLevel {
   /**
    * Match order if possible.
    *
-   * @param orderId the incoming order id
-   * @param side the incoming order side
-   * @param size incoming order quantity
+   * @param orderId      the incoming order id
+   * @param side         the incoming order side
+   * @param size         incoming order quantity
    * @param matchEmmiter an emitter to be notified for matches {@link Processor#onNext(Object)}
    * @return the remaining quantity of the incoming order
    */

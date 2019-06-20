@@ -2,7 +2,9 @@ package io.scalecube.services.examples.orderbook.service;
 
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
 
-/** An order. */
+/**
+ * An order.
+ */
 public class Order {
 
   private OrderBook book;

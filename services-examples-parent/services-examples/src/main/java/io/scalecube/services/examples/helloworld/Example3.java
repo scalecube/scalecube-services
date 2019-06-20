@@ -2,9 +2,10 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
 import io.scalecube.services.examples.helloworld.service.api.BidiGreetingService;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransportFactory;
+import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import reactor.core.publisher.Flux;
 
 /**
@@ -27,7 +28,8 @@ public class Example3 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .setupTransport(RSocketTransportResources::new)
+            .transportFactory(RSocketServiceTransportFactory::new)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
@@ -37,7 +39,8 @@ public class Example3 {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seed.discovery().address())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .setupTransport(RSocketTransportResources::new)
+            .transportFactory(RSocketServiceTransportFactory::new)
             .services(new BidiGreetingImpl())
             .startAwait();
 
@@ -46,7 +49,7 @@ public class Example3 {
 
     // Execute the services and subscribe to service events
     service
-        .greeting(Flux.fromArray(new String[] {"joe", "dan", "roni"}))
+        .greeting(Flux.fromArray(new String[]{"joe", "dan", "roni"}))
         .doOnNext(onNext -> System.out.println(onNext))
         .blockLast();
 

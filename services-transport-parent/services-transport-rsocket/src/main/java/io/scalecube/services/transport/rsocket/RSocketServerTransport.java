@@ -21,8 +21,10 @@ import reactor.netty.Connection;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpServer;
 
-/** RSocket server transport implementation. */
-public class RSocketServerTransport implements ServerTransport {
+/**
+ * RSocket server transport implementation.
+ */
+public class RSocketServerTransport implements ServerTransport<RSocketTransportResources> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
@@ -35,7 +37,7 @@ public class RSocketServerTransport implements ServerTransport {
   /**
    * Constructor for this server transport.
    *
-   * @param codec message codec
+   * @param codec         message codec
    * @param loopResources server loop resources
    */
   public RSocketServerTransport(ServiceMessageCodec codec, LoopResources loopResources) {
@@ -50,7 +52,8 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport<RSocketTransportResources>> bind(int port,
+      ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
@@ -89,15 +92,15 @@ public class RSocketServerTransport implements ServerTransport {
     return Mono.defer(
         () ->
             Mono.whenDelayError(
-                    connections.stream()
-                        .map(
-                            connection -> {
-                              connection.dispose();
-                              return connection
-                                  .onTerminate()
-                                  .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
-                            })
-                        .collect(Collectors.toList()))
+                connections.stream()
+                    .map(
+                        connection -> {
+                          connection.dispose();
+                          return connection
+                              .onTerminate()
+                              .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
+                        })
+                    .collect(Collectors.toList()))
                 .doOnTerminate(connections::clear));
   }
 

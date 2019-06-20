@@ -5,7 +5,7 @@ import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
 /** Service transport resources interface. */
-public interface TransportResources {
+public interface TransportResources<T extends TransportResources> {
 
   /**
    * Returns optional service transport worker thread pool.
@@ -19,7 +19,7 @@ public interface TransportResources {
    *
    * @return mono result
    */
-  Mono<? extends TransportResources> start();
+  Mono<T> start();
 
   /**
    * Shutdowns service transport resources.

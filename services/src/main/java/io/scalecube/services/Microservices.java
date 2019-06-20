@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import io.scalecube.services.transport.api.ServiceTransportFactory;
 import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -122,7 +123,7 @@ public class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final ServiceTransportBootstrap transportBootstrap;
+  private final ServiceTransportBootstrap<?> transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
@@ -288,11 +289,32 @@ public class Microservices {
         () -> {
           LOGGER.info("Shutting down microservices {}", id);
           return Mono.whenDelayError(
-                  discoveryBootstrap.shutdown(),
-                  gatewayBootstrap.shutdown(),
-                  transportBootstrap.shutdown())
+              discoveryBootstrap.shutdown(),
+              gatewayBootstrap.shutdown(),
+              transportBootstrap.shutdown())
               .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
         });
+  }
+
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
   }
 
   public static final class Builder {
@@ -303,7 +325,7 @@ public class Microservices {
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
-    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
+    private ServiceTransportBootstrap<?> transportBootstrap = new ServiceTransportBootstrap<>();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private ServiceMessageDataDecoder dataDecoder =
@@ -362,10 +384,24 @@ public class Microservices {
       return this;
     }
 
-    public Builder transport(UnaryOperator<ServiceTransportBootstrap> op) {
-      this.transportBootstrap = op.apply(this.transportBootstrap);
+    @Deprecated
+    public <T extends TransportResources<T>> Builder transport(
+        UnaryOperator<ServiceTransportBootstrap<T>> op) {
+      this.transportBootstrap = op.apply(new ServiceTransportBootstrap<>());
       return this;
     }
+
+    public <T extends TransportResources<T>> ServiceTransportBuilder<T> setupTransport(
+        Supplier<T> resourceSupplier) {
+      return new ServiceTransportBuilder<>(this, resourceSupplier);
+    }
+
+    private Builder setTransportBootstrap(
+        ServiceTransportBootstrap<?> transportBootstrap) {
+      this.transportBootstrap = transportBootstrap;
+      return this;
+    }
+
 
     public Builder metrics(MetricRegistry metrics) {
       this.metrics = new Metrics(metrics);
@@ -401,7 +437,8 @@ public class Microservices {
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
-    private ServiceDiscoveryBootstrap() {}
+    private ServiceDiscoveryBootstrap() {
+    }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
       this.discoveryFactory = factory;
@@ -542,24 +579,37 @@ public class Microservices {
     }
   }
 
-  public static class ServiceTransportBootstrap {
+  public static class ServiceTransportBootstrap<T extends TransportResources<T>> {
 
-    public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
+    private static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap<>();
 
     private String host;
     private int port = 0;
-    private Supplier<TransportResources> resourcesSupplier = () -> null;
-    private Function<TransportResources, ClientTransport> clientTransportFactory;
-    private Function<TransportResources, ServerTransport> serverTransportFactory;
+    private Supplier<T> resourcesSupplier = () -> null;
+    private Function<T, ClientTransport<T>> clientTransportFactory;
+    private Function<T, ServerTransport<T>> serverTransportFactory;
 
-    private TransportResources resources;
-    private ClientTransport clientTransport;
-    private ServerTransport serverTransport;
+    private T resources;
+    private ClientTransport<T> clientTransport;
+    private ServerTransport<T> serverTransport;
     private Address address;
 
-    private ServiceTransportBootstrap() {}
+    @Deprecated
+    private ServiceTransportBootstrap() {
+    }
 
-    private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
+    ServiceTransportBootstrap(String host, int port,
+        Supplier<T> resourcesSupplier,
+        Function<T, ClientTransport<T>> clientTransportFactory,
+        Function<T, ServerTransport<T>> serverTransportFactory) {
+      this.host = host;
+      this.port = port;
+      this.resourcesSupplier = resourcesSupplier;
+      this.clientTransportFactory = clientTransportFactory;
+      this.serverTransportFactory = serverTransportFactory;
+    }
+
+    private ServiceTransportBootstrap(ServiceTransportBootstrap<T> other) {
       this.host = other.host;
       this.port = other.port;
       this.resourcesSupplier = other.resourcesSupplier;
@@ -567,8 +617,13 @@ public class Microservices {
       this.serverTransportFactory = other.serverTransportFactory;
     }
 
-    private ServiceTransportBootstrap copy() {
-      return new ServiceTransportBootstrap(this);
+    @SuppressWarnings("unchecked")
+    private static <T extends TransportResources<T>> ServiceTransportBootstrap<T> noOpInstance() {
+      return (ServiceTransportBootstrap<T>) noOpInstance;
+    }
+
+    private ServiceTransportBootstrap<T> copy() {
+      return new ServiceTransportBootstrap<>(this);
     }
 
     /**
@@ -577,8 +632,9 @@ public class Microservices {
      * @param host service host
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap host(String host) {
-      ServiceTransportBootstrap c = copy();
+    @Deprecated
+    public ServiceTransportBootstrap<T> host(String host) {
+      ServiceTransportBootstrap<T> c = copy();
       c.host = host;
       return c;
     }
@@ -589,8 +645,9 @@ public class Microservices {
      * @param port service port
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap port(int port) {
-      ServiceTransportBootstrap c = copy();
+    @Deprecated
+    public ServiceTransportBootstrap<T> port(int port) {
+      ServiceTransportBootstrap<T> c = copy();
       c.port = port;
       return c;
     }
@@ -601,8 +658,9 @@ public class Microservices {
      * @param supplier transport resources provider
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
-      ServiceTransportBootstrap c = copy();
+    @Deprecated
+    public ServiceTransportBootstrap<T> resources(Supplier<T> supplier) {
+      ServiceTransportBootstrap<T> c = copy();
       c.resourcesSupplier = supplier;
       return c;
     }
@@ -613,8 +671,9 @@ public class Microservices {
      * @param factory client transptr provider
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
-      ServiceTransportBootstrap c = copy();
+    @Deprecated
+    public ServiceTransportBootstrap<T> client(Function<T, ClientTransport<T>> factory) {
+      ServiceTransportBootstrap<T> c = copy();
       c.clientTransportFactory = factory;
       return c;
     }
@@ -625,15 +684,16 @@ public class Microservices {
      * @param factory server transport provider
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
-      ServiceTransportBootstrap c = copy();
+    @Deprecated
+    public ServiceTransportBootstrap<T> server(Function<T, ServerTransport<T>> factory) {
+      ServiceTransportBootstrap<T> c = copy();
       c.serverTransportFactory = factory;
       return c;
     }
 
-    private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
+    private Mono<ServiceTransportBootstrap<T>> start(ServiceMethodRegistry methodRegistry) {
       return Mono.fromSupplier(resourcesSupplier)
-          .flatMap(TransportResources::start)
+          .flatMap(T::start)
           .map(
               resources -> {
                 LOGGER.info(
@@ -645,7 +705,7 @@ public class Microservices {
           .flatMap(
               resources -> {
                 // bind server transport
-                ServerTransport serverTransport = serverTransportFactory.apply(resources);
+                ServerTransport<T> serverTransport = serverTransportFactory.apply(resources);
                 return serverTransport
                     .bind(port, methodRegistry)
                     .doOnError(
@@ -679,19 +739,19 @@ public class Microservices {
                     "Successfully created client service transport -- {}", this.clientTransport);
                 return this;
               })
-          .switchIfEmpty(Mono.just(ServiceTransportBootstrap.noOpInstance));
+          .switchIfEmpty(Mono.just(ServiceTransportBootstrap.noOpInstance()));
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                      Optional.ofNullable(serverTransport)
-                          .map(ServerTransport::stop)
-                          .orElse(Mono.empty()),
-                      Optional.ofNullable(resources)
-                          .map(TransportResources::shutdown)
-                          .orElse(Mono.empty()))
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(resources)
+                      .map(TransportResources::shutdown)
+                      .orElse(Mono.empty()))
                   .doFinally(
                       s -> {
                         if (resources != null) {
@@ -717,33 +777,18 @@ public class Microservices {
     }
   }
 
-  public interface MonitorMBean {
-
-    Collection<String> getId();
-
-    Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
-
-    Collection<String> getServiceEndpoint();
-
-    Collection<String> getServiceEndpoints();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    Collection<String> getClientServiceTransport();
-
-    Collection<String> getServerServiceTransport();
-
-    Collection<String> getServiceDiscovery();
-  }
-
   private static class JmxMonitorMBean implements MonitorMBean {
 
     public static final int MAX_CACHE_SIZE = 128;
 
     private final Microservices microservices;
     private final ReplayProcessor<ServiceDiscoveryEvent> processor;
+
+    private JmxMonitorMBean(Microservices microservices) {
+      this.microservices = microservices;
+      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
+      microservices.discovery().listenDiscovery().subscribe(processor);
+    }
 
     private static JmxMonitorMBean start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
@@ -753,12 +798,6 @@ public class Microservices {
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
-    }
-
-    private JmxMonitorMBean(Microservices microservices) {
-      this.microservices = microservices;
-      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery().listenDiscovery().subscribe(processor);
     }
 
     @Override
@@ -810,6 +849,71 @@ public class Microservices {
     @Override
     public Collection<String> getServiceDiscovery() {
       return Collections.singletonList(microservices.discovery().toString());
+    }
+  }
+
+  /**
+   * Transport bootstrap builder.
+   *
+   * @param <T> {@link TransportResources}
+   */
+  public static class ServiceTransportBuilder<T extends TransportResources<T>> {
+
+    /**
+     * Link to {@link Builder}.
+     */
+    private final Builder rootBuilder;
+
+    private final Supplier<T> resourcesSupplier;
+
+    private String host;
+
+    private int port = 0;
+
+    /**
+     * Create builder from lazy transport resources initializer.
+     *
+     * @param rootBuilder       link to builder
+     * @param resourcesSupplier Lazy initializer for {@link TransportResources}
+     */
+    private ServiceTransportBuilder(Builder rootBuilder,
+        Supplier<T> resourcesSupplier) {
+      this.rootBuilder = rootBuilder;
+      this.resourcesSupplier = resourcesSupplier;
+    }
+
+    public ServiceTransportBuilder<T> host(String host) {
+      this.host = host;
+      return this;
+    }
+
+    public ServiceTransportBuilder<T> port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    /**
+     * Set transportFactory.
+     *
+     * @param transportFactorySupplier eager initializer transport factory
+     * @return root builder
+     */
+    public Builder transportFactory(Supplier<ServiceTransportFactory<T>> transportFactorySupplier) {
+      return transportFactory(transportFactorySupplier.get());
+    }
+
+    /**
+     * Set transport Factory.
+     *
+     * @param serviceTransportFactory transport factory
+     * @return root builder
+     */
+    public Builder transportFactory(
+        ServiceTransportFactory<T> serviceTransportFactory) {
+      ServiceTransportBootstrap<T> transportBootstrap = new ServiceTransportBootstrap<>(host, port,
+          resourcesSupplier, serviceTransportFactory::clientTransport,
+          serviceTransportFactory::serverTransport);
+      return rootBuilder.setTransportBootstrap(transportBootstrap);
     }
   }
 }

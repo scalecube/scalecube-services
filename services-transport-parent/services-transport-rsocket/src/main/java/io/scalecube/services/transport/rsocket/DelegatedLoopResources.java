@@ -44,7 +44,7 @@ public class DelegatedLoopResources implements LoopResources {
    * @param workerGroup worker pool
    * @return loop resources
    */
-  public static DelegatedLoopResources newClientLoopResources(EventLoopGroup workerGroup) {
+  public static LoopResources newClientLoopResources(EventLoopGroup workerGroup) {
     return new DelegatedLoopResources(null, workerGroup);
   }
 
@@ -54,7 +54,7 @@ public class DelegatedLoopResources implements LoopResources {
    * @param workerGroup worker pool
    * @return loop resources
    */
-  public static DelegatedLoopResources newServerLoopResources(EventLoopGroup workerGroup) {
+  public static LoopResources newServerLoopResources(EventLoopGroup workerGroup) {
     EventLoopGroup bossGroup =
         Epoll.isAvailable()
             ? new EpollEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY)

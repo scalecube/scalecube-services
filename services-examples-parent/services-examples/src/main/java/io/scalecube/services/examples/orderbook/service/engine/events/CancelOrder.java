@@ -6,14 +6,15 @@ public class CancelOrder {
   private Long remainingQuantity;
   private Long size;
 
-  public CancelOrder() {}
+  public CancelOrder() {
+  }
 
   /**
    * Create a new cancel order.
    *
-   * @param orderId the resting order id
+   * @param orderId           the resting order id
    * @param remainingQuantity the remaining quantity of the resting order
-   * @param size the size
+   * @param size              the size
    */
   public CancelOrder(Long orderId, Long remainingQuantity, Long size) {
     this.orderId = orderId;

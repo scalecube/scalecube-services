@@ -8,5 +8,5 @@ import reactor.core.publisher.Flux;
 public interface BidiGreetingService {
 
   @ServiceMethod()
-  public Flux<String> greeting(Flux<String> request);
+  Flux<String> greeting(Flux<String> request);
 }

@@ -19,7 +19,9 @@ public class DefaultMarketDataService implements MarketDataService {
   private Map<Long, OrderBook> view = new ConcurrentHashMap<>();
   private Market market = new Market(new MyMarketListener());
 
-  /** Create a new service. */
+  /**
+   * Create a new service.
+   */
   public DefaultMarketDataService() {
     List<String> instumentList = new ArrayList<>();
     instumentList.add("ORCL");

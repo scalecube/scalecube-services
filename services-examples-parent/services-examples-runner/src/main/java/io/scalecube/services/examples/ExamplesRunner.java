@@ -12,12 +12,13 @@ import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,19 +55,13 @@ public class ExamplesRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(numOfThreads, opts, config))
+        .setupTransport(() -> new RSocketTransportResources(numOfThreads))
+        .port(config.servicePort())
+        .transportFactory(RSocketServiceTransportFactory::new)
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()
         .block();
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(
-      int numOfThreads, ServiceTransportBootstrap opts, Config config) {
-    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport)
-        .port(config.servicePort());
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
@@ -79,6 +74,7 @@ public class ExamplesRunner {
                     .memberPort(config.memberPort()));
   }
 
+  @SuppressWarnings("unused")
   public static class Config {
 
     private int servicePort;
@@ -125,15 +121,13 @@ public class ExamplesRunner {
 
     @Override
     public String toString() {
-      final StringBuilder sb = new StringBuilder("Config{");
-      sb.append("servicePort=").append(servicePort);
-      sb.append(", discoveryPort=").append(discoveryPort);
-      sb.append(", numOfThreads=").append(numOfThreads);
-      sb.append(", seeds=").append(seeds);
-      sb.append(", memberHost=").append(memberHost);
-      sb.append(", memberPort=").append(memberPort);
-      sb.append('}');
-      return sb.toString();
+      return "Config{" + "servicePort=" + servicePort
+          + ", discoveryPort=" + discoveryPort
+          + ", numOfThreads=" + numOfThreads
+          + ", seeds=" + seeds
+          + ", memberHost=" + memberHost
+          + ", memberPort=" + memberPort
+          + '}';
     }
   }
 
