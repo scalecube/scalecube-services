@@ -1,5 +1,9 @@
 package io.scalecube.services.transport.api;
 
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toMap;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
@@ -9,9 +13,14 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.util.annotation.Nullable;
 
 public final class ServiceMessageCodec {
 
@@ -19,16 +28,71 @@ public final class ServiceMessageCodec {
 
   private final HeadersCodec headersCodec;
 
-  public ServiceMessageCodec(HeadersCodec headersCodec) {
-    this.headersCodec = headersCodec;
+  private final Map<String, DataCodec> dataCodecs;
+
+  public ServiceMessageCodec() {
+    this(null, null);
+  }
+
+  public ServiceMessageCodec(
+      @Nullable HeadersCodec headersCodec,
+      @Nullable Collection<DataCodec> dataCodecs
+  ) {
+    this.headersCodec = headersCodec == null ? new BinaryHeadersCodec() : headersCodec;
+    Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
+    if (dataCodecs == null) {
+      this.dataCodecs = defaultCodecs;
+    } else {
+      this.dataCodecs = dataCodecs
+          .stream()
+          .collect(collectingAndThen(toMap(DataCodec::contentType, identity(), (c1, c2) -> c2),
+              usersCodec -> {
+                Map<String, DataCodec> buffer = new HashMap<>(defaultCodecs);
+                buffer.putAll(usersCodec);
+                return Collections.unmodifiableMap(buffer);
+              }));
+
+    }
+  }
+
+  /**
+   * Decode message.
+   *
+   * @param message  the original message (with {@link ByteBuf} data)
+   * @param dataType the type of the data.
+   * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
+   * (of type data type)
+   * @throws MessageCodecException when decode fails
+   */
+  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
+      throws MessageCodecException {
+    if (dataType == null
+        || !message.hasData(ByteBuf.class)
+        || ((ByteBuf) message.data()).readableBytes() == 0) {
+      return message;
+    }
+
+    Object data;
+    Type targetType = message.isError() ? ErrorData.class : dataType;
+
+    ByteBuf dataBuffer = message.data();
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
+      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
+      data = dataCodec.decode(inputStream, targetType);
+    } catch (Throwable ex) {
+      throw new MessageCodecException(
+          "Failed to decode data on message q=" + message.qualifier(), ex);
+    }
+
+    return ServiceMessage.from(message).data(data).build();
   }
 
   /**
    * Encode a message, transform it to T.
    *
-   * @param message the message to transform
+   * @param message     the message to transform
    * @param transformer a function that accepts data and header {@link ByteBuf} and return the
-   *     required T
+   *                    required T
    * @return the object (transformed message)
    * @throws MessageCodecException when encoding cannot be done.
    */
@@ -43,7 +107,7 @@ public final class ServiceMessageCodec {
     } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
+        DataCodec dataCodec = getDataCodecByContentType(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer);
@@ -72,7 +136,7 @@ public final class ServiceMessageCodec {
   /**
    * Decode buffers.
    *
-   * @param dataBuffer the buffer of the data (payload)
+   * @param dataBuffer    the buffer of the data (payload)
    * @param headersBuffer the buffer of the headers
    * @return a new Service message with {@link ByteBuf} data and with parsed headers.
    * @throws MessageCodecException when decode fails
@@ -97,34 +161,19 @@ public final class ServiceMessageCodec {
   }
 
   /**
-   * Decode message.
+   * Get a DataCodec for a content type.
    *
-   * @param message the original message (with {@link ByteBuf} data)
-   * @param dataType the type of the data.
-   * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
-   *     (of type data type)
-   * @throws MessageCodecException when decode fails
+   * @param contentType the content type.
+   * @return a DataCodec for the content type or IllegalArgumentException is thrown if non exist
    */
-  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
-      throws MessageCodecException {
-    if (dataType == null
-        || !message.hasData(ByteBuf.class)
-        || ((ByteBuf) message.data()).readableBytes() == 0) {
-      return message;
+  private DataCodec getDataCodecByContentType(String contentType) {
+    if (contentType == null) {
+      throw new IllegalArgumentException("contentType not specified");
     }
-
-    Object data;
-    Type targetType = message.isError() ? ErrorData.class : dataType;
-
-    ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
-      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
-      data = dataCodec.decode(inputStream, targetType);
-    } catch (Throwable ex) {
-      throw new MessageCodecException(
-          "Failed to decode data on message q=" + message.qualifier(), ex);
+    DataCodec dataCodec = dataCodecs.get(contentType);
+    if (dataCodec == null) {
+      throw new IllegalArgumentException("DataCodec for '" + contentType + "' not configured");
     }
-
-    return ServiceMessage.from(message).data(data).build();
+    return dataCodec;
   }
 }

@@ -26,8 +26,7 @@ public class RSocketServiceTransport implements ServiceTransport {
    * Default instance.
    */
   public RSocketServiceTransport() {
-    HeadersCodec headersCodec = HeadersCodec.getInstance("application/json");
-    messageCodec = new ServiceMessageCodec(headersCodec);
+    messageCodec = new ServiceMessageCodec();
     loopResources = LoopResources.create("rsocket-worker");
   }
 

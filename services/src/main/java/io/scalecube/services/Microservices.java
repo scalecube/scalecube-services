@@ -13,11 +13,11 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
-import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import io.scalecube.services.transport.api.TransportResources;
+import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
+import io.scalecube.services.transport.api.experimental.ServerTransport;
+import io.scalecube.services.transport.api.experimental.ServiceTransportProvider;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,9 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
@@ -48,6 +46,7 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
+
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -114,7 +113,7 @@ import sun.misc.SignalHandler;
  */
 public class Microservices {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  public static final Logger log = LoggerFactory.getLogger(Microservices.class);
 
   private final String id;
   private final Metrics metrics;
@@ -147,7 +146,7 @@ public class Microservices {
     shutdown
         .then(doShutdown())
         .doFinally(s -> onShutdown.onComplete())
-        .subscribe(null, ex -> LOGGER.warn("Exception occurred on microservices stop: " + ex));
+        .subscribe(null, ex -> log.warn("Exception occurred on microservices stop: " + ex));
   }
 
   public static Builder builder() {
@@ -159,7 +158,7 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    LOGGER.info("Starting microservices {}", id);
+    log.info("Starting microservices {}", id);
 
     // Create bootstrap scheduler
     String schedulerName = "microservices" + Integer.toHexString(id.hashCode());
@@ -168,19 +167,10 @@ public class Microservices {
     return transportBootstrap
         .start(methodRegistry)
         .publishOn(scheduler)
+        .map(transportBootstrap -> transportBootstrap.address)
         .flatMap(
-            input -> {
+            serviceAddress -> {
               final ServiceCall call = call();
-              final Address serviceAddress;
-              final Executor workerPool;
-
-              if (input != ServiceTransportBootstrap.noOpInstance) {
-                serviceAddress = input.address;
-                workerPool = input.resources.workerPool().orElse(null);
-              } else {
-                serviceAddress = null;
-                workerPool = null;
-              }
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
@@ -204,7 +194,7 @@ public class Microservices {
               return discoveryBootstrap
                   .create(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
-                  .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
+                  .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
                   .then(Mono.fromCallable(() -> Reflect.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
@@ -226,9 +216,9 @@ public class Microservices {
         Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
   }
 
-  private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
+  private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
     return gatewayBootstrap.start(
-        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
+        new GatewayOptions().call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -240,7 +230,8 @@ public class Microservices {
   }
 
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, serviceRegistry, methodRegistry);
+    return new ServiceCall(transportBootstrap.clientTransportFactory, serviceRegistry,
+        methodRegistry);
   }
 
   public List<Gateway> gateways() {
@@ -286,13 +277,35 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Shutting down microservices {}", id);
+          log.info("Shutting down microservices {}", id);
           return Mono.whenDelayError(
-                  discoveryBootstrap.shutdown(),
-                  gatewayBootstrap.shutdown(),
-                  transportBootstrap.shutdown())
-              .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
+              discoveryBootstrap.shutdown(),
+              gatewayBootstrap.shutdown(),
+              transportBootstrap.shutdown())
+              .doFinally(s -> log.info("Microservices {} has been shut down", id));
         });
+  }
+
+
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
   }
 
   public static final class Builder {
@@ -401,7 +414,8 @@ public class Microservices {
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
-    private ServiceDiscoveryBootstrap() {}
+    private ServiceDiscoveryBootstrap() {
+    }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
       this.discoveryFactory = factory;
@@ -448,17 +462,17 @@ public class Microservices {
               throw new IllegalStateException(
                   "Create service discovery instance before starting it");
             }
-            LOGGER.info("Starting service discovery -- {}", discovery);
+            log.info("Starting service discovery -- {}", discovery);
             return discovery
                 .start()
                 .doOnSuccess(
                     serviceDiscovery -> {
                       discovery = serviceDiscovery;
-                      LOGGER.info("Successfully started service discovery -- {}", discovery);
+                      log.info("Successfully started service discovery -- {}", discovery);
                     })
                 .doOnError(
                     ex ->
-                        LOGGER.error(
+                        log.error(
                             "Failed to start service discovery -- {}, cause: {}", discovery, ex));
           });
     }
@@ -475,7 +489,7 @@ public class Microservices {
                           disposable.dispose();
                         }
                         if (discovery != null) {
-                          LOGGER.info("Service discovery -- {} has been stopped", discovery);
+                          log.info("Service discovery -- {} has been stopped", discovery);
                         }
                       }));
     }
@@ -496,19 +510,19 @@ public class Microservices {
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
+                log.info("Starting gateway -- {} with {}", gateway, options);
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
                     .doOnSuccess(
                         result ->
-                            LOGGER.info(
+                            log.info(
                                 "Successfully started gateway -- {} on {}",
                                 result,
                                 result.address()))
                     .doOnError(
                         ex ->
-                            LOGGER.error(
+                            log.error(
                                 "Failed to start gateway -- {} with {}, cause: {}",
                                 gateway,
                                 options,
@@ -524,7 +538,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (!gateways.isEmpty()) {
-                          LOGGER.info("Gateways have been stopped");
+                          log.info("Gateways have been stopped");
                         }
                       }));
     }
@@ -546,25 +560,21 @@ public class Microservices {
 
     public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
 
-    private String host;
+    private String host = Address.getLocalIpAddress().getHostAddress();
     private int port = 0;
-    private Supplier<TransportResources> resourcesSupplier = () -> null;
-    private Function<TransportResources, ClientTransport> clientTransportFactory;
-    private Function<TransportResources, ServerTransport> serverTransportFactory;
+    private ServiceTransportProvider transportProvider;
 
-    private TransportResources resources;
-    private ClientTransport clientTransport;
+    private ClientTransportFactory clientTransportFactory;
     private ServerTransport serverTransport;
     private Address address;
 
-    private ServiceTransportBootstrap() {}
+    private ServiceTransportBootstrap() {
+    }
 
     private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
       this.host = other.host;
       this.port = other.port;
-      this.resourcesSupplier = other.resourcesSupplier;
-      this.clientTransportFactory = other.clientTransportFactory;
-      this.serverTransportFactory = other.serverTransportFactory;
+      this.transportProvider = other.transportProvider;
     }
 
     private ServiceTransportBootstrap copy() {
@@ -595,109 +605,61 @@ public class Microservices {
       return c;
     }
 
-    /**
-     * Setting for service transpotr resoruces.
-     *
-     * @param supplier transport resources provider
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
-      ServiceTransportBootstrap c = copy();
-      c.resourcesSupplier = supplier;
-      return c;
-    }
-
-    /**
-     * Setting for client trnaspotr provider.
-     *
-     * @param factory client transptr provider
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
-      ServiceTransportBootstrap c = copy();
-      c.clientTransportFactory = factory;
-      return c;
-    }
 
     /**
      * Setting for service transport provider.
      *
-     * @param factory server transport provider
+     * @param provider transport provider
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
+    public ServiceTransportBootstrap transportProvider(ServiceTransportProvider provider) {
       ServiceTransportBootstrap c = copy();
-      c.serverTransportFactory = factory;
+      c.transportProvider = provider;
       return c;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      return Mono.fromSupplier(resourcesSupplier)
-          .flatMap(TransportResources::start)
-          .map(
-              resources -> {
-                LOGGER.info(
-                    "Successfully started service transport resources -- {}", this.resources);
-                // keep transport resources
-                return this.resources = resources;
-              })
-          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: " + ex))
-          .flatMap(
-              resources -> {
-                // bind server transport
-                ServerTransport serverTransport = serverTransportFactory.apply(resources);
-                return serverTransport
-                    .bind(port, methodRegistry)
-                    .doOnError(
-                        ex ->
-                            LOGGER.error(
-                                "Failed to bind server service "
-                                    + "transport -- {} on port: {}, cause: {}",
-                                serverTransport,
-                                port,
-                                ex));
-              })
-          .map(
-              serverTransport -> {
-                this.serverTransport = serverTransport;
-
-                // prepare service host:port for exposing
-                int port = serverTransport.address().port();
-                String host =
-                    Optional.ofNullable(this.host)
-                        .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
-                this.address = Address.create(host, port);
-
-                LOGGER.info(
-                    "Successfully bound server service transport -- {} on address {}",
-                    this.serverTransport,
-                    this.address);
-
-                // create client transport
-                this.clientTransport = clientTransportFactory.apply(resources);
-                LOGGER.info(
-                    "Successfully created client service transport -- {}", this.clientTransport);
-                return this;
-              })
-          .switchIfEmpty(Mono.just(ServiceTransportBootstrap.noOpInstance));
+      if (transportProvider == null) {
+        return Mono.defer(Mono::empty);
+      }
+      Address address = Address.create(host, port);
+      return transportProvider
+          .provideServerTransport()
+          .bind(address, methodRegistry)
+          .doOnError(
+              ex ->
+                  log.error(
+                      "Failed to bind server service "
+                          + "transport -- {} on port: {}, cause: {}",
+                      serverTransport,
+                      port,
+                      ex)
+          )
+          .doOnNext(serverTransport -> {
+            log.info(
+                "Successfully bound server service transport -- {} on address {}",
+                this.serverTransport,
+                this.address);
+            this.address = serverTransport.address();
+            this.serverTransport = serverTransport;
+            this.clientTransportFactory = transportProvider.provideClientTransportFactory();
+            log.info(
+                "Successfully created client service transport -- {}",
+                this.clientTransportFactory);
+          })
+          .map(ignore -> this);
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                      Optional.ofNullable(serverTransport)
-                          .map(ServerTransport::stop)
-                          .orElse(Mono.empty()),
-                      Optional.ofNullable(resources)
-                          .map(TransportResources::shutdown)
-                          .orElse(Mono.empty()))
-                  .doFinally(
-                      s -> {
-                        if (resources != null) {
-                          LOGGER.info("Service transport has been stopped");
-                        }
-                      }));
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty())
+              )
+                  .doOnNext(s -> log.info("Service transport has been stopped"))
+      );
     }
 
     @Override
@@ -708,34 +670,11 @@ public class Microservices {
           + ", port="
           + port
           + ", clientTransport="
-          + clientTransport.getClass()
+          + clientTransportFactory.getClass()
           + ", serverTransport="
           + serverTransport.getClass()
-          + ", resources="
-          + resources.getClass()
           + "}";
     }
-  }
-
-  public interface MonitorMBean {
-
-    Collection<String> getId();
-
-    Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
-
-    Collection<String> getServiceEndpoint();
-
-    Collection<String> getServiceEndpoints();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    Collection<String> getClientServiceTransport();
-
-    Collection<String> getServerServiceTransport();
-
-    Collection<String> getServiceDiscovery();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -745,20 +684,20 @@ public class Microservices {
     private final Microservices microservices;
     private final ReplayProcessor<ServiceDiscoveryEvent> processor;
 
-    private static JmxMonitorMBean start(Microservices instance) throws Exception {
-      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
-      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
-      mbeanServer.registerMBean(standardMBean, objectName);
-      return jmxMBean;
-    }
-
     private JmxMonitorMBean(Microservices microservices) {
       this.microservices = microservices;
       this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
       microservices.discovery().listenDiscovery().subscribe(processor);
+    }
+
+    private static JmxMonitorMBean start(Microservices instance) throws Exception {
+      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
+      ObjectName objectName =
+          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id());
+      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
+      mbeanServer.registerMBean(standardMBean, objectName);
+      return jmxMBean;
     }
 
     @Override
@@ -799,7 +738,8 @@ public class Microservices {
 
     @Override
     public Collection<String> getClientServiceTransport() {
-      return Collections.singletonList(microservices.transportBootstrap.clientTransport.toString());
+      return Collections
+          .singletonList(microservices.transportBootstrap.clientTransportFactory.toString());
     }
 
     @Override

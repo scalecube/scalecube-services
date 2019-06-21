@@ -15,6 +15,7 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -37,7 +38,7 @@ public class ServiceCall {
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
 
-  private final ClientTransport transport;
+  private final ClientTransportFactory transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
   private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
@@ -55,7 +56,7 @@ public class ServiceCall {
    * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
    */
   public ServiceCall(
-      ClientTransport transport,
+      ClientTransportFactory transport,
       ServiceRegistry serviceRegistry,
       ServiceMethodRegistry methodRegistry) {
     this.transport = transport;
@@ -365,7 +366,7 @@ public class ServiceCall {
                   // cast.
                   return serviceCall
                       .requestBidirectional(
-                          Flux.from((Publisher) params[0])
+                          Flux.from((Publisher<T>) params[0])
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
                       .transform(asFlux(isServiceMessage));
