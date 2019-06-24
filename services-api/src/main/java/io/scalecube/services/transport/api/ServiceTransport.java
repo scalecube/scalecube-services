@@ -1,7 +1,14 @@
 package io.scalecube.services.transport.api;
 
 /** Service transport interface. */
-public interface ServiceTransport {
+public interface ServiceTransport<T extends TransportResources> {
+
+  /**
+   * Provider of service transport resources.
+   *
+   * @return service transport resources
+   */
+  T transportResources();
 
   /**
    * Provier of client transport.
@@ -9,7 +16,7 @@ public interface ServiceTransport {
    * @param resources service transport resources
    * @return client transport
    */
-  ClientTransport clientTransport(TransportResources resources);
+  ClientTransport clientTransport(T resources);
 
   /**
    * Provider of server transport.
@@ -17,5 +24,5 @@ public interface ServiceTransport {
    * @param resources service transport resources
    * @return server transport
    */
-  ServerTransport serverTransport(TransportResources resources);
+  ServerTransport serverTransport(T resources);
 }

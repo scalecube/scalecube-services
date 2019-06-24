@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -548,9 +549,7 @@ public class Microservices {
 
     private String host;
     private int port = 0;
-    private Supplier<TransportResources> resourcesSupplier = () -> null;
-    private Function<TransportResources, ClientTransport> clientTransportFactory;
-    private Function<TransportResources, ServerTransport> serverTransportFactory;
+    private ServiceTransport<TransportResources> serviceTransport;
 
     private TransportResources resources;
     private ClientTransport clientTransport;
@@ -562,9 +561,7 @@ public class Microservices {
     private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
       this.host = other.host;
       this.port = other.port;
-      this.resourcesSupplier = other.resourcesSupplier;
-      this.clientTransportFactory = other.clientTransportFactory;
-      this.serverTransportFactory = other.serverTransportFactory;
+      this.serviceTransport = other.serviceTransport;
     }
 
     private ServiceTransportBootstrap copy() {
@@ -596,43 +593,26 @@ public class Microservices {
     }
 
     /**
-     * Setting for service transpotr resoruces.
+     * Settings for service transport factory.
      *
-     * @param supplier transport resources provider
+     * @param supplier service transport factory function
+     * @param <T> type of {@code TransportResources}
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public ServiceTransportBootstrap resources(Supplier<TransportResources> supplier) {
+    public <T extends TransportResources> ServiceTransportBootstrap serviceTransport(
+        Supplier<ServiceTransport<T>> supplier) {
       ServiceTransportBootstrap c = copy();
-      c.resourcesSupplier = supplier;
-      return c;
-    }
-
-    /**
-     * Setting for client trnaspotr provider.
-     *
-     * @param factory client transptr provider
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap client(Function<TransportResources, ClientTransport> factory) {
-      ServiceTransportBootstrap c = copy();
-      c.clientTransportFactory = factory;
-      return c;
-    }
-
-    /**
-     * Setting for service transport provider.
-     *
-     * @param factory server transport provider
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap server(Function<TransportResources, ServerTransport> factory) {
-      ServiceTransportBootstrap c = copy();
-      c.serverTransportFactory = factory;
+      //noinspection unchecked
+      c.serviceTransport = (ServiceTransport<TransportResources>) supplier.get();
       return c;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      return Mono.fromSupplier(resourcesSupplier)
+      if (serviceTransport == null) {
+        return Mono.just(ServiceTransportBootstrap.noOpInstance);
+      }
+
+      return Mono.fromCallable(() -> serviceTransport.transportResources())
           .flatMap(TransportResources::start)
           .map(
               resources -> {
@@ -645,7 +625,7 @@ public class Microservices {
           .flatMap(
               resources -> {
                 // bind server transport
-                ServerTransport serverTransport = serverTransportFactory.apply(resources);
+                ServerTransport serverTransport = serviceTransport.serverTransport(resources);
                 return serverTransport
                     .bind(port, methodRegistry)
                     .doOnError(
@@ -674,12 +654,11 @@ public class Microservices {
                     this.address);
 
                 // create client transport
-                this.clientTransport = clientTransportFactory.apply(resources);
+                this.clientTransport = serviceTransport.clientTransport(resources);
                 LOGGER.info(
                     "Successfully created client service transport -- {}", this.clientTransport);
                 return this;
-              })
-          .switchIfEmpty(Mono.just(ServiceTransportBootstrap.noOpInstance));
+              });
     }
 
     private Mono<Void> shutdown() {

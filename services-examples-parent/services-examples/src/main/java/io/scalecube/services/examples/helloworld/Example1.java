@@ -30,14 +30,15 @@ public class Example1 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices ms = Microservices.builder()
-          .discovery(
-              serviceEndpoint ->
-                  new ScalecubeServiceDiscovery(serviceEndpoint)
-                      .options(opts -> opts.seedMembers(seed.discovery().address())))
-          .transport(ServiceTransports::rsocketServiceTransport)
-          .services(new GreetingServiceImpl())
-          .startAwait();
+    Microservices ms =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.seedMembers(seed.discovery().address())))
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     // Create service proxy
     GreetingsService service = seed.call().api(GreetingsService.class);

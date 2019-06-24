@@ -1,6 +1,7 @@
 package io.scalecube.services.benchmarks;
 
 import io.scalecube.services.Microservices.ServiceTransportBootstrap;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 
@@ -17,9 +18,7 @@ public class ServiceTransports {
    * @return new {@code ServiceTransportBootstrap} object
    */
   public static ServiceTransportBootstrap rsocketServiceTransport(ServiceTransportBootstrap opts) {
-    return opts.resources(RSocketTransportResources::new)
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
+    return opts.serviceTransport(RSocketServiceTransport::new);
   }
 
   /**
@@ -31,8 +30,10 @@ public class ServiceTransports {
    */
   public static ServiceTransportBootstrap rsocketServiceTransport(
       ServiceTransportBootstrap opts, int numOfThreads) {
-    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport);
+    return opts.serviceTransport(
+        () ->
+            new RSocketServiceTransport(
+                new RSocketTransportResources(numOfThreads),
+                HeadersCodec.getInstance("application/json")));
   }
 }

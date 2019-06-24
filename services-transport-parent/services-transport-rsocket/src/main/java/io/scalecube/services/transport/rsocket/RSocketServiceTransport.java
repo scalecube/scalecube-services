@@ -5,72 +5,74 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.TransportResources;
 import reactor.netty.resources.LoopResources;
 
-/**
- * RSocket service transport. Entry point for getting {@link RSocketClientTransport} and {@link
- * RSocketServerTransport}.
- */
-public class RSocketServiceTransport implements ServiceTransport {
+/** RSocket service transport. */
+public class RSocketServiceTransport implements ServiceTransport<RSocketTransportResources> {
 
-  /**
-   * Default Instance.
-   */
-  public static final RSocketServiceTransport INSTANCE = new RSocketServiceTransport();
+  private static final RSocketTransportResources RESOURCES = new RSocketTransportResources();
+  private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance("application/json");
 
   private final ServiceMessageCodec messageCodec;
-  private final LoopResources loopResources;
+  private final RSocketTransportResources resources;
 
   /**
-   * Default instance.
+   * Constructor with default {@code RSocketTransportResources} and default {@code HeadersCodec}.
    */
   public RSocketServiceTransport() {
-    HeadersCodec headersCodec = HeadersCodec.getInstance("application/json");
-    messageCodec = new ServiceMessageCodec(headersCodec);
-    loopResources = LoopResources.create("rsocket-worker");
+    this(RESOURCES, HEADERS_CODEC);
   }
 
   /**
    * Constructor with DI.
    *
-   * @param headersCodec  user's headers codec
-   * @param loopResources loopResources
+   * @param resources transport resources factory
+   * @param headersCodec headers codec
    */
-  public RSocketServiceTransport(HeadersCodec headersCodec, LoopResources loopResources) {
+  public RSocketServiceTransport(RSocketTransportResources resources, HeadersCodec headersCodec) {
+    this.resources = resources;
     this.messageCodec = new ServiceMessageCodec(headersCodec);
-    this.loopResources = loopResources;
+  }
+
+  /**
+   * Provider for rsocket transport resources.
+   *
+   * @return rsocket transport resources
+   */
+  @Override
+  public RSocketTransportResources transportResources() {
+    return resources;
   }
 
   /**
    * Fabric method for client transport.
    *
    * @param resources service transport resources
-   * @return client's transport
+   * @return client transport
    */
   @Override
-  public ClientTransport clientTransport(TransportResources resources) {
+  public ClientTransport clientTransport(RSocketTransportResources resources) {
     return new RSocketClientTransport(
         messageCodec,
-        ((RSocketTransportResources) resources)
+        resources
             .workerPool()
             .<LoopResources>map(DelegatedLoopResources::newClientLoopResources)
-            .orElse(loopResources));
+            .get());
   }
 
   /**
    * Fabric method for server transport.
    *
    * @param resources service transport resources
-   * @return server's transport
+   * @return server transport
    */
   @Override
-  public ServerTransport serverTransport(TransportResources resources) {
+  public ServerTransport serverTransport(RSocketTransportResources resources) {
     return new RSocketServerTransport(
         messageCodec,
-        ((RSocketTransportResources) resources)
+        resources
             .workerPool()
             .<LoopResources>map(DelegatedLoopResources::newServerLoopResources)
-            .orElse(loopResources));
+            .get());
   }
 }
