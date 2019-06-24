@@ -4,7 +4,6 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -12,6 +11,7 @@ import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
 import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
@@ -25,7 +25,7 @@ public class ServiceTagsExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
     Address seedAddress = gateway.discovery().address();
@@ -33,7 +33,7 @@ public class ServiceTagsExample {
     Microservices services1 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -43,7 +43,7 @@ public class ServiceTagsExample {
     Microservices services2 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")

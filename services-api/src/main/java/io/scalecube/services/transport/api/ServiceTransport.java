@@ -1,14 +1,9 @@
 package io.scalecube.services.transport.api;
 
-/** Service transport interface. */
-public interface ServiceTransport<T extends TransportResources> {
+import reactor.core.publisher.Mono;
 
-  /**
-   * Provider of service transport resources.
-   *
-   * @return service transport resources
-   */
-  T transportResources();
+/** Service transport interface. */
+public interface ServiceTransport {
 
   /**
    * Provier of client transport.
@@ -23,4 +18,18 @@ public interface ServiceTransport<T extends TransportResources> {
    * @return server transport
    */
   ServerTransport serverTransport();
+
+  /**
+   * Starts service transport.
+   *
+   * @return mono result
+   */
+  Mono<? extends ServiceTransport> start();
+
+  /**
+   * Shutdowns service transport.
+   *
+   * @return shutdown completion signal
+   */
+  Mono<Void> stop();
 }

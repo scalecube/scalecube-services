@@ -14,7 +14,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -69,8 +68,7 @@ public class ExamplesRunner {
         .serviceTransport(
             () ->
                 new RSocketServiceTransport(
-                    new RSocketTransportResources(numOfThreads),
-                    HeadersCodec.getInstance("application/json")));
+                    numOfThreads, HeadersCodec.getInstance("application/json")));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {

@@ -9,6 +9,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +36,7 @@ public class ServiceTransportTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
     serviceNode =
@@ -45,7 +46,7 @@ public class ServiceTransportTest {
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new SimpleQuoteService())
             .startAwait();
   }

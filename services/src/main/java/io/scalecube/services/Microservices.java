@@ -18,7 +18,6 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.TransportResources;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -173,14 +171,11 @@ public class Microservices {
             input -> {
               final ServiceCall call = call();
               final Address serviceAddress;
-              final Executor workerPool;
 
               if (input != ServiceTransportBootstrap.noOpInstance) {
                 serviceAddress = input.address;
-                workerPool = input.resources.workerPool().orElse(null);
               } else {
                 serviceAddress = null;
-                workerPool = null;
               }
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
@@ -205,7 +200,7 @@ public class Microservices {
               return discoveryBootstrap
                   .create(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
-                  .then(Mono.defer(() -> startGateway(call, workerPool)).publishOn(scheduler))
+                  .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
                   .then(Mono.fromCallable(() -> Reflect.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
@@ -227,9 +222,8 @@ public class Microservices {
         Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
   }
 
-  private Mono<GatewayBootstrap> startGateway(ServiceCall call, Executor workerPool) {
-    return gatewayBootstrap.start(
-        new GatewayOptions().workerPool(workerPool).call(call).metrics(metrics));
+  private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
+    return gatewayBootstrap.start(new GatewayOptions().call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -460,7 +454,9 @@ public class Microservices {
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Failed to start service discovery -- {}, cause: {}", discovery, ex));
+                            "Failed to start service discovery -- {}, cause: {}",
+                            discovery,
+                            ex.toString()));
           });
     }
 
@@ -513,7 +509,7 @@ public class Microservices {
                                 "Failed to start gateway -- {} with {}, cause: {}",
                                 gateway,
                                 options,
-                                ex));
+                                ex.toString()));
               })
           .then(Mono.just(this));
     }
@@ -549,9 +545,8 @@ public class Microservices {
 
     private String host;
     private int port = 0;
-    private ServiceTransport<TransportResources> serviceTransport;
+    private ServiceTransport serviceTransport;
 
-    private TransportResources resources;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
     private Address address;
@@ -596,14 +591,11 @@ public class Microservices {
      * Settings for service transport factory.
      *
      * @param supplier service transport factory function
-     * @param <T> type of {@code TransportResources}
      * @return new {@code ServiceTransportBootstrap} instance
      */
-    public <T extends TransportResources> ServiceTransportBootstrap serviceTransport(
-        Supplier<ServiceTransport<T>> supplier) {
+    public ServiceTransportBootstrap serviceTransport(Supplier<ServiceTransport> supplier) {
       ServiceTransportBootstrap c = copy();
-      //noinspection unchecked
-      c.serviceTransport = (ServiceTransport<TransportResources>) supplier.get();
+      c.serviceTransport = supplier.get();
       return c;
     }
 
@@ -612,18 +604,11 @@ public class Microservices {
         return Mono.just(ServiceTransportBootstrap.noOpInstance);
       }
 
-      return Mono.fromCallable(() -> serviceTransport.transportResources())
-          .flatMap(TransportResources::start)
-          .map(
-              resources -> {
-                LOGGER.info(
-                    "Successfully started service transport resources -- {}", this.resources);
-                // keep transport resources
-                return this.resources = resources;
-              })
-          .doOnError(ex -> LOGGER.error("Failed to start service transport resources: " + ex))
+      return serviceTransport
+          .start()
+          .doOnSuccess(transport -> serviceTransport = transport)
           .flatMap(
-              resources -> {
+              transport -> {
                 // bind server transport
                 ServerTransport serverTransport = serviceTransport.serverTransport();
                 return serverTransport
@@ -635,12 +620,11 @@ public class Microservices {
                                     + "transport -- {} on port: {}, cause: {}",
                                 serverTransport,
                                 port,
-                                ex));
+                                ex.toString()));
               })
+          .doOnSuccess(transport -> serverTransport = transport)
           .map(
-              serverTransport -> {
-                this.serverTransport = serverTransport;
-
+              transport -> {
                 // prepare service host:port for exposing
                 int port = serverTransport.address().port();
                 String host =
@@ -665,18 +649,12 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                      Optional.ofNullable(serverTransport)
-                          .map(ServerTransport::stop)
-                          .orElse(Mono.empty()),
-                      Optional.ofNullable(resources)
-                          .map(TransportResources::shutdown)
-                          .orElse(Mono.empty()))
-                  .doFinally(
-                      s -> {
-                        if (resources != null) {
-                          LOGGER.info("Service transport has been stopped");
-                        }
-                      }));
+                  Optional.ofNullable(serviceTransport)
+                      .map(ServiceTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty())));
     }
 
     @Override
@@ -690,8 +668,6 @@ public class Microservices {
           + clientTransport.getClass()
           + ", serverTransport="
           + serverTransport.getClass()
-          + ", resources="
-          + resources.getClass()
           + "}";
     }
   }

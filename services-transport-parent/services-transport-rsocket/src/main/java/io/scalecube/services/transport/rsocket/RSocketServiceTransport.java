@@ -1,47 +1,49 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.epoll.Epoll;
+import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.Future;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.util.Iterator;
+import reactor.core.publisher.Mono;
+import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
 
 /** RSocket service transport. */
-public class RSocketServiceTransport implements ServiceTransport<RSocketTransportResources> {
+public class RSocketServiceTransport implements ServiceTransport {
 
-  private static final RSocketTransportResources RESOURCES = new RSocketTransportResources();
   private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance("application/json");
+  private static final int NUM_OF_WORKERS = Runtime.getRuntime().availableProcessors();
 
+  private final int numOfWorkers;
   private final ServiceMessageCodec messageCodec;
-  private final RSocketTransportResources resources;
 
-  /**
-   * Constructor with default {@code RSocketTransportResources} and default {@code HeadersCodec}.
-   */
+  // resources
+  private EventLoopGroup eventLoopGroup;
+  private LoopResources clientLoopResources;
+  private LoopResources serverLoopResources;
+
+  /** Default constructor. */
   public RSocketServiceTransport() {
-    this(RESOURCES, HEADERS_CODEC);
+    this(NUM_OF_WORKERS, HEADERS_CODEC);
   }
 
   /**
    * Constructor with DI.
    *
-   * @param resources transport resources factory
+   * @param numOfWorkers number of tworker threads
    * @param headersCodec headers codec
    */
-  public RSocketServiceTransport(RSocketTransportResources resources, HeadersCodec headersCodec) {
-    this.resources = resources;
+  public RSocketServiceTransport(int numOfWorkers, HeadersCodec headersCodec) {
+    this.numOfWorkers = numOfWorkers;
     this.messageCodec = new ServiceMessageCodec(headersCodec);
-  }
-
-  /**
-   * Provider for rsocket transport resources.
-   *
-   * @return rsocket transport resources
-   */
-  @Override
-  public RSocketTransportResources transportResources() {
-    return resources;
   }
 
   /**
@@ -51,12 +53,7 @@ public class RSocketServiceTransport implements ServiceTransport<RSocketTranspor
    */
   @Override
   public ClientTransport clientTransport() {
-    return new RSocketClientTransport(
-        messageCodec,
-        resources
-            .workerPool()
-            .<LoopResources>map(DelegatedLoopResources::newClientLoopResources)
-            .get());
+    return new RSocketClientTransport(messageCodec, clientLoopResources);
   }
 
   /**
@@ -66,11 +63,40 @@ public class RSocketServiceTransport implements ServiceTransport<RSocketTranspor
    */
   @Override
   public ServerTransport serverTransport() {
-    return new RSocketServerTransport(
-        messageCodec,
-        resources
-            .workerPool()
-            .<LoopResources>map(DelegatedLoopResources::newServerLoopResources)
-            .get());
+    return new RSocketServerTransport(messageCodec, serverLoopResources);
+  }
+
+  @Override
+  public Mono<RSocketServiceTransport> start() {
+    return Mono.fromRunnable(this::start0).thenReturn(this);
+  }
+
+  @Override
+  public Mono<Void> stop() {
+    //noinspection unchecked
+    return Mono.defer(
+        () -> FutureMono.from((Future) ((EventLoopGroup) eventLoopGroup).shutdownGracefully()));
+  }
+
+  private void start0() {
+    eventLoopGroup = eventLoopGroup();
+    clientLoopResources = DelegatedLoopResources.newClientLoopResources(eventLoopGroup);
+    serverLoopResources = DelegatedLoopResources.newServerLoopResources(eventLoopGroup);
+  }
+
+  private EventLoopGroup eventLoopGroup() {
+    return Epoll.isAvailable()
+        ? new ExtendedEpollEventLoopGroup(numOfWorkers, this::chooseEventLoop)
+        : new ExtendedNioEventLoopGroup(numOfWorkers, this::chooseEventLoop);
+  }
+
+  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
+    while (executors.hasNext()) {
+      EventExecutor eventLoop = executors.next();
+      if (eventLoop.inEventLoop()) {
+        return (EventLoop) eventLoop;
+      }
+    }
+    return null;
   }
 }

@@ -70,11 +70,12 @@ public class RSocketClientTransport implements ClientTransport {
                         monoMap.remove(address);
                         LOGGER.info("Connection closed on {}", address);
                       })
-                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
+                  .subscribe(
+                      null, th -> LOGGER.warn("Exception on closing rsocket: {}", th.toString()));
             })
         .doOnError(
-            throwable -> {
-              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+            th -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, th.toString());
               monoMap.remove(address);
             })
         .cache();

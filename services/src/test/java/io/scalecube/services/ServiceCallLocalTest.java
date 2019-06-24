@@ -21,6 +21,7 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -63,7 +64,7 @@ public class ServiceCallLocalTest extends BaseTest {
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
