@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -54,6 +53,7 @@ public class ServiceScanner {
 
   /** Tuple class. Contains service interface along with tags map. */
   private static class InterfaceInfo {
+
     private final Class<?> serviceInterface;
     private final Map<String, String> tags;
 

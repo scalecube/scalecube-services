@@ -36,10 +36,9 @@ import reactor.test.StepVerifier;
 public class ServiceCallRemoteTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
-
   private static Microservices gateway;
   private static Microservices provider;
+  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   @BeforeAll
   public static void setup() {
@@ -47,6 +46,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     provider = serviceProvider(new GreetingServiceImpl());
   }
 
+  /** destroy. */
   @AfterAll
   public static void tearDown() {
     try {
@@ -68,6 +68,18 @@ public class ServiceCallRemoteTest extends BaseTest {
         .transport(ServiceTransports::rsocketServiceTransport)
         .services(service)
         .startAwait();
+  }
+
+  private static Microservices gateway() {
+    return Microservices.builder()
+        .discovery(ScalecubeServiceDiscovery::new)
+        .transport(ServiceTransports::rsocketServiceTransport)
+        .startAwait();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   @Test
@@ -221,17 +233,5 @@ public class ServiceCallRemoteTest extends BaseTest {
     } catch (Exception ignored) {
       // no-op
     }
-  }
-
-  private static Microservices gateway() {
-    return Microservices.builder()
-        .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceTransports::rsocketServiceTransport)
-        .startAwait();
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

@@ -25,8 +25,7 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
   private Address address; // calculated
 
   public RSocketScalecubeServerTransport(
-      RSocketServerTransportFactory transportFactory,
-      ServiceMessageCodec codec) {
+      RSocketServerTransportFactory transportFactory, ServiceMessageCodec codec) {
     this.transportFactory = transportFactory;
     this.codec = codec;
   }

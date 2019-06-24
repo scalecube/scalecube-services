@@ -31,6 +31,19 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
     this.mapper = mapper;
   }
 
+  private static ObjectMapper initMapper() {
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
+    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
+    mapper.registerModule(new JavaTimeModule());
+    return mapper;
+  }
+
   @Override
   public String contentType() {
     return CONTENT_TYPE;
@@ -56,18 +69,5 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
   @Override
   public Object decode(InputStream stream, Type type) throws IOException {
     return mapper.readValue(stream, mapper.getTypeFactory().constructType(type));
-  }
-
-  private static ObjectMapper initMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
-    mapper.registerModule(new JavaTimeModule());
-    return mapper;
   }
 }

@@ -14,17 +14,13 @@ import reactor.netty.resources.LoopResources;
  */
 public class RSocketServiceTransport implements ServiceTransport {
 
-  /**
-   * Default Instance.
-   */
+  /** Default Instance. */
   public static final RSocketServiceTransport INSTANCE = new RSocketServiceTransport();
 
   private final ServiceMessageCodec messageCodec;
   private final LoopResources loopResources;
 
-  /**
-   * Default instance.
-   */
+  /** Default instance. */
   public RSocketServiceTransport() {
     messageCodec = new ServiceMessageCodec();
     loopResources = LoopResources.create("rsocket-worker");
@@ -33,11 +29,11 @@ public class RSocketServiceTransport implements ServiceTransport {
   /**
    * Constructor with DI.
    *
-   * @param headersCodec  user's headers codec
+   * @param headersCodec user's headers codec
    * @param loopResources loopResources
    */
   public RSocketServiceTransport(HeadersCodec headersCodec, LoopResources loopResources) {
-    this.messageCodec = new ServiceMessageCodec(headersCodec);
+    this.messageCodec = new ServiceMessageCodec(headersCodec, null);
     this.loopResources = loopResources;
   }
 

@@ -6,7 +6,9 @@ public class CancelOrder {
   private Long remainingQuantity;
   private Long size;
 
-  public CancelOrder() {}
+  public CancelOrder() {
+
+  }
 
   /**
    * Create a new cancel order.

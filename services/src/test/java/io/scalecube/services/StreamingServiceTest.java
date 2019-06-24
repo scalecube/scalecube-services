@@ -24,6 +24,7 @@ public class StreamingServiceTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices node;
 
+  /** init. */
   @BeforeAll
   public static void setup() {
     gateway =
@@ -40,6 +41,11 @@ public class StreamingServiceTest extends BaseTest {
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
             .startAwait();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   @Test
@@ -182,10 +188,5 @@ public class StreamingServiceTest extends BaseTest {
         serviceCall.requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
 
     assertEquals(batchSize, serviceMessages.size());
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

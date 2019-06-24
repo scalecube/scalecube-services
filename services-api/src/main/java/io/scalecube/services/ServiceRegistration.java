@@ -14,7 +14,9 @@ public class ServiceRegistration {
    *
    * @deprecated exposed only for de/serialization purpose.
    */
-  public ServiceRegistration() {}
+  public ServiceRegistration() {
+
+  }
 
   /**
    * Create a new service registration.

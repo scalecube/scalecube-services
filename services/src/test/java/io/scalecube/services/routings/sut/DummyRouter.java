@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class DummyRouter implements Router {
+
   private Object empty;
 
   public DummyRouter() {

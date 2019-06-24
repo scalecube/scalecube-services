@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomCollection<E> {
+
   private final NavigableMap<Double, E> map = new TreeMap<>();
   private double total = 0;
 

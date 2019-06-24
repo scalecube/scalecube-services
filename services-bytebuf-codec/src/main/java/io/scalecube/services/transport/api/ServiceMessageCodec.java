@@ -34,34 +34,39 @@ public final class ServiceMessageCodec {
     this(null, null);
   }
 
+  /**
+   * Create instance of ServiceMessageCodec.
+   *
+   * @param headersCodec headers codec
+   * @param dataCodecs data codec
+   */
   public ServiceMessageCodec(
-      @Nullable HeadersCodec headersCodec,
-      @Nullable Collection<DataCodec> dataCodecs
-  ) {
+      @Nullable HeadersCodec headersCodec, @Nullable Collection<DataCodec> dataCodecs) {
     this.headersCodec = headersCodec == null ? new BinaryHeadersCodec() : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
       this.dataCodecs = defaultCodecs;
     } else {
-      this.dataCodecs = dataCodecs
-          .stream()
-          .collect(collectingAndThen(toMap(DataCodec::contentType, identity(), (c1, c2) -> c2),
-              usersCodec -> {
-                Map<String, DataCodec> buffer = new HashMap<>(defaultCodecs);
-                buffer.putAll(usersCodec);
-                return Collections.unmodifiableMap(buffer);
-              }));
-
+      this.dataCodecs =
+          dataCodecs.stream()
+              .collect(
+                  collectingAndThen(
+                      toMap(DataCodec::contentType, identity(), (c1, c2) -> c2),
+                      usersCodec -> {
+                        Map<String, DataCodec> buffer = new HashMap<>(defaultCodecs);
+                        buffer.putAll(usersCodec);
+                        return Collections.unmodifiableMap(buffer);
+                      }));
     }
   }
 
   /**
    * Decode message.
    *
-   * @param message  the original message (with {@link ByteBuf} data)
+   * @param message the original message (with {@link ByteBuf} data)
    * @param dataType the type of the data.
    * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
-   * (of type data type)
+   *     (of type data type)
    * @throws MessageCodecException when decode fails
    */
   public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
@@ -90,9 +95,9 @@ public final class ServiceMessageCodec {
   /**
    * Encode a message, transform it to T.
    *
-   * @param message     the message to transform
+   * @param message the message to transform
    * @param transformer a function that accepts data and header {@link ByteBuf} and return the
-   *                    required T
+   *     required T
    * @return the object (transformed message)
    * @throws MessageCodecException when encoding cannot be done.
    */
@@ -136,7 +141,7 @@ public final class ServiceMessageCodec {
   /**
    * Decode buffers.
    *
-   * @param dataBuffer    the buffer of the data (payload)
+   * @param dataBuffer the buffer of the data (payload)
    * @param headersBuffer the buffer of the headers
    * @return a new Service message with {@link ByteBuf} data and with parsed headers.
    * @throws MessageCodecException when decode fails

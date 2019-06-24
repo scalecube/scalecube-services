@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket;
+package io.scalecube.services.transport.rsocket.experimental.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -8,32 +8,24 @@ import io.netty.channel.SelectStrategy;
 import io.netty.channel.SelectStrategyFactory;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import java.lang.reflect.Constructor;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
-import java.util.function.BiFunction;
 
-public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
+public class ExtendedNioEventLoopGroup extends NioEventLoopGroup implements ExtendedEventLoopGroup {
 
   private static final ThreadFactory WORKER_THREAD_FACTORY =
       new DefaultThreadFactory("rsocket-worker", true);
-
-  private final BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser;
 
   /**
    * Constructor for event loop.
    *
    * @param numOfThreads number of worker threads
-   * @param eventLoopChooser executor chooser
    */
-  public ExtendedNioEventLoopGroup(
-      int numOfThreads, BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
+  public ExtendedNioEventLoopGroup(int numOfThreads) {
     super(numOfThreads, WORKER_THREAD_FACTORY);
-    this.eventLoopChooser = eventLoopChooser;
   }
 
   @Override
@@ -61,7 +53,7 @@ public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
   @Override
   public ChannelFuture register(Channel channel) {
-    EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
+    EventLoop eventExecutor = chooseEventLoop(channel, iterator());
     return eventExecutor != null ? eventExecutor.register(channel) : super.register(channel);
   }
 

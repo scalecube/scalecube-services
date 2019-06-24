@@ -5,5 +5,4 @@ public interface ServiceTransportProvider {
   ClientTransportFactory provideClientTransportFactory();
 
   ServerTransport provideServerTransport();
-
 }

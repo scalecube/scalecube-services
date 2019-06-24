@@ -13,7 +13,9 @@ public class GatewayOptions {
   private String id;
   private int port = 0;
 
-  public GatewayOptions() {}
+  public GatewayOptions() {
+
+  }
 
   /**
    * GatewayOptions copy contractor.

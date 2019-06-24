@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <settings
-  xsi:schemaLocation='http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd'
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
   xmlns='http://maven.apache.org/SETTINGS/1.0.0'
-  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+  xsi:schemaLocation='http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd'>
+  <activeProfiles>
+    <activeProfile>bintray</activeProfile>
+    <activeProfile>ossrh</activeProfile>
+  </activeProfiles>
   <profiles>
     <profile>
       <id>skipstyle</id>
@@ -22,10 +26,10 @@
         <repository>
           <id>central</id>
           <name>bintray</name>
-          <url>http://jcenter.bintray.com</url>
           <snapshots>
             <enabled>false</enabled>
           </snapshots>
+          <url>http://jcenter.bintray.com</url>
         </repository>
       </repositories>
     </profile>
@@ -39,17 +43,13 @@
   <servers>
     <server>
       <id>ossrh</id>
-      <username>${env.SONATYPE_USERNAME}</username>
       <password>${env.SONATYPE_PASSWORD}</password>
+      <username>${env.SONATYPE_USERNAME}</username>
     </server>
     <server>
       <id>docker.io</id>
-      <username>${env.DOCKER_USERNAME}</username>
       <password>${env.DOCKER_PASSWORD}</password>
+      <username>${env.DOCKER_USERNAME}</username>
     </server>
   </servers>
-  <activeProfiles>
-    <activeProfile>bintray</activeProfile>
-    <activeProfile>ossrh</activeProfile>
-  </activeProfiles>
 </settings>

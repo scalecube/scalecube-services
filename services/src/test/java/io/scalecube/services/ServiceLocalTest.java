@@ -24,11 +24,13 @@ public class ServiceLocalTest extends BaseTest {
 
   private Microservices microservices;
 
+  /** init. */
   @BeforeEach
   public void setUp() {
     microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
+  /** clean up. */
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {

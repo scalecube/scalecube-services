@@ -30,6 +30,7 @@ public class ServiceTransportTest {
   private Microservices gateway;
   private Microservices serviceNode;
 
+  /** init. */
   @BeforeEach
   public void setUp() {
     gateway =
@@ -43,13 +44,13 @@ public class ServiceTransportTest {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts -> opts.seedMembers(gateway.discovery().address())))
+                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new SimpleQuoteService())
             .startAwait();
   }
 
+  /** clean up. */
   @AfterEach
   public void cleanUp() {
     if (gateway != null) {

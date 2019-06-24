@@ -47,7 +47,6 @@ import reactor.core.scheduler.Schedulers;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
-
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
  * ScaleCube-Services provides Reactive application development platform for building distributed
@@ -217,8 +216,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(
-        new GatewayOptions().call(call).metrics(metrics));
+    return gatewayBootstrap.start(new GatewayOptions().call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -230,8 +228,8 @@ public class Microservices {
   }
 
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransportFactory, serviceRegistry,
-        methodRegistry);
+    return new ServiceCall(
+        transportBootstrap.clientTransportFactory, serviceRegistry, methodRegistry);
   }
 
   public List<Gateway> gateways() {
@@ -279,13 +277,12 @@ public class Microservices {
         () -> {
           log.info("Shutting down microservices {}", id);
           return Mono.whenDelayError(
-              discoveryBootstrap.shutdown(),
-              gatewayBootstrap.shutdown(),
-              transportBootstrap.shutdown())
+                  discoveryBootstrap.shutdown(),
+                  gatewayBootstrap.shutdown(),
+                  transportBootstrap.shutdown())
               .doFinally(s -> log.info("Microservices {} has been shut down", id));
         });
   }
-
 
   public interface MonitorMBean {
 
@@ -415,6 +412,7 @@ public class Microservices {
     private Disposable disposable;
 
     private ServiceDiscoveryBootstrap() {
+
     }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
@@ -558,8 +556,6 @@ public class Microservices {
 
   public static class ServiceTransportBootstrap {
 
-    public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
-
     private String host = Address.getLocalIpAddress().getHostAddress();
     private int port = 0;
     private ServiceTransportProvider transportProvider;
@@ -569,6 +565,7 @@ public class Microservices {
     private Address address;
 
     private ServiceTransportBootstrap() {
+
     }
 
     private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
@@ -605,7 +602,6 @@ public class Microservices {
       return c;
     }
 
-
     /**
      * Setting for service transport provider.
      *
@@ -629,24 +625,23 @@ public class Microservices {
           .doOnError(
               ex ->
                   log.error(
-                      "Failed to bind server service "
-                          + "transport -- {} on port: {}, cause: {}",
+                      "Failed to bind server service " + "transport -- {} on port: {}, cause: {}",
                       serverTransport,
                       port,
-                      ex)
-          )
-          .doOnNext(serverTransport -> {
-            log.info(
-                "Successfully bound server service transport -- {} on address {}",
-                this.serverTransport,
-                this.address);
-            this.address = serverTransport.address();
-            this.serverTransport = serverTransport;
-            this.clientTransportFactory = transportProvider.provideClientTransportFactory();
-            log.info(
-                "Successfully created client service transport -- {}",
-                this.clientTransportFactory);
-          })
+                      ex))
+          .doOnNext(
+              serverTransport -> {
+                log.info(
+                    "Successfully bound server service transport -- {} on address {}",
+                    this.serverTransport,
+                    this.address);
+                this.address = serverTransport.address();
+                this.serverTransport = serverTransport;
+                this.clientTransportFactory = transportProvider.provideClientTransportFactory();
+                log.info(
+                    "Successfully created client service transport -- {}",
+                    this.clientTransportFactory);
+              })
           .map(ignore -> this);
     }
 
@@ -654,12 +649,10 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty())
-              )
-                  .doOnNext(s -> log.info("Service transport has been stopped"))
-      );
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()))
+                  .doOnNext(s -> log.info("Service transport has been stopped")));
     }
 
     @Override
@@ -738,8 +731,8 @@ public class Microservices {
 
     @Override
     public Collection<String> getClientServiceTransport() {
-      return Collections
-          .singletonList(microservices.transportBootstrap.clientTransportFactory.toString());
+      return Collections.singletonList(
+          microservices.transportBootstrap.clientTransportFactory.toString());
     }
 
     @Override

@@ -12,8 +12,7 @@ import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
+import io.scalecube.services.transport.rsocket.experimental.builder.RSocketNettyTcp;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -63,10 +62,7 @@ public class ExamplesRunner {
 
   private static ServiceTransportBootstrap serviceTransport(
       int numOfThreads, ServiceTransportBootstrap opts, Config config) {
-    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport)
-        .port(config.servicePort());
+    return opts.transportProvider(RSocketNettyTcp.builder().build()).port(config.servicePort());
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {

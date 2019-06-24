@@ -32,16 +32,12 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceGroupDiscovery");
 
   private final ServiceEndpoint serviceEndpoint;
-
-  private ClusterConfig clusterConfig =
-      ClusterConfig.from(ClusterConfig.defaultLanConfig()).build();
-
-  private Cluster cluster;
-
-  private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
-
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+  private ClusterConfig clusterConfig =
+      ClusterConfig.from(ClusterConfig.defaultLanConfig()).build();
+  private Cluster cluster;
+  private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
 
   /**
    * Constructor.

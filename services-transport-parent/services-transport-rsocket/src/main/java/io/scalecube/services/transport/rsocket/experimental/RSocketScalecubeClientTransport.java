@@ -16,8 +16,8 @@ import reactor.core.publisher.Mono;
 
 public class RSocketScalecubeClientTransport implements ClientTransportFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(
-      io.scalecube.services.transport.rsocket.RSocketClientTransport.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(RSocketScalecubeClientTransport.class);
 
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
@@ -25,8 +25,8 @@ public class RSocketScalecubeClientTransport implements ClientTransportFactory {
   private final ServiceMessageCodec codec;
   private final RSocketClientTransportFactory transportFactory;
 
-  public RSocketScalecubeClientTransport(RSocketClientTransportFactory transportFactory,
-      ServiceMessageCodec codec) {
+  public RSocketScalecubeClientTransport(
+      RSocketClientTransportFactory transportFactory, ServiceMessageCodec codec) {
     this.codec = codec;
     this.transportFactory = transportFactory;
   }
@@ -67,5 +67,4 @@ public class RSocketScalecubeClientTransport implements ClientTransportFactory {
             })
         .cache();
   }
-
 }

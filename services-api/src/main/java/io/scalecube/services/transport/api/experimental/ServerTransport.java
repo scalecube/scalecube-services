@@ -4,9 +4,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import reactor.core.publisher.Mono;
 
-/**
- * Server service transport interface.
- */
+/** Server service transport interface. */
 public interface ServerTransport {
 
   /**
@@ -19,12 +17,11 @@ public interface ServerTransport {
   /**
    * Starts a server transport.
    *
-   * @param address        host and port
+   * @param address host and port
    * @param methodRegistry service method registry
    * @return bound server address
    */
-  Mono<ServerTransport> bind(Address address,
-      ServiceMethodRegistry methodRegistry);
+  Mono<ServerTransport> bind(Address address, ServiceMethodRegistry methodRegistry);
 
   /**
    * Stops server transport.

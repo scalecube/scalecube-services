@@ -1,6 +1,7 @@
 package io.scalecube.services.examples.orderbook.service.engine.events;
 
 public class MatchOrder {
+
   long restingOrderId;
   long incomingOrderId;
   Side incomingSide;
@@ -8,7 +9,9 @@ public class MatchOrder {
   long executedQuantity;
   long remainingQuantity;
 
-  public MatchOrder() {}
+  public MatchOrder() {
+
+  }
 
   /**
    * Create a new Match Order.

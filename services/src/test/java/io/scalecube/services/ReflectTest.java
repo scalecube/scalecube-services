@@ -17,6 +17,14 @@ import reactor.core.publisher.Mono;
 
 public class ReflectTest {
 
+  static Stream<Arguments> argsProvider() {
+    return Stream.of(
+        Arguments.of("fireAndForget", FIRE_AND_FORGET),
+        Arguments.of("requestResponse", REQUEST_RESPONSE),
+        Arguments.of("requestStream", REQUEST_STREAM),
+        Arguments.of("requestChannel", REQUEST_CHANNEL));
+  }
+
   /**
    * Test communication mode.
    *
@@ -38,15 +46,8 @@ public class ReflectTest {
     Assertions.assertEquals(expectedMode, communicationMode, "Invalid communicationMode");
   }
 
-  static Stream<Arguments> argsProvider() {
-    return Stream.of(
-        Arguments.of("fireAndForget", FIRE_AND_FORGET),
-        Arguments.of("requestResponse", REQUEST_RESPONSE),
-        Arguments.of("requestStream", REQUEST_STREAM),
-        Arguments.of("requestChannel", REQUEST_CHANNEL));
-  }
-
   private interface TestService {
+
     void fireAndForget(Integer i);
 
     Mono<Void> emptyResponse(Integer i);

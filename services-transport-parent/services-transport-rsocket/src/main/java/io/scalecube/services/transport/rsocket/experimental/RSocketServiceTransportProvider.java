@@ -16,7 +16,6 @@ public class RSocketServiceTransportProvider implements ServiceTransportProvider
     this.serverTransport = serverTransport;
   }
 
-
   @Override
   public ClientTransportFactory provideClientTransportFactory() {
     return clientTransport;

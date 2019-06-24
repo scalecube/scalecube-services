@@ -12,7 +12,9 @@ public class ServiceGroup {
    *
    * @deprecated exposed only for de/serialization purpose.
    */
-  public ServiceGroup() {}
+  public ServiceGroup() {
+
+  }
 
   public ServiceGroup(String id, int size) {
     this.id = id;

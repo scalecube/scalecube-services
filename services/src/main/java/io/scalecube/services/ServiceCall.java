@@ -14,7 +14,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -33,11 +32,9 @@ import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
-
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
   private final ClientTransportFactory transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
@@ -335,9 +332,8 @@ public class ServiceCall {
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
             (proxy, method, params) -> {
-
               Optional<Object> check =
-                      toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
               if (check.isPresent()) {
                 return check.get(); // toString, hashCode was invoked.
               }
@@ -345,7 +341,6 @@ public class ServiceCall {
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
-
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:

@@ -16,7 +16,9 @@ public final class GreetingServiceImpl implements GreetingService {
 
   private boolean ci = System.getenv("TRAVIS") != null;
 
-  public GreetingServiceImpl() {}
+  public GreetingServiceImpl() {
+
+  }
 
   public GreetingServiceImpl(int id) {
     this.instanceId = id;

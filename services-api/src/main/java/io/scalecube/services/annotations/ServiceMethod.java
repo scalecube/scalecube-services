@@ -19,9 +19,6 @@ public @interface ServiceMethod {
    */
   String value() default "";
 
-  /**
-   * Tags of service method Api
-   */
+  /** Tags of service method Api. */
   String[] tags() default {};
-
 }

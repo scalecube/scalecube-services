@@ -1,48 +1,200 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.7.1-SNAPSHOT</version>
 
-  <parent>
-    <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.19</version>
-  </parent>
-  <packaging>pom</packaging>
+  <dependencies>
+    <!-- Test scope -->
+    <dependency>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <scope>test</scope>
+      <version>${junit.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>junit-jupiter-params</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <scope>test</scope>
+      <version>${junit.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <groupId>org.mockito</groupId>
+      <scope>test</scope>
+      <version>${mockito.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>hamcrest-all</artifactId>
+      <groupId>org.hamcrest</groupId>
+      <scope>test</scope>
+      <version>${hamcrest.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>hamcrest-core</artifactId>
+      <groupId>org.hamcrest</groupId>
+      <scope>test</scope>
+      <version>${hamcrest.version}</version>
+    </dependency>
+    <dependency>
+      <artifactId>reactor-test</artifactId>
+      <groupId>io.projectreactor</groupId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <dependencyManagement>
 
-  <name>ScaleCube</name>
-  <scm>
-    <url>https://github.com/scalecube/scalecube-services</url>
-    <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
-    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git
-    </developerConnection>
-    <tag>HEAD</tag>
-  </scm>
+    <dependencies>
+      <!-- Scalecube commons -->
+      <dependency>
+        <artifactId>scalecube-commons</artifactId>
+        <groupId>io.scalecube</groupId>
+        <version>${scalecube-commons.version}</version>
+      </dependency>
 
-  <properties>
-    <jackson.version>2.9.9</jackson.version>
-    <scalecube-cluster.version>2.3.1</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.1</scalecube-commons.version>
-    <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.11</scalecube-config.version>
-    <reactor.version>Californium-SR8</reactor.version>
-    <rsocket.version>0.12.2-RC2</rsocket.version>
-    <metrics.version>3.1.2</metrics.version>
-    <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.36.Final</netty.version>
-    <reactor-netty.version>0.8.8.RELEASE</reactor-netty.version>
-    <slf4j.version>1.7.7</slf4j.version>
-    <log4j.version>2.11.0</log4j.version>
-    <disruptor.version>3.4.2</disruptor.version>
-    <jsr305.version>3.0.2</jsr305.version>
-    <jctools.version>2.1.2</jctools.version>
-    <junit.version>5.1.1</junit.version>
-    <mockito.version>2.24.5</mockito.version>
-    <hamcrest.version>1.3</hamcrest.version>
-  </properties>
+      <!-- Scalecube cluster -->
+      <dependency>
+        <artifactId>scalecube-cluster</artifactId>
+        <groupId>io.scalecube</groupId>
+        <version>${scalecube-cluster.version}</version>
+      </dependency>
 
+      <!-- Scalecube Config -->
+      <dependency>
+        <artifactId>config</artifactId>
+        <groupId>io.scalecube</groupId>
+        <version>${scalecube-config.version}</version>
+      </dependency>
+
+      <!-- Reactor -->
+      <dependency>
+        <artifactId>reactor-bom</artifactId>
+        <groupId>io.projectreactor</groupId>
+        <scope>import</scope>
+        <type>pom</type>
+        <version>${reactor.version}</version>
+      </dependency>
+
+      <!-- Logging -->
+      <dependency>
+        <artifactId>slf4j-api</artifactId>
+        <groupId>org.slf4j</groupId>
+        <version>${slf4j.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>log4j-slf4j-impl</artifactId>
+        <groupId>org.apache.logging.log4j</groupId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>log4j-core</artifactId>
+        <groupId>org.apache.logging.log4j</groupId>
+        <version>${log4j.version}</version>
+      </dependency>
+      <!-- Disruptor -->
+      <dependency>
+        <artifactId>disruptor</artifactId>
+        <groupId>com.lmax</groupId>
+        <version>${disruptor.version}</version>
+      </dependency>
+
+      <!-- RSocket -->
+      <dependency>
+        <artifactId>rsocket-core</artifactId>
+        <groupId>io.rsocket</groupId>
+        <version>${rsocket.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>rsocket-transport-netty</artifactId>
+        <groupId>io.rsocket</groupId>
+        <version>${rsocket.version}</version>
+      </dependency>
+
+      <!-- Jackson -->
+      <dependency>
+        <artifactId>jackson-core</artifactId>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>jackson-databind</artifactId>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <version>${jackson.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>jackson-datatype-jsr310</artifactId>
+        <groupId>com.fasterxml.jackson.datatype</groupId>
+        <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Protostuff/Protobuf -->
+      <dependency>
+        <artifactId>protostuff-api</artifactId>
+        <groupId>io.protostuff</groupId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>protostuff-core</artifactId>
+        <groupId>io.protostuff</groupId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>protostuff-collectionschema</artifactId>
+        <groupId>io.protostuff</groupId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>protostuff-runtime</artifactId>
+        <groupId>io.protostuff</groupId>
+        <version>${protostuff.version}</version>
+      </dependency>
+
+      <!-- Netty -->
+      <dependency>
+        <artifactId>reactor-netty</artifactId>
+        <groupId>io.projectreactor.netty</groupId>
+        <version>${reactor-netty.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>netty-common</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>netty-buffer</artifactId>
+        <groupId>io.netty</groupId>
+        <version>${netty.version}</version>
+      </dependency>
+
+      <!-- Scalecube benchmarks -->
+      <dependency>
+        <artifactId>scalecube-benchmarks-api</artifactId>
+        <groupId>io.scalecube</groupId>
+        <version>${scalecube-benchmarks.version}</version>
+      </dependency>
+      <dependency>
+        <artifactId>scalecube-benchmarks-log4j2</artifactId>
+        <groupId>io.scalecube</groupId>
+        <version>${scalecube-benchmarks.version}</version>
+      </dependency>
+
+      <!-- Codahale -->
+      <dependency>
+        <artifactId>metrics-core</artifactId>
+        <groupId>io.dropwizard.metrics</groupId>
+        <version>${metrics.version}</version>
+      </dependency>
+
+      <!-- JCTools -->
+      <dependency>
+        <artifactId>jctools-core</artifactId>
+        <groupId>org.jctools</groupId>
+        <version>${jctools.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <modelVersion>4.0.0</modelVersion>
   <modules>
     <module>services-api</module>
     <module>services-transport-parent</module>
@@ -53,241 +205,91 @@
     <module>services-examples-parent</module>
   </modules>
 
-  <dependencyManagement>
+  <name>ScaleCube</name>
+  <packaging>pom</packaging>
 
-    <dependencies>
-      <!-- Scalecube commons -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-commons</artifactId>
-        <version>${scalecube-commons.version}</version>
-      </dependency>
+  <parent>
+    <artifactId>scalecube-parent-pom</artifactId>
+    <groupId>io.scalecube</groupId>
+    <version>0.0.19</version>
+  </parent>
 
-      <!-- Scalecube cluster -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-cluster</artifactId>
-        <version>${scalecube-cluster.version}</version>
-      </dependency>
+  <pluginRepositories>
+    <pluginRepository>
+      <id>oss.jfrog</id>
+      <name>plugins-release</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <url>https://oss.jfrog.org/artifactory/plugins-release</url>
+    </pluginRepository>
+    <pluginRepository>
+      <id>central</id>
+      <name>bintray-plugins</name>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <url>http://jcenter.bintray.com</url>
+    </pluginRepository>
+  </pluginRepositories>
 
-      <!-- Scalecube Config -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>config</artifactId>
-        <version>${scalecube-config.version}</version>
-      </dependency>
-
-      <!-- Reactor -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-bom</artifactId>
-        <version>${reactor.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- Logging -->
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>${log4j.version}</version>
-      </dependency>
-      <!-- Disruptor -->
-      <dependency>
-        <groupId>com.lmax</groupId>
-        <artifactId>disruptor</artifactId>
-        <version>${disruptor.version}</version>
-      </dependency>
-
-      <!-- RSocket -->
-      <dependency>
-        <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-core</artifactId>
-        <version>${rsocket.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-transport-netty</artifactId>
-        <version>${rsocket.version}</version>
-      </dependency>
-
-      <!-- Jackson -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-
-      <!-- Protostuff/Protobuf -->
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-api</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-core</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-collectionschema</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.protostuff</groupId>
-        <artifactId>protostuff-runtime</artifactId>
-        <version>${protostuff.version}</version>
-      </dependency>
-
-      <!-- Netty -->
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-common</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
-      <!-- Scalecube benchmarks -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-api</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-log4j2</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
-      </dependency>
-
-      <!-- Codahale -->
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${metrics.version}</version>
-      </dependency>
-
-      <!-- JCTools -->
-      <dependency>
-        <groupId>org.jctools</groupId>
-        <artifactId>jctools-core</artifactId>
-        <version>${jctools.version}</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <dependencies>
-    <!-- Test scope -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-      <version>${hamcrest.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
+  <properties>
+    <disruptor.version>3.4.2</disruptor.version>
+    <hamcrest.version>1.3</hamcrest.version>
+    <jackson.version>2.9.9</jackson.version>
+    <jctools.version>2.1.2</jctools.version>
+    <jsr305.version>3.0.2</jsr305.version>
+    <junit.version>5.1.1</junit.version>
+    <log4j.version>2.11.0</log4j.version>
+    <metrics.version>3.1.2</metrics.version>
+    <mockito.version>2.24.5</mockito.version>
+    <netty.version>4.1.36.Final</netty.version>
+    <protostuff.version>1.6.0</protostuff.version>
+    <reactor-netty.version>0.8.8.RELEASE</reactor-netty.version>
+    <reactor.version>Californium-SR8</reactor.version>
+    <rsocket.version>0.12.2-RC2</rsocket.version>
+    <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
+    <scalecube-cluster.version>2.3.1</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.1</scalecube-commons.version>
+    <scalecube-config.version>0.3.11</scalecube-config.version>
+    <slf4j.version>1.7.7</slf4j.version>
+  </properties>
 
   <repositories>
     <repository>
+      <id>oss.jfrog</id>
+      <name>jfrog</name>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-      <id>oss.jfrog</id>
-      <name>jfrog</name>
       <url>https://oss.jfrog.org/libs-release</url>
     </repository>
     <repository>
+      <id>bintray</id>
+      <name>bintray</name>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-      <id>bintray</id>
-      <name>bintray</name>
       <url>http://jcenter.bintray.com</url>
     </repository>
     <repository>
+      <id>central</id>
+      <name>central</name>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-      <id>central</id>
-      <name>central</name>
       <url>http://repo1.maven.org</url>
     </repository>
   </repositories>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>oss.jfrog</id>
-      <name>plugins-release</name>
-      <url>https://oss.jfrog.org/artifactory/plugins-release</url>
-    </pluginRepository>
-    <pluginRepository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>bintray-plugins</name>
-      <url>http://jcenter.bintray.com</url>
-    </pluginRepository>
-  </pluginRepositories>
+  <scm>
+    <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
+    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git
+    </developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/scalecube/scalecube-services</url>
+  </scm>
+
+  <version>2.7.1-SNAPSHOT</version>
 
 </project>

@@ -6,12 +6,15 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 
 public class Routers {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Routers.class);
 
   private static final ConcurrentHashMap<Class<? extends Router>, Router> routers =
       new ConcurrentHashMap<>();
 
-  private Routers() {}
+  private Routers() {
+
+  }
 
   /**
    * Get router instance by a given router class. The class should have a default constructor.

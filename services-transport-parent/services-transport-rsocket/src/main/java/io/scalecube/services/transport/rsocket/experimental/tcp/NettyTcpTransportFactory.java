@@ -11,8 +11,8 @@ import io.scalecube.services.transport.rsocket.experimental.RSocketServerTranspo
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
-public class NettyTcpTransportFactory implements RSocketClientTransportFactory,
-    RSocketServerTransportFactory {
+public class NettyTcpTransportFactory
+    implements RSocketClientTransportFactory, RSocketServerTransportFactory {
 
   private final TcpClient tcpClient;
   private final TcpServer tcpServer;
@@ -24,9 +24,7 @@ public class NettyTcpTransportFactory implements RSocketClientTransportFactory,
 
   @Override
   public ClientTransport createClient(Address address) {
-    TcpClient tcpClient = this.tcpClient
-        .host(address.host())
-        .port(address.port());
+    TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
     return TcpClientTransport.create(tcpClient);
   }
 

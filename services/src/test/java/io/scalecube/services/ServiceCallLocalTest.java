@@ -32,9 +32,8 @@ import reactor.test.StepVerifier;
 public class ServiceCallLocalTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
-
   private static Microservices provider;
+  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   @BeforeAll
   public static void setup() {
@@ -44,6 +43,14 @@ public class ServiceCallLocalTest extends BaseTest {
   @AfterAll
   public static void tearDown() {
     provider.shutdown().block();
+  }
+
+  private static Microservices serviceProvider() {
+    return Microservices.builder()
+        .discovery(ScalecubeServiceDiscovery::new)
+        .transport(ServiceTransports::rsocketServiceTransport)
+        .services(new GreetingServiceImpl())
+        .startAwait();
   }
 
   @Test
@@ -58,14 +65,6 @@ public class ServiceCallLocalTest extends BaseTest {
 
     assertEquals(
         GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
-  }
-
-  private static Microservices serviceProvider() {
-    return Microservices.builder()
-        .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceTransports::rsocketServiceTransport)
-        .services(new GreetingServiceImpl())
-        .startAwait();
   }
 
   @Test

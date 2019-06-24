@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 /** A market. */
 public class Market {
+
   private Long2ObjectOpenHashMap<OrderBook> books;
 
   private Long2ObjectOpenHashMap<Order> orders;

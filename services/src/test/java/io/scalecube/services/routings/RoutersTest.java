@@ -44,14 +44,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
-  public static final int TIMEOUT = 10;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
+  public static final int TIMEOUT = 10;
   private static Microservices gateway;
   private static Microservices provider1;
   private static Microservices provider2;
   private static Microservices provider3;
+  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
+  /** init. */
   @BeforeAll
   public static void setup() {
     gateway =
@@ -91,25 +92,29 @@ public class RoutersTest extends BaseTest {
 
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
-            Microservices
-            .builder()
+        Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(
-                    ServiceInfo.fromServiceInstance(tagService)
+                ServiceInfo.fromServiceInstance(tagService)
                     .tag("tagB", "bb")
                     .tag("tagC", "c")
-                    .build()
-            )
+                    .build())
             .startAwait();
   }
 
+  /** destroy. */
   @AfterAll
   public static void tearDown() {
     gateway.shutdown().block();
     provider1.shutdown().block();
     provider2.shutdown().block();
     provider3.shutdown().block();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   @Test
@@ -171,19 +176,21 @@ public class RoutersTest extends BaseTest {
   @Test
   public void tesTagsFromAnnotation() {
     ServiceCall serviceCall =
-            provider3
+        provider3
             .call()
-            .router((req, mes) -> {
-              ServiceReference tagServiceRef = req.listServiceReferences().get(0);
-              Map<String, String> tags = tagServiceRef.tags();
-              assertEquals(new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
-              assertEquals("a", tags.get("tagA"));
-              // user override this tag in Microservices#services
-              assertEquals("bb", tags.get("tagB"));
-              assertEquals("c",tags.get("tagC"));
-              assertEquals("a", tags.get("methodTagA"));
-              return Optional.of(tagServiceRef);
-            });
+            .router(
+                (req, mes) -> {
+                  ServiceReference tagServiceRef = req.listServiceReferences().get(0);
+                  Map<String, String> tags = tagServiceRef.tags();
+                  assertEquals(
+                      new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
+                  assertEquals("a", tags.get("tagA"));
+                  // user override this tag in Microservices#services
+                  assertEquals("bb", tags.get("tagB"));
+                  assertEquals("c", tags.get("tagC"));
+                  assertEquals("a", tags.get("methodTagA"));
+                  return Optional.of(tagServiceRef);
+                });
     serviceCall.api(TagService.class).upperCase(Flux.just("hello")).blockLast();
   }
 
@@ -265,10 +272,5 @@ public class RoutersTest extends BaseTest {
         (serviceBCount.doubleValue() / n) > 0.5,
         "Service B's Weight=0.9; at least more than half "
             + "of invocations have to be routed to Service B");
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

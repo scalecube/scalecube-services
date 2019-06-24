@@ -1,13 +1,11 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.transport.api.TransportResources;
-import java.util.Iterator;
+import io.scalecube.services.transport.rsocket.experimental.tcp.ExtendedEpollEventLoopGroup;
+import io.scalecube.services.transport.rsocket.experimental.tcp.ExtendedNioEventLoopGroup;
 import java.util.Optional;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
@@ -46,17 +44,7 @@ public class RSocketTransportResources implements TransportResources {
 
   private EventLoopGroup eventLoopGroup() {
     return Epoll.isAvailable()
-        ? new ExtendedEpollEventLoopGroup(numOfWorkers, this::chooseEventLoop)
-        : new ExtendedNioEventLoopGroup(numOfWorkers, this::chooseEventLoop);
-  }
-
-  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
-    while (executors.hasNext()) {
-      EventExecutor eventLoop = executors.next();
-      if (eventLoop.inEventLoop()) {
-        return (EventLoop) eventLoop;
-      }
-    }
-    return null;
+        ? new ExtendedEpollEventLoopGroup(numOfWorkers)
+        : new ExtendedNioEventLoopGroup(numOfWorkers);
   }
 }

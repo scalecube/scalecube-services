@@ -7,5 +7,4 @@ import io.scalecube.net.Address;
 public interface RSocketServerTransportFactory {
 
   ServerTransport<? extends Closeable> createServer(Address address);
-
 }

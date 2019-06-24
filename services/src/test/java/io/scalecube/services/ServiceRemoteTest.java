@@ -34,6 +34,7 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
+  /** init. */
   @BeforeAll
   public static void setup() {
     Hooks.onOperatorDebug();
@@ -41,6 +42,7 @@ public class ServiceRemoteTest extends BaseTest {
     provider = serviceProvider();
   }
 
+  /** clean up. */
   @AfterAll
   public static void tearDown() {
     try {
@@ -69,6 +71,11 @@ public class ServiceRemoteTest extends BaseTest {
         .transport(ServiceTransports::rsocketServiceTransport)
         .services(new GreetingServiceImpl())
         .startAwait();
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 
   @Test
@@ -379,10 +386,5 @@ public class ServiceRemoteTest extends BaseTest {
 
   private GreetingService createProxy() {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

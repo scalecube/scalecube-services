@@ -8,15 +8,6 @@ import java.util.stream.Collectors;
 
 public class ServiceDiscoveryEvent {
 
-  public enum Type {
-    ENDPOINT_ADDED, // service endpoint added
-    ENDPOINT_REMOVED, // service endpoint removed
-    ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
-    GROUP_ADDED, // service endpoint group added
-    ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
-    GROUP_REMOVED // service endpoint group removed
-  }
-
   private final Type type;
   private final ServiceEndpoint serviceEndpoint;
   private final String groupId;
@@ -145,5 +136,14 @@ public class ServiceDiscoveryEvent {
             .map(ServiceEndpoint::id)
             .collect(Collectors.joining(",", "[", "]"))
         + '}';
+  }
+
+  public enum Type {
+    ENDPOINT_ADDED, // service endpoint added
+    ENDPOINT_REMOVED, // service endpoint removed
+    ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
+    GROUP_ADDED, // service endpoint group added
+    ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
+    GROUP_REMOVED // service endpoint group removed
   }
 }

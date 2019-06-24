@@ -41,7 +41,7 @@ public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState>
 
   @Override
   protected void beforeAll() {
-    this.serviceMessageCodec = new ServiceMessageCodec(headersCodec);
+    this.serviceMessageCodec = new ServiceMessageCodec();
     this.serviceMessage = generateServiceMessage(generateData());
     this.payloadMessage = generatePayload(serviceMessage);
   }
@@ -118,6 +118,7 @@ public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState>
   }
 
   public static class PlaceOrderRequest {
+
     private String orderType;
     private String side;
     private String instanceId;
@@ -128,7 +129,9 @@ public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState>
     private String token;
     private String sourceIpAddress;
 
-    PlaceOrderRequest() {}
+    PlaceOrderRequest() {
+
+    }
 
     @Override
     public String toString() {
