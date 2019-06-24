@@ -13,16 +13,14 @@ public interface ServiceTransport<T extends TransportResources> {
   /**
    * Provier of client transport.
    *
-   * @param resources service transport resources
    * @return client transport
    */
-  ClientTransport clientTransport(T resources);
+  ClientTransport clientTransport();
 
   /**
    * Provider of server transport.
    *
-   * @param resources service transport resources
    * @return server transport
    */
-  ServerTransport serverTransport(T resources);
+  ServerTransport serverTransport();
 }

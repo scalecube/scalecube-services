@@ -625,7 +625,7 @@ public class Microservices {
           .flatMap(
               resources -> {
                 // bind server transport
-                ServerTransport serverTransport = serviceTransport.serverTransport(resources);
+                ServerTransport serverTransport = serviceTransport.serverTransport();
                 return serverTransport
                     .bind(port, methodRegistry)
                     .doOnError(
@@ -654,7 +654,7 @@ public class Microservices {
                     this.address);
 
                 // create client transport
-                this.clientTransport = serviceTransport.clientTransport(resources);
+                this.clientTransport = serviceTransport.clientTransport();
                 LOGGER.info(
                     "Successfully created client service transport -- {}", this.clientTransport);
                 return this;

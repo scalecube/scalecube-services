@@ -47,11 +47,10 @@ public class RSocketServiceTransport implements ServiceTransport<RSocketTranspor
   /**
    * Fabric method for client transport.
    *
-   * @param resources service transport resources
    * @return client transport
    */
   @Override
-  public ClientTransport clientTransport(RSocketTransportResources resources) {
+  public ClientTransport clientTransport() {
     return new RSocketClientTransport(
         messageCodec,
         resources
@@ -63,11 +62,10 @@ public class RSocketServiceTransport implements ServiceTransport<RSocketTranspor
   /**
    * Fabric method for server transport.
    *
-   * @param resources service transport resources
    * @return server transport
    */
   @Override
-  public ServerTransport serverTransport(RSocketTransportResources resources) {
+  public ServerTransport serverTransport() {
     return new RSocketServerTransport(
         messageCodec,
         resources
