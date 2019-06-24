@@ -454,9 +454,7 @@ public class Microservices {
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Failed to start service discovery -- {}, cause: {}",
-                            discovery,
-                            ex.toString()));
+                            "Failed to start service discovery -- {}, cause: ", discovery, ex));
           });
     }
 
@@ -506,10 +504,10 @@ public class Microservices {
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to start gateway -- {} with {}, cause: {}",
+                                "Failed to start gateway -- {} with {}, cause: ",
                                 gateway,
                                 options,
-                                ex.toString()));
+                                ex));
               })
           .then(Mono.just(this));
     }
@@ -617,10 +615,10 @@ public class Microservices {
                         ex ->
                             LOGGER.error(
                                 "Failed to bind server service "
-                                    + "transport -- {} on port: {}, cause: {}",
+                                    + "transport -- {} on port: {}, cause: ",
                                 serverTransport,
                                 port,
-                                ex.toString()));
+                                ex));
               })
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
@@ -649,11 +647,11 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.whenDelayError(
-                  Optional.ofNullable(serviceTransport)
-                      .map(ServiceTransport::stop)
-                      .orElse(Mono.empty()),
                   Optional.ofNullable(serverTransport)
                       .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(serviceTransport)
+                      .map(ServiceTransport::stop)
                       .orElse(Mono.empty())));
     }
 

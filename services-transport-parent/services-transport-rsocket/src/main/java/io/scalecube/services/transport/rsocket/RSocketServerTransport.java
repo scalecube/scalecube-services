@@ -70,6 +70,8 @@ public class RSocketServerTransport implements ServerTransport {
 
           return RSocketFactory.receive()
               .frameDecoder(PayloadDecoder.ZERO_COPY)
+              .errorConsumer(
+                  th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
               .transport(() -> TcpServerTransport.create(tcpServer))
               .start()
@@ -80,9 +82,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Mono<Void> stop() {
-    return Flux //
-        .concatDelayError(shutdownServer(), closeConnections(), shutdownLoopResources())
-        .then();
+    return Flux.concatDelayError(shutdownServer(), closeConnections()).then();
   }
 
   private Mono<Void> closeConnections() {
@@ -99,20 +99,6 @@ public class RSocketServerTransport implements ServerTransport {
                             })
                         .collect(Collectors.toList()))
                 .doOnTerminate(connections::clear));
-  }
-
-  private Mono<Void> shutdownLoopResources() {
-    return Mono.defer(
-        () ->
-            Optional.ofNullable(loopResources)
-                .map(
-                    lr ->
-                        lr.disposeLater()
-                            .doOnError(
-                                e ->
-                                    LOGGER.warn(
-                                        "Failed to close server transport loopResources: " + e)))
-                .orElse(Mono.empty()));
   }
 
   private Mono<Void> shutdownServer() {

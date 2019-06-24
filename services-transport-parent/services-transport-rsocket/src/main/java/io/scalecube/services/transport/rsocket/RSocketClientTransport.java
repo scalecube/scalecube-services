@@ -55,6 +55,8 @@ public class RSocketClientTransport implements ClientTransport {
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
             .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .errorConsumer(
+                th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
             .transport(() -> TcpClientTransport.create(tcpClient))
             .start();
 
