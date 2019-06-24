@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -36,10 +37,16 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.requestType(method));
 
                           // register new service method invoker
-                          methodInvokers.put(
-                              methodInfo.qualifier(),
+                          String qualifier = methodInfo.qualifier();
+                          if (methodInvokers.containsKey(qualifier)) {
+                            throw new IllegalStateException(
+                                String.format(
+                                    "MethodInvoker for api '%s' already exists", qualifier));
+                          }
+                          ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
-                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder));
+                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder);
+                          methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }
 

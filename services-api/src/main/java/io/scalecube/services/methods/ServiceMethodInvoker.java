@@ -6,7 +6,10 @@ import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -125,5 +128,15 @@ public final class ServiceMethodInvoker {
     return (response instanceof ServiceMessage)
         ? (ServiceMessage) response
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  }
+
+  @Override
+  public String toString() {
+    String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
+    String args = Stream.of(method.getParameters())
+            .map(Parameter::getType)
+            .map(Class::getSimpleName)
+            .collect(Collectors.joining(", ", "(", ")"));
+    return classAndMethod + args;
   }
 }

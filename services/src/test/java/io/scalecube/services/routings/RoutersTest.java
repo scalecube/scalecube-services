@@ -2,6 +2,7 @@ package io.scalecube.services.routings;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
+import static java.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -14,6 +15,7 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -24,11 +26,15 @@ import io.scalecube.services.routings.sut.CanaryService;
 import io.scalecube.services.routings.sut.DummyRouter;
 import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
+import io.scalecube.services.routings.sut.TagService;
 import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
@@ -44,6 +50,7 @@ public class RoutersTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider1;
   private static Microservices provider2;
+  private static Microservices provider3;
 
   @BeforeAll
   public static void setup() {
@@ -81,13 +88,28 @@ public class RoutersTest extends BaseTest {
                     .tag("Weight", "0.9")
                     .build())
             .startAwait();
+
+    TagService tagService = input -> input.map(String::toUpperCase);
+    provider3 =
+            Microservices
+            .builder()
+            .discovery(RoutersTest::serviceDiscovery)
+            .transport(ServiceTransports::rsocketServiceTransport)
+            .services(
+                    ServiceInfo.fromServiceInstance(tagService)
+                    .tag("tagB", "bb")
+                    .tag("tagC", "c")
+                    .build()
+            )
+            .startAwait();
   }
 
   @AfterAll
   public static void tearDown() {
-    gateway.shutdown();
-    provider1.shutdown();
-    provider2.shutdown();
+    gateway.shutdown().block();
+    provider1.shutdown().block();
+    provider2.shutdown().block();
+    provider3.shutdown().block();
   }
 
   @Test
@@ -144,6 +166,25 @@ public class RoutersTest extends BaseTest {
     assertTrue(
         (serviceBCount.doubleValue() / n) > 0.5,
         "Service B's Weight=0.9; more than half of invocations have to be routed to Service B");
+  }
+
+  @Test
+  public void tesTagsFromAnnotation() {
+    ServiceCall serviceCall =
+            provider3
+            .call()
+            .router((req, mes) -> {
+              ServiceReference tagServiceRef = req.listServiceReferences().get(0);
+              Map<String, String> tags = tagServiceRef.tags();
+              assertEquals(new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
+              assertEquals("a", tags.get("tagA"));
+              // user override this tag in Microservices#services
+              assertEquals("bb", tags.get("tagB"));
+              assertEquals("c",tags.get("tagC"));
+              assertEquals("a", tags.get("methodTagA"));
+              return Optional.of(tagServiceRef);
+            });
+    serviceCall.api(TagService.class).upperCase(Flux.just("hello")).blockLast();
   }
 
   @Test

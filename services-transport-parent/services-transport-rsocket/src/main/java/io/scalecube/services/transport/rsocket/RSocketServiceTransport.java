@@ -14,29 +14,63 @@ import reactor.netty.resources.LoopResources;
  */
 public class RSocketServiceTransport implements ServiceTransport {
 
+  /**
+   * Default Instance.
+   */
   public static final RSocketServiceTransport INSTANCE = new RSocketServiceTransport();
 
-  private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance("application/json");
-  private static final ServiceMessageCodec MESSAGE_CODEC = new ServiceMessageCodec(HEADERS_CODEC);
-  private static final LoopResources LOOP_RESOURCES = LoopResources.create("rsocket-worker");
+  private final ServiceMessageCodec messageCodec;
+  private final LoopResources loopResources;
 
+  /**
+   * Default instance.
+   */
+  public RSocketServiceTransport() {
+    HeadersCodec headersCodec = HeadersCodec.getInstance("application/json");
+    messageCodec = new ServiceMessageCodec(headersCodec);
+    loopResources = LoopResources.create("rsocket-worker");
+  }
+
+  /**
+   * Constructor with DI.
+   *
+   * @param headersCodec  user's headers codec
+   * @param loopResources loopResources
+   */
+  public RSocketServiceTransport(HeadersCodec headersCodec, LoopResources loopResources) {
+    this.messageCodec = new ServiceMessageCodec(headersCodec);
+    this.loopResources = loopResources;
+  }
+
+  /**
+   * Fabric method for client transport.
+   *
+   * @param resources service transport resources
+   * @return client's transport
+   */
   @Override
   public ClientTransport clientTransport(TransportResources resources) {
     return new RSocketClientTransport(
-        MESSAGE_CODEC,
+        messageCodec,
         ((RSocketTransportResources) resources)
             .workerPool()
             .<LoopResources>map(DelegatedLoopResources::newClientLoopResources)
-            .orElse(LOOP_RESOURCES));
+            .orElse(loopResources));
   }
 
+  /**
+   * Fabric method for server transport.
+   *
+   * @param resources service transport resources
+   * @return server's transport
+   */
   @Override
   public ServerTransport serverTransport(TransportResources resources) {
     return new RSocketServerTransport(
-        MESSAGE_CODEC,
+        messageCodec,
         ((RSocketTransportResources) resources)
             .workerPool()
             .<LoopResources>map(DelegatedLoopResources::newServerLoopResources)
-            .orElse(LOOP_RESOURCES));
+            .orElse(loopResources));
   }
 }
