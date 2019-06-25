@@ -16,7 +16,6 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.ServiceTransports;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -31,6 +30,7 @@ import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -57,13 +57,13 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -78,7 +78,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -94,7 +94,7 @@ public class RoutersTest extends BaseTest {
             Microservices
             .builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(
                     ServiceInfo.fromServiceInstance(tagService)
                     .tag("tagB", "bb")

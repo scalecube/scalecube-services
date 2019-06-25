@@ -1,8 +1,10 @@
-package io.scalecube.services;
+package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -18,7 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
-public class ServiceTransportTest {
+public class RSocketServiceTransportTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();
@@ -35,7 +37,7 @@ public class ServiceTransportTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
     serviceNode =
@@ -43,9 +45,8 @@ public class ServiceTransportTest {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new SimpleQuoteService())
             .startAwait();
   }
