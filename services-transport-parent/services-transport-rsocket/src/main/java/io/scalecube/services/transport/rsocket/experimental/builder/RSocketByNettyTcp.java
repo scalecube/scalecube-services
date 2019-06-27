@@ -20,14 +20,14 @@ import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
 /** Builder for RSocket Transport based on Netty Tcp. */
-public class RSocketNettyTcp {
+public class RSocketByNettyTcp {
 
   private TcpClient tcpClient;
   private TcpServer tcpServer;
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs = new ArrayList<>();
 
-  private RSocketNettyTcp() {
+  private RSocketByNettyTcp() {
     LoopResources clientResources = TcpLoopResources.clientLoopResources();
     this.tcpClient = TcpClient.newConnection().runOn(clientResources);
     LoopResources serverResources = TcpLoopResources.serverLoopResources();
@@ -39,8 +39,8 @@ public class RSocketNettyTcp {
    *
    * @return builder
    */
-  public static RSocketNettyTcp builder() {
-    return new RSocketNettyTcp();
+  public static RSocketByNettyTcp builder() {
+    return new RSocketByNettyTcp();
   }
 
   /**
@@ -51,7 +51,7 @@ public class RSocketNettyTcp {
    * @param customizer customizer function
    * @return current builder
    */
-  public RSocketNettyTcp customizeClient(Function<TcpClient, TcpClient> customizer) {
+  public RSocketByNettyTcp customizeClient(Function<TcpClient, TcpClient> customizer) {
     this.tcpClient = requireNonNull(customizer, "Must be not null").apply(this.tcpClient);
     return this;
   }
@@ -64,7 +64,7 @@ public class RSocketNettyTcp {
    * @param customizer customizer function
    * @return current builder
    */
-  public RSocketNettyTcp customizeServer(Function<TcpServer, TcpServer> customizer) {
+  public RSocketByNettyTcp customizeServer(Function<TcpServer, TcpServer> customizer) {
     this.tcpServer = requireNonNull(customizer, "Must be not null").apply(this.tcpServer);
     return this;
   }
@@ -75,7 +75,7 @@ public class RSocketNettyTcp {
    * @param headersCodec headers codec
    * @return current builder
    */
-  public RSocketNettyTcp headersCodec(HeadersCodec headersCodec) {
+  public RSocketByNettyTcp headersCodec(HeadersCodec headersCodec) {
     this.headersCodec = headersCodec;
     return this;
   }
@@ -86,7 +86,7 @@ public class RSocketNettyTcp {
    * @param dataCodecs data codecs
    * @return current builder
    */
-  public RSocketNettyTcp dataCodecs(Collection<DataCodec> dataCodecs) {
+  public RSocketByNettyTcp dataCodecs(Collection<DataCodec> dataCodecs) {
     this.dataCodecs.addAll(dataCodecs);
     return this;
   }
@@ -97,7 +97,7 @@ public class RSocketNettyTcp {
    * @param dataCodecs data codecs
    * @return current builder
    */
-  public RSocketNettyTcp dataCodecs(DataCodec... dataCodecs) {
+  public RSocketByNettyTcp dataCodecs(DataCodec... dataCodecs) {
     return dataCodecs(asList(dataCodecs));
   }
 

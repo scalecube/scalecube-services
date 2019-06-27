@@ -1,7 +1,7 @@
 package io.scalecube.services.examples;
 
 import io.scalecube.services.Microservices.ServiceTransportBootstrap;
-import io.scalecube.services.transport.rsocket.experimental.builder.RSocketNettyTcp;
+import io.scalecube.services.transport.rsocket.experimental.builder.RSocketByNettyTcp;
 
 public class ServiceTransports {
 
@@ -16,6 +16,6 @@ public class ServiceTransports {
    * @return new {@code ServiceTransportBootstrap} object
    */
   public static ServiceTransportBootstrap rsocketServiceTransport(ServiceTransportBootstrap opts) {
-    return opts.transportProvider(RSocketNettyTcp.builder().build());
+    return opts.transportProvider(RSocketByNettyTcp.builder().build());
   }
 }

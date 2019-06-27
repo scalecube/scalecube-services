@@ -26,7 +26,11 @@ public class Example1 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opt -> opt
+                .transportProvider(null)
+                .host("host")
+                .port(9000)
+            )
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
