@@ -9,6 +9,9 @@ import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.experimental.ServerTransport;
 import io.scalecube.services.transport.rsocket.RSocketServerTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceAcceptor;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.ServerSocket;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,15 +42,28 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
   public Mono<ServerTransport> bind(Address address, ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
-          this.address = address;
+          this.address = replaceZeroPort(address);
           return RSocketFactory.receive()
               .frameDecoder(PayloadDecoder.ZERO_COPY)
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-              .transport(transportFactory.createServer(address))
+              .transport(transportFactory.createServer(this.address))
               .start()
               .doOnSuccess(this::setServer)
               .thenReturn(this);
         });
+  }
+
+  private Address replaceZeroPort(Address address) {
+    if (address.port() != 0) {
+      return address;
+    }
+    int randomPort = 0;
+    try {
+      randomPort = new ServerSocket(0).getLocalPort();
+      return Address.create(address.host(), randomPort);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e.getMessage(), e);
+    }
   }
 
   @Override
