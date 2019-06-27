@@ -9,12 +9,20 @@ import io.scalecube.net.Address;
 import io.scalecube.services.transport.rsocket.experimental.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.experimental.RSocketServerTransportFactory;
 import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.netty.Connection;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
 public class NettyTcpTransportFactory
     implements RSocketClientTransportFactory, RSocketServerTransportFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(NettyTcpTransportFactory.class);
 
   private final TcpClient tcpClient;
   private final TcpServer tcpServer;
@@ -33,30 +41,48 @@ public class NettyTcpTransportFactory
   @Override
   public ServerTransport<Server> createServer(Address address) {
     TcpServer tcpServer = this.tcpServer.host(address.host()).port(address.port());
-    ServerTransport<CloseableChannel> serverTransport = TcpServerTransport.create(tcpServer);
-    return new NettyServerTransportAdapter(serverTransport);
+
+    return new NettyServerTransportAdapter(tcpServer);
   }
 
   private static class NettyServerTransportAdapter implements ServerTransport<Server> {
 
     private final ServerTransport<CloseableChannel> delegate;
 
-    private NettyServerTransportAdapter(ServerTransport<CloseableChannel> delegate) {
-      this.delegate = delegate;
+    private final List<Connection> connections;
+
+    private NettyServerTransportAdapter(TcpServer server) {
+      this.connections = new CopyOnWriteArrayList<>();
+      TcpServer tcpServer =
+          server.doOnConnection(
+              connection -> {
+                LOGGER.info("Accepted connection on {}", connection.channel());
+                connection.onDispose(
+                    () -> {
+                      LOGGER.info("Connection closed on {}", connection.channel());
+                      connections.remove(connection);
+                    });
+                connections.add(connection);
+              });
+      this.delegate = TcpServerTransport.create(tcpServer);
     }
 
     @Override
     public Mono<Server> start(ConnectionAcceptor acceptor, int mtu) {
-      return delegate.start(acceptor, mtu).map(NettyServer::new);
+      return delegate
+          .start(acceptor, mtu)
+          .map(delegate1 -> new NettyServer(delegate1, connections));
     }
   }
 
   private static class NettyServer implements Server {
 
     private final CloseableChannel delegate;
+    private final List<Connection> connections;
 
-    private NettyServer(CloseableChannel delegate) {
+    private NettyServer(CloseableChannel delegate, List<Connection> connections) {
       this.delegate = delegate;
+      this.connections = connections;
     }
 
     @Override
@@ -67,7 +93,19 @@ public class NettyTcpTransportFactory
 
     @Override
     public Mono<Void> onClose() {
-      return delegate.onClose();
+      Mono<Void> closeConnections =
+          Mono.whenDelayError(
+                  connections.stream()
+                      .map(
+                          connection -> {
+                            connection.dispose();
+                            return connection
+                                .onTerminate()
+                                .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
+                          })
+                      .collect(Collectors.toList()))
+              .doOnTerminate(connections::clear);
+      return closeConnections.then(delegate.onClose());
     }
 
     @Override
