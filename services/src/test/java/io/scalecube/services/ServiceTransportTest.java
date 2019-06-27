@@ -55,14 +55,14 @@ public class ServiceTransportTest {
   public void cleanUp() {
     if (gateway != null) {
       try {
-        gateway.shutdown();
+        gateway.shutdown().block();
       } catch (Throwable ignore) {
         // no-op
       }
     }
     if (serviceNode != null) {
       try {
-        serviceNode.shutdown();
+        serviceNode.shutdown().block();
       } catch (Throwable ignore) {
         // no-op
       }

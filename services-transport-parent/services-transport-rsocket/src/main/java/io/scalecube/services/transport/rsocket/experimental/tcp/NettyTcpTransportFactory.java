@@ -1,13 +1,15 @@
 package io.scalecube.services.transport.rsocket.experimental.tcp;
 
-import io.rsocket.Closeable;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.ServerTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.rsocket.experimental.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.experimental.RSocketServerTransportFactory;
+import java.net.InetSocketAddress;
+import reactor.core.publisher.Mono;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
@@ -29,8 +31,48 @@ public class NettyTcpTransportFactory
   }
 
   @Override
-  public ServerTransport<? extends Closeable> createServer(Address address) {
+  public ServerTransport<Server> createServer(Address address) {
     TcpServer tcpServer = this.tcpServer.host(address.host()).port(address.port());
-    return TcpServerTransport.create(tcpServer);
+    ServerTransport<CloseableChannel> serverTransport = TcpServerTransport.create(tcpServer);
+    return new NettyServerTransportAdapter(serverTransport);
+  }
+
+  private static class NettyServerTransportAdapter implements ServerTransport<Server> {
+
+    private final ServerTransport<CloseableChannel> delegate;
+
+    private NettyServerTransportAdapter(ServerTransport<CloseableChannel> delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Mono<Server> start(ConnectionAcceptor acceptor, int mtu) {
+      return delegate.start(acceptor, mtu).map(NettyServer::new);
+    }
+  }
+
+  private static class NettyServer implements Server {
+
+    private final CloseableChannel delegate;
+
+    private NettyServer(CloseableChannel delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public Address address() {
+      InetSocketAddress address = delegate.address();
+      return Address.create(address.getHostString(), address.getPort());
+    }
+
+    @Override
+    public Mono<Void> onClose() {
+      return delegate.onClose();
+    }
+
+    @Override
+    public void dispose() {
+      delegate.dispose();
+    }
   }
 }

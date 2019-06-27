@@ -43,6 +43,8 @@ public class RSocketScalecubeClientTransport implements ClientTransportFactory {
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
             .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .errorConsumer(
+                th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
             .transport(() -> transportFactory.createClient(address))
             .start();
 

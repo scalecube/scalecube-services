@@ -166,17 +166,17 @@ public class Microservices {
     return transportBootstrap
         .start(methodRegistry)
         .publishOn(scheduler)
-        .map(transportBootstrap -> transportBootstrap.address)
         .flatMap(
-            serviceAddress -> {
+            serviceAddressOpt -> {
               final ServiceCall call = call();
+
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
                       .id(id)
-                      .address(serviceAddress)
                       .contentTypes(DataCodec.getAllContentTypes())
                       .tags(tags);
+              serviceAddressOpt.ifPresent(serviceEndpointBuilder::address);
 
               // invoke service providers and register services
               List<Object> serviceInstances =
@@ -216,7 +216,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(new GatewayOptions().call(call).metrics(metrics));
+    return gatewayBootstrap.start(new GatewayOptions().workerPool(null).call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -614,9 +614,9 @@ public class Microservices {
       return c;
     }
 
-    private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
+    private Mono<Optional<Address>> start(ServiceMethodRegistry methodRegistry) {
       if (transportProvider == null) {
-        return Mono.defer(Mono::empty);
+        return Mono.defer(() -> Mono.just(Optional.empty()));
       }
       Address address = Address.create(host, port);
       return transportProvider
@@ -642,7 +642,7 @@ public class Microservices {
                     "Successfully created client service transport -- {}",
                     this.clientTransportFactory);
               })
-          .map(ignore -> this);
+          .map(ignore -> Optional.of(this.address));
     }
 
     private Mono<Void> shutdown() {
