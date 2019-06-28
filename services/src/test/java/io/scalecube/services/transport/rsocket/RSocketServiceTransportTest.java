@@ -18,7 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
-public class ServiceTransportTest {
+public class RSocketServiceTransportTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();

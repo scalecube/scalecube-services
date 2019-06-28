@@ -55,6 +55,8 @@ public class RSocketClientTransport implements ClientTransport {
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
             .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .errorConsumer(
+                th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
             .transport(() -> TcpClientTransport.create(tcpClient))
             .start();
 
@@ -70,11 +72,12 @@ public class RSocketClientTransport implements ClientTransport {
                         monoMap.remove(address);
                         LOGGER.info("Connection closed on {}", address);
                       })
-                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
+                  .subscribe(
+                      null, th -> LOGGER.warn("Exception on closing rsocket: {}", th.toString()));
             })
         .doOnError(
-            throwable -> {
-              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+            th -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, th.toString());
               monoMap.remove(address);
             })
         .cache();

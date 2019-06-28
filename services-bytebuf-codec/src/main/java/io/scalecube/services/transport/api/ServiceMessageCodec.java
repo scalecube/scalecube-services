@@ -116,7 +116,7 @@ public final class ServiceMessageCodec {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer);
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), ex);
       }
@@ -129,7 +129,7 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(headersBuffer);
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
-        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
+        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
       }

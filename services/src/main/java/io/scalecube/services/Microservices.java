@@ -112,7 +112,7 @@ import sun.misc.SignalHandler;
  */
 public class Microservices {
 
-  public static final Logger log = LoggerFactory.getLogger(Microservices.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final String id;
   private final Metrics metrics;
@@ -145,7 +145,7 @@ public class Microservices {
     shutdown
         .then(doShutdown())
         .doFinally(s -> onShutdown.onComplete())
-        .subscribe(null, ex -> log.warn("Exception occurred on microservices stop: " + ex));
+        .subscribe(null, ex -> LOGGER.warn("Exception occurred on microservices stop: " + ex));
   }
 
   public static Builder builder() {
@@ -157,7 +157,7 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    log.info("Starting microservices {}", id);
+    LOGGER.info("Starting microservices {}", id);
 
     // Create bootstrap scheduler
     String schedulerName = "microservices" + Integer.toHexString(id.hashCode());
@@ -275,34 +275,13 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          log.info("Shutting down microservices {}", id);
+          LOGGER.info("Shutting down microservices {}", id);
           return Mono.whenDelayError(
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
-              .doFinally(s -> log.info("Microservices {} has been shut down", id));
+              .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
         });
-  }
-
-  public interface MonitorMBean {
-
-    Collection<String> getId();
-
-    Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
-
-    Collection<String> getServiceEndpoint();
-
-    Collection<String> getServiceEndpoints();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    Collection<String> getClientServiceTransport();
-
-    Collection<String> getServerServiceTransport();
-
-    Collection<String> getServiceDiscovery();
   }
 
   public static final class Builder {
@@ -460,18 +439,18 @@ public class Microservices {
               throw new IllegalStateException(
                   "Create service discovery instance before starting it");
             }
-            log.info("Starting service discovery -- {}", discovery);
+            LOGGER.info("Starting service discovery -- {}", discovery);
             return discovery
                 .start()
                 .doOnSuccess(
                     serviceDiscovery -> {
                       discovery = serviceDiscovery;
-                      log.info("Successfully started service discovery -- {}", discovery);
+                      LOGGER.info("Successfully started service discovery -- {}", discovery);
                     })
                 .doOnError(
                     ex ->
-                        log.error(
-                            "Failed to start service discovery -- {}, cause: {}", discovery, ex));
+                        LOGGER.error(
+                            "Failed to start service discovery -- {}, cause: ", discovery, ex));
           });
     }
 
@@ -487,7 +466,7 @@ public class Microservices {
                           disposable.dispose();
                         }
                         if (discovery != null) {
-                          log.info("Service discovery -- {} has been stopped", discovery);
+                          LOGGER.info("Service discovery -- {} has been stopped", discovery);
                         }
                       }));
     }
@@ -508,20 +487,20 @@ public class Microservices {
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                log.info("Starting gateway -- {} with {}", gateway, options);
+                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
                     .doOnSuccess(
                         result ->
-                            log.info(
+                            LOGGER.info(
                                 "Successfully started gateway -- {} on {}",
                                 result,
                                 result.address()))
                     .doOnError(
                         ex ->
-                            log.error(
-                                "Failed to start gateway -- {} with {}, cause: {}",
+                            LOGGER.error(
+                                "Failed to start gateway -- {} with {}, cause: ",
                                 gateway,
                                 options,
                                 ex));
@@ -536,7 +515,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (!gateways.isEmpty()) {
-                          log.info("Gateways have been stopped");
+                          LOGGER.info("Gateways have been stopped");
                         }
                       }));
     }
@@ -603,7 +582,7 @@ public class Microservices {
     }
 
     /**
-     * Setting for service transport provider.
+     * Settings for service transport provider.
      *
      * @param provider transport provider
      * @return new {@code ServiceTransportBootstrap} instance
@@ -652,7 +631,7 @@ public class Microservices {
                       Optional.ofNullable(serverTransport)
                           .map(ServerTransport::stop)
                           .orElse(Mono.empty()))
-                  .doOnNext(s -> log.info("Service transport has been stopped")));
+                  .doOnNext(s -> LOGGER.info("Service transport has been stopped")));
     }
 
     @Override
@@ -668,6 +647,27 @@ public class Microservices {
           + serverTransport.getClass()
           + "}";
     }
+  }
+
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -691,6 +691,12 @@ public class Microservices {
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
+    }
+
+    private JmxMonitorMBean(Microservices microservices) {
+      this.microservices = microservices;
+      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
+      microservices.discovery().listenDiscovery().subscribe(processor);
     }
 
     @Override

@@ -13,6 +13,7 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -61,14 +62,14 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
         .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -204,7 +205,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -227,7 +228,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(another)
             .startAwait();
 
@@ -247,7 +248,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(another) // add service a and b
             .startAwait();
 
@@ -272,7 +273,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(another) // add service a and b
             .startAwait();
 
@@ -356,7 +357,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .tags(tags)
             .services(new GreetingServiceImpl())
             .startAwait();

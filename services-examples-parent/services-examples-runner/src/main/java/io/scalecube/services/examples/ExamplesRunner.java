@@ -53,7 +53,7 @@ public class ExamplesRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(numOfThreads, opts, config))
+        .transport(opts -> serviceTransport(opts, numOfThreads, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()

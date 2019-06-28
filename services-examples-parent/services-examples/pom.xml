@@ -1,64 +1,62 @@
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.scalecube</groupId>
+    <artifactId>scalecube-services-examples-parent</artifactId>
+    <version>2.7.2-SNAPSHOT</version>
+  </parent>
+
   <artifactId>scalecube-services-examples</artifactId>
 
   <dependencies>
     <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
-      <groupId>io.scalecube</groupId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <groupId>io.scalecube</groupId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
-      <groupId>io.scalecube</groupId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <groupId>io.scalecube</groupId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
-      <groupId>io.scalecube</groupId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
-      <artifactId>fastutil</artifactId>
       <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
       <version>8.1.1</version>
     </dependency>
 
     <dependency>
-      <artifactId>slf4j-api</artifactId>
       <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
-      <groupId>org.apache.logging.log4j</groupId>
     </dependency>
     <dependency>
-      <artifactId>log4j-core</artifactId>
       <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
     </dependency>
   </dependencies>
-
-  <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <artifactId>scalecube-services-examples-parent</artifactId>
-    <groupId>io.scalecube</groupId>
-    <version>2.7.1-SNAPSHOT</version>
-  </parent>
 
 </project>
