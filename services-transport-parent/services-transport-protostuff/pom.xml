@@ -1,5 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <artifactId>scalecube-services-transport-protostuff</artifactId>
+
+  <dependencies>
+    <dependency>
+      <artifactId>scalecube-services-api</artifactId>
+      <groupId>io.scalecube</groupId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <artifactId>protostuff-core</artifactId>
+      <groupId>io.protostuff</groupId>
+    </dependency>
+    <dependency>
+      <artifactId>protostuff-collectionschema</artifactId>
+      <groupId>io.protostuff</groupId>
+    </dependency>
+    <dependency>
+      <artifactId>protostuff-runtime</artifactId>
+      <groupId>io.protostuff</groupId>
+    </dependency>
+  </dependencies>
+
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -7,28 +32,5 @@
     <groupId>io.scalecube</groupId>
     <version>2.7.2-SNAPSHOT</version>
   </parent>
-
-  <artifactId>scalecube-services-transport-protostuff</artifactId>
-
-  <dependencies>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>io.protostuff</groupId>
-      <artifactId>protostuff-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.protostuff</groupId>
-      <artifactId>protostuff-collectionschema</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.protostuff</groupId>
-      <artifactId>protostuff-runtime</artifactId>
-    </dependency>
-  </dependencies>
 
 </project>

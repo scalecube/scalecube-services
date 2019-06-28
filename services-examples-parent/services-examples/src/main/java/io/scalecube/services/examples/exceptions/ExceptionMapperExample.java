@@ -5,7 +5,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.examples.ServiceTransports;
 import java.util.Collections;
 
 public class ExceptionMapperExample {
@@ -20,7 +20,7 @@ public class ExceptionMapperExample {
     Microservices ms1 =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
@@ -33,7 +33,7 @@ public class ExceptionMapperExample {
     Microservices ms2 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, ms1))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 call -> {
                   ServiceA serviceA =

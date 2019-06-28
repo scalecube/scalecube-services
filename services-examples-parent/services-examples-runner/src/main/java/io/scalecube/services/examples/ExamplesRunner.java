@@ -1,5 +1,7 @@
 package io.scalecube.services.examples;
 
+import static reactor.netty.ReactorNetty.IO_WORKER_COUNT;
+
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -49,11 +51,12 @@ public class ExamplesRunner {
     int numOfThreads =
         Optional.ofNullable(config.numOfThreads())
             .orElse(Runtime.getRuntime().availableProcessors());
+    System.setProperty(IO_WORKER_COUNT, String.valueOf(numOfThreads));
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(opts, numOfThreads, config))
+        .transport(ServiceTransports::rsocketServiceTransport)
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()

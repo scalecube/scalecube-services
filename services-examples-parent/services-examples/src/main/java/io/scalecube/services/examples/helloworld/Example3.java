@@ -2,9 +2,9 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
 import io.scalecube.services.examples.helloworld.service.api.BidiGreetingService;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Flux;
 
 /**
@@ -27,7 +27,7 @@ public class Example3 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
@@ -37,7 +37,7 @@ public class Example3 {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seed.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new BidiGreetingImpl())
             .startAwait();
 

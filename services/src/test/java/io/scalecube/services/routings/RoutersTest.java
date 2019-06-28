@@ -30,7 +30,7 @@ import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.ServiceTransports;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -58,13 +58,13 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -79,7 +79,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -94,7 +94,7 @@ public class RoutersTest extends BaseTest {
     provider3 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(
                 ServiceInfo.fromServiceInstance(tagService)
                     .tag("tagB", "bb")

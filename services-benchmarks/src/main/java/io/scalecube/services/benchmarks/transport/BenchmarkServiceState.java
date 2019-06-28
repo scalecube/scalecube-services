@@ -6,7 +6,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.examples.ServiceTransports;
 import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +34,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
         Microservices.builder()
             .metrics(registry())
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     Address seedAddress = seed.discovery().address();
@@ -46,7 +46,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(services)
             .startAwait();
 

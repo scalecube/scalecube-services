@@ -170,7 +170,6 @@ public class Microservices {
             serviceAddressOpt -> {
               final ServiceCall call = call();
 
-
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
                       .id(id)
@@ -216,7 +215,8 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(new GatewayOptions().workerPool(null).call(call).metrics(metrics));
+    return gatewayBootstrap.start(
+        new GatewayOptions().workerPool(null).call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -282,6 +282,27 @@ public class Microservices {
                   transportBootstrap.shutdown())
               .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
         });
+  }
+
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
   }
 
   public static final class Builder {
@@ -603,21 +624,21 @@ public class Microservices {
           .bind(address, methodRegistry)
           .doOnError(
               ex ->
-                  log.error(
+                  LOGGER.error(
                       "Failed to bind server service " + "transport -- {} on port: {}, cause: {}",
                       serverTransport,
                       port,
                       ex))
           .doOnNext(
               serverTransport -> {
-                log.info(
+                LOGGER.info(
                     "Successfully bound server service transport -- {} on address {}",
                     this.serverTransport,
                     this.address);
                 this.address = serverTransport.address();
                 this.serverTransport = serverTransport;
                 this.clientTransportFactory = transportProvider.provideClientTransportFactory();
-                log.info(
+                LOGGER.info(
                     "Successfully created client service transport -- {}",
                     this.clientTransportFactory);
               })
@@ -649,27 +670,6 @@ public class Microservices {
     }
   }
 
-  public interface MonitorMBean {
-
-    Collection<String> getId();
-
-    Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
-
-    Collection<String> getServiceEndpoint();
-
-    Collection<String> getServiceEndpoints();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    Collection<String> getClientServiceTransport();
-
-    Collection<String> getServerServiceTransport();
-
-    Collection<String> getServiceDiscovery();
-  }
-
   private static class JmxMonitorMBean implements MonitorMBean {
 
     public static final int MAX_CACHE_SIZE = 128;
@@ -691,12 +691,6 @@ public class Microservices {
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
-    }
-
-    private JmxMonitorMBean(Microservices microservices) {
-      this.microservices = microservices;
-      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      microservices.discovery().listenDiscovery().subscribe(processor);
     }
 
     @Override

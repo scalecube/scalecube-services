@@ -10,8 +10,8 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.transport.ServiceTransports;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -31,14 +31,14 @@ public class StreamingServiceTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
     node =
         Microservices.builder()
             .discovery(StreamingServiceTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
             .startAwait();

@@ -10,7 +10,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.transport.ServiceTransports;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +36,7 @@ public class ServiceRegistryTest {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     seed.discovery().listenDiscovery().subscribe(events::add);
@@ -46,14 +46,14 @@ public class ServiceRegistryTest {
     Microservices ms1 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -77,7 +77,7 @@ public class ServiceRegistryTest {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new AnnotationServiceImpl())
             .startAwait();
     cluster.add(seed);
@@ -92,7 +92,7 @@ public class ServiceRegistryTest {
               Microservices ms1 =
                   Microservices.builder()
                       .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-                      .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                      .transport(ServiceTransports::rsocketServiceTransport)
                       .services(new GreetingServiceImpl())
                       .startAwait();
               cluster.add(ms1);
@@ -103,7 +103,7 @@ public class ServiceRegistryTest {
               Microservices ms2 =
                   Microservices.builder()
                       .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-                      .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                      .transport(ServiceTransports::rsocketServiceTransport)
                       .services(new GreetingServiceImpl())
                       .startAwait();
               cluster.add(ms2);
@@ -145,7 +145,7 @@ public class ServiceRegistryTest {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
             .startAwait();
     cluster.add(seed);
@@ -160,7 +160,7 @@ public class ServiceRegistryTest {
               Microservices ms1 =
                   Microservices.builder()
                       .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-                      .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                      .transport(ServiceTransports::rsocketServiceTransport)
                       .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
                       .startAwait();
               cluster.add(ms1);
@@ -171,7 +171,7 @@ public class ServiceRegistryTest {
               Microservices ms2 =
                   Microservices.builder()
                       .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-                      .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                      .transport(ServiceTransports::rsocketServiceTransport)
                       .services(new GreetingServiceImpl())
                       .startAwait();
               cluster.add(ms2);

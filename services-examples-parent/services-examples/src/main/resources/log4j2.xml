@@ -1,23 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration>
 
-  <Properties>
-    <Property name="patternLayout">%level{length=1} %d{ISO8601} %c{1.} %m [%t]%n</Property>
-  </Properties>
-
   <Appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="${patternLayout}"/>
     </Console>
-
-    <RollingFile name="FILE" fileName="logs/server.log" filePattern="logs/server-%i.log">
-      <PatternLayout pattern="${patternLayout}"/>
-      <Policies>
-        <OnStartupTriggeringPolicy/>
-        <SizeBasedTriggeringPolicy size="100 MB"/>
-      </Policies>
-      <DefaultRolloverStrategy max="1000"/>
-    </RollingFile>
 
     <Console name="JSON_STDOUT" target="SYSTEM_OUT">
       <JSONLayout compact="true" eventEol="true" properties="true" stacktraceAsString="true">
@@ -29,7 +16,17 @@
       </JSONLayout>
     </Console>
 
-    <RollingFile name="JSON_FILE" fileName="logs/server.log" filePattern="logs/server-%i.log">
+    <RollingFile fileName="logs/server.log" filePattern="logs/server-%i.log" name="FILE">
+      <DefaultRolloverStrategy max="1000"/>
+      <PatternLayout pattern="${patternLayout}"/>
+      <Policies>
+        <OnStartupTriggeringPolicy/>
+        <SizeBasedTriggeringPolicy size="100 MB"/>
+      </Policies>
+    </RollingFile>
+
+    <RollingFile fileName="logs/server.log" filePattern="logs/server-%i.log" name="JSON_FILE">
+      <DefaultRolloverStrategy max="1000"/>
       <JSONLayout compact="true" eventEol="true" properties="true" stacktraceAsString="true">
         <KeyValuePair key="date" value="$${date:yyyy-MM-dd'T'HH:mm:ss.SSSXXX}"/>
         <KeyValuePair key="service" value="configuration-service"/>
@@ -41,27 +38,30 @@
         <OnStartupTriggeringPolicy/>
         <SizeBasedTriggeringPolicy size="100 MB"/>
       </Policies>
-      <DefaultRolloverStrategy max="1000"/>
     </RollingFile>
   </Appenders>
 
   <Loggers>
-    <Logger name="io.scalecube.seed" level="${env:seedLogLevel:-INFO}"/>
-    <Logger name="io.scalecube.services" level="${env:servicesLogLevel:-INFO}"/>
-    <Logger name="io.scalecube.transport" level="${env:servicesTransportLogLevel:-DEBUG}"/>
-    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-INFO}"/>
-    <Logger name="io.scalecube.config" level="${env:configLogLevel:-INFO}"/>
-    <Logger name="reactor.util" level="${env:reactorUtilLogLevel:-WARN}"/>
-    <Logger name="reactor.core" level="${env:reactorCoreLogLevel:-WARN}"/>
-    <Logger name="reactor.netty" level="${env:reactorNettyLogLevel:-WARN}"/>
-    <Logger name="io.netty" level="${env:nettyLogLevel:-WARN}"/>
-    <logger name="io.rsocket.transport.netty" level="${env:rsocketTransportNettyLogLevel:-WARN}"/>
-    <logger name="io.rsocket.FrameLogger" level="${env:rsocketFrameLoggerLogLevel:-WARN}"/>
-    <logger name="io.rsocket" level="${env:rsocketLogLevel:-INFO}"/>
-
+    <Logger level="${env:seedLogLevel:-INFO}" name="io.scalecube.seed"/>
+    <Logger level="${env:servicesLogLevel:-INFO}" name="io.scalecube.services"/>
+    <Logger level="${env:servicesTransportLogLevel:-DEBUG}" name="io.scalecube.transport"/>
+    <Logger level="${env:clusterLogLevel:-INFO}" name="io.scalecube.cluster"/>
+    <Logger level="${env:configLogLevel:-INFO}" name="io.scalecube.config"/>
+    <Logger level="${env:reactorUtilLogLevel:-WARN}" name="reactor.util"/>
+    <Logger level="${env:reactorCoreLogLevel:-WARN}" name="reactor.core"/>
+    <Logger level="${env:reactorNettyLogLevel:-WARN}" name="reactor.netty"/>
+    <Logger level="${env:nettyLogLevel:-WARN}" name="io.netty"/>
     <Root level="${env:logLevel:-DEBUG}">
       <AppenderRef ref="${env:logAppender:-STDOUT}"/>
     </Root>
+    <logger level="${env:rsocketTransportNettyLogLevel:-WARN}" name="io.rsocket.transport.netty"/>
+    <logger level="${env:rsocketFrameLoggerLogLevel:-WARN}" name="io.rsocket.FrameLogger"/>
+
+    <logger level="${env:rsocketLogLevel:-INFO}" name="io.rsocket"/>
   </Loggers>
+
+  <Properties>
+    <Property name="patternLayout">%level{length=1} %d{ISO8601} %c{1.} %m [%t]%n</Property>
+  </Properties>
 
 </Configuration>

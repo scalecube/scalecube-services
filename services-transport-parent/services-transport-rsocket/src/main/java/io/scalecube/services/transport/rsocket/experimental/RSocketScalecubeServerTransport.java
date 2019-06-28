@@ -6,7 +6,6 @@ import io.scalecube.net.Address;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.experimental.ServerTransport;
-import io.scalecube.services.transport.rsocket.RSocketServerTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceAcceptor;
 import io.scalecube.services.transport.rsocket.experimental.RSocketServerTransportFactory.Server;
 import java.util.Optional;
@@ -16,7 +15,8 @@ import reactor.core.publisher.Mono;
 
 public class RSocketScalecubeServerTransport implements ServerTransport {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(RSocketScalecubeServerTransport.class);
 
   private final RSocketServerTransportFactory transportFactory;
   private final ServiceMessageCodec codec;
@@ -37,15 +37,16 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
   @Override
   public Mono<ServerTransport> bind(Address address, ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
-        () -> RSocketFactory.receive()
-            .frameDecoder(PayloadDecoder.ZERO_COPY)
-            .errorConsumer(
-                th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
-            .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-            .transport(transportFactory.createServer(address))
-            .start()
-            .doOnSuccess(this::setServer)
-            .thenReturn(this));
+        () ->
+            RSocketFactory.receive()
+                .frameDecoder(PayloadDecoder.ZERO_COPY)
+                .errorConsumer(
+                    th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
+                .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+                .transport(transportFactory.createServer(address))
+                .start()
+                .doOnSuccess(this::setServer)
+                .thenReturn(this));
   }
 
   @Override
