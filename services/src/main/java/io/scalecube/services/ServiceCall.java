@@ -14,7 +14,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
+import io.scalecube.services.transport.api.ClientTransportFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;

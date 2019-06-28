@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket.experimental.tcp;
+package io.scalecube.services.transport.rsocket.tcp;
 
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.ServerTransport;
@@ -6,8 +6,8 @@ import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.net.Address;
-import io.scalecube.services.transport.rsocket.experimental.RSocketClientTransportFactory;
-import io.scalecube.services.transport.rsocket.experimental.RSocketServerTransportFactory;
+import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
+import io.scalecube.services.transport.rsocket.RSocketServerTransportFactory;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -16,9 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
+import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
+/** Create low-level transport for RSocket based on Netty Tcp. */
 public class NettyTcpTransportFactory
     implements RSocketClientTransportFactory, RSocketServerTransportFactory {
 
@@ -27,24 +29,49 @@ public class NettyTcpTransportFactory
   private final TcpClient tcpClient;
   private final TcpServer tcpServer;
 
+  /**
+   * Creates instance from external tcp client&server template.
+   *
+   * @param tcpClient tcp client template.
+   * @param tcpServer tcp server template.
+   */
   public NettyTcpTransportFactory(TcpClient tcpClient, TcpServer tcpServer) {
-    this.tcpClient = tcpClient;
-    this.tcpServer = tcpServer;
+    LoopResources clientResources = TcpLoopResources.clientLoopResources();
+    LoopResources serverLoopResources = TcpLoopResources.serverLoopResources();
+    this.tcpClient = tcpClient.runOn(clientResources);
+    this.tcpServer = tcpServer.runOn(serverLoopResources);
   }
 
+  /**
+   * Initialize the tcp client template by host&port of remote service.
+   *
+   * @param address address remote service
+   * @return RSocket Client Transport
+   */
   @Override
   public ClientTransport createClient(Address address) {
     TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
     return TcpClientTransport.create(tcpClient);
   }
 
+  /**
+   * Initialize the tcp server template by host&port of service.
+   *
+   * @param address address service
+   * @return RSocket Server Transport
+   */
   @Override
-  public ServerTransport<Server> createServer(Address address) {
+  public ServerTransport<Server> createServerTransport(Address address) {
     TcpServer tcpServer = this.tcpServer.host(address.host()).port(address.port());
 
     return new NettyServerTransportAdapter(tcpServer);
   }
 
+  /**
+   * Adapter CloseableChannel => Server.
+   *
+   * @see io.scalecube.services.transport.rsocket.RSocketServerTransportFactory.Server
+   */
   private static class NettyServerTransportAdapter implements ServerTransport<Server> {
 
     private final ServerTransport<CloseableChannel> delegate;

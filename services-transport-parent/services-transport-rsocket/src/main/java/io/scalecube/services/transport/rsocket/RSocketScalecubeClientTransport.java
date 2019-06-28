@@ -1,19 +1,19 @@
-package io.scalecube.services.transport.rsocket.experimental;
+package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
+import io.scalecube.services.transport.api.ClientTransportFactory;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
-import io.scalecube.services.transport.rsocket.RSocketClientChannel;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
+/** RSocket Transport Layer as Scalecube Transport. */
 public class RSocketScalecubeClientTransport implements ClientTransportFactory {
 
   private static final Logger LOGGER =
@@ -31,6 +31,9 @@ public class RSocketScalecubeClientTransport implements ClientTransportFactory {
     this.transportFactory = transportFactory;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ClientChannel create(Address address) {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety

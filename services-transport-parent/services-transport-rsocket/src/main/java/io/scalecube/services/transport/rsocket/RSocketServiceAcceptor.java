@@ -37,6 +37,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     this.methodRegistry = methodRegistry;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
     LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);

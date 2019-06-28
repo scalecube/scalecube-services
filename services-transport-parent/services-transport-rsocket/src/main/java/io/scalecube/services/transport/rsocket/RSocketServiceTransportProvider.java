@@ -1,8 +1,8 @@
-package io.scalecube.services.transport.rsocket.experimental;
+package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.transport.api.experimental.ClientTransportFactory;
-import io.scalecube.services.transport.api.experimental.ServerTransport;
-import io.scalecube.services.transport.api.experimental.ServiceTransportProvider;
+import io.scalecube.services.transport.api.ClientTransportFactory;
+import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceTransportProvider;
 
 public class RSocketServiceTransportProvider implements ServiceTransportProvider {
 

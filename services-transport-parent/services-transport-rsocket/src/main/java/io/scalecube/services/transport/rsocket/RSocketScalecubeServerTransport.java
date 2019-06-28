@@ -1,13 +1,12 @@
-package io.scalecube.services.transport.rsocket.experimental;
+package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocketFactory;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.scalecube.net.Address;
 import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import io.scalecube.services.transport.api.experimental.ServerTransport;
-import io.scalecube.services.transport.rsocket.RSocketServiceAcceptor;
-import io.scalecube.services.transport.rsocket.experimental.RSocketServerTransportFactory.Server;
+import io.scalecube.services.transport.rsocket.RSocketServerTransportFactory.Server;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +42,7 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
                 .errorConsumer(
                     th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
                 .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-                .transport(transportFactory.createServer(address))
+                .transport(transportFactory.createServerTransport(address))
                 .start()
                 .doOnSuccess(this::setServer)
                 .thenReturn(this));

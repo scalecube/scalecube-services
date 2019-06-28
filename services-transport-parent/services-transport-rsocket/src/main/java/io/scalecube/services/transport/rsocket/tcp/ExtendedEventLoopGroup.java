@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket.experimental.tcp;
+package io.scalecube.services.transport.rsocket.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;

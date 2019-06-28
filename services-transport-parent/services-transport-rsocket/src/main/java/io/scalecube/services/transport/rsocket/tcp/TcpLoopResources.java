@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket.experimental.tcp;
+package io.scalecube.services.transport.rsocket.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
@@ -16,6 +16,8 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
@@ -28,16 +30,31 @@ public class TcpLoopResources implements LoopResources {
 
   private static final int BOSS_THREADS_NUM = 1;
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(TcpLoopResources.class);
+
   private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
       new DefaultThreadFactory("boss-transport", true);
 
-  private static final AtomicReference<LoopResources> resources = new AtomicReference<>();
+  private static final AtomicReference<LoopResources> clientResources = new AtomicReference<>();
+  private static final AtomicReference<LoopResources> serverResources = new AtomicReference<>();
   private final EventLoopGroup workerGroup;
   private EventLoopGroup bossGroup;
 
   private TcpLoopResources(EventLoopGroup bossGroup) {
     this.workerGroup = workerGroup();
     this.bossGroup = bossGroup == null ? this.workerGroup : bossGroup;
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      try {
+        clientResources.get().dispose();
+      } catch (Exception e) {
+        LOGGER.error(e.getMessage(), e);
+      }
+      try {
+        serverResources.get().dispose();
+      } catch (Exception e) {
+        LOGGER.error(e.getMessage(), e);
+      }
+    }));
   }
 
   private TcpLoopResources() {
@@ -50,7 +67,7 @@ public class TcpLoopResources implements LoopResources {
    * @return loop resources
    */
   public static LoopResources clientLoopResources() {
-    return resources.updateAndGet(res -> res == null ? new TcpLoopResources() : res);
+    return clientResources.updateAndGet(res -> res == null ? new TcpLoopResources() : res);
   }
 
   /**
@@ -59,7 +76,8 @@ public class TcpLoopResources implements LoopResources {
    * @return loop resources
    */
   public static LoopResources serverLoopResources() {
-    return resources.updateAndGet(res -> res == null ? new TcpLoopResources(bossGroup()) : res);
+    return serverResources.updateAndGet(
+        res -> res == null ? new TcpLoopResources(bossGroup()) : res);
   }
 
   private static EventLoopGroup bossGroup() {

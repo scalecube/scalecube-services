@@ -14,7 +14,7 @@ import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.rsocket.experimental.builder.RSocketByNettyTcp;
+import io.scalecube.services.transport.rsocket.builder.RSocketByNettyTcp;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;

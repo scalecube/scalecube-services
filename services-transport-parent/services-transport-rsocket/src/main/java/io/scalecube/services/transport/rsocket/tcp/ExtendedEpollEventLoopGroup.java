@@ -1,20 +1,23 @@
-package io.scalecube.services.transport.rsocket.experimental.tcp;
+package io.scalecube.services.transport.rsocket.tcp;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultSelectStrategyFactory;
 import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultithreadEventLoopGroup;
 import io.netty.channel.SelectStrategy;
 import io.netty.channel.SelectStrategyFactory;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.RejectedExecutionHandler;
+import io.netty.util.concurrent.RejectedExecutionHandlers;
 import java.lang.reflect.Constructor;
-import java.nio.channels.spi.SelectorProvider;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
-public class ExtendedNioEventLoopGroup extends NioEventLoopGroup implements ExtendedEventLoopGroup {
+public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup
+    implements ExtendedEventLoopGroup {
 
   private static final ThreadFactory WORKER_THREAD_FACTORY =
       new DefaultThreadFactory("rsocket-worker", true);
@@ -24,19 +27,24 @@ public class ExtendedNioEventLoopGroup extends NioEventLoopGroup implements Exte
    *
    * @param numOfThreads number of worker threads
    */
-  public ExtendedNioEventLoopGroup(int numOfThreads) {
-    super(numOfThreads, WORKER_THREAD_FACTORY);
+  public ExtendedEpollEventLoopGroup(int numOfThreads) {
+    super(
+        numOfThreads,
+        WORKER_THREAD_FACTORY,
+        0,
+        DefaultSelectStrategyFactory.INSTANCE,
+        RejectedExecutionHandlers.reject());
   }
 
   @Override
   protected EventLoop newChild(Executor executor, Object... args) throws Exception {
-    Class<?> eventLoopClass = Class.forName("io.netty.channel.nio.NioEventLoop");
+    Class<?> eventLoopClass = Class.forName("io.netty.channel.epoll.EpollEventLoop");
 
     Constructor<?> constructor =
         eventLoopClass.getDeclaredConstructor(
-            NioEventLoopGroup.class,
+            EventLoopGroup.class,
             Executor.class,
-            SelectorProvider.class,
+            int.class,
             SelectStrategy.class,
             RejectedExecutionHandler.class);
 
@@ -46,7 +54,7 @@ public class ExtendedNioEventLoopGroup extends NioEventLoopGroup implements Exte
         constructor.newInstance(
             this,
             executor,
-            (SelectorProvider) args[0],
+            (Integer) args[0],
             ((SelectStrategyFactory) args[1]).newSelectStrategy(),
             (RejectedExecutionHandler) args[2]);
   }

@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket.experimental.builder;
+package io.scalecube.services.transport.rsocket.builder;
 
 import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
@@ -6,16 +6,14 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import io.scalecube.services.transport.api.experimental.ServiceTransportProvider;
-import io.scalecube.services.transport.rsocket.experimental.RSocketScalecubeClientTransport;
-import io.scalecube.services.transport.rsocket.experimental.RSocketScalecubeServerTransport;
-import io.scalecube.services.transport.rsocket.experimental.RSocketServiceTransportProvider;
-import io.scalecube.services.transport.rsocket.experimental.tcp.NettyTcpTransportFactory;
-import io.scalecube.services.transport.rsocket.experimental.tcp.TcpLoopResources;
+import io.scalecube.services.transport.api.ServiceTransportProvider;
+import io.scalecube.services.transport.rsocket.RSocketScalecubeClientTransport;
+import io.scalecube.services.transport.rsocket.RSocketScalecubeServerTransport;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransportProvider;
+import io.scalecube.services.transport.rsocket.tcp.NettyTcpTransportFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.function.Function;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
@@ -28,10 +26,8 @@ public class RSocketByNettyTcp {
   private Collection<DataCodec> dataCodecs = new ArrayList<>();
 
   private RSocketByNettyTcp() {
-    LoopResources clientResources = TcpLoopResources.clientLoopResources();
-    this.tcpClient = TcpClient.newConnection().runOn(clientResources);
-    LoopResources serverResources = TcpLoopResources.serverLoopResources();
-    this.tcpServer = TcpServer.create().runOn(serverResources);
+    this.tcpClient = TcpClient.newConnection();
+    this.tcpServer = TcpServer.create();
   }
 
   /**

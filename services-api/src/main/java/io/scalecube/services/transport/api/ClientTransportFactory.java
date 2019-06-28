@@ -1,11 +1,12 @@
-package io.scalecube.services.transport.api.experimental;
+package io.scalecube.services.transport.api;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 
-/** Client service transport interface. */
+/** Client service transport factory interface. */
 @FunctionalInterface
 public interface ClientTransportFactory {
+
 
   /**
    * Creates a client channel ready for communication with remote service node.
