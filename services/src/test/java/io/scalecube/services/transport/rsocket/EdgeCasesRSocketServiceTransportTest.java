@@ -185,8 +185,13 @@ class EdgeCasesRSocketServiceTransportTest extends BaseTest {
     public Flux<String> remoteCallThenManyDelay(long interval) {
       return remoteService
           .oneDelay(interval)
-          .log("remoteCall  |")
           .publishOn(Schedulers.parallel())
+          .log("remoteCall  |")
+          .then(
+              remoteService
+                  .oneDelay(interval)
+                  .publishOn(Schedulers.parallel())
+                  .log("remoteCall2  |"))
           .flatMapMany(
               i ->
                   Flux.<String>create(
@@ -210,6 +215,7 @@ class EdgeCasesRSocketServiceTransportTest extends BaseTest {
                                       LockSupport.parkNanos(SLEEP_PERIOD_NS);
                                     }
                                   }))
+                      .subscribeOn(Schedulers.parallel())
                       .log("manyInner   |"))
           .log("rcManyDelay |");
     }
