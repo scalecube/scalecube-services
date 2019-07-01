@@ -206,7 +206,7 @@ public class Microservices {
                   .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
                   .then(
                       Mono.fromCallable(
-                          () -> MicroservicesInjection.inject(this, serviceInstances)))
+                          () -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
                   .thenReturn(this);

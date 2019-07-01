@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import io.scalecube.services.annotations.AfterConstruct;
-import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.routing.Router;
 import java.lang.reflect.Field;
@@ -12,11 +11,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
-public final class MicroservicesInjection {
+final class Injector {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MicroservicesInjection.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Injector.class);
 
-  private MicroservicesInjection() {
+  private Injector() {
     // Do not instantiate
   }
 
@@ -38,10 +37,13 @@ public final class MicroservicesInjection {
   }
 
   private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
+    if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
+        && field.getType().equals(Microservices.class)) {
       setField(field, service, microservices);
-    } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-      Inject injection = field.getAnnotation(Inject.class);
+    } else if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
+        && isService(field.getType())) {
+      io.scalecube.services.annotations.Inject injection =
+          field.getAnnotation(io.scalecube.services.annotations.Inject.class);
       Class<? extends Router> routerClass = injection.router();
 
       final ServiceCall call = microservices.call();
