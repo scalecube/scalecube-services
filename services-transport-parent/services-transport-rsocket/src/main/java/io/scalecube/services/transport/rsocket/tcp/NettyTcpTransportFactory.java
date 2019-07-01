@@ -36,10 +36,8 @@ public class NettyTcpTransportFactory
    * @param tcpServer tcp server template.
    */
   public NettyTcpTransportFactory(TcpClient tcpClient, TcpServer tcpServer) {
-    LoopResources clientResources = TcpLoopResources.clientLoopResources();
-    LoopResources serverLoopResources = TcpLoopResources.serverLoopResources();
-    this.tcpClient = tcpClient.runOn(clientResources);
-    this.tcpServer = tcpServer.runOn(serverLoopResources);
+    this.tcpClient = tcpClient;
+    this.tcpServer = tcpServer;
   }
 
   /**
