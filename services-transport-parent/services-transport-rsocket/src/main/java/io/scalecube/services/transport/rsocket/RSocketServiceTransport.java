@@ -18,6 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
+import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket service transport. */
@@ -29,6 +30,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   private int numOfWorkers = NUM_OF_WORKERS;
   private HeadersCodec headersCodec = HEADERS_CODEC;
   private Function<LoopResources, TcpServer> tcpServerProvider = defaultTcpServerProvider();
+  private Function<LoopResources, TcpClient> tcpClientProvider = defaultTcpClientProvider();
 
   // resources
   private EventLoopGroup eventLoopGroup;
@@ -88,13 +90,26 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
+   * Sets a provider function for custom {@code TcpClient}.
+   *
+   * @param factory {@code TcpClient} provider function
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport tcpClient(Function<LoopResources, TcpClient> factory) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.tcpClientProvider = factory;
+    return rst;
+  }
+
+  /**
    * Fabric method for client transport.
    *
    * @return client transport
    */
   @Override
   public ClientTransport clientTransport() {
-    return new RSocketClientTransport(new ServiceMessageCodec(headersCodec), clientLoopResources);
+    return new RSocketClientTransport(
+        new ServiceMessageCodec(headersCodec), tcpClientProvider.apply(clientLoopResources));
   }
 
   /**
@@ -154,5 +169,10 @@ public class RSocketServiceTransport implements ServiceTransport {
         TcpServer.create()
             .runOn(serverLoopResources)
             .addressSupplier(() -> new InetSocketAddress(0));
+  }
+
+  private Function<LoopResources, TcpClient> defaultTcpClientProvider() {
+    return (LoopResources clientLoopResources) ->
+        TcpClient.newConnection().runOn(clientLoopResources);
   }
 }

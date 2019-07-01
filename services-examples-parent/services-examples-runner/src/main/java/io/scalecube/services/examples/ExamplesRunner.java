@@ -19,6 +19,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
 public class ExamplesRunner {
@@ -56,9 +57,17 @@ public class ExamplesRunner {
         .transport(
             () ->
                 new RSocketServiceTransport()
+                    .tcpClient(
+                        loopResources ->
+                            TcpClient.newConnection()
+                                .runOn(loopResources)
+                                .wiretap(true)
+                                .noProxy()
+                                .noSSL())
                     .tcpServer(
                         loopResources ->
                             TcpServer.create()
+                                .wiretap(true)
                                 .port(config.servicePort())
                                 .runOn(loopResources)
                                 .noSSL()))
