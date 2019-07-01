@@ -61,13 +61,13 @@ public class ExamplesRunner {
                         loopResources ->
                             TcpClient.newConnection()
                                 .runOn(loopResources)
-                                .wiretap(true)
+                                .wiretap(false)
                                 .noProxy()
                                 .noSSL())
                     .tcpServer(
                         loopResources ->
                             TcpServer.create()
-                                .wiretap(true)
+                                .wiretap(false)
                                 .port(config.servicePort())
                                 .runOn(loopResources)
                                 .noSSL()))
