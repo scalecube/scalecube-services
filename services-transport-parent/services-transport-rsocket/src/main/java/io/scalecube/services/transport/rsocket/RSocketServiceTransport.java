@@ -12,7 +12,6 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Iterator;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
@@ -74,10 +73,9 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public Mono<Void> stop() {
-    return Flux.concatDelayError(
-            Mono.defer(() -> serverLoopResources.disposeLater()),
-            Mono.defer(this::shutdownEventLoopGroup))
-        .then();
+    //noinspection unchecked
+    return Mono.defer(
+        () -> FutureMono.from((Future) ((EventLoopGroup) eventLoopGroup).shutdownGracefully()));
   }
 
   private void start0() {
@@ -100,11 +98,5 @@ public class RSocketServiceTransport implements ServiceTransport {
       }
     }
     return null;
-  }
-
-  private Mono<Void> shutdownEventLoopGroup() {
-    //noinspection unchecked
-    return Mono.defer(
-        () -> FutureMono.from((Future) ((EventLoopGroup) eventLoopGroup).shutdownGracefully()));
   }
 }
