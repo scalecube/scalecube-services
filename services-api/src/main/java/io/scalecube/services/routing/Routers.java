@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 
-public class Routers {
+public final class Routers {
   private static final Logger LOGGER = LoggerFactory.getLogger(Routers.class);
 
   private static final ConcurrentHashMap<Class<? extends Router>, Router> routers =

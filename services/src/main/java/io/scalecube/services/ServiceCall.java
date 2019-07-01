@@ -11,7 +11,6 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -34,13 +33,14 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
-  public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
+  private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
 
   private final ClientTransport transport;
+  private final Address fixedAddress;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
-  private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+  private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Consumer<Object> requestReleaser =
       req -> {
@@ -61,6 +61,21 @@ public class ServiceCall {
     this.transport = transport;
     this.serviceRegistry = serviceRegistry;
     this.methodRegistry = methodRegistry;
+    this.fixedAddress = null;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition.
+   *
+   * @param transport transport to be used by {@link ServiceCall}
+   * @param fixedAddress fixed address to be used for any remote calls of created {@link
+   *     ServiceCall}
+   */
+  public ServiceCall(ClientTransport transport, Address fixedAddress) {
+    this.transport = transport;
+    this.fixedAddress = fixedAddress;
+    this.methodRegistry = null;
+    this.serviceRegistry = null;
   }
 
   private ServiceCall(ServiceCall other) {
@@ -69,6 +84,7 @@ public class ServiceCall {
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
+    this.fixedAddress = other.fixedAddress;
   }
 
   /**
@@ -160,6 +176,10 @@ public class ServiceCall {
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
+          // fixed address call, no routing required
+          if (null != fixedAddress) {
+            return requestOne(request, responseType, fixedAddress);
+          }
           String qualifier = request.qualifier();
           if (methodRegistry.containsInvoker(qualifier)) { // local service.
             return methodRegistry
@@ -214,6 +234,10 @@ public class ServiceCall {
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
+          // fixed address call, no routing required
+          if (null != fixedAddress) {
+            return requestMany(request, responseType, fixedAddress);
+          }
           String qualifier = request.qualifier();
           if (methodRegistry.containsInvoker(qualifier)) { // local service.
             return methodRegistry
@@ -273,9 +297,12 @@ public class ServiceCall {
         .switchOnFirst(
             (first, messages) -> {
               if (first.hasValue()) {
+                // fixed address call, no routing required
+                if (null != fixedAddress) {
+                  return requestBidirectional(messages, responseType, fixedAddress);
+                }
                 ServiceMessage request = first.get();
                 String qualifier = request.qualifier();
-
                 if (methodRegistry.containsInvoker(qualifier)) { // local service.
                   return methodRegistry
                       .getInvoker(qualifier)
@@ -334,9 +361,8 @@ public class ServiceCall {
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
             (proxy, method, params) -> {
-
               Optional<Object> check =
-                      toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
               if (check.isPresent()) {
                 return check.get(); // toString, hashCode was invoked.
               }
@@ -344,7 +370,6 @@ public class ServiceCall {
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
-
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:
