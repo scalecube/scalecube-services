@@ -25,7 +25,7 @@ public class ServiceTagsExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Address seedAddress = gateway.discovery().address();
@@ -33,7 +33,7 @@ public class ServiceTagsExample {
     Microservices services1 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -43,7 +43,7 @@ public class ServiceTagsExample {
     Microservices services2 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")
