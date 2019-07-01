@@ -11,6 +11,7 @@ import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.ServiceTransports;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
 public class RSocketServiceTransportTest {
 
@@ -54,19 +56,13 @@ public class RSocketServiceTransportTest {
   /** clean up. */
   @AfterEach
   public void cleanUp() {
-    if (gateway != null) {
-      try {
-        gateway.shutdown().block();
-      } catch (Throwable ignore) {
-        // no-op
-      }
-    }
-    if (serviceNode != null) {
-      try {
-        serviceNode.shutdown().block();
-      } catch (Throwable ignore) {
-        // no-op
-      }
+    try {
+      Mono.whenDelayError(
+              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
+              Optional.ofNullable(serviceNode).map(Microservices::shutdown).orElse(Mono.empty()))
+          .block();
+    } catch (Throwable ignore) {
+      // no-op
     }
   }
 

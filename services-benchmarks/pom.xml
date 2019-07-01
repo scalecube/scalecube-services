@@ -1,8 +1,75 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>scalecube-services-parent</artifactId>
+    <groupId>io.scalecube</groupId>
+    <version>2.7.3-SNAPSHOT</version>
+  </parent>
+
   <artifactId>scalecube-services-benchmarks</artifactId>
+
+  <properties>
+    <extratags>${env.TRAVIS_COMMIT}</extratags>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-bytebuf-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-rsocket</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-protostuff</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-benchmarks-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-benchmarks-log4j2</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-examples</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>
@@ -16,79 +83,10 @@
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>dockerfile-maven-plugin</artifactId>
         <groupId>com.spotify</groupId>
+        <artifactId>dockerfile-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>
-
-  <dependencies>
-    <dependency>
-      <artifactId>scalecube-services</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-services-bytebuf-codec</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-services-transport-jackson</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-benchmarks-api</artifactId>
-      <groupId>io.scalecube</groupId>
-    </dependency>
-    <dependency>
-      <artifactId>scalecube-benchmarks-log4j2</artifactId>
-      <groupId>io.scalecube</groupId>
-    </dependency>
-
-    <dependency>
-      <artifactId>metrics-core</artifactId>
-      <groupId>io.dropwizard.metrics</groupId>
-    </dependency>
-
-    <dependency>
-      <artifactId>scalecube-services-examples</artifactId>
-      <groupId>io.scalecube</groupId>
-      <version>${project.version}</version>
-    </dependency>
-  </dependencies>
-
-  <modelVersion>4.0.0</modelVersion>
-
-  <parent>
-    <artifactId>scalecube-services-parent</artifactId>
-    <groupId>io.scalecube</groupId>
-    <version>2.7.2-SNAPSHOT</version>
-  </parent>
-
-  <properties>
-    <extratags>${env.TRAVIS_COMMIT}</extratags>
-  </properties>
 
 </project>
