@@ -168,9 +168,23 @@ public class RoutersTest extends BaseTest {
         "Service B's Weight=0.9; more than half of invocations have to be routed to Service B");
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
+  @Test
+  public void tesTagsFromAnnotation() {
+    ServiceCall serviceCall =
+            provider3
+            .call()
+            .router((req, mes) -> {
+              ServiceReference tagServiceRef = req.listServiceReferences().get(0);
+              Map<String, String> tags = tagServiceRef.tags();
+              assertEquals(new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
+              assertEquals("a", tags.get("tagA"));
+              // user override this tag in Microservices#services
+              assertEquals("bb", tags.get("tagB"));
+              assertEquals("c",tags.get("tagC"));
+              assertEquals("a", tags.get("methodTagA"));
+              return Optional.of(tagServiceRef);
+            });
+    serviceCall.api(TagService.class).upperCase(Flux.just("hello")).blockLast();
   }
 
   @Test
@@ -253,22 +267,8 @@ public class RoutersTest extends BaseTest {
             + "of invocations have to be routed to Service B");
   }
 
-  @Test
-  public void tesTagsFromAnnotation() {
-    ServiceCall serviceCall =
-            provider3
-            .call()
-            .router((req, mes) -> {
-              ServiceReference tagServiceRef = req.listServiceReferences().get(0);
-              Map<String, String> tags = tagServiceRef.tags();
-              assertEquals(new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
-              assertEquals("a", tags.get("tagA"));
-              // user override this tag in Microservices#services
-              assertEquals("bb", tags.get("tagB"));
-              assertEquals("c",tags.get("tagC"));
-              assertEquals("a", tags.get("methodTagA"));
-              return Optional.of(tagServiceRef);
-            });
-    serviceCall.api(TagService.class).upperCase(Flux.just("hello")).blockLast();
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }
