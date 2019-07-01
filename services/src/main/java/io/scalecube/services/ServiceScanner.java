@@ -53,7 +53,6 @@ public class ServiceScanner {
 
   /** Tuple class. Contains service interface along with tags map. */
   private static class InterfaceInfo {
-
     private final Class<?> serviceInterface;
     private final Map<String, String> tags;
 

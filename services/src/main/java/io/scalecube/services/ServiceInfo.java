@@ -41,7 +41,6 @@ public class ServiceInfo {
   }
 
   public static class Builder {
-
     private final Object serviceInstance;
     private final Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;

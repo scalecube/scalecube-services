@@ -32,9 +32,11 @@ import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   private final ClientTransportFactory transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;

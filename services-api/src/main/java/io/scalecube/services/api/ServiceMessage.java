@@ -15,11 +15,13 @@ public final class ServiceMessage {
   public static final String HEADER_DATA_FORMAT = "_data_format";
   /** Default message data content type. */
   static final String DEFAULT_DATA_FORMAT = "application/json";
+
   /**
    * This header is supposed to be used by application in case if same data type can be reused for
    * several messages so it will allow to qualify the specific message type.
    */
   static final String HEADER_QUALIFIER = "q";
+
   /**
    * This is a system header which used by transport for serialization and deserialization purpose.
    * It is not supposed to be used by application directly and it is subject to changes in future
@@ -31,9 +33,7 @@ public final class ServiceMessage {
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
-  ServiceMessage() {
-
-  }
+  ServiceMessage() {}
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
@@ -204,9 +204,7 @@ public final class ServiceMessage {
     private Map<String, String> headers = new HashMap<>();
     private Object data;
 
-    private Builder() {
-
-    }
+    private Builder() {}
 
     public Builder data(Object data) {
       this.data = data;

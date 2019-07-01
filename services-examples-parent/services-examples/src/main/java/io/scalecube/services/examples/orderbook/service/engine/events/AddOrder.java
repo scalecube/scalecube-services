@@ -7,9 +7,7 @@ public class AddOrder {
   long price;
   long remainingQuantity;
 
-  public AddOrder() {
-
-  }
+  public AddOrder() {}
 
   /**
    * Create a new Add order.

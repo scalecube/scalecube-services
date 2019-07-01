@@ -14,13 +14,16 @@ import reactor.core.publisher.Flux;
 /** An order book. */
 public class OrderBook {
 
-  EmitterProcessor<MatchOrder> matchListener = EmitterProcessor.<MatchOrder>create();
-  EmitterProcessor<AddOrder> addListener = EmitterProcessor.<AddOrder>create();
-  EmitterProcessor<CancelOrder> cancelListener = EmitterProcessor.<CancelOrder>create();
   private String instrument;
+
   private Long2ObjectRBTreeMap<PriceLevel> bids;
   private Long2ObjectRBTreeMap<PriceLevel> asks;
+
   private Long2ObjectOpenHashMap<Order> orders;
+
+  EmitterProcessor<MatchOrder> matchListener = EmitterProcessor.create();
+  EmitterProcessor<AddOrder> addListener = EmitterProcessor.create();
+  EmitterProcessor<CancelOrder> cancelListener = EmitterProcessor.create();
 
   /** Create an order book. */
   public OrderBook() {

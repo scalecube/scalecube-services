@@ -74,11 +74,6 @@ public class ServiceRemoteTest extends BaseTest {
         .startAwait();
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
-  }
-
   @Test
   public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofSeconds(1);
@@ -387,5 +382,10 @@ public class ServiceRemoteTest extends BaseTest {
 
   private GreetingService createProxy() {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

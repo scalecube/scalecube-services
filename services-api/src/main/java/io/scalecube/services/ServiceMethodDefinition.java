@@ -17,9 +17,7 @@ public class ServiceMethodDefinition {
    *
    * @deprecated exposed only for de/serialization purpose.
    */
-  public ServiceMethodDefinition() {
-
-  }
+  public ServiceMethodDefinition() {}
 
   /**
    * Create a new Service Method Definition.

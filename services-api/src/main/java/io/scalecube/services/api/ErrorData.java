@@ -10,9 +10,7 @@ public final class ErrorData {
    *
    * @deprecated exposed only for de/serialization purpose.
    */
-  public ErrorData() {
-
-  }
+  public ErrorData() {}
 
   /**
    * Create an error data.

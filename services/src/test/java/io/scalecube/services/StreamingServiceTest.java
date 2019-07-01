@@ -44,11 +44,6 @@ public class StreamingServiceTest extends BaseTest {
             .startAwait();
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
-  }
-
   @Test
   public void test_quotes() throws InterruptedException {
 
@@ -189,5 +184,10 @@ public class StreamingServiceTest extends BaseTest {
         serviceCall.requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
 
     assertEquals(batchSize, serviceMessages.size());
+  }
+
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(gateway.discovery().address()));
   }
 }

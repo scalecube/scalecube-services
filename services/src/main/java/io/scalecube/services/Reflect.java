@@ -188,11 +188,12 @@ public final class Reflect {
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     if (serviceAnnotation == null) {
       throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceInterface));
+              String.format("Not a service interface: %s", serviceInterface));
     }
     String[] rawTags = serviceAnnotation.tags();
     if (rawTags.length % 2 == 1) {
-      throw new IllegalStateException(String.format("Invalid tags for '%s'", serviceInterface));
+      throw new IllegalStateException(
+              String.format("Invalid tags for '%s'", serviceInterface));
     }
     return transformArrayToMap(rawTags);
   }
@@ -207,12 +208,12 @@ public final class Reflect {
     ServiceMethod serviceMethodAnnotation = serviceMethod.getAnnotation(ServiceMethod.class);
     if (serviceMethodAnnotation == null) {
       throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceMethodAnnotation));
+              String.format("Not a service interface: %s", serviceMethodAnnotation));
     }
     String[] rawTags = serviceMethodAnnotation.tags();
     if (rawTags.length % 2 == 1) {
       throw new IllegalStateException(
-          String.format("Invalid tags for service method '%s'", serviceMethod.getName()));
+              String.format("Invalid tags for service method '%s'", serviceMethod.getName()));
     }
     return transformArrayToMap(rawTags);
   }
@@ -226,12 +227,9 @@ public final class Reflect {
       final int valueIndex = keyIndex + 1;
       String tagName = array[keyIndex];
       String tagValue = array[valueIndex];
-      tags.merge(
-          tagName,
-          tagValue,
-          (o, n) -> {
-            throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
-          });
+      tags.merge(tagName, tagValue, (o, n) -> {
+        throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
+      });
     }
     return Collections.unmodifiableMap(tags);
   }

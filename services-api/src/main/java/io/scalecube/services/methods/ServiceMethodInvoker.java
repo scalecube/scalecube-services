@@ -133,8 +133,7 @@ public final class ServiceMethodInvoker {
   @Override
   public String toString() {
     String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
-    String args =
-        Stream.of(method.getParameters())
+    String args = Stream.of(method.getParameters())
             .map(Parameter::getType)
             .map(Class::getSimpleName)
             .collect(Collectors.joining(", ", "(", ")"));

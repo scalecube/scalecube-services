@@ -284,27 +284,6 @@ public class Microservices {
         });
   }
 
-  public interface MonitorMBean {
-
-    Collection<String> getId();
-
-    Collection<String> getDiscoveryAddress();
-
-    Collection<String> getGatewayAddresses();
-
-    Collection<String> getServiceEndpoint();
-
-    Collection<String> getServiceEndpoints();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    Collection<String> getClientServiceTransport();
-
-    Collection<String> getServerServiceTransport();
-
-    Collection<String> getServiceDiscovery();
-  }
-
   public static final class Builder {
 
     private Metrics metrics;
@@ -403,6 +382,88 @@ public class Microservices {
     }
   }
 
+  public interface MonitorMBean {
+
+    Collection<String> getId();
+
+    Collection<String> getDiscoveryAddress();
+
+    Collection<String> getGatewayAddresses();
+
+    Collection<String> getServiceEndpoint();
+
+    Collection<String> getServiceEndpoints();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    Collection<String> getClientServiceTransport();
+
+    Collection<String> getServerServiceTransport();
+
+    Collection<String> getServiceDiscovery();
+  }
+
+  private static class GatewayBootstrap {
+
+    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
+    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
+
+    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
+      this.factories.add(factory);
+      return this;
+    }
+
+    private Mono<GatewayBootstrap> start(GatewayOptions options) {
+      return Flux.fromIterable(factories)
+          .flatMap(
+              factory -> {
+                Gateway gateway = factory.apply(options);
+                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
+                return gateway
+                    .start()
+                    .doOnSuccess(gateways::add)
+                    .doOnSuccess(
+                        result ->
+                            LOGGER.info(
+                                "Successfully started gateway -- {} on {}",
+                                result,
+                                result.address()))
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "Failed to start gateway -- {} with {}, cause: ",
+                                gateway,
+                                options,
+                                ex));
+              })
+          .then(Mono.just(this));
+    }
+
+    private Mono<Void> shutdown() {
+      return Mono.defer(
+          () ->
+              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
+                  .doFinally(
+                      s -> {
+                        if (!gateways.isEmpty()) {
+                          LOGGER.info("Gateways have been stopped");
+                        }
+                      }));
+    }
+
+    private List<Gateway> gateways() {
+      return new ArrayList<>(gateways);
+    }
+
+    private Gateway gateway(String id) {
+      return gateways.stream()
+          .filter(gw -> gw.id().equals(id))
+          .findFirst()
+          .orElseThrow(
+              () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
+    }
+  }
+
   public static class ServiceDiscoveryBootstrap {
 
     private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
@@ -411,9 +472,7 @@ public class Microservices {
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
-    private ServiceDiscoveryBootstrap() {
-
-    }
+    private ServiceDiscoveryBootstrap() {}
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
       this.discoveryFactory = factory;
@@ -493,67 +552,6 @@ public class Microservices {
     }
   }
 
-  private static class GatewayBootstrap {
-
-    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
-    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
-
-    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
-      this.factories.add(factory);
-      return this;
-    }
-
-    private Mono<GatewayBootstrap> start(GatewayOptions options) {
-      return Flux.fromIterable(factories)
-          .flatMap(
-              factory -> {
-                Gateway gateway = factory.apply(options);
-                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
-                return gateway
-                    .start()
-                    .doOnSuccess(gateways::add)
-                    .doOnSuccess(
-                        result ->
-                            LOGGER.info(
-                                "Successfully started gateway -- {} on {}",
-                                result,
-                                result.address()))
-                    .doOnError(
-                        ex ->
-                            LOGGER.error(
-                                "Failed to start gateway -- {} with {}, cause: ",
-                                gateway,
-                                options,
-                                ex));
-              })
-          .then(Mono.just(this));
-    }
-
-    private Mono<Void> shutdown() {
-      return Mono.defer(
-          () ->
-              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
-                  .doFinally(
-                      s -> {
-                        if (!gateways.isEmpty()) {
-                          LOGGER.info("Gateways have been stopped");
-                        }
-                      }));
-    }
-
-    private List<Gateway> gateways() {
-      return new ArrayList<>(gateways);
-    }
-
-    private Gateway gateway(String id) {
-      return gateways.stream()
-          .filter(gw -> gw.id().equals(id))
-          .findFirst()
-          .orElseThrow(
-              () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
-    }
-  }
-
   public static class ServiceTransportBootstrap {
 
     private String host = Address.getLocalIpAddress().getHostAddress();
@@ -564,9 +562,7 @@ public class Microservices {
     private ServerTransport serverTransport;
     private Address address;
 
-    private ServiceTransportBootstrap() {
-
-    }
+    private ServiceTransportBootstrap() {}
 
     private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
       this.host = other.host;
@@ -687,7 +683,7 @@ public class Microservices {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id());
+          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;

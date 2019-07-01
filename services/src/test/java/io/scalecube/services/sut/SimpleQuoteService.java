@@ -8,11 +8,9 @@ import reactor.core.publisher.Mono;
 
 public class SimpleQuoteService implements QuoteService {
 
-  private final AtomicInteger counter = new AtomicInteger(1);
+  final AtomicInteger counter = new AtomicInteger(1);
 
-  public SimpleQuoteService() {
-
-  }
+  public SimpleQuoteService() {}
 
   @Override
   public Mono<String> justOne() {

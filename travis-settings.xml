@@ -26,10 +26,10 @@
         <repository>
           <id>central</id>
           <name>bintray</name>
+          <url>http://jcenter.bintray.com</url>
           <snapshots>
             <enabled>false</enabled>
           </snapshots>
-          <url>http://jcenter.bintray.com</url>
         </repository>
       </repositories>
     </profile>
@@ -43,13 +43,13 @@
   <servers>
     <server>
       <id>ossrh</id>
-      <password>${env.SONATYPE_PASSWORD}</password>
       <username>${env.SONATYPE_USERNAME}</username>
+      <password>${env.SONATYPE_PASSWORD}</password>
     </server>
     <server>
       <id>docker.io</id>
-      <password>${env.DOCKER_PASSWORD}</password>
       <username>${env.DOCKER_USERNAME}</username>
+      <password>${env.DOCKER_PASSWORD}</password>
     </server>
   </servers>
 </settings>

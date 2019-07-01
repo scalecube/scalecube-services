@@ -39,6 +39,9 @@ public class RSocketByNettyTcp {
       "" + Math.max(Runtime.getRuntime()
           .availableProcessors(), 4)));
 
+  /**
+   * Init tcp client & server.
+   */
   private RSocketByNettyTcp() {
     this.tcpClient = TcpClient.newConnection();
     this.tcpServer = TcpServer.create();

@@ -13,6 +13,67 @@ public class Metrics {
 
   private final MetricRegistry registry;
 
+  public Meter getMeter(final String component, final String methodName, final String eventType) {
+    return registry.meter(MetricRegistry.name(component, methodName, eventType));
+  }
+
+  public <T> Meter getMeter(
+      final Class<T> component, final String methodName, final String eventType) {
+    return getMeter(component.getName(), methodName, eventType);
+  }
+
+  public Timer getTimer(String component, String methodName) {
+    return registry.timer(MetricRegistry.name(component, methodName));
+  }
+
+  public <T> Timer getTimer(Class<T> component, String methodName) {
+    return getTimer(component.getName(), methodName);
+  }
+
+  public Counter getCounter(final String component, final String methodName) {
+    return registry.counter(MetricRegistry.name(component, methodName));
+  }
+
+  public <T> Counter getCounter(final Class<T> component, final String methodName) {
+    return getCounter(component.getName(), methodName);
+  }
+
+  /**
+   * Register a Gauge and service registry.
+   *
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @param gauge instance.
+   * @return registered gauge in the service registry.
+   */
+  public <T> Gauge<T> register(
+      final String component, final String methodName, final Gauge<T> gauge) {
+    registry.register(
+        MetricRegistry.name(component, methodName),
+        new Gauge<T>() {
+          @Override
+          public T getValue() {
+            return gauge.getValue();
+          }
+        });
+
+    return gauge;
+  }
+
+  public <T, G> Gauge<G> register(Class<T> component, String methodName, Gauge<G> gauge) {
+    return register(component.getName(), methodName, gauge);
+  }
+
+  public Histogram getHistogram(
+      final String component, final String methodName, final boolean biased) {
+    return registry.histogram(MetricRegistry.name(component, methodName));
+  }
+
+  public <T> Histogram getHistogram(
+      final Class<T> component, final String methodName, final boolean biased) {
+    return getHistogram(component.getName(), methodName, biased);
+  }
+
   public Metrics(final MetricRegistry registry) {
     this.registry = registry;
   }
@@ -146,66 +207,5 @@ public class Metrics {
     if (counter != null) {
       counter.dec();
     }
-  }
-
-  public Meter getMeter(final String component, final String methodName, final String eventType) {
-    return registry.meter(MetricRegistry.name(component, methodName, eventType));
-  }
-
-  public <T> Meter getMeter(
-      final Class<T> component, final String methodName, final String eventType) {
-    return getMeter(component.getName(), methodName, eventType);
-  }
-
-  public Timer getTimer(String component, String methodName) {
-    return registry.timer(MetricRegistry.name(component, methodName));
-  }
-
-  public <T> Timer getTimer(Class<T> component, String methodName) {
-    return getTimer(component.getName(), methodName);
-  }
-
-  public Counter getCounter(final String component, final String methodName) {
-    return registry.counter(MetricRegistry.name(component, methodName));
-  }
-
-  public <T> Counter getCounter(final Class<T> component, final String methodName) {
-    return getCounter(component.getName(), methodName);
-  }
-
-  /**
-   * Register a Gauge and service registry.
-   *
-   * @param component name for the requested timer.
-   * @param methodName for the requested timer.
-   * @param gauge instance.
-   * @return registered gauge in the service registry.
-   */
-  public <T> Gauge<T> register(
-      final String component, final String methodName, final Gauge<T> gauge) {
-    registry.register(
-        MetricRegistry.name(component, methodName),
-        new Gauge<T>() {
-          @Override
-          public T getValue() {
-            return gauge.getValue();
-          }
-        });
-
-    return gauge;
-  }
-
-  public <T, G> Gauge<G> register(Class<T> component, String methodName, Gauge<G> gauge) {
-    return register(component.getName(), methodName, gauge);
-  }
-
-  public Histogram getHistogram(
-      final String component, final String methodName, final boolean biased) {
-    return registry.histogram(MetricRegistry.name(component, methodName));
-  }
-
-  public <T> Histogram getHistogram(
-      final Class<T> component, final String methodName, final boolean biased) {
-    return getHistogram(component.getName(), methodName, biased);
   }
 }

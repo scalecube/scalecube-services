@@ -22,12 +22,6 @@ import reactor.test.StepVerifier;
 
 public class ServiceRegistryTest {
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(address));
-  }
-
   @Test
   public void test_added_removed_registration_events() {
 
@@ -66,6 +60,12 @@ public class ServiceRegistryTest {
     assertEquals(Type.ENDPOINT_REMOVED, events.get(3).type());
 
     seed.shutdown().block(Duration.ofSeconds(6));
+  }
+
+  private static ServiceDiscovery serviceDiscovery(
+      ServiceEndpoint serviceEndpoint, Address address) {
+    return new ScalecubeServiceDiscovery(serviceEndpoint)
+        .options(opts -> opts.seedMembers(address));
   }
 
   @Test

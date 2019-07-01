@@ -24,9 +24,7 @@ public class ServiceEndpoint {
    *
    * @deprecated exposed only for de/serialization purpose.
    */
-  public ServiceEndpoint() {
-
-  }
+  public ServiceEndpoint() {}
 
   private ServiceEndpoint(Builder builder) {
     this.id = builder.id;
@@ -107,9 +105,7 @@ public class ServiceEndpoint {
     private Collection<ServiceRegistration> serviceRegistrations = new ArrayList<>();
     private ServiceGroup serviceGroup;
 
-    private Builder() {
-
-    }
+    private Builder() {}
 
     public Builder id(String id) {
       this.id = id;
