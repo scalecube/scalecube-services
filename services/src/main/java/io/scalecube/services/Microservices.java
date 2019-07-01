@@ -554,8 +554,6 @@ public class Microservices {
 
   public static class ServiceTransportBootstrap {
 
-    private String host = Address.getLocalIpAddress().getHostAddress();
-    private int port = 0;
     private ServiceTransportProvider transportProvider;
 
     private ClientTransportFactory clientTransportFactory;
@@ -565,37 +563,11 @@ public class Microservices {
     private ServiceTransportBootstrap() {}
 
     private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
-      this.host = other.host;
-      this.port = other.port;
       this.transportProvider = other.transportProvider;
     }
 
     private ServiceTransportBootstrap copy() {
       return new ServiceTransportBootstrap(this);
-    }
-
-    /**
-     * Setting for service host.
-     *
-     * @param host service host
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap host(String host) {
-      ServiceTransportBootstrap c = copy();
-      c.host = host;
-      return c;
-    }
-
-    /**
-     * Setting for service port.
-     *
-     * @param port service port
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap port(int port) {
-      ServiceTransportBootstrap c = copy();
-      c.port = port;
-      return c;
     }
 
     /**
@@ -614,17 +586,9 @@ public class Microservices {
       if (transportProvider == null) {
         return Mono.defer(() -> Mono.just(Optional.empty()));
       }
-      Address address = Address.create(host, port);
       return transportProvider
           .provideServerTransport()
-          .bind(address, methodRegistry)
-          .doOnError(
-              ex ->
-                  LOGGER.error(
-                      "Failed to bind server service " + "transport -- {} on port: {}, cause: {}",
-                      serverTransport,
-                      port,
-                      ex))
+          .bind(methodRegistry)
           .doOnNext(
               serverTransport -> {
                 LOGGER.info(
@@ -654,10 +618,8 @@ public class Microservices {
     @Override
     public String toString() {
       return "ServiceTransportBootstrap{"
-          + "host="
-          + host
-          + ", port="
-          + port
+          + "address="
+          + address
           + ", clientTransport="
           + clientTransportFactory.getClass()
           + ", serverTransport="
