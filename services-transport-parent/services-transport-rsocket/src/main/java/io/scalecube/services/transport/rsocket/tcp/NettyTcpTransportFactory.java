@@ -1,5 +1,8 @@
 package io.scalecube.services.transport.rsocket.tcp;
 
+import static java.util.stream.Collectors.toList;
+
+import io.netty.bootstrap.ServerBootstrapConfig;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.ServerTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -9,15 +12,19 @@ import io.scalecube.net.Address;
 import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServerTransportFactory;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
+import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
+import reactor.util.annotation.Nullable;
 
 /** Create low-level transport for RSocket based on Netty Tcp. */
 public class NettyTcpTransportFactory
@@ -26,17 +33,39 @@ public class NettyTcpTransportFactory
   private static final Logger LOGGER = LoggerFactory.getLogger(NettyTcpTransportFactory.class);
 
   private final TcpClient tcpClient;
-  private final TcpServer tcpServer;
+  private final ServerTransport<Server> serverTransport;
+
+  @Nullable private LoopResources clientResources;
+  @Nullable private LoopResources serverResources;
 
   /**
-   * Creates instance from external tcp client&server template.
+   * Creates instance from external tcp client/server.
    *
-   * @param tcpClient tcp client template.
-   * @param tcpServer tcp server template.
+   * @param tcpClient tcp client.
+   * @param tcpServer tcp server.
    */
   public NettyTcpTransportFactory(TcpClient tcpClient, TcpServer tcpServer) {
     this.tcpClient = tcpClient;
-    this.tcpServer = tcpServer;
+    this.serverTransport = new NettyServerTransportAdapter(tcpServer);
+  }
+
+  /**
+   * Creates instance tcp client/server and customizes them.
+   *
+   * @param userClientCustomizers client customizers
+   * @param userServerCustomizers server customizers
+   * @param clientResourceFactory client default loop resource factory
+   * @param serverResourceFactory server default loop resource factory
+   */
+  public NettyTcpTransportFactory(
+      List<Function<TcpClient, TcpClient>> userClientCustomizers,
+      List<Function<TcpServer, TcpServer>> userServerCustomizers,
+      Supplier<LoopResources> clientResourceFactory,
+      Supplier<LoopResources> serverResourceFactory) {
+
+    this.tcpClient = createAndCustomizeClient(userClientCustomizers, clientResourceFactory);
+    TcpServer tcpServer = createAndCustomizeServer(userServerCustomizers, serverResourceFactory);
+    this.serverTransport = new NettyServerTransportAdapter(tcpServer);
   }
 
   /**
@@ -54,14 +83,50 @@ public class NettyTcpTransportFactory
   /**
    * Initialize the tcp server template by host&port of service.
    *
-   * @param address address service
    * @return RSocket Server Transport
    */
   @Override
-  public ServerTransport<Server> createServerTransport(Address address) {
-    TcpServer tcpServer = this.tcpServer.host(address.host()).port(address.port());
+  public ServerTransport<Server> createServerTransport() {
+    return this.serverTransport;
+  }
 
-    return new NettyServerTransportAdapter(tcpServer);
+  private TcpServer createAndCustomizeServer(
+      List<Function<TcpServer, TcpServer>> userServerCustomizers,
+      Supplier<LoopResources> serverResourceFactory) {
+    Function<TcpServer, TcpServer> defaultCustomizer =
+        server -> {
+          TcpServer temp = server;
+          ServerBootstrapConfig serverConfig = server.configure().config();
+          if (serverConfig.group() == null) {
+            this.serverResources = serverResourceFactory.get();
+            temp = temp.runOn(this.serverResources, true);
+          }
+          if (serverConfig.localAddress() == null) {
+            temp = temp.port(0);
+          }
+          return temp;
+        };
+    Function<TcpServer, TcpServer> reducedServerCustomizer =
+        userServerCustomizers.stream().reduce(Function::andThen).orElse(Function.identity());
+    return reducedServerCustomizer.andThen(defaultCustomizer).apply(TcpServer.create());
+  }
+
+  private TcpClient createAndCustomizeClient(
+      List<Function<TcpClient, TcpClient>> userClientCustomizers,
+      Supplier<LoopResources> clientResourceFactory) {
+    Function<TcpClient, TcpClient> defaultCustomizer =
+        client -> {
+          boolean resourceNotExists = client.configure().config().group() == null;
+          if (resourceNotExists) {
+            this.clientResources = clientResourceFactory.get();
+            return client.runOn(this.clientResources, true);
+          }
+          return client;
+        };
+    Function<TcpClient, TcpClient> reducedClientCustomizer =
+        userClientCustomizers.stream().reduce(Function::andThen).orElse(Function.identity());
+
+    return reducedClientCustomizer.andThen(defaultCustomizer).apply(TcpClient.newConnection());
   }
 
   /**
@@ -69,7 +134,7 @@ public class NettyTcpTransportFactory
    *
    * @see io.scalecube.services.transport.rsocket.RSocketServerTransportFactory.Server
    */
-  private static class NettyServerTransportAdapter implements ServerTransport<Server> {
+  private class NettyServerTransportAdapter implements ServerTransport<Server> {
 
     private final ServerTransport<CloseableChannel> delegate;
 
@@ -97,7 +162,7 @@ public class NettyTcpTransportFactory
     }
   }
 
-  private static class NettyServer implements Server {
+  private class NettyServer implements Server {
 
     private final CloseableChannel delegate;
     private final List<Connection> connections;
@@ -115,24 +180,42 @@ public class NettyTcpTransportFactory
 
     @Override
     public Mono<Void> onClose() {
-      Mono<Void> closeConnections =
-          Mono.whenDelayError(
-                  connections.stream()
-                      .map(
-                          connection -> {
-                            connection.dispose();
-                            return connection
-                                .onTerminate()
-                                .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
-                          })
-                      .collect(Collectors.toList()))
-              .doOnTerminate(connections::clear);
-      return closeConnections.then(delegate.onClose());
+      List<Mono<Void>> disposables = new ArrayList<>(disposeConnections());
+      if (clientResources != null) {
+        disposables.add(clientResources.disposeLater());
+      }
+      if (serverResources != null) {
+        disposables.add(serverResources.disposeLater());
+      }
+      disposables.add(delegate.onClose());
+      return Mono.whenDelayError(disposables).doOnTerminate(connections::clear);
+    }
+
+    private List<Mono<Void>> disposeConnections() {
+      return connections.stream()
+          .map(
+              connection -> {
+                connection.dispose();
+                return connection
+                    .onTerminate()
+                    .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
+              })
+          .collect(toList());
     }
 
     @Override
     public void dispose() {
       delegate.dispose();
     }
+  }
+
+  public NettyTcpTransportFactory setClientResources(@Nullable LoopResources clientResources) {
+    this.clientResources = clientResources;
+    return this;
+  }
+
+  public NettyTcpTransportFactory setServerResources(@Nullable LoopResources serverResources) {
+    this.serverResources = serverResources;
+    return this;
   }
 }

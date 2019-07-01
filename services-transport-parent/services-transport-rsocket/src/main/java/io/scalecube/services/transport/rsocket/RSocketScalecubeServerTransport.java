@@ -34,7 +34,7 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(Address address, ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () ->
             RSocketFactory.receive()
@@ -45,7 +45,7 @@ public class RSocketScalecubeServerTransport implements ServerTransport {
                 .errorConsumer(
                     th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
                 .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-                .transport(transportFactory.createServerTransport(address))
+                .transport(transportFactory.createServerTransport())
                 .start()
                 .doOnSuccess(this::setServer)
                 .thenReturn(this));

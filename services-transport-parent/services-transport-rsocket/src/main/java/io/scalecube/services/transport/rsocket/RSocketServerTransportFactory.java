@@ -10,10 +10,9 @@ public interface RSocketServerTransportFactory {
   /**
    * Creates a transport server and initializes it with the specified address.
    *
-   * @param address address
    * @return RSocket Server Transport
    */
-  ServerTransport<Server> createServerTransport(Address address);
+  ServerTransport<Server> createServerTransport();
 
   /** Adapter for closable server. Adds the ability to get the server address. */
   interface Server extends Closeable {
