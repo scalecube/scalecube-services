@@ -20,6 +20,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.netty.ReactorNetty;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
@@ -33,7 +34,10 @@ public class RSocketByNettyTcp {
   private TcpServer tcpServer;
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs = new ArrayList<>();
-  private int workerCount = Runtime.getRuntime().availableProcessors();
+  private int workerCount = Integer.parseInt(System.getProperty(
+      ReactorNetty.IO_WORKER_COUNT,
+      "" + Math.max(Runtime.getRuntime()
+          .availableProcessors(), 4)));
 
   private RSocketByNettyTcp() {
     this.tcpClient = TcpClient.newConnection();
@@ -59,6 +63,17 @@ public class RSocketByNettyTcp {
    */
   public RSocketByNettyTcp customizeClient(Function<TcpClient, TcpClient> customizer) {
     this.tcpClient = requireNonNull(customizer, "Must be not null").apply(this.tcpClient);
+    return this;
+  }
+
+  /**
+   * Setting worker count for Tcp Resources.
+   *
+   * @param numberOfWorker number of worker
+   * @return current builder
+   */
+  public RSocketByNettyTcp workerCount(int numberOfWorker) {
+    this.workerCount = numberOfWorker;
     return this;
   }
 

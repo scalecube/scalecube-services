@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
@@ -93,10 +92,8 @@ public class NettyTcpTransportFactory
     }
 
     @Override
-    public Mono<Server> start(ConnectionAcceptor acceptor, int mtu) {
-      return delegate
-          .start(acceptor, mtu)
-          .map(delegate1 -> new NettyServer(delegate1, connections));
+    public Mono<Server> start(ConnectionAcceptor acceptor) {
+      return delegate.start(acceptor).map(delegate1 -> new NettyServer(delegate1, connections));
     }
   }
 

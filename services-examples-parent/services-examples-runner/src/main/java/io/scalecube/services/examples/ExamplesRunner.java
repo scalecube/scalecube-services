@@ -1,7 +1,5 @@
 package io.scalecube.services.examples;
 
-import static reactor.netty.ReactorNetty.IO_WORKER_COUNT;
-
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -14,6 +12,7 @@ import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.transport.api.ServiceTransportProvider;
 import io.scalecube.services.transport.rsocket.builder.RSocketByNettyTcp;
 import java.nio.file.Path;
 import java.util.List;
@@ -51,12 +50,11 @@ public class ExamplesRunner {
     int numOfThreads =
         Optional.ofNullable(config.numOfThreads())
             .orElse(Runtime.getRuntime().availableProcessors());
-    System.setProperty(IO_WORKER_COUNT, String.valueOf(numOfThreads));
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(ServiceTransports::rsocketServiceTransport)
+        .transport(opts -> serviceTransport(numOfThreads, opts, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()
@@ -65,7 +63,9 @@ public class ExamplesRunner {
 
   private static ServiceTransportBootstrap serviceTransport(
       int numOfThreads, ServiceTransportBootstrap opts, Config config) {
-    return opts.transportProvider(RSocketByNettyTcp.builder().build()).port(config.servicePort());
+    ServiceTransportProvider transportProvider =
+        RSocketByNettyTcp.builder().workerCount(numOfThreads).build();
+    return opts.transportProvider(transportProvider).port(config.servicePort());
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
