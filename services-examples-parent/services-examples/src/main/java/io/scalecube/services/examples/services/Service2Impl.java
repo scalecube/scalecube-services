@@ -6,6 +6,7 @@ import java.time.ZoneId;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Schedulers;
 
 class Service2Impl implements Service2 {
@@ -14,30 +15,31 @@ class Service2Impl implements Service2 {
 
   @Override
   public Mono<String> oneDelay(long interval) {
-    return Mono.<String>create(
-            sink -> {
-              AtomicBoolean isActive = new AtomicBoolean(true);
-              sink.onCancel(() -> isActive.set(false));
-              sink.onDispose(() -> isActive.set(false));
-
-              long started = System.currentTimeMillis();
-
-              sink.onRequest(
-                  r -> {
-                    while (isActive.get()) {
-                      long now = System.currentTimeMillis();
-
-                      if (now - started > interval) {
-                        sink.success(toResponse(now));
-                        return;
-                      }
-
-                      LockSupport.parkNanos(SLEEP_PERIOD_NS);
-                    }
-                  });
-            })
+    return Mono.<String>create(sink -> doWork(sink, interval))
         .subscribeOn(Schedulers.parallel())
         .log("oneDelay    |");
+  }
+
+  private void doWork(MonoSink<String> sink, long interval) {
+    AtomicBoolean isActive = new AtomicBoolean(true);
+    sink.onCancel(() -> isActive.set(false));
+    sink.onDispose(() -> isActive.set(false));
+
+    long started = System.currentTimeMillis();
+
+    sink.onRequest(
+        r -> {
+          while (isActive.get()) {
+            long now = System.currentTimeMillis();
+
+            if (now - started > interval) {
+              sink.success(toResponse(now));
+              return;
+            }
+
+            LockSupport.parkNanos(SLEEP_PERIOD_NS);
+          }
+        });
   }
 
   private String toResponse(long now) {

@@ -8,6 +8,11 @@ import reactor.core.scheduler.Schedulers;
 
 public class Example2 {
 
+  /**
+   * Main method.
+   *
+   * @param args - program arguments
+   */
   public static void main(String[] args) {
     Microservices gateway =
         Microservices.builder()
