@@ -44,12 +44,10 @@ public class Service1Impl implements Service1 {
     while (!sink.isCancelled() && sink.requestedFromDownstream() > 0) {
       long now = System.currentTimeMillis();
 
-      if (sink.requestedFromDownstream() > 0) {
-        if (now - lastPublished > interval) {
-          lastPublished = now;
-          sink.next(toResponse(now));
-          continue;
-        }
+      if (sink.requestedFromDownstream() > 0 && now - lastPublished > interval) {
+        lastPublished = now;
+        sink.next(toResponse(now));
+        continue;
       }
 
       LockSupport.parkNanos(SLEEP_PERIOD_NS);
