@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
@@ -24,17 +23,17 @@ public class RSocketClientTransport implements ClientTransport {
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
-  private final LoopResources loopResources;
+  private final TcpClient tcpClient;
 
   /**
    * Constructor for this transport.
    *
    * @param codec message codec
-   * @param loopResources client loop resources
+   * @param tcpClient tcp client
    */
-  public RSocketClientTransport(ServiceMessageCodec codec, LoopResources loopResources) {
+  public RSocketClientTransport(ServiceMessageCodec codec, TcpClient tcpClient) {
     this.codec = codec;
-    this.loopResources = loopResources;
+    this.tcpClient = tcpClient;
   }
 
   @Override
@@ -46,11 +45,7 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    TcpClient tcpClient =
-        TcpClient.newConnection() // create non-pooled
-            .runOn(loopResources)
-            .host(address.host())
-            .port(address.port());
+    TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
