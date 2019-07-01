@@ -27,7 +27,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   private static final int NUM_OF_WORKERS = Runtime.getRuntime().availableProcessors();
 
   private int numOfWorkers = NUM_OF_WORKERS;
-  private ServiceMessageCodec messageCodec = new ServiceMessageCodec(HEADERS_CODEC);
+  private HeadersCodec headersCodec = HEADERS_CODEC;
   private Function<LoopResources, TcpServer> tcpServerProvider = defaultTcpServerProvider();
 
   // resources
@@ -45,10 +45,34 @@ public class RSocketServiceTransport implements ServiceTransport {
    */
   private RSocketServiceTransport(RSocketServiceTransport other) {
     this.numOfWorkers = other.numOfWorkers;
-    this.messageCodec = other.messageCodec;
+    this.headersCodec = other.headersCodec;
     this.eventLoopGroup = other.eventLoopGroup;
     this.clientLoopResources = other.clientLoopResources;
     this.serverLoopResources = other.serverLoopResources;
+  }
+
+  /**
+   * Sets a worker threads number.
+   *
+   * @param numOfWorkers number of worker threads
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport numOfWorkers(int numOfWorkers) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.numOfWorkers = numOfWorkers;
+    return rst;
+  }
+
+  /**
+   * Sets a {@code HeadersCodec}.
+   *
+   * @param headersCodec headers codec
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport headersCodec(HeadersCodec headersCodec) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.headersCodec = headersCodec;
+    return rst;
   }
 
   /**
@@ -70,7 +94,7 @@ public class RSocketServiceTransport implements ServiceTransport {
    */
   @Override
   public ClientTransport clientTransport() {
-    return new RSocketClientTransport(messageCodec, clientLoopResources);
+    return new RSocketClientTransport(new ServiceMessageCodec(headersCodec), clientLoopResources);
   }
 
   /**
@@ -80,7 +104,8 @@ public class RSocketServiceTransport implements ServiceTransport {
    */
   @Override
   public ServerTransport serverTransport() {
-    return new RSocketServerTransport(messageCodec, tcpServerProvider.apply(serverLoopResources));
+    return new RSocketServerTransport(
+        new ServiceMessageCodec(headersCodec), tcpServerProvider.apply(serverLoopResources));
   }
 
   @Override
