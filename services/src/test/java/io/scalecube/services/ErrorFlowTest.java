@@ -12,6 +12,7 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,7 +34,7 @@ public class ErrorFlowTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.port(port.incrementAndGet())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -46,7 +47,7 @@ public class ErrorFlowTest {
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
                             opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
   }
 

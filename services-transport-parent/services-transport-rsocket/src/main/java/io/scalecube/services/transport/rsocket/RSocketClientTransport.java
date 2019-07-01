@@ -2,8 +2,8 @@ package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -54,7 +54,12 @@ public class RSocketClientTransport implements ClientTransport {
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
-            .frameDecoder(PayloadDecoder.ZERO_COPY)
+            .frameDecoder(
+                frame ->
+                    ByteBufPayload.create(
+                        frame.sliceData().retain(), frame.sliceMetadata().retain()))
+            .errorConsumer(
+                th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
             .transport(() -> TcpClientTransport.create(tcpClient))
             .start();
 
@@ -70,11 +75,12 @@ public class RSocketClientTransport implements ClientTransport {
                         monoMap.remove(address);
                         LOGGER.info("Connection closed on {}", address);
                       })
-                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
+                  .subscribe(
+                      null, th -> LOGGER.warn("Exception on closing rsocket: {}", th.toString()));
             })
         .doOnError(
-            throwable -> {
-              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+            th -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, th.toString());
               monoMap.remove(address);
             })
         .cache();

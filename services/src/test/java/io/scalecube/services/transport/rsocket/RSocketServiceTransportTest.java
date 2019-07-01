@@ -1,8 +1,10 @@
-package io.scalecube.services;
+package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -10,6 +12,7 @@ import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -17,8 +20,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
-public class ServiceTransportTest {
+public class RSocketServiceTransportTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();
@@ -35,7 +39,7 @@ public class ServiceTransportTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
     serviceNode =
@@ -43,28 +47,21 @@ public class ServiceTransportTest {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(ServiceTransports::rsocketServiceTransport)
+                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new SimpleQuoteService())
             .startAwait();
   }
 
   @AfterEach
   public void cleanUp() {
-    if (gateway != null) {
-      try {
-        gateway.shutdown();
-      } catch (Throwable ignore) {
-        // no-op
-      }
-    }
-    if (serviceNode != null) {
-      try {
-        serviceNode.shutdown();
-      } catch (Throwable ignore) {
-        // no-op
-      }
+    try {
+      Mono.whenDelayError(
+              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
+              Optional.ofNullable(serviceNode).map(Microservices::shutdown).orElse(Mono.empty()))
+          .block();
+    } catch (Throwable ignore) {
+      // no-op
     }
   }
 

@@ -5,7 +5,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.examples.ServiceTransports;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.services.examples.orderbook.service.OrderRequest;
@@ -13,6 +12,7 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;
@@ -37,14 +37,14 @@ public class Example1 {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .startAwait();
 
     Microservices ms =
         Microservices.builder()
             .discovery(
                 serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway.discovery().address()))
-            .transport(ServiceTransports::rsocketServiceTransport)
+            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
             .services(new DefaultMarketDataService())
             .startAwait();
 

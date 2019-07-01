@@ -12,8 +12,8 @@ import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.RSocketTransportResources;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -54,7 +54,7 @@ public class ExamplesRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(numOfThreads, opts, config))
+        .transport(opts -> serviceTransport(opts, numOfThreads, config))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()
@@ -62,11 +62,13 @@ public class ExamplesRunner {
   }
 
   private static ServiceTransportBootstrap serviceTransport(
-      int numOfThreads, ServiceTransportBootstrap opts, Config config) {
-    return opts.resources(() -> new RSocketTransportResources(numOfThreads))
-        .client(RSocketServiceTransport.INSTANCE::clientTransport)
-        .server(RSocketServiceTransport.INSTANCE::serverTransport)
-        .port(config.servicePort());
+      ServiceTransportBootstrap opts, int numOfThreads, Config config) {
+    return opts //
+        .port(config.servicePort())
+        .serviceTransport(
+            () ->
+                new RSocketServiceTransport(
+                    numOfThreads, HeadersCodec.getInstance("application/json")));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
