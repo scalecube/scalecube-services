@@ -2,7 +2,7 @@ package io.scalecube.services.examples.services;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.services.examples.ServiceTransports;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -17,7 +17,7 @@ public class Example2 {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .startAwait();
 
     Microservices service2Node =
@@ -26,7 +26,7 @@ public class Example2 {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new Service2Impl())
             .startAwait();
 
@@ -36,7 +36,7 @@ public class Example2 {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(ServiceTransports::rsocketServiceTransport)
             .services(new Service1Impl())
             .startAwait();
 
