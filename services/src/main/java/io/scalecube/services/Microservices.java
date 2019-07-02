@@ -646,13 +646,14 @@ public class Microservices {
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              Mono.whenDelayError(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  Optional.ofNullable(serviceTransport)
-                      .map(ServiceTransport::stop)
-                      .orElse(Mono.empty())));
+              Flux.concatDelayError(
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()),
+                      Optional.ofNullable(serviceTransport)
+                          .map(ServiceTransport::stop)
+                          .orElse(Mono.empty()))
+                  .then());
     }
 
     @Override
