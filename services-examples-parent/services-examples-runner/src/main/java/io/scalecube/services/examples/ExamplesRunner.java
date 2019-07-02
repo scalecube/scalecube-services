@@ -8,11 +8,9 @@ import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Microservices.ServiceTransportBootstrap;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.nio.file.Path;
 import java.util.List;
@@ -21,6 +19,8 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.netty.tcp.TcpClient;
+import reactor.netty.tcp.TcpServer;
 
 public class ExamplesRunner {
 
@@ -54,21 +54,27 @@ public class ExamplesRunner {
 
     Microservices.builder()
         .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(opts -> serviceTransport(opts, numOfThreads, config))
+        .transport(
+            () ->
+                new RSocketServiceTransport()
+                    .tcpClient(
+                        loopResources ->
+                            TcpClient.newConnection()
+                                .runOn(loopResources)
+                                .wiretap(false)
+                                .noProxy()
+                                .noSSL())
+                    .tcpServer(
+                        loopResources ->
+                            TcpServer.create()
+                                .wiretap(false)
+                                .port(config.servicePort())
+                                .runOn(loopResources)
+                                .noSSL()))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()
         .block();
-  }
-
-  private static ServiceTransportBootstrap serviceTransport(
-      ServiceTransportBootstrap opts, int numOfThreads, Config config) {
-    return opts //
-        .port(config.servicePort())
-        .serviceTransport(
-            () ->
-                new RSocketServiceTransport(
-                    numOfThreads, HeadersCodec.getInstance("application/json")));
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {

@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
@@ -27,7 +26,7 @@ public class RSocketServerTransport implements ServerTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
   private final ServiceMessageCodec codec;
-  private final LoopResources loopResources;
+  private final TcpServer tcpServer;
 
   private CloseableChannel server; // calculated
   private List<Connection> connections = new CopyOnWriteArrayList<>(); // calculated
@@ -36,11 +35,11 @@ public class RSocketServerTransport implements ServerTransport {
    * Constructor for this server transport.
    *
    * @param codec message codec
-   * @param loopResources server loop resources
+   * @param tcpServer tcp server
    */
-  public RSocketServerTransport(ServiceMessageCodec codec, LoopResources loopResources) {
+  public RSocketServerTransport(ServiceMessageCodec codec, TcpServer tcpServer) {
     this.codec = codec;
-    this.loopResources = loopResources;
+    this.tcpServer = tcpServer;
   }
 
   @Override
@@ -50,23 +49,20 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
-              TcpServer.create()
-                  .runOn(loopResources)
-                  .addressSupplier(() -> new InetSocketAddress(port))
-                  .doOnConnection(
-                      connection -> {
-                        LOGGER.info("Accepted connection on {}", connection.channel());
-                        connection.onDispose(
-                            () -> {
-                              LOGGER.info("Connection closed on {}", connection.channel());
-                              connections.remove(connection);
-                            });
-                        connections.add(connection);
-                      });
+              this.tcpServer.doOnConnection(
+                  connection -> {
+                    LOGGER.info("Accepted connection on {}", connection.channel());
+                    connection.onDispose(
+                        () -> {
+                          LOGGER.info("Connection closed on {}", connection.channel());
+                          connections.remove(connection);
+                        });
+                    connections.add(connection);
+                  });
 
           return RSocketFactory.receive()
               .frameDecoder(

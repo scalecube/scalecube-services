@@ -17,11 +17,10 @@ public interface ServerTransport {
   /**
    * Starts a server transport.
    *
-   * @param port listen port (can be {@code 0})
    * @param methodRegistry service method registry
    * @return bound server address
    */
-  Mono<ServerTransport> bind(int port, ServiceMethodRegistry methodRegistry);
+  Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry);
 
   /**
    * Stops server transport.
