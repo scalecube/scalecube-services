@@ -188,8 +188,7 @@ public class Microservices {
 
               // invoke service providers and register services
               List<Object> serviceInstances =
-                  serviceProviders
-                      .stream()
+                  serviceProviders.stream()
                       .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                       .peek(this::registerInMethodRegistry)
                       .peek(
@@ -203,9 +202,7 @@ public class Microservices {
                   .create(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
                   .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
-                  .then(
-                      Mono.fromCallable(
-                          () -> Injector.inject(this, serviceInstances)))
+                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
                   .thenReturn(this);
@@ -534,8 +531,7 @@ public class Microservices {
     }
 
     private Gateway gateway(String id) {
-      return gateways
-          .stream()
+      return gateways.stream()
           .filter(gw -> gw.id().equals(id))
           .findFirst()
           .orElseThrow(
@@ -686,9 +682,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getGatewayAddresses() {
-      return microservices
-          .gateways()
-          .stream()
+      return microservices.gateways().stream()
           .map(gw -> gw.id() + " -> " + gw.address())
           .collect(Collectors.toList());
     }
@@ -707,10 +701,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceEndpoints() {
-      return microservices
-          .serviceRegistry
-          .listServiceEndpoints()
-          .stream()
+      return microservices.serviceRegistry.listServiceEndpoints().stream()
           .map(ServiceEndpoint::toString)
           .collect(Collectors.toList());
     }
