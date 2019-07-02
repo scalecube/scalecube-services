@@ -99,7 +99,7 @@ public final class ServiceMessageCodec {
     } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        DataCodec dataCodec = getDataCodecByContentType(message.dataFormatOrDefault());
+        DataCodec dataCodec = getDataCodec(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer);
@@ -190,7 +190,7 @@ public final class ServiceMessageCodec {
    * @param contentType the content type.
    * @return a DataCodec for the content type or IllegalArgumentException is thrown if non exist
    */
-  private DataCodec getDataCodecByContentType(String contentType) {
+  private DataCodec getDataCodec(String contentType) {
     if (contentType == null) {
       throw new IllegalArgumentException("contentType not specified");
     }
