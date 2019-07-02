@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import io.scalecube.services.annotations.AfterConstruct;
-import io.scalecube.services.annotations.Service;
 import io.scalecube.services.routing.Router;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -37,24 +36,31 @@ final class Injector {
   }
 
   private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
-        && field.getType().equals(Microservices.class)) {
-      setField(field, service, microservices);
-    } else if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
-        && isService(field.getType())) {
-      io.scalecube.services.annotations.Inject injection =
-          field.getAnnotation(io.scalecube.services.annotations.Inject.class);
-      Class<? extends Router> routerClass = injection.router();
+    try {
+      if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
+          && field.getType().equals(Microservices.class)) {
+        Reflect.setField(field, service, microservices);
+      } else if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
+          && Reflect.isService(field.getType())) {
+        io.scalecube.services.annotations.Inject injection =
+            field.getAnnotation(io.scalecube.services.annotations.Inject.class);
+        Class<? extends Router> routerClass = injection.router();
 
-      final ServiceCall call = microservices.call();
+        final ServiceCall call = microservices.call();
 
-      if (!routerClass.isInterface()) {
-        call.router(routerClass);
+        if (!routerClass.isInterface()) {
+          call.router(routerClass);
+        }
+
+        final Object targetProxy = call.api(field.getType());
+
+        Reflect.setField(field, service, targetProxy);
       }
-
-      final Object targetProxy = call.api(field.getType());
-
-      setField(field, service, targetProxy);
+    } catch (Exception ex) {
+      LOGGER.error(
+          "failed to set service proxy of type: {} reason:{}",
+          service.getClass().getName(),
+          ex.getMessage());
     }
   }
 
@@ -72,7 +78,7 @@ final class Injector {
                             mapper -> {
                               if (mapper.getType().equals(Microservices.class)) {
                                 return microservices;
-                              } else if (isService(mapper.getType())) {
+                              } else if (Reflect.isService(mapper.getType())) {
                                 return microservices.call().api(mapper.getType());
                               } else {
                                 return null;
@@ -84,21 +90,5 @@ final class Injector {
                 throw new RuntimeException(ex);
               }
             });
-  }
-
-  private static boolean isService(Class<?> type) {
-    return type.isAnnotationPresent(Service.class);
-  }
-
-  private static void setField(Field field, Object object, Object value) {
-    try {
-      field.setAccessible(true);
-      field.set(object, value);
-    } catch (Exception ex) {
-      LOGGER.error(
-          "failed to set service proxy of type: {} reason:{}",
-          object.getClass().getName(),
-          ex.getMessage());
-    }
   }
 }

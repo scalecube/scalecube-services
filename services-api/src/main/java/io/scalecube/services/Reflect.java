@@ -11,6 +11,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -32,70 +33,6 @@ public class Reflect {
   }
 
   /**
-   * Parse <code>serviceInterface</code> class and puts available methods annotated by {@link
-   * ServiceMethod} annotation to {@link Method} -> {@link MethodInfo} mapping.
-   *
-   * @param serviceInterface - service interface to be parsed.
-   * @return - mapping form available service methods of the <code>serviceInterface</code> to their
-   *     descriptions
-   */
-  public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
-    return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface)
-            .values()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    Function.identity(),
-                    method1 ->
-                        new MethodInfo(
-                            serviceName(serviceInterface),
-                            methodName(method1),
-                            parameterizedReturnType(method1),
-                            communicationMode(method1),
-                            method1.getParameterCount(),
-                            requestType(method1)))));
-  }
-
-  /**
-   * Util function to get service Method map from service api.
-   *
-   * @param serviceInterface with @Service annotation.
-   * @return service name.
-   */
-  public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-    Map<String, Method> methods =
-        Arrays.stream(serviceInterface.getMethods())
-            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-            .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
-
-    return Collections.unmodifiableMap(methods);
-  }
-
-  /**
-   * Util function to extract service name from service api.
-   *
-   * @param serviceInterface with @Service annotation.
-   * @return service name.
-   */
-  public static String serviceName(Class<?> serviceInterface) {
-    // Service name
-    Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-    if (serviceAnnotation == null) {
-      throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceInterface));
-    }
-    return serviceAnnotation.value().length() > 0
-        ? serviceAnnotation.value()
-        : serviceInterface.getName();
-  }
-
-  public static String methodName(Method method) {
-    ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-    return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
-  }
-
-  /**
    * extract parameterized return value of a method.
    *
    * @param method to extract type from.
@@ -107,40 +44,6 @@ public class Reflect {
       return ((ParameterizedType) type).getActualTypeArguments()[0];
     } else {
       return Object.class;
-    }
-  }
-
-  /**
-   * This method is used to get catual {@link CommunicationMode} os service method.
-   *
-   * <p>The following modes are supported:
-   *
-   * <ul>
-   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter,and the
-   *       first parameter is either of type return type {@link Flux} or {@link Publisher};
-   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service's return type is {@link Flux}, and
-   *       parameter is not {@link Flux};
-   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service's return type is Mono;
-   *   <li>{@link CommunicationMode#FIRE_AND_FORGET} - service returns void;
-   * </ul>
-   *
-   * @param method - Service method to be analyzed.
-   * @return - {@link CommunicationMode} of service method. If method does not correspond to any of
-   *     supported modes, throws {@link IllegalArgumentException}
-   */
-  public static CommunicationMode communicationMode(Method method) {
-    Class<?> returnType = method.getReturnType();
-    if (isRequestChannel(method)) {
-      return REQUEST_CHANNEL;
-    } else if (returnType.isAssignableFrom(Flux.class)) {
-      return REQUEST_STREAM;
-    } else if (returnType.isAssignableFrom(Mono.class)) {
-      return REQUEST_RESPONSE;
-    } else if (returnType.isAssignableFrom(Void.TYPE)) {
-      return FIRE_AND_FORGET;
-    } else {
-      throw new IllegalArgumentException(
-          "Service method is not supported (check return type or parameter type): " + method);
     }
   }
 
@@ -193,6 +96,32 @@ public class Reflect {
   }
 
   /**
+   * Parse <code>serviceInterface</code> class and puts available methods annotated by {@link
+   * ServiceMethod} annotation to {@link Method} -> {@link MethodInfo} mapping.
+   *
+   * @param serviceInterface - service interface to be parsed.
+   * @return - mapping form available service methods of the <code>serviceInterface</code> to their
+   *     descriptions
+   */
+  public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
+    return Collections.unmodifiableMap(
+        serviceMethods(serviceInterface)
+            .values()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    Function.identity(),
+                    method1 ->
+                        new MethodInfo(
+                            serviceName(serviceInterface),
+                            methodName(method1),
+                            parameterizedReturnType(method1),
+                            communicationMode(method1),
+                            method1.getParameterCount(),
+                            requestType(method1)))));
+  }
+
+  /**
    * Util function that returns the parameterized of the request Type of a given object.
    *
    * @return the parameterized Type of a given object or Object class if unknown.
@@ -206,6 +135,24 @@ public class Reflect {
     }
 
     return Object.class;
+  }
+
+  /**
+   * Util function to extract service name from service api.
+   *
+   * @param serviceInterface with @Service annotation.
+   * @return service name.
+   */
+  public static String serviceName(Class<?> serviceInterface) {
+    // Service name
+    Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
+    if (serviceAnnotation == null) {
+      throw new IllegalArgumentException(
+          String.format("Not a service interface: %s", serviceInterface));
+    }
+    return serviceAnnotation.value().length() > 0
+        ? serviceAnnotation.value()
+        : serviceInterface.getName();
   }
 
   /**
@@ -247,6 +194,40 @@ public class Reflect {
     return Reflect.transformArrayToMap(rawTags);
   }
 
+  private static Map<String, String> transformArrayToMap(String[] array) {
+    if (array.length == 0) {
+      return Collections.emptyMap();
+    }
+    Map<String, String> tags = new HashMap<>();
+    for (int keyIndex = 0; keyIndex < array.length; keyIndex += 2) {
+      final int valueIndex = keyIndex + 1;
+      String tagName = array[keyIndex];
+      String tagValue = array[valueIndex];
+      tags.merge(
+          tagName,
+          tagValue,
+          (o, n) -> {
+            throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
+          });
+    }
+    return Collections.unmodifiableMap(tags);
+  }
+
+  /**
+   * Util function to get service Method map from service api.
+   *
+   * @param serviceInterface with @Service annotation.
+   * @return service name.
+   */
+  public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
+    Map<String, Method> methods =
+        Arrays.stream(serviceInterface.getMethods())
+            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+            .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
+
+    return Collections.unmodifiableMap(methods);
+  }
+
   /**
    * Util function to get service interfaces collections from service instance.
    *
@@ -260,6 +241,11 @@ public class Reflect {
         .collect(Collectors.toList());
   }
 
+  public static String methodName(Method method) {
+    ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+    return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
+  }
+
   /**
    * Handy method to get qualifier String from service's interface and method.
    *
@@ -268,8 +254,7 @@ public class Reflect {
    * @return
    */
   public static String qualifier(Class<?> serviceInterface, Method method) {
-    return Qualifier.asString(
-        Reflect.serviceName(serviceInterface), Reflect.methodName(method));
+    return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
   }
 
   /**
@@ -289,6 +274,40 @@ public class Reflect {
     }
   }
 
+  /**
+   * This method is used to get catual {@link CommunicationMode} os service method.
+   *
+   * <p>The following modes are supported:
+   *
+   * <ul>
+   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter,and the
+   *       first parameter is either of type return type {@link Flux} or {@link Publisher};
+   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service's return type is {@link Flux}, and
+   *       parameter is not {@link Flux};
+   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service's return type is Mono;
+   *   <li>{@link CommunicationMode#FIRE_AND_FORGET} - service returns void;
+   * </ul>
+   *
+   * @param method - Service method to be analyzed.
+   * @return - {@link CommunicationMode} of service method. If method does not correspond to any of
+   *     supported modes, throws {@link IllegalArgumentException}
+   */
+  public static CommunicationMode communicationMode(Method method) {
+    Class<?> returnType = method.getReturnType();
+    if (isRequestChannel(method)) {
+      return REQUEST_CHANNEL;
+    } else if (returnType.isAssignableFrom(Flux.class)) {
+      return REQUEST_STREAM;
+    } else if (returnType.isAssignableFrom(Mono.class)) {
+      return REQUEST_RESPONSE;
+    } else if (returnType.isAssignableFrom(Void.TYPE)) {
+      return FIRE_AND_FORGET;
+    } else {
+      throw new IllegalArgumentException(
+          "Service method is not supported (check return type or parameter type): " + method);
+    }
+  }
+
   private static boolean isRequestChannel(Method method) {
     Class<?>[] reqTypes = method.getParameterTypes();
     return reqTypes.length > 0
@@ -296,22 +315,13 @@ public class Reflect {
             || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 
-  private static Map<String, String> transformArrayToMap(String[] array) {
-    if (array.length == 0) {
-      return Collections.emptyMap();
-    }
-    Map<String, String> tags = new HashMap<>();
-    for (int keyIndex = 0; keyIndex < array.length; keyIndex += 2) {
-      final int valueIndex = keyIndex + 1;
-      String tagName = array[keyIndex];
-      String tagValue = array[valueIndex];
-      tags.merge(
-          tagName,
-          tagValue,
-          (o, n) -> {
-            throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
-          });
-    }
-    return Collections.unmodifiableMap(tags);
+  public static void setField(Field field, Object object, Object value)
+      throws IllegalAccessException {
+    field.setAccessible(true);
+    field.set(object, value);
+  }
+
+  public static boolean isService(Class<?> type) {
+    return type.isAnnotationPresent(Service.class);
   }
 }
