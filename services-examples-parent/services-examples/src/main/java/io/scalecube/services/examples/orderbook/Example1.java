@@ -37,14 +37,14 @@ public class Example1 {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Microservices ms =
         Microservices.builder()
             .discovery(
                 serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway.discovery().address()))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(new DefaultMarketDataService())
             .startAwait();
 

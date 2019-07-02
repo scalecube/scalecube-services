@@ -57,13 +57,13 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -78,7 +78,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -91,16 +91,14 @@ public class RoutersTest extends BaseTest {
 
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
-            Microservices
-            .builder()
+        Microservices.builder()
             .discovery(RoutersTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
-                    ServiceInfo.fromServiceInstance(tagService)
+                ServiceInfo.fromServiceInstance(tagService)
                     .tag("tagB", "bb")
                     .tag("tagC", "c")
-                    .build()
-            )
+                    .build())
             .startAwait();
   }
 
@@ -171,19 +169,21 @@ public class RoutersTest extends BaseTest {
   @Test
   public void tesTagsFromAnnotation() {
     ServiceCall serviceCall =
-            provider3
+        provider3
             .call()
-            .router((req, mes) -> {
-              ServiceReference tagServiceRef = req.listServiceReferences().get(0);
-              Map<String, String> tags = tagServiceRef.tags();
-              assertEquals(new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
-              assertEquals("a", tags.get("tagA"));
-              // user override this tag in Microservices#services
-              assertEquals("bb", tags.get("tagB"));
-              assertEquals("c",tags.get("tagC"));
-              assertEquals("a", tags.get("methodTagA"));
-              return Optional.of(tagServiceRef);
-            });
+            .router(
+                (req, mes) -> {
+                  ServiceReference tagServiceRef = req.listServiceReferences().get(0);
+                  Map<String, String> tags = tagServiceRef.tags();
+                  assertEquals(
+                      new HashSet<>(asList("tagA", "tagB", "tagC", "methodTagA")), tags.keySet());
+                  assertEquals("a", tags.get("tagA"));
+                  // user override this tag in Microservices#services
+                  assertEquals("bb", tags.get("tagB"));
+                  assertEquals("c", tags.get("tagC"));
+                  assertEquals("a", tags.get("methodTagA"));
+                  return Optional.of(tagServiceRef);
+                });
     serviceCall.api(TagService.class).upperCase(Flux.just("hello")).blockLast();
   }
 
