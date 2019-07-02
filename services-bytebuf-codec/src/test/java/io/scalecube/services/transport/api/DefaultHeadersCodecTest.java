@@ -31,7 +31,10 @@ class DefaultHeadersCodecTest {
     return Stream.of(
         sampleMap,
         Collections.singletonMap("header", String.valueOf(Integer.MAX_VALUE)),
-        Collections.emptyMap());
+        Collections.emptyMap(),
+        Collections.singletonMap("", ""),
+        Collections.singletonMap("header", ""),
+        Collections.singletonMap("", "value"));
   }
 
   private Map<String, String> writeAndRead(Map<String, String> headers) throws IOException {

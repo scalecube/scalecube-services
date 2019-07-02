@@ -32,15 +32,11 @@ public class DefaultHeadersCodec implements HeadersCodec {
     writeInt(stream, headers.size());
     for (Entry<String, String> header : headers.entrySet()) {
       byte[] nameBytes = header.getKey().getBytes(UTF_8);
-      byte[] valueBytes = header.getValue().getBytes(UTF_8);
       writeInt(stream, nameBytes.length);
+      stream.write(nameBytes);
+      byte[] valueBytes = header.getValue().getBytes(UTF_8);
       writeInt(stream, valueBytes.length);
-      for (byte nameByte : nameBytes) {
-        stream.write(nameByte);
-      }
-      for (byte valueByte : valueBytes) {
-        stream.write(valueByte);
-      }
+      stream.write(valueBytes);
     }
   }
 
@@ -56,10 +52,10 @@ public class DefaultHeadersCodec implements HeadersCodec {
     Map<String, String> headers = new HashMap<>(size);
     for (int i = 0; i < size; i++) {
       int nameLength = readInt(stream);
-      int valueLength = readInt(stream);
       byte[] nameBytes = new byte[nameLength];
       stream.read(nameBytes);
       String name = new String(nameBytes, UTF_8);
+      int valueLength = readInt(stream);
       byte[] valueBytes = new byte[valueLength];
       stream.read(valueBytes);
       String value = new String(valueBytes, UTF_8);
