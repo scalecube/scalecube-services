@@ -39,7 +39,7 @@ public class RSocketServiceTransportTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     serviceNode =
@@ -48,7 +48,7 @@ public class RSocketServiceTransportTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(new SimpleQuoteService())
             .startAwait();
   }

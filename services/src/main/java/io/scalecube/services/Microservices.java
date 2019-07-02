@@ -33,7 +33,6 @@ import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -363,8 +362,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder transport(UnaryOperator<ServiceTransportBootstrap> op) {
-      this.transportBootstrap = op.apply(this.transportBootstrap);
+    public Builder transport(Supplier<ServiceTransport> supplier) {
+      this.transportBootstrap = new ServiceTransportBootstrap(supplier);
       return this;
     }
 
@@ -548,94 +547,51 @@ public class Microservices {
 
     public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
 
-    private String host;
-    private int port = 0;
-    private ServiceTransport serviceTransport;
+    private final Supplier<ServiceTransport> supplier;
 
+    private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
     private Address address;
 
-    private ServiceTransportBootstrap() {}
-
-    private ServiceTransportBootstrap(ServiceTransportBootstrap other) {
-      this.host = other.host;
-      this.port = other.port;
-      this.serviceTransport = other.serviceTransport;
+    public ServiceTransportBootstrap() {
+      this(null);
     }
 
-    private ServiceTransportBootstrap copy() {
-      return new ServiceTransportBootstrap(this);
-    }
-
-    /**
-     * Setting for service host.
-     *
-     * @param host service host
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap host(String host) {
-      ServiceTransportBootstrap c = copy();
-      c.host = host;
-      return c;
-    }
-
-    /**
-     * Setting for service port.
-     *
-     * @param port service port
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap port(int port) {
-      ServiceTransportBootstrap c = copy();
-      c.port = port;
-      return c;
-    }
-
-    /**
-     * Settings for service transport factory.
-     *
-     * @param supplier service transport factory function
-     * @return new {@code ServiceTransportBootstrap} instance
-     */
-    public ServiceTransportBootstrap serviceTransport(Supplier<ServiceTransport> supplier) {
-      ServiceTransportBootstrap c = copy();
-      c.serviceTransport = supplier.get();
-      return c;
+    public ServiceTransportBootstrap(Supplier<ServiceTransport> supplier) {
+      this.supplier = supplier;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      if (serviceTransport == null) {
+      if (supplier == null) {
         return Mono.just(ServiceTransportBootstrap.noOpInstance);
       }
 
+      serviceTransport = supplier.get();
+
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport)
+          .doOnSuccess(transport -> serviceTransport = transport) // reset with started
           .flatMap(
               transport -> {
                 // bind server transport
                 ServerTransport serverTransport = serviceTransport.serverTransport();
                 return serverTransport
-                    .bind(port, methodRegistry)
+                    .bind(methodRegistry)
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to bind server service "
-                                    + "transport -- {} on port: {}, cause: ",
+                                "Failed to bind server service " + "transport -- {} cause: ",
                                 serverTransport,
-                                port,
                                 ex));
               })
-          .doOnSuccess(transport -> serverTransport = transport)
+          .doOnSuccess(transport -> serverTransport = transport) // reset with bound
           .map(
               transport -> {
-                // prepare service host:port for exposing
-                int port = serverTransport.address().port();
-                String host =
-                    Optional.ofNullable(this.host)
-                        .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
-                this.address = Address.create(host, port);
+                this.address =
+                    Address.create(
+                        Address.getLocalIpAddress().getHostAddress(),
+                        serverTransport.address().port());
 
                 LOGGER.info(
                     "Successfully bound server service transport -- {} on address {}",
@@ -653,23 +609,20 @@ public class Microservices {
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
-              Mono.whenDelayError(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  Optional.ofNullable(serviceTransport)
-                      .map(ServiceTransport::stop)
-                      .orElse(Mono.empty())));
+              Flux.concatDelayError(
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()),
+                      Optional.ofNullable(serviceTransport)
+                          .map(ServiceTransport::stop)
+                          .orElse(Mono.empty()))
+                  .then());
     }
 
     @Override
     public String toString() {
       return "ServiceTransportBootstrap{"
-          + "host="
-          + host
-          + ", port="
-          + port
-          + ", clientTransport="
+          + "clientTransport="
           + clientTransport.getClass()
           + ", serverTransport="
           + serverTransport.getClass()
