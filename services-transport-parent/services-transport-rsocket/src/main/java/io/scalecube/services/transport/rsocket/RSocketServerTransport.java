@@ -9,15 +9,11 @@ import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
+import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
@@ -29,7 +25,6 @@ public class RSocketServerTransport implements ServerTransport {
   private final TcpServer tcpServer;
 
   private CloseableChannel server; // calculated
-  private List<Connection> connections = new CopyOnWriteArrayList<>(); // calculated
 
   /**
    * Constructor for this server transport.
@@ -57,11 +52,7 @@ public class RSocketServerTransport implements ServerTransport {
                   connection -> {
                     LOGGER.info("Accepted connection on {}", connection.channel());
                     connection.onDispose(
-                        () -> {
-                          LOGGER.info("Connection closed on {}", connection.channel());
-                          connections.remove(connection);
-                        });
-                    connections.add(connection);
+                        () -> LOGGER.info("Connection closed on {}", connection.channel()));
                   });
 
           return RSocketFactory.receive()
@@ -81,36 +72,13 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Mono<Void> stop() {
-    return Flux.concatDelayError(shutdownServer(), closeConnections()).then();
-  }
-
-  private Mono<Void> closeConnections() {
     return Mono.defer(
-        () ->
-            Mono.whenDelayError(
-                    connections.stream()
-                        .map(
-                            connection -> {
-                              connection.dispose();
-                              return connection
-                                  .onTerminate()
-                                  .doOnError(e -> LOGGER.warn("Failed to close connection: " + e));
-                            })
-                        .collect(Collectors.toList()))
-                .doOnTerminate(connections::clear));
-  }
-
-  private Mono<Void> shutdownServer() {
-    return Mono.defer(
-        () ->
-            Optional.ofNullable(server)
-                .map(
-                    server -> {
-                      server.dispose();
-                      return server
-                          .onClose()
-                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e));
-                    })
-                .orElse(Mono.empty()));
+        () -> {
+          if (server == null) {
+            return Mono.empty();
+          }
+          server.dispose();
+          return server.onClose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+        });
   }
 }

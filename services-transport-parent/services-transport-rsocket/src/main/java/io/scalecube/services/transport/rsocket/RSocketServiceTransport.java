@@ -160,8 +160,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private Mono<Void> shutdownEventLoopGroup() {
     //noinspection unchecked
-    return Mono.defer(
-        () -> FutureMono.from((Future) ((EventLoopGroup) eventLoopGroup).shutdownGracefully()));
+    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
   }
 
   private Function<LoopResources, TcpServer> defaultTcpServerProvider() {
