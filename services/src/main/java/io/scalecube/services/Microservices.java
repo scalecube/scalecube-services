@@ -235,8 +235,16 @@ public class Microservices {
     return transportBootstrap.address;
   }
 
+  /**
+   * Creates new instance {@code ServiceCall}.
+   *
+   * @return new {@code ServiceCall} instance.
+   */
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, serviceRegistry, methodRegistry)
+    return new ServiceCall()
+        .transport(transportBootstrap.clientTransport)
+        .serviceRegistry(serviceRegistry)
+        .methodRegistry(methodRegistry)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
