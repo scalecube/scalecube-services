@@ -42,15 +42,15 @@ public final class ServiceMessageCodec {
    * through the SPI mechanism are used. If the user sets several DataCodecs for one Content Type,
    * then the last one specified is used. User's DataCodec always override DataCodecs from SPI.
    *
-   * <p>Default HeadersCodec is BinaryHeadersCodec. This is lightweight binary codec written on
+   * <p>Default HeadersCodec is DefaultHeadersCodec. This is lightweight binary codec written on
    * vanilla java.
    *
-   * @param headersCodec codec for message headers. Default, {@link BinaryHeadersCodec}
+   * @param headersCodec codec for message headers. Default, {@link DefaultHeadersCodec}
    * @param dataCodecs codecs for message body. Codec will select by Message Content Type.
    */
   public ServiceMessageCodec(
       @Nullable HeadersCodec headersCodec, @Nullable Collection<DataCodec> dataCodecs) {
-    this.headersCodec = headersCodec == null ? new BinaryHeadersCodec() : headersCodec;
+    this.headersCodec = headersCodec == null ? new DefaultHeadersCodec() : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
       this.dataCodecs = defaultCodecs;
@@ -80,38 +80,6 @@ public final class ServiceMessageCodec {
   }
 
   /**
-   * Decode message.
-   *
-   * @param message the original message (with {@link ByteBuf} data)
-   * @param dataType the type of the data.
-   * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
-   *     (of type data type)
-   * @throws MessageCodecException when decode fails
-   */
-  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
-      throws MessageCodecException {
-    if (dataType == null
-        || !message.hasData(ByteBuf.class)
-        || ((ByteBuf) message.data()).readableBytes() == 0) {
-      return message;
-    }
-
-    Object data;
-    Type targetType = message.isError() ? ErrorData.class : dataType;
-
-    ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
-      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
-      data = dataCodec.decode(inputStream, targetType);
-    } catch (Throwable ex) {
-      throw new MessageCodecException(
-          "Failed to decode data on message q=" + message.qualifier(), ex);
-    }
-
-    return ServiceMessage.from(message).data(data).build();
-  }
-
-  /**
    * Encode a message, transform it to T.
    *
    * @param message the message to transform
@@ -135,7 +103,7 @@ public final class ServiceMessageCodec {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer);
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), ex);
       }
@@ -148,7 +116,7 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(headersBuffer);
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
-        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
+        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
       }
@@ -182,6 +150,38 @@ public final class ServiceMessageCodec {
     }
 
     return builder.build();
+  }
+
+  /**
+   * Decode message.
+   *
+   * @param message the original message (with {@link ByteBuf} data)
+   * @param dataType the type of the data.
+   * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
+   *     (of type data type)
+   * @throws MessageCodecException when decode fails
+   */
+  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
+      throws MessageCodecException {
+    if (dataType == null
+        || !message.hasData(ByteBuf.class)
+        || ((ByteBuf) message.data()).readableBytes() == 0) {
+      return message;
+    }
+
+    Object data;
+    Type targetType = message.isError() ? ErrorData.class : dataType;
+
+    ByteBuf dataBuffer = message.data();
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
+      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
+      data = dataCodec.decode(inputStream, targetType);
+    } catch (Throwable ex) {
+      throw new MessageCodecException(
+          "Failed to decode data on message q=" + message.qualifier(), ex);
+    }
+
+    return ServiceMessage.from(message).data(data).build();
   }
 
   /**
