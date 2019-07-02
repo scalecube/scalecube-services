@@ -24,13 +24,12 @@ class DefaultHeadersCodecTest {
   }
 
   static Stream<Map<String, String>> provider() {
+    Map<String, String> sampleMap = new HashMap<>();
+    sampleMap.put("header", "value");
+    sampleMap.put("test", "3");
+
     return Stream.of(
-        new HashMap<String, String>() {
-          {
-            put("header", "value");
-            put("test", "3");
-          }
-        },
+        sampleMap,
         Collections.singletonMap("header", String.valueOf(Integer.MAX_VALUE)),
         Collections.emptyMap());
   }
