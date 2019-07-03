@@ -31,6 +31,8 @@ public final class ServiceMessage {
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = new HashMap<>(1);
+  private Object credentials;
+  private Object principal;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
@@ -38,6 +40,8 @@ public final class ServiceMessage {
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
+    this.credentials = builder.credentials;
+    this.principal = builder.principal;
     this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
@@ -48,7 +52,11 @@ public final class ServiceMessage {
    * @return a new message, with the same data and headers
    */
   public static Builder from(ServiceMessage message) {
-    return ServiceMessage.builder().data(message.data()).headers(message.headers());
+    return ServiceMessage.builder()
+        .data(message.data())
+        .credentials(message.credentials)
+        .principal(message.principal)
+        .headers(message.headers());
   }
 
   /**
@@ -74,24 +82,6 @@ public final class ServiceMessage {
    */
   public static Builder builder() {
     return new Builder();
-  }
-
-  /**
-   * Sets data for deserialization purpose.
-   *
-   * @param data data to set
-   */
-  void setData(Object data) {
-    this.data = data;
-  }
-
-  /**
-   * Sets headers for deserialization purpose.
-   *
-   * @param headers headers to set
-   */
-  void setHeaders(Map<String, String> headers) {
-    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
   }
 
   /**
@@ -132,8 +122,35 @@ public final class ServiceMessage {
     return header(HEADER_DATA_FORMAT);
   }
 
+  /**
+   * Returns data format of the message data or default one.
+   *
+   * @return data format of the data or default one
+   */
   public String dataFormatOrDefault() {
     return Optional.ofNullable(dataFormat()).orElse(DEFAULT_DATA_FORMAT);
+  }
+
+  /**
+   * Retruns credentials.
+   *
+   * @param <T> credentials type
+   * @return credentials
+   */
+  public <T> T credentials() {
+    // noinspection unchecked
+    return (T) credentials;
+  }
+
+  /**
+   * Retruns principal.
+   *
+   * @param <T> principal type
+   * @return principal
+   */
+  public <T> T principal() {
+    // noinspection unchecked
+    return (T) principal;
   }
 
   /**
@@ -203,12 +220,24 @@ public final class ServiceMessage {
   public static class Builder {
 
     private Map<String, String> headers = new HashMap<>();
+    private Object credentials;
+    private Object principal;
     private Object data;
 
     private Builder() {}
 
     public Builder data(Object data) {
       this.data = data;
+      return this;
+    }
+
+    public Builder credentials(Object credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public Builder principal(Object principal) {
+      this.principal = principal;
       return this;
     }
 
