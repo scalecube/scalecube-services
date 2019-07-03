@@ -5,15 +5,12 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
-import io.scalecube.services.annotations.AfterConstruct;
-import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
-import io.scalecube.services.routing.Router;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -26,35 +23,13 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** Service Injector scan and injects beans to a given Microservices instance. */
-public final class Reflect {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
+public class Reflect {
 
   private Reflect() {
     // Do not instantiate
-  }
-
-  /**
-   * Inject instances to the microservices instance. either Microservices or ServiceProxy. Scan all
-   * local service instances and inject a service proxy.
-   *
-   * @param microservices microservices instance
-   * @param services services set
-   * @return microservices instance
-   */
-  public static Microservices inject(Microservices microservices, Collection<Object> services) {
-    services.forEach(
-        service ->
-            Arrays.stream(service.getClass().getDeclaredFields())
-                .forEach(field -> injectField(microservices, field, service)));
-    services.forEach(service -> processAfterConstruct(microservices, service));
-    return microservices;
   }
 
   /**
@@ -130,7 +105,9 @@ public final class Reflect {
    */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface).values().stream()
+        serviceMethods(serviceInterface)
+            .values()
+            .stream()
             .collect(
                 Collectors.toMap(
                     Function.identity(),
@@ -188,12 +165,11 @@ public final class Reflect {
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     if (serviceAnnotation == null) {
       throw new IllegalArgumentException(
-              String.format("Not a service interface: %s", serviceInterface));
+          String.format("Not a service interface: %s", serviceInterface));
     }
     String[] rawTags = serviceAnnotation.tags();
     if (rawTags.length % 2 == 1) {
-      throw new IllegalStateException(
-              String.format("Invalid tags for '%s'", serviceInterface));
+      throw new IllegalStateException(String.format("Invalid tags for '%s'", serviceInterface));
     }
     return transformArrayToMap(rawTags);
   }
@@ -208,14 +184,14 @@ public final class Reflect {
     ServiceMethod serviceMethodAnnotation = serviceMethod.getAnnotation(ServiceMethod.class);
     if (serviceMethodAnnotation == null) {
       throw new IllegalArgumentException(
-              String.format("Not a service interface: %s", serviceMethodAnnotation));
+          String.format("Not a service interface: %s", serviceMethodAnnotation));
     }
     String[] rawTags = serviceMethodAnnotation.tags();
     if (rawTags.length % 2 == 1) {
       throw new IllegalStateException(
-              String.format("Invalid tags for service method '%s'", serviceMethod.getName()));
+          String.format("Invalid tags for service method '%s'", serviceMethod.getName()));
     }
-    return transformArrayToMap(rawTags);
+    return Reflect.transformArrayToMap(rawTags);
   }
 
   private static Map<String, String> transformArrayToMap(String[] array) {
@@ -227,9 +203,12 @@ public final class Reflect {
       final int valueIndex = keyIndex + 1;
       String tagName = array[keyIndex];
       String tagValue = array[valueIndex];
-      tags.merge(tagName, tagValue, (o, n) -> {
-        throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
-      });
+      tags.merge(
+          tagName,
+          tagValue,
+          (o, n) -> {
+            throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
+          });
     }
     return Collections.unmodifiableMap(tags);
   }
@@ -267,8 +246,15 @@ public final class Reflect {
     return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
   }
 
+  /**
+   * Handy method to get qualifier String from service's interface and method.
+   *
+   * @param serviceInterface service interface to get qualifier for
+   * @param method service's method to get qualifier for
+   * @return
+   */
   public static String qualifier(Class<?> serviceInterface, Method method) {
-    return Qualifier.asString(serviceName(serviceInterface), methodName(method));
+    return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
   }
 
   /**
@@ -329,66 +315,13 @@ public final class Reflect {
             || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 
-  private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-      setField(field, service, microservices);
-    } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-      Inject injection = field.getAnnotation(Inject.class);
-      Class<? extends Router> routerClass = injection.router();
-
-      final ServiceCall call = microservices.call();
-
-      if (!routerClass.isInterface()) {
-        call.router(routerClass);
-      }
-
-      final Object targetProxy = call.api(field.getType());
-
-      setField(field, service, targetProxy);
-    }
+  public static void setField(Field field, Object object, Object value)
+      throws IllegalAccessException {
+    field.setAccessible(true);
+    field.set(object, value);
   }
 
-  private static void setField(Field field, Object object, Object value) {
-    try {
-      field.setAccessible(true);
-      field.set(object, value);
-    } catch (Exception ex) {
-      LOGGER.error(
-          "failed to set service proxy of type: {} reason:{}",
-          object.getClass().getName(),
-          ex.getMessage());
-    }
-  }
-
-  private static void processAfterConstruct(Microservices microservices, Object targetInstance) {
-    Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
-    Arrays.stream(declaredMethods)
-        .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
-        .forEach(
-            afterConstructMethod -> {
-              try {
-                afterConstructMethod.setAccessible(true);
-                Object[] parameters =
-                    Arrays.stream(afterConstructMethod.getParameters())
-                        .map(
-                            mapper -> {
-                              if (mapper.getType().equals(Microservices.class)) {
-                                return microservices;
-                              } else if (isService(mapper.getType())) {
-                                return microservices.call().api(mapper.getType());
-                              } else {
-                                return null;
-                              }
-                            })
-                        .toArray();
-                afterConstructMethod.invoke(targetInstance, parameters);
-              } catch (Exception ex) {
-                throw new RuntimeException(ex);
-              }
-            });
-  }
-
-  private static boolean isService(Class<?> type) {
+  public static boolean isService(Class<?> type) {
     return type.isAnnotationPresent(Service.class);
   }
 }

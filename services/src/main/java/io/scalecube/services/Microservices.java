@@ -13,6 +13,8 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
@@ -200,7 +202,7 @@ public class Microservices {
                   .create(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
                   .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
-                  .then(Mono.fromCallable(() -> Reflect.inject(this, serviceInstances)))
+                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
                   .thenReturn(this);
@@ -233,8 +235,17 @@ public class Microservices {
     return transportBootstrap.address;
   }
 
+  /**
+   * Creates new instance {@code ServiceCall}.
+   *
+   * @return new {@code ServiceCall} instance.
+   */
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, serviceRegistry, methodRegistry);
+    return new ServiceCall()
+        .transport(transportBootstrap.clientTransport)
+        .serviceRegistry(serviceRegistry)
+        .methodRegistry(methodRegistry)
+        .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
   public List<Gateway> gateways() {

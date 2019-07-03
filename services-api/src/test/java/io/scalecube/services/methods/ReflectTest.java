@@ -1,10 +1,12 @@
-package io.scalecube.services;
+package io.scalecube.services.methods;
 
 import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
 import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
+import io.scalecube.services.CommunicationMode;
+import io.scalecube.services.Reflect;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Stream;

@@ -11,7 +11,6 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -34,34 +33,21 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
-  public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
+  private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
 
-  private final ClientTransport transport;
-  private final ServiceMethodRegistry methodRegistry;
-  private final ServiceRegistry serviceRegistry;
-  private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+  private ClientTransport transport;
+  private ServiceMethodRegistry methodRegistry;
+  private ServiceRegistry serviceRegistry;
+  private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Consumer<Object> requestReleaser =
       req -> {
         // no-op
       };
 
-  /**
-   * Creates new {@link ServiceCall}'s definition.
-   *
-   * @param transport transport to be used by {@link ServiceCall}
-   * @param serviceRegistry serviceRegistry to be used by {@link ServiceCall}
-   * @param methodRegistry methodRegistry to be used by {@link ServiceCall}
-   */
-  public ServiceCall(
-      ClientTransport transport,
-      ServiceRegistry serviceRegistry,
-      ServiceMethodRegistry methodRegistry) {
-    this.transport = transport;
-    this.serviceRegistry = serviceRegistry;
-    this.methodRegistry = methodRegistry;
-  }
+  /** Default constructor. */
+  public ServiceCall() {}
 
   private ServiceCall(ServiceCall other) {
     this.transport = other.transport;
@@ -69,6 +55,42 @@ public class ServiceCall {
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given client transport.
+   *
+   * @param clientTransport client transport.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall transport(ClientTransport clientTransport) {
+    ServiceCall target = new ServiceCall(this);
+    target.transport = clientTransport;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given service registry.
+   *
+   * @param serviceRegistry service registry.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall serviceRegistry(ServiceRegistry serviceRegistry) {
+    ServiceCall target = new ServiceCall(this);
+    target.serviceRegistry = serviceRegistry;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given method registry.
+   *
+   * @param methodRegistry method registry.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall methodRegistry(ServiceMethodRegistry methodRegistry) {
+    ServiceCall target = new ServiceCall(this);
+    target.methodRegistry = methodRegistry;
+    return target;
   }
 
   /**
@@ -161,7 +183,8 @@ public class ServiceCall {
     return Mono.defer(
         () -> {
           String qualifier = request.qualifier();
-          if (methodRegistry.containsInvoker(qualifier)) { // local service.
+          if (methodRegistry != null
+              && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
                 .invokeOne(request)
@@ -215,7 +238,8 @@ public class ServiceCall {
     return Flux.defer(
         () -> {
           String qualifier = request.qualifier();
-          if (methodRegistry.containsInvoker(qualifier)) { // local service.
+          if (methodRegistry != null
+              && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
                 .invokeMany(request)
@@ -275,8 +299,8 @@ public class ServiceCall {
               if (first.hasValue()) {
                 ServiceMessage request = first.get();
                 String qualifier = request.qualifier();
-
-                if (methodRegistry.containsInvoker(qualifier)) { // local service.
+                if (methodRegistry != null
+                    && methodRegistry.containsInvoker(qualifier)) { // local service
                   return methodRegistry
                       .getInvoker(qualifier)
                       .invokeBidirectional(messages)
@@ -334,9 +358,8 @@ public class ServiceCall {
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
             (proxy, method, params) -> {
-
               Optional<Object> check =
-                      toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
               if (check.isPresent()) {
                 return check.get(); // toString, hashCode was invoked.
               }
@@ -344,7 +367,6 @@ public class ServiceCall {
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
-
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:
@@ -379,13 +401,11 @@ public class ServiceCall {
 
   private Mono<Address> addressLookup(ServiceMessage request) {
     Callable<Address> callable =
-        () -> {
-          requireNonNull(serviceRegistry, "serviceRegistry is required and must not be null");
-          return router
-              .route(serviceRegistry, request)
-              .map(ServiceReference::address)
-              .orElseThrow(() -> noReachableMemberException(request));
-        };
+        () ->
+            router
+                .route(serviceRegistry, request)
+                .map(ServiceReference::address)
+                .orElseThrow(() -> noReachableMemberException(request));
     return Mono.fromCallable(callable)
         .doOnError(t -> Optional.ofNullable(request.data()).ifPresent(requestReleaser));
   }
