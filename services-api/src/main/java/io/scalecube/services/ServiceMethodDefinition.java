@@ -11,6 +11,7 @@ public class ServiceMethodDefinition {
 
   private String action;
   private Map<String, String> tags;
+  private boolean auth;
 
   /**
    * Constructor for SerDe.
@@ -25,7 +26,7 @@ public class ServiceMethodDefinition {
    * @param action method name
    */
   public ServiceMethodDefinition(String action) {
-    this(action, Collections.emptyMap());
+    this(action, Collections.emptyMap(), false);
   }
 
   /**
@@ -33,10 +34,12 @@ public class ServiceMethodDefinition {
    *
    * @param action method name
    * @param tags tags of this method
+   * @param auth is method protected by authentication
    */
-  public ServiceMethodDefinition(String action, Map<String, String> tags) {
+  public ServiceMethodDefinition(String action, Map<String, String> tags, boolean auth) {
     this.action = action;
     this.tags = tags;
+    this.auth = auth;
   }
 
   /**
@@ -62,8 +65,25 @@ public class ServiceMethodDefinition {
     return this;
   }
 
+  public boolean isAuth() {
+    return auth;
+  }
+
+  public ServiceMethodDefinition setAuth(boolean auth) {
+    this.auth = auth;
+    return this;
+  }
+
   @Override
   public String toString() {
-    return "ServiceMethodDefinition{" + "action='" + action + '\'' + ", tags=" + tags + '}';
+    return "ServiceMethodDefinition{"
+        + "action='"
+        + action
+        + '\''
+        + ", tags="
+        + tags
+        + ", auth="
+        + auth
+        + '}';
   }
 }

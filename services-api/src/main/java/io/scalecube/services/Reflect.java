@@ -10,6 +10,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Auth;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -323,5 +324,10 @@ public class Reflect {
 
   public static boolean isService(Class<?> type) {
     return type.isAnnotationPresent(Service.class);
+  }
+
+  public static boolean isAuth(Method method) {
+    return method.isAnnotationPresent(Auth.class)
+        || method.getDeclaringClass().isAnnotationPresent(Auth.class);
   }
 }

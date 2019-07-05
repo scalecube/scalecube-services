@@ -3,7 +3,7 @@ package io.scalecube.services.auth;
 import reactor.core.publisher.Mono;
 
 /**
- * Authneticator.
+ * Authenticator.
  *
  * @param <C> credentials type
  * @param <P> principal type
@@ -11,10 +11,10 @@ import reactor.core.publisher.Mono;
 public interface Authenticator<C, P> {
 
   /**
-   * Retrusn principal by given credenatitsl.
+   * Returns principal by given credentials.
    *
    * @param credentials credentials
-   * @return asycn result with obtained principal
+   * @return async result with obtained principal
    */
   Mono<P> authenticate(C credentials);
 }
