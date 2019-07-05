@@ -1,8 +1,11 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -20,11 +23,14 @@ import reactor.core.publisher.Mono;
  */
 public final class ServiceMethodInvoker {
 
+  private static final Object NO_PRINCIPAL = new Object();
+
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final Authenticator authenticator;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -40,12 +46,14 @@ public final class ServiceMethodInvoker {
       Object service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
-      ServiceMessageDataDecoder dataDecoder) {
+      ServiceMessageDataDecoder dataDecoder,
+      Authenticator authenticator) {
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
+    this.authenticator = authenticator;
   }
 
   /**
@@ -55,7 +63,8 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.defer(() -> Mono.from(invoke(toRequest(message))))
+    return authenticate(message)
+        .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
         .map(this::toResponse)
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
@@ -67,7 +76,8 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Flux.defer(() -> Flux.from(invoke(toRequest(message))))
+    return authenticate(message)
+        .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
         .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
@@ -80,19 +90,44 @@ public final class ServiceMethodInvoker {
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
-        .map(this::toRequest)
-        .transform(this::invoke)
-        .map(this::toResponse)
+        .switchOnFirst(
+            (first, messages) -> {
+              if (first.hasValue()) {
+                return authenticate(first.get())
+                    .flatMapMany(
+                        principal ->
+                            messages
+                                .map(this::toRequest)
+                                .transform(request -> invoke(request, principal)))
+                    .map(this::toResponse);
+              } else {
+                return messages
+                    .map(this::toRequest)
+                    .transform(request -> invoke(request, null))
+                    .map(this::toResponse);
+              }
+            })
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
-  private Publisher<?> invoke(Object arguments) {
+  private Publisher<?> invoke(Object request, Object principal) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
       if (method.getParameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
+        Parameter[] parameters = method.getParameters();
+        Object[] arguments = new Object[parameters.length];
+
+        for (int i = 0; i < parameters.length; i++) {
+          if (parameters[i].isAnnotationPresent(Principal.class)) {
+            arguments[i] = principal.equals(NO_PRINCIPAL) ? null : principal;
+          } else {
+            arguments[i] = request;
+          }
+        }
+
         result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
@@ -104,6 +139,25 @@ public final class ServiceMethodInvoker {
       throwable = ex;
     }
     return throwable != null ? Mono.error(throwable) : result;
+  }
+
+  @SuppressWarnings("unchecked")
+  private Mono<Object> authenticate(ServiceMessage message) {
+    return Mono.defer(
+        () -> {
+          if (!methodInfo.isAuth()) {
+            return Mono.empty();
+          }
+          Object credentials = message.credentials();
+          if (credentials == null) {
+            throw new UnauthorizedException("Credentials not found");
+          }
+          if (authenticator == null) {
+            throw new UnauthorizedException("Authenticator not found");
+          }
+          return authenticator.authenticate(credentials);
+        })
+        .defaultIfEmpty(NO_PRINCIPAL);
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -133,7 +187,8 @@ public final class ServiceMethodInvoker {
   @Override
   public String toString() {
     String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
-    String args = Stream.of(method.getParameters())
+    String args =
+        Stream.of(method.getParameters())
             .map(Parameter::getType)
             .map(Class::getSimpleName)
             .collect(Collectors.joining(", ", "(", ")"));

@@ -1,6 +1,7 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +16,8 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
   public void registerService(
       Object serviceInstance,
       ServiceProviderErrorMapper errorMapper,
-      ServiceMessageDataDecoder dataDecoder) {
+      ServiceMessageDataDecoder dataDecoder,
+      Authenticator authenticator) {
     Reflect.serviceInterfaces(serviceInstance)
         .forEach(
             serviceInterface ->
@@ -33,7 +35,8 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.parameterizedReturnType(method),
                                   Reflect.communicationMode(method),
                                   method.getParameterCount(),
-                                  Reflect.requestType(method));
+                                  Reflect.requestType(method),
+                                  Reflect.isAuth(method));
 
                           // register new service method invoker
                           String qualifier = methodInfo.qualifier();
@@ -44,7 +47,12 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                           }
                           ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
-                                  method, serviceInstance, methodInfo, errorMapper, dataDecoder);
+                                  method,
+                                  serviceInstance,
+                                  methodInfo,
+                                  errorMapper,
+                                  dataDecoder,
+                                  authenticator);
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }

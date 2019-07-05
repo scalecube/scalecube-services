@@ -32,7 +32,6 @@ public final class ServiceMessage {
 
   private Map<String, String> headers = new HashMap<>(1);
   private Object credentials;
-  private Object principal;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
@@ -41,7 +40,6 @@ public final class ServiceMessage {
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
     this.credentials = builder.credentials;
-    this.principal = builder.principal;
     this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
@@ -55,7 +53,6 @@ public final class ServiceMessage {
     return ServiceMessage.builder()
         .data(message.data())
         .credentials(message.credentials)
-        .principal(message.principal)
         .headers(message.headers());
   }
 
@@ -132,7 +129,7 @@ public final class ServiceMessage {
   }
 
   /**
-   * Retruns credentials.
+   * Returns credentials.
    *
    * @param <T> credentials type
    * @return credentials
@@ -140,17 +137,6 @@ public final class ServiceMessage {
   public <T> T credentials() {
     // noinspection unchecked
     return (T) credentials;
-  }
-
-  /**
-   * Retruns principal.
-   *
-   * @param <T> principal type
-   * @return principal
-   */
-  public <T> T principal() {
-    // noinspection unchecked
-    return (T) principal;
   }
 
   /**
@@ -221,7 +207,6 @@ public final class ServiceMessage {
 
     private Map<String, String> headers = new HashMap<>();
     private Object credentials;
-    private Object principal;
     private Object data;
 
     private Builder() {}
@@ -233,11 +218,6 @@ public final class ServiceMessage {
 
     public Builder credentials(Object credentials) {
       this.credentials = credentials;
-      return this;
-    }
-
-    public Builder principal(Object principal) {
-      this.principal = principal;
       return this;
     }
 

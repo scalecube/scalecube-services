@@ -5,12 +5,10 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
-import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
@@ -43,7 +41,6 @@ public class ServiceCall {
   private ServiceRegistry serviceRegistry;
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-  private Authenticator<?, ?> authenticator;
   private Consumer<Object> requestReleaser =
       req -> {
         // no-op
@@ -58,7 +55,6 @@ public class ServiceCall {
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
-    this.authenticator = other.authenticator;
   }
 
   /**
@@ -134,18 +130,6 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given authenticator.
-   *
-   * @param authenticator authenticator.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall authenticator(Authenticator authenticator) {
-    ServiceCall target = new ServiceCall(this);
-    target.authenticator = authenticator;
-    return target;
-  }
-
-  /**
    * Creates new {@link ServiceCall}'s definition with a given requestReleaser.
    *
    * @param requestReleaser given.
@@ -201,16 +185,10 @@ public class ServiceCall {
           String qualifier = request.qualifier();
           if (methodRegistry != null
               && methodRegistry.containsInvoker(qualifier)) { // local service
-
-            ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(request.qualifier());
-
-            Mono<?> principalMono = authenticator.authenticate(request.credentials());
-
-            return principalMono.flatMap(
-                principal ->
-                    methodInvoker
-                        .invokeOne(ServiceMessage.from(request).principal(principal).build())
-                        .map(this::throwIfError));
+            return methodRegistry
+                .getInvoker(request.qualifier())
+                .invokeOne(request)
+                .map(this::throwIfError);
           } else {
             return addressLookup(request)
                 .flatMap(address -> requestOne(request, responseType, address)); // remote service
@@ -262,16 +240,10 @@ public class ServiceCall {
           String qualifier = request.qualifier();
           if (methodRegistry != null
               && methodRegistry.containsInvoker(qualifier)) { // local service
-
-            ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(request.qualifier());
-
-            Mono<?> principalMono = authenticator.authenticate(request.credentials());
-
-            return principalMono.flatMapMany(
-                principal ->
-                    methodInvoker
-                        .invokeMany(ServiceMessage.from(request).principal(principal).build())
-                        .map(this::throwIfError));
+            return methodRegistry
+                .getInvoker(request.qualifier())
+                .invokeMany(request)
+                .map(this::throwIfError);
           } else {
             return addressLookup(request)
                 .flatMapMany(
@@ -329,19 +301,10 @@ public class ServiceCall {
                 String qualifier = request.qualifier();
                 if (methodRegistry != null
                     && methodRegistry.containsInvoker(qualifier)) { // local service
-
-                  ServiceMethodInvoker methodInvoker =
-                      methodRegistry.getInvoker(request.qualifier());
-
-                  Mono<?> principalMono = authenticator.authenticate(request.credentials());
-
-                  return principalMono.flatMapMany(
-                      principal ->
-                          methodInvoker
-                              .invokeBidirectional(
-                                  messages.map(
-                                      msg -> ServiceMessage.from(msg).principal(principal).build()))
-                              .map(this::throwIfError));
+                  return methodRegistry
+                      .getInvoker(qualifier)
+                      .invokeBidirectional(messages)
+                      .map(this::throwIfError);
                 } else {
                   // remote service
                   return addressLookup(request)
@@ -383,8 +346,19 @@ public class ServiceCall {
    * @param serviceInterface Service Interface type.
    * @return newly created service proxy object.
    */
-  @SuppressWarnings("unchecked")
   public <T> T api(Class<T> serviceInterface) {
+    return api(serviceInterface, null);
+  }
+
+  /**
+   * Create proxy creates a java generic proxy instance by a given service interface.
+   *
+   * @param serviceInterface Service Interface type.
+   * @param credentials credentials if service is protected by authentication
+   * @return newly created service proxy object.
+   */
+  @SuppressWarnings("unchecked")
+  public <T> T api(Class<T> serviceInterface, Object credentials) {
 
     final ServiceCall serviceCall = this;
     final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
@@ -401,22 +375,25 @@ public class ServiceCall {
                 return check.get(); // toString, hashCode was invoked.
               }
 
+              Integer requestParameterIndex = Reflect.requestParameterIndex(method);
+              Object request = requestParameterIndex == null ? null : params[requestParameterIndex];
+
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:
-                  return serviceCall.oneWay(toServiceMessage(methodInfo, params));
+                  return serviceCall.oneWay(toServiceMessage(methodInfo, credentials, request));
 
                 case REQUEST_RESPONSE:
                   return serviceCall
-                      .requestOne(toServiceMessage(methodInfo, params), returnType)
+                      .requestOne(toServiceMessage(methodInfo, credentials, request), returnType)
                       .transform(asMono(isServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
-                      .requestMany(toServiceMessage(methodInfo, params), returnType)
+                      .requestMany(toServiceMessage(methodInfo, credentials, request), returnType)
                       .transform(asFlux(isServiceMessage));
 
                 case REQUEST_CHANNEL:
@@ -424,8 +401,8 @@ public class ServiceCall {
                   // cast.
                   return serviceCall
                       .requestBidirectional(
-                          Flux.from((Publisher) params[0])
-                              .map(data -> toServiceMessage(methodInfo, data)),
+                          Flux.from((Publisher) request)
+                              .map(data -> toServiceMessage(methodInfo, credentials, data)),
                           returnType)
                       .transform(asFlux(isServiceMessage));
 
@@ -447,15 +424,19 @@ public class ServiceCall {
         .doOnError(t -> Optional.ofNullable(request.data()).ifPresent(requestReleaser));
   }
 
-  private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
-    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) params[0])
+  private ServiceMessage toServiceMessage(
+      MethodInfo methodInfo, Object credentials, Object request) {
+    if (request instanceof ServiceMessage) {
+      return ServiceMessage.from((ServiceMessage) request)
           .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+          .credentials(credentials)
           .build();
     }
+
     return ServiceMessage.builder()
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
+        .credentials(credentials)
+        .data(request)
         .build();
   }
 

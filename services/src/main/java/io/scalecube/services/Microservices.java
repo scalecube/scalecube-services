@@ -223,7 +223,8 @@ public class Microservices {
     methodRegistry.registerService(
         serviceInfo.serviceInstance(),
         Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
-        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
+        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder),
+        authenticator);
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
@@ -248,7 +249,6 @@ public class Microservices {
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
-        .authenticator(authenticator)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -311,7 +311,7 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<?, ?> authenticator = (Authenticator<Object, Object>) credentials -> null;
+    private Authenticator<?, ?> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();

@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
@@ -14,6 +15,8 @@ import reactor.test.StepVerifier;
 class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
+  private static final boolean AUTH = false;
+  private static final Authenticator dummyAuthenticator = credentials -> null;
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
   private final StubService stubService = new StubServiceImpl();
@@ -34,11 +37,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -60,11 +69,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -86,11 +101,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -113,11 +134,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -142,11 +169,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -170,11 +203,17 @@ class ServiceMethodInvokerTest {
             method.getReturnType(),
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
-            Void.TYPE);
+            Void.TYPE,
+            AUTH);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            method, stubService, methodInfo, DefaultErrorMapper.INSTANCE, dataDecoder);
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            dummyAuthenticator);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();

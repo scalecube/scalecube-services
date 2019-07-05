@@ -11,9 +11,11 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Auth;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -63,21 +65,46 @@ public class Reflect {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
       } else {
-        if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
+        Integer requestParameterIndex = requestParameterIndex(method);
+
+        if (requestParameterIndex == null) {
+          return Void.TYPE;
+        }
+
+        if (method.getGenericParameterTypes()[requestParameterIndex] instanceof ParameterizedType) {
           try {
             return Class.forName(parameterizedRequestType(method).getTypeName());
           } catch (ClassNotFoundException e) {
             return Object.class;
           }
-        } else if (ServiceMessage.class.equals(method.getParameterTypes()[0])) {
+        } else if (ServiceMessage.class.equals(method.getParameterTypes()[requestParameterIndex])) {
           return Object.class;
         } else {
-          return method.getParameterTypes()[0];
+          return method.getParameterTypes()[requestParameterIndex];
         }
       }
     } else {
       return Void.TYPE;
     }
+  }
+
+  /**
+   * Return index of parameter which is defined as request.
+   *
+   * @param method method
+   * @return index of parameter
+   */
+  public static Integer requestParameterIndex(Method method) {
+    validateMethodOrThrow(method);
+
+    Parameter[] parameters = method.getParameters();
+    for (int i = 0; i < parameters.length; i++) {
+      if (!parameters[i].isAnnotationPresent(Principal.class)) {
+        return i;
+      }
+    }
+
+    return null;
   }
 
   /**
@@ -106,9 +133,7 @@ public class Reflect {
    */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface)
-            .values()
-            .stream()
+        serviceMethods(serviceInterface).values().stream()
             .collect(
                 Collectors.toMap(
                     Function.identity(),
@@ -119,7 +144,8 @@ public class Reflect {
                             parameterizedReturnType(method1),
                             communicationMode(method1),
                             method1.getParameterCount(),
-                            requestType(method1)))));
+                            requestType(method1),
+                            isAuth(method1)))));
   }
 
   /**
@@ -271,7 +297,14 @@ public class Reflect {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameterCount() > 1) {
-      throw new UnsupportedOperationException("Service method can accept 0 or 1 parameters only");
+      int paramsCount = 0;
+
+      for (Parameter parameter : method.getParameters()) {
+        if (!parameter.isAnnotationPresent(Principal.class) && ++paramsCount > 1) {
+          throw new UnsupportedOperationException(
+              "Service method can accept 0 or 1 parameters only (except @Principal parameter)");
+        }
+      }
     }
   }
 
