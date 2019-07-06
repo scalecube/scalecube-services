@@ -1,15 +1,23 @@
 package io.scalecube.services.discovery;
 
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterImpl;
 import io.scalecube.cluster.ClusterMessageHandler;
 import io.scalecube.cluster.membership.MembershipEvent;
+import io.scalecube.cluster.transport.api.Message;
+import io.scalecube.cluster.transport.api.MessageCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,6 +27,7 @@ import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -33,8 +42,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private final ServiceEndpoint serviceEndpoint;
 
-  private ClusterConfig clusterConfig =
-      ClusterConfig.from(ClusterConfig.defaultLanConfig()).build();
+  private ClusterConfig clusterConfig;
 
   private Cluster cluster;
 
@@ -55,11 +63,12 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     Optional.ofNullable(serviceEndpoint.serviceGroup())
         .ifPresent(serviceGroup -> addToGroup(serviceGroup, serviceEndpoint));
 
-    // Add local metadata
-    Map<String, String> metadata =
-        Collections.singletonMap(
-            serviceEndpoint.id(), ClusterMetadataCodec.encodeMetadata(serviceEndpoint));
-    clusterConfig = ClusterConfig.from(clusterConfig).addMetadata(metadata).build();
+    clusterConfig =
+        ClusterConfig.defaultLanConfig()
+            .metadata(serviceEndpoint)
+            .transport(config -> config.messageCodec(new MessageCodecImpl()))
+            .metadataEncoder(this::encode)
+            .metadataDecoder(this::decode);
   }
 
   /**
@@ -80,9 +89,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    * @param opts ClusterConfig options builder
    * @return new instance of {@code ScalecubeServiceDiscovery}
    */
-  public ScalecubeServiceDiscovery options(UnaryOperator<ClusterConfig.Builder> opts) {
+  public ScalecubeServiceDiscovery options(UnaryOperator<ClusterConfig> opts) {
     ScalecubeServiceDiscovery d = new ScalecubeServiceDiscovery(this);
-    d.clusterConfig = opts.apply(ClusterConfig.from(clusterConfig)).build();
+    d.clusterConfig = opts.apply(clusterConfig);
     return d;
   }
 
@@ -107,7 +116,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
         () -> {
           // Start scalecube-cluster and listen membership events
           return new ClusterImpl()
-              .config(options -> ClusterConfig.from(clusterConfig))
+              .config(options -> clusterConfig)
               .handler(
                   cluster -> {
                     return new ClusterMessageHandler() {
@@ -135,11 +144,14 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   @Override
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () ->
-            Optional.ofNullable(cluster) //
-                .map(Cluster::shutdown)
-                .orElse(Mono.empty())
-                .then(Mono.fromRunnable(sink::complete)));
+        () -> {
+          if (cluster == null) {
+            sink.complete();
+            return Mono.empty();
+          }
+          cluster.shutdown();
+          return cluster.onShutdown().doFinally(s -> sink.complete());
+        });
   }
 
   private void onMembershipEvent(
@@ -282,20 +294,49 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private ServiceEndpoint getServiceEndpoint(MembershipEvent membershipEvent) {
-    Map<String, String> metadata = null;
-
+    ServiceEndpoint metadata = null;
     if (membershipEvent.isAdded()) {
-      metadata = membershipEvent.newMetadata();
+      metadata = (ServiceEndpoint) decode(membershipEvent.newMetadata());
     }
     if (membershipEvent.isRemoved()) {
-      metadata = membershipEvent.oldMetadata();
+      metadata = (ServiceEndpoint) decode(membershipEvent.oldMetadata());
     }
+    return metadata;
+  }
 
-    if (metadata == null) {
+  private Object decode(ByteBuffer byteBuffer) {
+    try {
+      return DefaultObjectMapper.OBJECT_MAPPER.readValue(
+          new ByteBufferBackedInputStream(byteBuffer), ServiceEndpoint.class);
+    } catch (IOException e) {
+      LOGGER.error("Failed to read metadata: " + e);
       return null;
     }
+  }
 
-    String metadataValue = metadata.values().stream().findFirst().orElse(null);
-    return ClusterMetadataCodec.decodeMetadata(metadataValue);
+  private ByteBuffer encode(Object input) {
+    ServiceEndpoint serviceEndpoint = (ServiceEndpoint) input;
+    try {
+      return ByteBuffer.wrap(
+          DefaultObjectMapper.OBJECT_MAPPER
+              .writeValueAsString(serviceEndpoint)
+              .getBytes(StandardCharsets.UTF_8));
+    } catch (IOException e) {
+      LOGGER.error("Failed to write metadata: " + e);
+      throw Exceptions.propagate(e);
+    }
+  }
+
+  private static class MessageCodecImpl implements MessageCodec {
+
+    @Override
+    public Message deserialize(InputStream stream) throws Exception {
+      return DefaultObjectMapper.OBJECT_MAPPER.readValue(stream, Message.class);
+    }
+
+    @Override
+    public void serialize(Message message, OutputStream stream) throws Exception {
+      DefaultObjectMapper.OBJECT_MAPPER.writeValue(stream, message);
+    }
   }
 }

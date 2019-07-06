@@ -47,7 +47,10 @@ public class RSocketServiceTransportTest {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
             .transport(RSocketServiceTransport::new)
             .services(new SimpleQuoteService())
             .startAwait();
