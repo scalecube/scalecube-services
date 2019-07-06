@@ -66,6 +66,6 @@ public class ServiceTagsExample {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(address));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
   }
 }

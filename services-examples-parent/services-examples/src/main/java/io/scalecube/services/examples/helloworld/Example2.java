@@ -72,6 +72,6 @@ public class Example2 {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Microservices seed) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(seed.discovery().address()));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(seed.discovery().address())));
   }
 }

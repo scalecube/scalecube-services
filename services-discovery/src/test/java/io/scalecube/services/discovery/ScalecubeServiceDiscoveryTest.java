@@ -330,7 +330,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
           return new ScalecubeServiceDiscovery(serviceEndpoint)
-              .options(builder -> builder.seedMembers(seedAddress));
+              .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
         });
   }
 
@@ -339,7 +339,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceEndpoint();
           return new ScalecubeServiceDiscovery(serviceEndpoint)
-              .options(builder -> builder.seedMembers(seedAddress));
+              .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
         });
   }
 

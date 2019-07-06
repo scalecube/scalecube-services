@@ -45,7 +45,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress)))
+                        .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress))))
             .transport(RSocketServiceTransport::new)
             .services(services)
             .startAwait();
