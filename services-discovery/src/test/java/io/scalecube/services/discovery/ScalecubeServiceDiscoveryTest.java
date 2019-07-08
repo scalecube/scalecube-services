@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import reactor.core.publisher.Flux;
@@ -188,7 +189,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .verify());
   }
 
-  @Test
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/599")
   public void testSingleNodeGroupIsStillGroup(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
