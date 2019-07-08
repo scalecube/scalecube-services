@@ -33,7 +33,7 @@ public class ErrorFlowTest {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.port(port.incrementAndGet())))
+                        .options(opts -> opts.transport(cfg -> cfg.port(port.incrementAndGet()))))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -46,7 +46,9 @@ public class ErrorFlowTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .options(
-                            opts -> opts.seedMembers(seedAddress).port(port.incrementAndGet())))
+                            opts ->
+                                opts.membership(cfg -> cfg.seedMembers(seedAddress))
+                                    .transport(cfg -> cfg.port(port.incrementAndGet()))))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }

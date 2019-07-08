@@ -35,7 +35,10 @@ public class Example1 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seed.discovery().address())))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(seed.discovery().address()))))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -44,12 +47,7 @@ public class Example1 {
     GreetingsService service = seed.call().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
-    service
-        .sayHello("joe")
-        .subscribe(
-            consumer -> {
-              System.out.println(consumer.message());
-            });
+    service.sayHello("joe").subscribe(consumer -> System.out.println(consumer.message()));
 
     seed.onShutdown().block();
     ms.onShutdown().block();

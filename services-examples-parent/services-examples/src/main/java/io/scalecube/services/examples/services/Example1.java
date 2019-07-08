@@ -25,7 +25,10 @@ public class Example1 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
             .transport(RSocketServiceTransport::new)
             .services(new Service2Impl())
             .startAwait();
@@ -35,7 +38,10 @@ public class Example1 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
             .transport(RSocketServiceTransport::new)
             .services(new Service1Impl())
             .startAwait();

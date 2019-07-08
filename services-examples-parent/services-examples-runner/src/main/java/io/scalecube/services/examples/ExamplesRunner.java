@@ -81,8 +81,8 @@ public class ExamplesRunner {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
         .options(
             opts ->
-                opts.seedMembers(config.seedAddresses())
-                    .port(config.discoveryPort())
+                opts.membership(cfg1 -> cfg1.seedMembers(config.seedAddresses()))
+                    .transport(cfg1 -> cfg1.port(config.discoveryPort()))
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()));
   }

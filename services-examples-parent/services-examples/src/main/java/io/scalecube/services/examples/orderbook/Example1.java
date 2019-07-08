@@ -92,14 +92,14 @@ public class Example1 {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Address address) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(address));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {
 
     System.out.println("====== Asks ========");
     System.out.println("  Price\t|  Amount");
-    SortedMap<Long, Long> orderlist = new TreeMap<Long, Long>(Collections.reverseOrder());
+    SortedMap<Long, Long> orderlist = new TreeMap<>(Collections.reverseOrder());
     orderlist.putAll(snapshot.asks());
     orderlist.forEach((key, value) -> System.out.println("   " + key + "\t|    " + value));
 
