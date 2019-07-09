@@ -30,7 +30,7 @@ public final class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator authenticator;
+  private final Authenticator<Object> authenticator;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -91,22 +91,14 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
         .switchOnFirst(
-            (first, messages) -> {
-              if (first.hasValue()) {
-                return authenticate(first.get())
+            (first, messages) ->
+                authenticate(first.get())
                     .flatMapMany(
                         principal ->
                             messages
                                 .map(this::toRequest)
-                                .transform(request -> invoke(request, principal)))
-                    .map(this::toResponse);
-              } else {
-                return messages
-                    .map(this::toRequest)
-                    .transform(request -> invoke(request, null))
-                    .map(this::toResponse);
-              }
-            })
+                                .transform(request -> invoke(request, principal))))
+        .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -141,7 +133,6 @@ public final class ServiceMethodInvoker {
     return throwable != null ? Mono.error(throwable) : result;
   }
 
-  @SuppressWarnings("unchecked")
   private Mono<Object> authenticate(ServiceMessage message) {
     return Mono.defer(
         () -> {
@@ -151,7 +142,9 @@ public final class ServiceMethodInvoker {
           if (authenticator == null) {
             throw new UnauthorizedException("Authenticator not found");
           }
-          return authenticator.authenticate(message);
+          return authenticator
+              .authenticate(message)
+              .onErrorMap(th -> new UnauthorizedException(th.getMessage()));
         })
         .defaultIfEmpty(NO_PRINCIPAL);
   }
