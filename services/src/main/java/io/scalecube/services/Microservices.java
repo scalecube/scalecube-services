@@ -123,7 +123,7 @@ public class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<?, ?> authenticator;
+  private final Authenticator<?> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
@@ -311,7 +311,7 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<?, ?> authenticator = null;
+    private Authenticator<?> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -367,7 +367,7 @@ public class Microservices {
       return this;
     }
 
-    public Builder authenticator(Authenticator<?, ?> authenticator) {
+    public Builder authenticator(Authenticator<?> authenticator) {
       this.authenticator = authenticator;
       return this;
     }

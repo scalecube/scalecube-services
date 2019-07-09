@@ -31,7 +31,6 @@ public final class ServiceMessage {
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = new HashMap<>(1);
-  private Object credentials;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
@@ -39,7 +38,6 @@ public final class ServiceMessage {
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
-    this.credentials = builder.credentials;
     this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
@@ -50,10 +48,7 @@ public final class ServiceMessage {
    * @return a new message, with the same data and headers
    */
   public static Builder from(ServiceMessage message) {
-    return ServiceMessage.builder()
-        .data(message.data())
-        .credentials(message.credentials)
-        .headers(message.headers());
+    return ServiceMessage.builder().data(message.data()).headers(message.headers());
   }
 
   /**
@@ -129,17 +124,6 @@ public final class ServiceMessage {
   }
 
   /**
-   * Returns credentials.
-   *
-   * @param <T> credentials type
-   * @return credentials
-   */
-  public <T> T credentials() {
-    // noinspection unchecked
-    return (T) credentials;
-  }
-
-  /**
    * Return the message data, which can be byte array, string or any type.
    *
    * @param <T> data type
@@ -206,18 +190,12 @@ public final class ServiceMessage {
   public static class Builder {
 
     private Map<String, String> headers = new HashMap<>();
-    private Object credentials;
     private Object data;
 
     private Builder() {}
 
     public Builder data(Object data) {
       this.data = data;
-      return this;
-    }
-
-    public Builder credentials(Object credentials) {
-      this.credentials = credentials;
       return this;
     }
 
@@ -235,8 +213,16 @@ public final class ServiceMessage {
       return this.headers;
     }
 
+    /**
+     * Adds to service message each element of given <code>headers</code>.
+     *
+     * @param headers given headers
+     * @return self
+     */
     public Builder headers(Map<String, String> headers) {
-      headers.forEach(this::header);
+      if (headers != null) {
+        headers.forEach(this::header);
+      }
       return this;
     }
 

@@ -13,6 +13,8 @@ import io.scalecube.services.sut.security.SecuredServiceImpl;
 import io.scalecube.services.sut.security.UserProfile;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -25,10 +27,21 @@ final class ServiceAuthRemoteTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
-  private static final String CREDENTIALS = "valid_credentials";
-  private static final Authenticator<String, UserProfile> authenticator =
-      credentials -> {
-        if (CREDENTIALS.equals(credentials)) {
+  private static final Map<String, String> CREDENTIALS =
+      new HashMap<String, String>() {
+        {
+          put("username", "Alice");
+          put("password", "qwerty");
+        }
+      };
+
+  private static final Authenticator<UserProfile> authenticator =
+      message -> {
+        Map<String, String> headers = message.headers();
+        String username = headers.get("username");
+        String password = headers.get("password");
+
+        if ("Alice".equals(username) && "qwerty".equals(password)) {
           return Mono.just(new UserProfile("Alice", "ADMIN"));
         }
 
@@ -71,7 +84,8 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
-    SecuredService securedService = service.call().api(SecuredService.class, CREDENTIALS);
+    SecuredService securedService =
+        service.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob", response))
@@ -96,7 +110,8 @@ final class ServiceAuthRemoteTest {
             .services(new SecuredServiceImpl())
             .startAwait();
 
-    SecuredService securedService = service.call().api(SecuredService.class, "invalid_credentials");
+    SecuredService securedService =
+        service.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -120,33 +135,9 @@ final class ServiceAuthRemoteTest {
   }
 
   @Test
-  @DisplayName("Authentication failed if credentials not provided")
-  void failedAuthenticationWhenCredentialsNotProvided() {
-    SecuredService securedService = service.call().api(SecuredService.class, null);
-
-    Consumer<Throwable> verifyError =
-        th -> {
-          assertEquals(UnauthorizedException.class, th.getClass());
-          assertEquals("Credentials not found", th.getMessage());
-        };
-
-    StepVerifier.create(securedService.helloWithRequest("Bob"))
-        .expectErrorSatisfies(verifyError)
-        .verify();
-
-    StepVerifier.create(securedService.helloWithPrincipal(null))
-        .expectErrorSatisfies(verifyError)
-        .verify();
-
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
-        .expectErrorSatisfies(verifyError)
-        .verify();
-  }
-
-  @Test
-  @DisplayName("Authentication failed with invalid credentials")
-  void failedAuthenticationWithInvalidCredentials() {
-    SecuredService securedService = service.call().api(SecuredService.class, "invalid_credentials");
+  @DisplayName("Authentication failed with invalid or empty credentials")
+  void failedAuthenticationWithInvalidOrEmptyCredentials() {
+    SecuredService securedService = service.call().api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -178,7 +169,8 @@ final class ServiceAuthRemoteTest {
             .services(new PartiallySecuredServiceImpl())
             .startAwait();
 
-    PartiallySecuredService proxy = service.call().api(PartiallySecuredService.class, CREDENTIALS);
+    PartiallySecuredService proxy =
+        service.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.securedMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))

@@ -45,6 +45,7 @@ public class ServiceCall {
       req -> {
         // no-op
       };
+  private Map<String, String> credentials;
 
   /** Default constructor. */
   public ServiceCall() {}
@@ -138,6 +139,18 @@ public class ServiceCall {
   public ServiceCall requestReleaser(Consumer<Object> requestReleaser) {
     ServiceCall target = new ServiceCall(this);
     target.requestReleaser = requestReleaser;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given credentials.
+   *
+   * @param credentials given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall credentials(Map<String, String> credentials) {
+    ServiceCall target = new ServiceCall(this);
+    target.credentials = credentials;
     return target;
   }
 
@@ -346,19 +359,8 @@ public class ServiceCall {
    * @param serviceInterface Service Interface type.
    * @return newly created service proxy object.
    */
-  public <T> T api(Class<T> serviceInterface) {
-    return api(serviceInterface, null);
-  }
-
-  /**
-   * Create proxy creates a java generic proxy instance by a given service interface.
-   *
-   * @param serviceInterface Service Interface type.
-   * @param credentials credentials if service is protected by authentication
-   * @return newly created service proxy object.
-   */
   @SuppressWarnings("unchecked")
-  public <T> T api(Class<T> serviceInterface, Object credentials) {
+  public <T> T api(Class<T> serviceInterface) {
 
     final ServiceCall serviceCall = this;
     final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
@@ -384,16 +386,16 @@ public class ServiceCall {
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:
-                  return serviceCall.oneWay(toServiceMessage(methodInfo, credentials, request));
+                  return serviceCall.oneWay(toServiceMessage(methodInfo, request));
 
                 case REQUEST_RESPONSE:
                   return serviceCall
-                      .requestOne(toServiceMessage(methodInfo, credentials, request), returnType)
+                      .requestOne(toServiceMessage(methodInfo, request), returnType)
                       .transform(asMono(isServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
-                      .requestMany(toServiceMessage(methodInfo, credentials, request), returnType)
+                      .requestMany(toServiceMessage(methodInfo, request), returnType)
                       .transform(asFlux(isServiceMessage));
 
                 case REQUEST_CHANNEL:
@@ -402,7 +404,7 @@ public class ServiceCall {
                   return serviceCall
                       .requestBidirectional(
                           Flux.from((Publisher) request)
-                              .map(data -> toServiceMessage(methodInfo, credentials, data)),
+                              .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
                       .transform(asFlux(isServiceMessage));
 
@@ -424,18 +426,17 @@ public class ServiceCall {
         .doOnError(t -> Optional.ofNullable(request.data()).ifPresent(requestReleaser));
   }
 
-  private ServiceMessage toServiceMessage(
-      MethodInfo methodInfo, Object credentials, Object request) {
+  private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
     if (request instanceof ServiceMessage) {
       return ServiceMessage.from((ServiceMessage) request)
           .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .credentials(credentials)
+          .headers(credentials)
           .build();
     }
 
     return ServiceMessage.builder()
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .credentials(credentials)
+        .headers(credentials)
         .data(request)
         .build();
   }

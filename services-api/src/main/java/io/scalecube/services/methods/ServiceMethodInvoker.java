@@ -148,14 +148,10 @@ public final class ServiceMethodInvoker {
           if (!methodInfo.isAuth()) {
             return Mono.empty();
           }
-          Object credentials = message.credentials();
-          if (credentials == null) {
-            throw new UnauthorizedException("Credentials not found");
-          }
           if (authenticator == null) {
             throw new UnauthorizedException("Authenticator not found");
           }
-          return authenticator.authenticate(credentials);
+          return authenticator.authenticate(message);
         })
         .defaultIfEmpty(NO_PRINCIPAL);
   }
