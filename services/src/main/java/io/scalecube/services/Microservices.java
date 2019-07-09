@@ -224,7 +224,7 @@ public class Microservices {
         serviceInfo.serviceInstance(),
         Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
         Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder),
-        authenticator);
+        Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator));
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
