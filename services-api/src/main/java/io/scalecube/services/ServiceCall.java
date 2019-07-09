@@ -377,12 +377,11 @@ public class ServiceCall {
                 return check.get(); // toString, hashCode was invoked.
               }
 
-              Integer requestParameterIndex = Reflect.requestParameterIndex(method);
-              Object request = requestParameterIndex == null ? null : params[requestParameterIndex];
-
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
+
+              Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:

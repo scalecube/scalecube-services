@@ -65,46 +65,25 @@ public class Reflect {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
       } else {
-        Integer requestParameterIndex = requestParameterIndex(method);
-
-        if (requestParameterIndex == null) {
+        if (method.getParameters()[0].isAnnotationPresent(Principal.class)) {
           return Void.TYPE;
         }
 
-        if (method.getGenericParameterTypes()[requestParameterIndex] instanceof ParameterizedType) {
+        if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
           try {
             return Class.forName(parameterizedRequestType(method).getTypeName());
           } catch (ClassNotFoundException e) {
             return Object.class;
           }
-        } else if (ServiceMessage.class.equals(method.getParameterTypes()[requestParameterIndex])) {
+        } else if (ServiceMessage.class.equals(method.getParameterTypes()[0])) {
           return Object.class;
         } else {
-          return method.getParameterTypes()[requestParameterIndex];
+          return method.getParameterTypes()[0];
         }
       }
     } else {
       return Void.TYPE;
     }
-  }
-
-  /**
-   * Return index of parameter which is defined as request.
-   *
-   * @param method method
-   * @return index of parameter
-   */
-  public static Integer requestParameterIndex(Method method) {
-    validateMethodOrThrow(method);
-
-    Parameter[] parameters = method.getParameters();
-    for (int i = 0; i < parameters.length; i++) {
-      if (!parameters[i].isAnnotationPresent(Principal.class)) {
-        return i;
-      }
-    }
-
-    return null;
   }
 
   /**
@@ -296,15 +275,22 @@ public class Reflect {
     } else if (!Publisher.class.isAssignableFrom(returnType)) {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
-    if (method.getParameterCount() > 1) {
-      int paramsCount = 0;
+    if (method.getParameterCount() == 2) {
+      Parameter[] parameters = method.getParameters();
 
-      for (Parameter parameter : method.getParameters()) {
-        if (!parameter.isAnnotationPresent(Principal.class) && ++paramsCount > 1) {
-          throw new UnsupportedOperationException(
-              "Service method can accept 0 or 1 parameters only (except @Principal parameter)");
-        }
+      if (parameters[0].isAnnotationPresent(Principal.class)) {
+        throw new UnsupportedOperationException(
+            "@Principal cannot be the first parameter if parameters count equals 2");
       }
+
+      if (!parameters[1].isAnnotationPresent(Principal.class)) {
+        throw new UnsupportedOperationException(
+            "The second parameter can be only @Principal (optional)");
+      }
+    }
+    if (method.getParameterCount() > 2) {
+      throw new UnsupportedOperationException(
+          "Service method can accept maximum 2 parameters (including @Principal parameter)");
     }
   }
 
