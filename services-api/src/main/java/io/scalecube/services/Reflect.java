@@ -275,6 +275,15 @@ public class Reflect {
     } else if (!Publisher.class.isAssignableFrom(returnType)) {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
+
+    validatePrincipalParameter(method);
+
+    if (method.getParameterCount() > 2) {
+      throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    }
+  }
+
+  private static void validatePrincipalParameter(Method method) {
     if (method.getParameterCount() == 2) {
       Parameter[] parameters = method.getParameters();
 
@@ -287,10 +296,6 @@ public class Reflect {
         throw new UnsupportedOperationException(
             "The second parameter can be only @Principal (optional)");
       }
-    }
-    if (method.getParameterCount() > 2) {
-      throw new UnsupportedOperationException(
-          "Service method can accept maximum 2 parameters (including @Principal parameter)");
     }
   }
 
