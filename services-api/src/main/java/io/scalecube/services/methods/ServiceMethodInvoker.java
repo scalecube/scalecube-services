@@ -2,7 +2,6 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -106,20 +105,10 @@ public final class ServiceMethodInvoker {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
-      if (method.getParameterCount() == 0) {
+      if (methodInfo.parameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
-        Parameter[] parameters = method.getParameters();
-        Object[] arguments = new Object[parameters.length];
-
-        for (int i = 0; i < parameters.length; i++) {
-          if (parameters[i].isAnnotationPresent(Principal.class)) {
-            arguments[i] = principal.equals(NO_PRINCIPAL) ? null : principal;
-          } else {
-            arguments[i] = request;
-          }
-        }
-
+        Object[] arguments = prepareArguments(request, principal);
         result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
@@ -131,6 +120,22 @@ public final class ServiceMethodInvoker {
       throwable = ex;
     }
     return throwable != null ? Mono.error(throwable) : result;
+  }
+
+  private Object[] prepareArguments(Object request, Object principal) {
+    Object[] arguments = new Object[methodInfo.parameterCount()];
+    Object principalArg = principal.equals(NO_PRINCIPAL) ? null : principal;
+
+    if (methodInfo.requestType() != Void.TYPE) {
+      arguments[0] = request;
+    } else {
+      arguments[0] = principalArg;
+    }
+
+    if (methodInfo.parameterCount() > 1) {
+      arguments[1] = principalArg;
+    }
+    return arguments;
   }
 
   private Mono<Object> authenticate(ServiceMessage message) {
