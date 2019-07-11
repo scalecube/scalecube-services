@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
@@ -148,11 +149,18 @@ public final class ServiceMethodInvoker {
           if (authenticator == null) {
             throw new UnauthorizedException("Authenticator not found");
           }
-          return authenticator
-              .authenticate(message)
-              .onErrorMap(th -> new UnauthorizedException(th.getMessage()));
+          return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
         })
         .defaultIfEmpty(NO_PRINCIPAL);
+  }
+
+  private UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException) {
+      ServiceException e = (ServiceException) th;
+      return new UnauthorizedException(e.errorCode(), e.getMessage());
+    } else {
+      return new UnauthorizedException(th);
+    }
   }
 
   private Object toRequest(ServiceMessage message) {

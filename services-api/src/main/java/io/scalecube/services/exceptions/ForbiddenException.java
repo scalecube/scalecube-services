@@ -11,4 +11,8 @@ public class ForbiddenException extends ServiceException {
   public ForbiddenException(String message) {
     super(ERROR_TYPE, message);
   }
+
+  public ForbiddenException(Throwable cause) {
+    super(ERROR_TYPE, cause);
+  }
 }

@@ -11,4 +11,8 @@ public class UnauthorizedException extends ServiceException {
   public UnauthorizedException(String message) {
     super(ERROR_TYPE, message);
   }
+
+  public UnauthorizedException(Throwable cause) {
+    super(ERROR_TYPE, cause);
+  }
 }
