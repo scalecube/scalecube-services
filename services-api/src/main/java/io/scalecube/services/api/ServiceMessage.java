@@ -77,24 +77,6 @@ public final class ServiceMessage {
   }
 
   /**
-   * Sets data for deserialization purpose.
-   *
-   * @param data data to set
-   */
-  void setData(Object data) {
-    this.data = data;
-  }
-
-  /**
-   * Sets headers for deserialization purpose.
-   *
-   * @param headers headers to set
-   */
-  void setHeaders(Map<String, String> headers) {
-    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
-  }
-
-  /**
    * Returns the message headers.
    *
    * @return message headers
@@ -132,6 +114,11 @@ public final class ServiceMessage {
     return header(HEADER_DATA_FORMAT);
   }
 
+  /**
+   * Returns data format of the message data or default one.
+   *
+   * @return data format of the data or default one
+   */
   public String dataFormatOrDefault() {
     return Optional.ofNullable(dataFormat()).orElse(DEFAULT_DATA_FORMAT);
   }

@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +44,9 @@ public class ServiceScanner {
                       .map(
                           method ->
                               new ServiceMethodDefinition(
-                                  Reflect.methodName(method), Reflect.serviceMethodTags(method)))
+                                  Reflect.methodName(method),
+                                  Reflect.serviceMethodTags(method),
+                                  Reflect.isAuth(method)))
                       .collect(Collectors.toList());
               return new ServiceRegistration(namespace, serviceTags, actions);
             })

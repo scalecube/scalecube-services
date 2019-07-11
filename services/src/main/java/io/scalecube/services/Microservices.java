@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -122,6 +123,7 @@ public class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
+  private final Authenticator<?> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
@@ -137,6 +139,7 @@ public class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
+    this.authenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
@@ -220,7 +223,8 @@ public class Microservices {
     methodRegistry.registerService(
         serviceInfo.serviceInstance(),
         Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
-        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder));
+        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder),
+        Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator));
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
@@ -307,6 +311,7 @@ public class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
+    private Authenticator<?> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -359,6 +364,11 @@ public class Microservices {
 
     public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
       this.methodRegistry = methodRegistry;
+      return this;
+    }
+
+    public Builder authenticator(Authenticator<?> authenticator) {
+      this.authenticator = authenticator;
       return this;
     }
 

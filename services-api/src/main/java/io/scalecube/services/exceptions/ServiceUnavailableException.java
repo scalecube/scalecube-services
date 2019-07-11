@@ -11,4 +11,8 @@ public class ServiceUnavailableException extends ServiceException {
   public ServiceUnavailableException(int errorCode, String message) {
     super(errorCode, message);
   }
+
+  public ServiceUnavailableException(Throwable cause) {
+    super(ERROR_TYPE, cause);
+  }
 }

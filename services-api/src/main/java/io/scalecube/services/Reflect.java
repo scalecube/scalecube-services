@@ -10,9 +10,12 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Auth;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -62,6 +65,10 @@ public class Reflect {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
       } else {
+        if (method.getParameters()[0].isAnnotationPresent(Principal.class)) {
+          return Void.TYPE;
+        }
+
         if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
           try {
             return Class.forName(parameterizedRequestType(method).getTypeName());
@@ -105,9 +112,7 @@ public class Reflect {
    */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface)
-            .values()
-            .stream()
+        serviceMethods(serviceInterface).values().stream()
             .collect(
                 Collectors.toMap(
                     Function.identity(),
@@ -118,7 +123,8 @@ public class Reflect {
                             parameterizedReturnType(method1),
                             communicationMode(method1),
                             method1.getParameterCount(),
-                            requestType(method1)))));
+                            requestType(method1),
+                            isAuth(method1)))));
   }
 
   /**
@@ -269,8 +275,36 @@ public class Reflect {
     } else if (!Publisher.class.isAssignableFrom(returnType)) {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
-    if (method.getParameterCount() > 1) {
-      throw new UnsupportedOperationException("Service method can accept 0 or 1 parameters only");
+
+    validatePrincipalParameter(method);
+
+    if (method.getParameterCount() > 2) {
+      throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    }
+  }
+
+  private static void validatePrincipalParameter(Method method) {
+    Parameter[] parameters = method.getParameters();
+
+    if (!isAuth(method)) {
+      for (Parameter parameter : parameters) {
+        if (parameter.isAnnotationPresent(Principal.class)) {
+          throw new UnsupportedOperationException(
+              "@Principal can be used only for parameter of @Auth method");
+        }
+      }
+    }
+
+    if (method.getParameterCount() == 2) {
+      if (parameters[0].isAnnotationPresent(Principal.class)) {
+        throw new UnsupportedOperationException(
+            "@Principal cannot be the first parameter on method with two parameters");
+      }
+
+      if (!parameters[1].isAnnotationPresent(Principal.class)) {
+        throw new UnsupportedOperationException(
+            "The second parameter can be only @Principal (optional)");
+      }
     }
   }
 
@@ -323,5 +357,10 @@ public class Reflect {
 
   public static boolean isService(Class<?> type) {
     return type.isAnnotationPresent(Service.class);
+  }
+
+  public static boolean isAuth(Method method) {
+    return method.isAnnotationPresent(Auth.class)
+        || method.getDeclaringClass().isAnnotationPresent(Auth.class);
   }
 }
