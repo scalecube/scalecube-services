@@ -213,16 +213,8 @@ public final class ServiceMessage {
       return this.headers;
     }
 
-    /**
-     * Adds to service message each element of given <code>headers</code>.
-     *
-     * @param headers given headers
-     * @return self
-     */
     public Builder headers(Map<String, String> headers) {
-      if (headers != null) {
-        headers.forEach(this::header);
-      }
+      headers.forEach(this::header);
       return this;
     }
 

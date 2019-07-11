@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -45,7 +46,7 @@ public class ServiceCall {
       req -> {
         // no-op
       };
-  private Map<String, String> credentials;
+  private Map<String, String> credentials = Collections.emptyMap();
 
   /** Default constructor. */
   public ServiceCall() {}
