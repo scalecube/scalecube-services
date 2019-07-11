@@ -284,9 +284,18 @@ public class Reflect {
   }
 
   private static void validatePrincipalParameter(Method method) {
-    if (method.getParameterCount() == 2) {
-      Parameter[] parameters = method.getParameters();
+    Parameter[] parameters = method.getParameters();
 
+    if (!isAuth(method)) {
+      for (Parameter parameter : parameters) {
+        if (parameter.isAnnotationPresent(Principal.class)) {
+          throw new UnsupportedOperationException(
+              "@Principal can be used only for parameter of @Auth method");
+        }
+      }
+    }
+
+    if (method.getParameterCount() == 2) {
       if (parameters[0].isAnnotationPresent(Principal.class)) {
         throw new UnsupportedOperationException(
             "@Principal cannot be the first parameter if parameters count equals 2");
