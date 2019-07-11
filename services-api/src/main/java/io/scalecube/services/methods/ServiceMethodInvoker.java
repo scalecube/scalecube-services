@@ -40,6 +40,7 @@ public final class ServiceMethodInvoker {
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
    */
+  @SuppressWarnings("unchecked")
   public ServiceMethodInvoker(
       Method method,
       Object service,
