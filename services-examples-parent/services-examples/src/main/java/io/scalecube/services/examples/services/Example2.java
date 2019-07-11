@@ -17,7 +17,7 @@ public class Example2 {
     Microservices gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Microservices service2Node =
@@ -25,8 +25,11 @@ public class Example2 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
+            .transport(RSocketServiceTransport::new)
             .services(new Service2Impl())
             .startAwait();
 
@@ -35,8 +38,11 @@ public class Example2 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(gateway.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
+            .transport(RSocketServiceTransport::new)
             .services(new Service1Impl())
             .startAwait();
 

@@ -14,6 +14,7 @@ public final class MethodInfo {
   private final CommunicationMode communicationMode;
   private final int parameterCount;
   private final Class<?> requestType;
+  private final boolean auth;
 
   /**
    * Create a new service info.
@@ -24,6 +25,7 @@ public final class MethodInfo {
    * @param communicationMode the directions of the method
    * @param parameterCount amount of parameters
    * @param requestType the type of the request
+   * @param auth is method protected by authentication
    */
   public MethodInfo(
       String serviceName,
@@ -31,12 +33,14 @@ public final class MethodInfo {
       Type parameterizedReturnType,
       CommunicationMode communicationMode,
       int parameterCount,
-      Class<?> requestType) {
+      Class<?> requestType,
+      boolean auth) {
 
     this.parameterizedReturnType = parameterizedReturnType;
     this.communicationMode = communicationMode;
     this.serviceName = serviceName;
     this.methodName = methodName;
+    this.auth = auth;
     this.qualifier = Qualifier.asString(serviceName, methodName);
     this.parameterCount = parameterCount;
     this.requestType = requestType;
@@ -78,6 +82,10 @@ public final class MethodInfo {
     return requestType;
   }
 
+  public boolean isAuth() {
+    return auth;
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("MethodInfo{");
@@ -88,6 +96,7 @@ public final class MethodInfo {
     sb.append(", communicationMode=").append(communicationMode);
     sb.append(", parameterCount=").append(parameterCount);
     sb.append(", requestType=").append(requestType);
+    sb.append(", auth=").append(auth);
     sb.append('}');
     return sb.toString();
   }

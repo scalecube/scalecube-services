@@ -60,14 +60,14 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+        .transport(RSocketServiceTransport::new)
         .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
-        .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+        .transport(RSocketServiceTransport::new)
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -198,7 +198,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -221,7 +221,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(another)
             .startAwait();
 
@@ -241,7 +241,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
             .startAwait();
 
@@ -266,7 +266,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
             .startAwait();
 
@@ -350,7 +350,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .tags(tags)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -384,6 +384,6 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

@@ -34,7 +34,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
         Microservices.builder()
             .metrics(registry())
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Address seedAddress = seed.discovery().address();
@@ -45,8 +45,8 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seedAddress)))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                        .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress))))
+            .transport(RSocketServiceTransport::new)
             .services(services)
             .startAwait();
 

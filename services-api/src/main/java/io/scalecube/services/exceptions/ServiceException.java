@@ -9,6 +9,11 @@ public abstract class ServiceException extends RuntimeException {
     this.errorCode = errorCode;
   }
 
+  public ServiceException(int errorCode, Throwable cause) {
+    super(cause.getMessage(), cause);
+    this.errorCode = errorCode;
+  }
+
   @Override
   public synchronized Throwable fillInStackTrace() {
     return this;

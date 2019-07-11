@@ -11,4 +11,8 @@ public class BadRequestException extends ServiceException {
   public BadRequestException(int errorCode, String message) {
     super(errorCode, message);
   }
+
+  public BadRequestException(Throwable cause) {
+    super(ERROR_TYPE, cause);
+  }
 }

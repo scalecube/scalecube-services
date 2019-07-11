@@ -36,14 +36,14 @@ public class Example2 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seed))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
@@ -72,6 +72,6 @@ public class Example2 {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Microservices seed) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(seed.discovery().address()));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(seed.discovery().address())));
   }
 }

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
@@ -12,12 +13,14 @@ public class ServiceInfo {
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final Authenticator authenticator;
 
   private ServiceInfo(Builder builder) {
     this.serviceInstance = builder.serviceInstance;
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
+    this.authenticator = builder.authenticator;
   }
 
   public static Builder fromServiceInstance(Object serviceInstance) {
@@ -40,11 +43,16 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
+  public Authenticator authenticator() {
+    return authenticator;
+  }
+
   public static class Builder {
     private final Object serviceInstance;
     private final Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
+    private Authenticator authenticator;
 
     public Builder(Object serviceInstance) {
       this.serviceInstance = serviceInstance;
@@ -62,6 +70,11 @@ public class ServiceInfo {
 
     public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
+      return this;
+    }
+
+    public Builder authenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
       return this;
     }
 

@@ -20,7 +20,7 @@ public class ExceptionMapperExample {
     Microservices ms1 =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
@@ -33,7 +33,7 @@ public class ExceptionMapperExample {
     Microservices ms2 =
         Microservices.builder()
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, ms1))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .services(
                 call -> {
                   ServiceA serviceA =
@@ -67,6 +67,6 @@ public class ExceptionMapperExample {
   private static ServiceDiscovery serviceDiscovery(
       ServiceEndpoint serviceEndpoint, Microservices ms1) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(ms1.discovery().address()));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(ms1.discovery().address())));
   }
 }

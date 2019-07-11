@@ -20,6 +20,7 @@ public class ServiceReference {
   private final Map<String, String> tags;
   private final String action;
   private final Address address;
+  private final boolean auth;
 
   /**
    * Constructor for service reference.
@@ -39,6 +40,7 @@ public class ServiceReference {
     this.action = serviceMethodDefinition.getAction();
     this.qualifier = Qualifier.asString(namespace, action);
     this.address = serviceEndpoint.address();
+    this.auth = serviceMethodDefinition.isAuth();
   }
 
   public String qualifier() {
@@ -67,6 +69,10 @@ public class ServiceReference {
 
   public Address address() {
     return this.address;
+  }
+
+  public boolean isAuth() {
+    return auth;
   }
 
   private Map<String, String> mergeTags(
@@ -102,6 +108,9 @@ public class ServiceReference {
         + tags
         + ", action='"
         + action
+        + '\''
+        + ", auth='"
+        + auth
         + '\''
         + '}';
   }

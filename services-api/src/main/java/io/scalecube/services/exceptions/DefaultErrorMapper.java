@@ -28,6 +28,8 @@ public final class DefaultErrorMapper
         return new BadRequestException(errorCode, errorMessage);
       case UnauthorizedException.ERROR_TYPE:
         return new UnauthorizedException(errorCode, errorMessage);
+      case ForbiddenException.ERROR_TYPE:
+        return new ForbiddenException(errorCode, errorMessage);
       case ServiceUnavailableException.ERROR_TYPE:
         return new ServiceUnavailableException(errorCode, errorMessage);
       case InternalServiceException.ERROR_TYPE:
@@ -49,6 +51,8 @@ public final class DefaultErrorMapper
         errorType = BadRequestException.ERROR_TYPE;
       } else if (throwable instanceof UnauthorizedException) {
         errorType = UnauthorizedException.ERROR_TYPE;
+      } else if (throwable instanceof ForbiddenException) {
+        errorType = ForbiddenException.ERROR_TYPE;
       } else if (throwable instanceof ServiceUnavailableException) {
         errorType = ServiceUnavailableException.ERROR_TYPE;
       } else if (throwable instanceof InternalServiceException) {

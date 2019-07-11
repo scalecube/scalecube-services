@@ -30,14 +30,14 @@ public class StreamingServiceTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
     node =
         Microservices.builder()
             .discovery(StreamingServiceTest::serviceDiscovery)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
             .startAwait();
@@ -187,6 +187,6 @@ public class StreamingServiceTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.seedMembers(gateway.discovery().address()));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

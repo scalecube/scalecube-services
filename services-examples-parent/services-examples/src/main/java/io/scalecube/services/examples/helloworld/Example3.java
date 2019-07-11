@@ -27,7 +27,7 @@ public class Example3 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
@@ -36,8 +36,11 @@ public class Example3 {
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.seedMembers(seed.discovery().address())))
-            .transport(opts -> opts.serviceTransport(RSocketServiceTransport::new))
+                        .options(
+                            opts ->
+                                opts.membership(
+                                    cfg -> cfg.seedMembers(seed.discovery().address()))))
+            .transport(RSocketServiceTransport::new)
             .services(new BidiGreetingImpl())
             .startAwait();
 
@@ -47,7 +50,7 @@ public class Example3 {
     // Execute the services and subscribe to service events
     service
         .greeting(Flux.fromArray(new String[] {"joe", "dan", "roni"}))
-        .doOnNext(onNext -> System.out.println(onNext))
+        .doOnNext(System.out::println)
         .blockLast();
 
     seed.onShutdown().block();
