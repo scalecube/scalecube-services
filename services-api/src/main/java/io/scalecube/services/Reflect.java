@@ -298,7 +298,7 @@ public class Reflect {
     if (method.getParameterCount() == 2) {
       if (parameters[0].isAnnotationPresent(Principal.class)) {
         throw new UnsupportedOperationException(
-            "@Principal cannot be the first parameter if parameters count equals 2");
+            "@Principal cannot be the first parameter on method with two parameters");
       }
 
       if (!parameters[1].isAnnotationPresent(Principal.class)) {
