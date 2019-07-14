@@ -11,6 +11,7 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -41,6 +42,54 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
+  public void testEndpointsInGroupRestarted(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    Address seedAddress = startSeed();
+
+    int groupSize = 3;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+
+    System.out.println("\n\n\n\n\n\n");
+    Mono.delay(SHORT_TIMEOUT).repeat(2).subscribe();
+
+    // shutdown r2 and r3, verify events on r1
+    r1 = r1.recreate();
+    StepVerifier.create(Flux.concat(r1.groupDiscoveryEvents()))
+        .then(r2::shutdown)
+        .then(r3::shutdown)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void testEndpointIsAddedThenRemoved() {
     Address seedAddress = startSeed();
 
@@ -54,13 +103,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     RecordingServiceDiscovery r3 =
         RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
 
+    int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
+    int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
+
     StepVerifier.create(
             Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
               assertNotNull(event.serviceEndpoint());
-              return registeredCount.incrementAndGet() < 9;
+              return registeredCount.incrementAndGet() < expectedAddedEventsNum;
             })
         .expectNoEvent(SHORT_TIMEOUT)
         .then(r3::shutdown)
@@ -68,7 +120,62 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
             event -> {
               assertEquals(ENDPOINT_REMOVED, event.type());
               assertNotNull(event.serviceEndpoint());
-              return unregisteredCount.incrementAndGet() < 2;
+              return unregisteredCount.incrementAndGet() < expectedRemovedEventsNum;
+            })
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void testEndpointsRestarted() {
+    Address seedAddress = startSeed();
+
+    AtomicInteger registeredCount = new AtomicInteger();
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+
+    int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
+
+    StepVerifier.create(
+            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+        .thenConsumeWhile(
+            event -> {
+              assertEquals(ENDPOINT_ADDED, event.type());
+              assertNotNull(event.serviceEndpoint());
+              return registeredCount.incrementAndGet() < expectedAddedEventsNum;
+            })
+        .expectNoEvent(TIMEOUT)
+        .thenCancel()
+        .verify();
+
+    // restart discovery instances
+    AtomicInteger registeredCountAfterRestart = new AtomicInteger();
+    AtomicInteger removedCountAfterRestart = new AtomicInteger();
+    int expectedRemovedEventsNum = 3; // r1,r2,r3 are shutdown => await 3 events
+
+    r1 = r1.shutdown().recreate();
+    r2 = r2.shutdown().recreate();
+    r3 = r3.shutdown().recreate();
+
+    StepVerifier.create(
+            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+        .thenConsumeWhile(
+            event -> {
+              assertThat(event.type(), isOneOf(ENDPOINT_ADDED, ENDPOINT_REMOVED));
+              if (event.type() == ENDPOINT_ADDED) {
+                registeredCountAfterRestart.incrementAndGet();
+              }
+              if (event.type() == ENDPOINT_REMOVED) {
+                removedCountAfterRestart.incrementAndGet();
+              }
+              return registeredCountAfterRestart.get() + removedCountAfterRestart.get() + 3 /*seed*/
+                  < expectedAddedEventsNum + expectedRemovedEventsNum + 3 /*seed*/;
             })
         .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
@@ -331,6 +438,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
           return new ScalecubeServiceDiscovery(serviceEndpoint)
+              .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
               .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
         });
   }
@@ -340,18 +448,24 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceEndpoint();
           return new ScalecubeServiceDiscovery(serviceEndpoint)
+              .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
               .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
         });
   }
 
   private Address startSeed() {
-    return new ScalecubeServiceDiscovery(newServiceEndpoint()).start().block().address();
+    return new ScalecubeServiceDiscovery(newServiceEndpoint())
+        .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
+        .start()
+        .block()
+        .address();
   }
 
   private static class RecordingServiceDiscovery {
 
-    final ReplayProcessor<ServiceDiscovery> instance = ReplayProcessor.create();
-    final ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
+    ServiceDiscovery instance;
+    Supplier<Mono<ServiceDiscovery>> supplier;
+    ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
 
     Flux<ServiceDiscoveryEvent> discoveryEvents() {
       return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterDiscoveryEvents);
@@ -361,25 +475,31 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
       return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterGroupDiscoveryEvents);
     }
 
+    RecordingServiceDiscovery recreate() {
+      return create(supplier);
+    }
+
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery();
+      result.supplier = supplier;
       supplier
           .get()
-          .doOnNext(result.instance::onNext)
+          .log("serviceDiscovery", Level.INFO)
           .subscribe(
-              sd -> {
-                sd.listenDiscovery()
-                    .log("listenDiscovery", Level.FINE)
+              serviceDiscovery -> {
+                result.instance = serviceDiscovery;
+                serviceDiscovery
+                    .listenDiscovery()
+                    .log("listenDiscovery", Level.INFO)
                     .subscribe(result.discoveryEvents);
-                sd.start() //
-                    .log("listenInstance", Level.FINE)
-                    .subscribe();
+                serviceDiscovery.start().block();
               });
       return result;
     }
 
-    void shutdown() {
-      instance.flatMap(ServiceDiscovery::shutdown).then().subscribe();
+    RecordingServiceDiscovery shutdown() {
+      instance.shutdown().block();
+      return this;
     }
   }
 
