@@ -23,7 +23,6 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import reactor.core.publisher.Flux;
@@ -73,9 +72,6 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
-
-    System.out.println("\n\n\n\n\n\n");
-    Mono.delay(SHORT_TIMEOUT).repeat(2).subscribe();
 
     // shutdown r2 and r3, verify events on r1
     r1 = r1.recreate();
@@ -296,7 +292,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .verify());
   }
 
-  @Disabled("https://github.com/scalecube/scalecube-services/issues/599")
+  @Test
   public void testSingleNodeGroupIsStillGroup(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
