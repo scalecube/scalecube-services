@@ -73,16 +73,38 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                     .thenCancel()
                     .verify());
 
-    // shutdown r2 and r3, verify events on r1
-    r1 = r1.recreate();
-    StepVerifier.create(Flux.concat(r1.groupDiscoveryEvents()))
-        .then(r2::shutdown)
-        .then(r3::shutdown)
-        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
-        .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+    // restart discovery instances
+    AtomicInteger registeredCountAfterRestart = new AtomicInteger();
+    AtomicInteger removedCountAfterRestart = new AtomicInteger();
+    int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
+    int expectedRemovedEventsNum = 3; // r1,r2,r3 are shutdown => await 3 events
+
+    r1 = r1.shutdown().recreate();
+
+    StepVerifier.create(r1.groupDiscoveryEvents())
+        .thenConsumeWhile(
+            event -> {
+              assertThat(
+                  event.type(),
+                  isOneOf(
+                      ENDPOINT_ADDED_TO_GROUP,
+                      ENDPOINT_REMOVED_FROM_GROUP,
+                      GROUP_ADDED,
+                      GROUP_REMOVED));
+              if (event.type() == ENDPOINT_ADDED_TO_GROUP) {
+                registeredCountAfterRestart.incrementAndGet();
+              }
+              if (event.type() == ENDPOINT_REMOVED_FROM_GROUP) {
+                removedCountAfterRestart.incrementAndGet();
+              }
+              return registeredCountAfterRestart.get() + removedCountAfterRestart.get() + 3 /*seed*/
+                  < expectedAddedEventsNum + expectedRemovedEventsNum + 3 /*seed*/;
+            })
         .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
+
+    assertEquals(expectedAddedEventsNum, registeredCountAfterRestart.get());
   }
 
   @Test
@@ -150,30 +172,15 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .thenCancel()
         .verify();
 
-    // restart discovery instances
-    AtomicInteger registeredCountAfterRestart = new AtomicInteger();
-    AtomicInteger removedCountAfterRestart = new AtomicInteger();
-    int expectedRemovedEventsNum = 3; // r1,r2,r3 are shutdown => await 3 events
+    assertEquals(expectedAddedEventsNum, registeredCount.get());
 
+    // restart discovery instance
     r1 = r1.shutdown().recreate();
-    r2 = r2.shutdown().recreate();
-    r3 = r3.shutdown().recreate();
 
-    StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
-        .thenConsumeWhile(
-            event -> {
-              assertThat(event.type(), isOneOf(ENDPOINT_ADDED, ENDPOINT_REMOVED));
-              if (event.type() == ENDPOINT_ADDED) {
-                registeredCountAfterRestart.incrementAndGet();
-              }
-              if (event.type() == ENDPOINT_REMOVED) {
-                removedCountAfterRestart.incrementAndGet();
-              }
-              return registeredCountAfterRestart.get() + removedCountAfterRestart.get() + 3 /*seed*/
-                  < expectedAddedEventsNum + expectedRemovedEventsNum + 3 /*seed*/;
-            })
-        .expectNoEvent(SHORT_TIMEOUT)
+    StepVerifier.create(r1.discoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .expectNoEvent(TIMEOUT)
         .thenCancel()
         .verify();
   }
