@@ -41,73 +41,6 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
-  public void testEndpointsInGroupRestarted(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
-
-    Address seedAddress = startSeed();
-
-    int groupSize = 3;
-
-    RecordingServiceDiscovery r1 =
-        RecordingServiceDiscovery.create(
-            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
-    RecordingServiceDiscovery r2 =
-        RecordingServiceDiscovery.create(
-            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
-    RecordingServiceDiscovery r3 =
-        RecordingServiceDiscovery.create(
-            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
-
-    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
-        .forEach(
-            rp ->
-                StepVerifier.create(rp)
-                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
-                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
-                    .assertNext(
-                        event -> {
-                          assertEquals(GROUP_ADDED, event.type());
-                          assertEquals(groupSize, event.groupSize());
-                        })
-                    .expectNoEvent(SHORT_TIMEOUT)
-                    .thenCancel()
-                    .verify());
-
-    // restart discovery instances
-    AtomicInteger registeredCountAfterRestart = new AtomicInteger();
-    AtomicInteger removedCountAfterRestart = new AtomicInteger();
-    int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
-    int expectedRemovedEventsNum = 3; // r1,r2,r3 are shutdown => await 3 events
-
-    r1 = r1.shutdown().recreate();
-
-    StepVerifier.create(r1.groupDiscoveryEvents())
-        .thenConsumeWhile(
-            event -> {
-              assertThat(
-                  event.type(),
-                  isOneOf(
-                      ENDPOINT_ADDED_TO_GROUP,
-                      ENDPOINT_REMOVED_FROM_GROUP,
-                      GROUP_ADDED,
-                      GROUP_REMOVED));
-              if (event.type() == ENDPOINT_ADDED_TO_GROUP) {
-                registeredCountAfterRestart.incrementAndGet();
-              }
-              if (event.type() == ENDPOINT_REMOVED_FROM_GROUP) {
-                removedCountAfterRestart.incrementAndGet();
-              }
-              return registeredCountAfterRestart.get() + removedCountAfterRestart.get() + 3 /*seed*/
-                  < expectedAddedEventsNum + expectedRemovedEventsNum + 3 /*seed*/;
-            })
-        .expectNoEvent(SHORT_TIMEOUT)
-        .thenCancel()
-        .verify();
-
-    assertEquals(expectedAddedEventsNum, registeredCountAfterRestart.get());
-  }
-
-  @Test
   public void testEndpointIsAddedThenRemoved() {
     Address seedAddress = startSeed();
 
@@ -141,46 +74,6 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
               return unregisteredCount.incrementAndGet() < expectedRemovedEventsNum;
             })
         .expectNoEvent(SHORT_TIMEOUT)
-        .thenCancel()
-        .verify();
-  }
-
-  @Test
-  public void testEndpointsRestarted() {
-    Address seedAddress = startSeed();
-
-    AtomicInteger registeredCount = new AtomicInteger();
-
-    RecordingServiceDiscovery r1 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
-    RecordingServiceDiscovery r2 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
-    RecordingServiceDiscovery r3 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
-
-    int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
-
-    StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
-        .thenConsumeWhile(
-            event -> {
-              assertEquals(ENDPOINT_ADDED, event.type());
-              assertNotNull(event.serviceEndpoint());
-              return registeredCount.incrementAndGet() < expectedAddedEventsNum;
-            })
-        .expectNoEvent(TIMEOUT)
-        .thenCancel()
-        .verify();
-
-    assertEquals(expectedAddedEventsNum, registeredCount.get());
-
-    // restart discovery instance
-    r1 = r1.shutdown().recreate();
-
-    StepVerifier.create(r1.discoveryEvents())
-        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
-        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
-        .expectNoEvent(TIMEOUT)
         .thenCancel()
         .verify();
   }
