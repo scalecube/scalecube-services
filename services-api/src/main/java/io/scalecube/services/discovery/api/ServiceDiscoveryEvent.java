@@ -142,7 +142,7 @@ public class ServiceDiscoveryEvent {
             .orElse(null)
         + ", serviceEndpoints="
         + serviceEndpoints.stream() //
-            .map(ServiceEndpoint::id)
+            .map(se -> se.id() + "@" + se.address())
             .collect(Collectors.joining(",", "[", "]"))
         + '}';
   }
