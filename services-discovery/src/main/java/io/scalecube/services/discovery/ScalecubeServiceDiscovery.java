@@ -213,10 +213,11 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceDiscoveryEvent groupDiscoveryEvent = null;
     String groupId = serviceGroup.id();
 
+    // handle add to group
     if (discoveryEvent.isEndpointAdded()) {
       if (!addToGroup(serviceGroup, serviceEndpoint)) {
         LOGGER_GROUP.warn(
-            "Failed to add service endpoint {} to group {}, group is full aready",
+            "Failed to add service endpoint {} to group {}, group is full already",
             serviceEndpoint.id(),
             groupId);
         return;
@@ -224,13 +225,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      sink.next(ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
-
       LOGGER_GROUP.debug(
           "Added service endpoint {} to group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
+
+      sink.next(ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
       if (endpoints.size() == serviceGroup.size()) {
         LOGGER_GROUP.info("Service group {} added to the cluster", serviceGroup);
@@ -238,6 +239,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       }
     }
 
+    // handle removal from group
     if (discoveryEvent.isEndpointRemoved()) {
       if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
         LOGGER_GROUP.warn(
@@ -250,14 +252,14 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      sink.next(
-          ServiceDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
-
       LOGGER_GROUP.debug(
           "Removed service endpoint {} from group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
+
+      sink.next(
+          ServiceDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
 
       if (endpoints.isEmpty()) {
         LOGGER_GROUP.info("Service group {} removed from the cluster", serviceGroup);
@@ -265,6 +267,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       }
     }
 
+    // post group event
     if (groupDiscoveryEvent != null) {
       sink.next(groupDiscoveryEvent);
     }
