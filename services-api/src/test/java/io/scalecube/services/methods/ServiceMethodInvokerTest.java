@@ -35,9 +35,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
@@ -67,9 +69,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
@@ -99,9 +103,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
@@ -132,9 +138,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
@@ -167,9 +175,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
@@ -201,9 +211,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
+            false,
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
             Void.TYPE,
+            false,
             AUTH);
 
     serviceMethodInvoker =
