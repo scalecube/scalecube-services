@@ -10,7 +10,7 @@ ENV DEFAULT_JAVA_OPTS="-server \
 -Dsun.rmi.dgc.client.gcInterval=3600000 \
 -Dsun.rmi.dgc.server.gcInterval=3600000"
 
-ENV DEFAULT_JMX_OPTS="-Dcom.sun.management.jmxremote\
+ENV DEFAULT_JMX_OPTS="-Djava.rmi.server.hostname=0.0.0.0 \
 -Dcom.sun.management.jmxremote.port=5678 \
 -Dcom.sun.management.jmxremote.rmi.port=5678 \
 -Dcom.sun.management.jmxremote.authenticate=false \
