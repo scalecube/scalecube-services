@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
@@ -188,6 +189,71 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)).getResult());
+  }
+
+  @Test
+  void test_remote_greeting_message() {
+    GreetingService service = createProxy();
+
+    ServiceMessage request = ServiceMessage.builder().data(new GreetingRequest("joe")).build();
+
+    // using proxy
+    StepVerifier.create(service.greetingMessage(request))
+        .assertNext(
+            message -> {
+              assertEquals(GreetingResponse.class, message.data().getClass());
+
+              GreetingResponse resp = message.data();
+
+              assertEquals("1", resp.sender());
+              assertEquals("hello to: joe", resp.getResult());
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(service.greetingMessage2(request))
+        .assertNext(
+            resp -> {
+              assertEquals("1", resp.sender());
+              assertEquals("hello to: joe", resp.getResult());
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    // using serviceCall directly
+    ServiceCall serviceCall = gateway.call();
+
+    StepVerifier.create(
+            serviceCall.requestOne(
+                ServiceMessage.from(request).qualifier("/greetings/greetingMessage").build(),
+                GreetingResponse.class))
+        .assertNext(
+            message -> {
+              assertEquals(GreetingResponse.class, message.data().getClass());
+
+              GreetingResponse resp = message.data();
+
+              assertEquals("1", resp.sender());
+              assertEquals("hello to: joe", resp.getResult());
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(
+            serviceCall.requestOne(
+                ServiceMessage.from(request).qualifier("/greetings/greetingMessage2").build(),
+                GreetingResponse.class))
+        .assertNext(
+            message -> {
+              assertEquals(GreetingResponse.class, message.data().getClass());
+
+              GreetingResponse resp = message.data();
+
+              assertEquals("1", resp.sender());
+              assertEquals("hello to: joe", resp.getResult());
+            })
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test

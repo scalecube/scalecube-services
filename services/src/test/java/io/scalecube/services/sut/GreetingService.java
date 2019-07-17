@@ -1,5 +1,7 @@
 package io.scalecube.services.sut;
 
+import io.scalecube.services.annotations.RequestType;
+import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
@@ -34,7 +36,13 @@ public interface GreetingService {
   Mono<GreetingResponse> greetingRequest(GreetingRequest string);
 
   @ServiceMethod
+  @RequestType(GreetingRequest.class)
+  @ResponseType(GreetingResponse.class)
   Mono<ServiceMessage> greetingMessage(ServiceMessage request);
+
+  @ServiceMethod
+  @RequestType(GreetingRequest.class)
+  Mono<GreetingResponse> greetingMessage2(ServiceMessage request);
 
   @ServiceMethod
   Mono<Void> greetingVoid(GreetingRequest request);
