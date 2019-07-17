@@ -33,9 +33,11 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.serviceName(serviceInterface),
                                   Reflect.methodName(method),
                                   Reflect.parameterizedReturnType(method),
+                                  Reflect.isReturnTypeServiceMessage(method),
                                   Reflect.communicationMode(method),
                                   method.getParameterCount(),
                                   Reflect.requestType(method),
+                                  Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isAuth(method));
 
                           // register new service method invoker

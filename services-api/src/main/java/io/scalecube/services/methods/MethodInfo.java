@@ -2,7 +2,6 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
 import java.lang.reflect.Type;
 
 public final class MethodInfo {
@@ -11,9 +10,11 @@ public final class MethodInfo {
   private final String methodName;
   private final String qualifier;
   private final Type parameterizedReturnType;
+  private final boolean isReturnTypeServiceMessage;
   private final CommunicationMode communicationMode;
   private final int parameterCount;
   private final Class<?> requestType;
+  private final boolean isRequestTypeServiceMessage;
   private final boolean auth;
 
   /**
@@ -22,21 +23,26 @@ public final class MethodInfo {
    * @param serviceName the name of the service
    * @param methodName the name of the methof
    * @param parameterizedReturnType the return type (with generics support)
+   * @param isReturnTypeServiceMessage is return service message
    * @param communicationMode the directions of the method
    * @param parameterCount amount of parameters
    * @param requestType the type of the request
+   * @param isRequestTypeServiceMessage is request service message
    * @param auth is method protected by authentication
    */
   public MethodInfo(
       String serviceName,
       String methodName,
       Type parameterizedReturnType,
+      boolean isReturnTypeServiceMessage,
       CommunicationMode communicationMode,
       int parameterCount,
       Class<?> requestType,
+      boolean isRequestTypeServiceMessage,
       boolean auth) {
 
     this.parameterizedReturnType = parameterizedReturnType;
+    this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
     this.serviceName = serviceName;
     this.methodName = methodName;
@@ -44,6 +50,7 @@ public final class MethodInfo {
     this.qualifier = Qualifier.asString(serviceName, methodName);
     this.parameterCount = parameterCount;
     this.requestType = requestType;
+    this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
   }
 
   public String serviceName() {
@@ -62,6 +69,10 @@ public final class MethodInfo {
     return parameterizedReturnType;
   }
 
+  public boolean isReturnTypeServiceMessage() {
+    return isReturnTypeServiceMessage;
+  }
+
   public CommunicationMode communicationMode() {
     return communicationMode;
   }
@@ -71,7 +82,7 @@ public final class MethodInfo {
   }
 
   public boolean isRequestTypeServiceMessage() {
-    return requestType.isAssignableFrom(ServiceMessage.class);
+    return isRequestTypeServiceMessage;
   }
 
   public boolean isRequestTypeVoid() {
@@ -93,9 +104,11 @@ public final class MethodInfo {
     sb.append(", methodName='").append(methodName).append('\'');
     sb.append(", qualifier='").append(qualifier).append('\'');
     sb.append(", parameterizedReturnType=").append(parameterizedReturnType);
+    sb.append(", isReturnTypeServiceMessage=").append(isReturnTypeServiceMessage);
     sb.append(", communicationMode=").append(communicationMode);
     sb.append(", parameterCount=").append(parameterCount);
     sb.append(", requestType=").append(requestType);
+    sb.append(", isRequestTypeServiceMessage=").append(isRequestTypeServiceMessage);
     sb.append(", auth=").append(auth);
     sb.append('}');
     return sb.toString();

@@ -100,8 +100,17 @@ public final class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<ServiceMessage> greetingMessage(ServiceMessage request) {
     print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
-    GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");
+    GreetingRequest data = request.data();
+    GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
     return Mono.just(ServiceMessage.builder().data(resp).build());
+  }
+
+  @Override
+  public Mono<GreetingResponse> greetingMessage2(ServiceMessage request) {
+    print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
+    GreetingRequest data = request.data();
+    GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
+    return Mono.just(resp);
   }
 
   @Override
