@@ -233,6 +233,63 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
+  public void testGroupMembersRestarted(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    Address seedAddress = startSeed();
+
+    int groupSize = 3;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+
+    // restart group member r3 and verify events on r1, r2
+    r1 = r1.resubscribe();
+    r2 = r2.resubscribe();
+    r3.shutdown().recreate();
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(
+                        event ->
+                            assertThat(
+                                event.type(),
+                                isOneOf(ENDPOINT_ADDED_TO_GROUP, ENDPOINT_REMOVED_FROM_GROUP)))
+                    .assertNext(
+                        event ->
+                            assertThat(
+                                event.type(),
+                                isOneOf(ENDPOINT_ADDED_TO_GROUP, ENDPOINT_REMOVED_FROM_GROUP)))
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+  }
+
+  @Test
   public void testSameGroupIdDifferentGroupSizes(TestInfo testInfo) {
     String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
 
