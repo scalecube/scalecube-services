@@ -51,7 +51,7 @@ public class Reflect {
     if (type instanceof ParameterizedType) {
       Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
 
-      if (((Class<?>) actualReturnType).isAssignableFrom(ServiceMessage.class)) {
+      if (ServiceMessage.class.equals(actualReturnType)) {
         return Object.class;
       }
 
@@ -73,7 +73,7 @@ public class Reflect {
     if (type instanceof ParameterizedType) {
       Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
 
-      return ((Class<?>) actualReturnType).isAssignableFrom(ServiceMessage.class);
+      return ServiceMessage.class.equals(actualReturnType);
     }
 
     return false;
@@ -319,10 +319,36 @@ public class Reflect {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
 
+    validateResponseType(method);
+    validateRequestType(method);
     validatePrincipalParameter(method);
 
     if (method.getParameterCount() > 2) {
       throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    }
+  }
+
+  private static void validateResponseType(Method method) {
+    if (isReturnTypeServiceMessage(method)) {
+      if (!method.isAnnotationPresent(ResponseType.class)) {
+        throw new UnsupportedOperationException(
+            "Return type ServiceMessage cannot be used without @ResponseType method annotation");
+      } else if (ServiceMessage.class.equals(method.getAnnotation(ResponseType.class).value())) {
+        throw new UnsupportedOperationException(
+            "ServiceMessage is not allowed value for @ResponseType");
+      }
+    }
+  }
+
+  private static void validateRequestType(Method method) {
+    if (isRequestTypeServiceMessage(method)) {
+      if (!method.isAnnotationPresent(RequestType.class)) {
+        throw new UnsupportedOperationException(
+            "Request type ServiceMessage cannot be used without @RequestType method annotation");
+      } else if (ServiceMessage.class.equals(method.getAnnotation(RequestType.class).value())) {
+        throw new UnsupportedOperationException(
+            "ServiceMessage is not allowed value for @RequestType");
+      }
     }
   }
 
