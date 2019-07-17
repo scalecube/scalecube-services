@@ -6,6 +6,7 @@ import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
 import io.scalecube.services.annotations.RequestType;
+import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
@@ -42,12 +43,40 @@ public class Reflect {
    * @return the generic type of the return value or object.
    */
   public static Type parameterizedReturnType(Method method) {
+    if (method.isAnnotationPresent(ResponseType.class)) {
+      return method.getAnnotation(ResponseType.class).value();
+    }
+
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
-      return ((ParameterizedType) type).getActualTypeArguments()[0];
+      Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
+
+      if (ServiceMessage.class.equals(actualReturnType)) {
+        return Object.class;
+      }
+
+      return actualReturnType;
     } else {
       return Object.class;
     }
+  }
+
+  /**
+   * Util function to check if return type of method is ServiceMessage.
+   *
+   * @param method method to inspect
+   * @return true if return type of method is ServiceMessage, otherwise false
+   */
+  public static boolean isReturnTypeServiceMessage(Method method) {
+    Type type = method.getGenericReturnType();
+
+    if (type instanceof ParameterizedType) {
+      Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
+
+      return ServiceMessage.class.equals(actualReturnType);
+    }
+
+    return false;
   }
 
   /**
@@ -87,6 +116,18 @@ public class Reflect {
   }
 
   /**
+   * Util function to check if the first parameter of method is ServiceMessage.
+   *
+   * @param method method to inspect
+   * @return true if the first parameter of method is ServiceMessage, otherwise false
+   */
+  public static boolean isRequestTypeServiceMessage(Method method) {
+    Class<?>[] parameterTypes = method.getParameterTypes();
+
+    return parameterTypes.length > 0 && ServiceMessage.class.equals(parameterTypes[0]);
+  }
+
+  /**
    * Util function that returns the parameterizedType of a given object.
    *
    * @param object to inspect
@@ -121,9 +162,11 @@ public class Reflect {
                             serviceName(serviceInterface),
                             methodName(method1),
                             parameterizedReturnType(method1),
+                            isReturnTypeServiceMessage(method1),
                             communicationMode(method1),
                             method1.getParameterCount(),
                             requestType(method1),
+                            isRequestTypeServiceMessage(method1),
                             isAuth(method1)))));
   }
 
@@ -276,10 +319,36 @@ public class Reflect {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
 
+    validateResponseType(method);
+    validateRequestType(method);
     validatePrincipalParameter(method);
 
     if (method.getParameterCount() > 2) {
       throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    }
+  }
+
+  private static void validateResponseType(Method method) {
+    if (isReturnTypeServiceMessage(method)) {
+      if (!method.isAnnotationPresent(ResponseType.class)) {
+        throw new UnsupportedOperationException(
+            "Return type ServiceMessage cannot be used without @ResponseType method annotation");
+      } else if (ServiceMessage.class.equals(method.getAnnotation(ResponseType.class).value())) {
+        throw new UnsupportedOperationException(
+            "ServiceMessage is not allowed value for @ResponseType");
+      }
+    }
+  }
+
+  private static void validateRequestType(Method method) {
+    if (isRequestTypeServiceMessage(method)) {
+      if (!method.isAnnotationPresent(RequestType.class)) {
+        throw new UnsupportedOperationException(
+            "Request type ServiceMessage cannot be used without @RequestType method annotation");
+      } else if (ServiceMessage.class.equals(method.getAnnotation(RequestType.class).value())) {
+        throw new UnsupportedOperationException(
+            "ServiceMessage is not allowed value for @RequestType");
+      }
     }
   }
 
