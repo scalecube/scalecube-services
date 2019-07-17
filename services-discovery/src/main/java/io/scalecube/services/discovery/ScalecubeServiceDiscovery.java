@@ -47,6 +47,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private Cluster cluster;
 
   private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
+  private Map<ServiceGroup, Integer> addedGroups = new HashMap<>();
 
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
@@ -215,14 +216,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     // handle add to group
     if (discoveryEvent.isEndpointAdded()) {
-      if (!addToGroup(serviceGroup, serviceEndpoint)) {
-        LOGGER_GROUP.warn(
-            "Failed to add service endpoint {} to group {}, group is full already",
-            serviceEndpoint.id(),
-            groupId);
-        return;
-      }
-
+      boolean isGroupAdded = addToGroup(serviceGroup, serviceEndpoint);
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       LOGGER_GROUP.debug(
@@ -231,9 +225,10 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
           groupId,
           endpoints.size());
 
+      // publish event regardless of isGroupAdded result
       sink.next(ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
-      if (endpoints.size() == serviceGroup.size()) {
+      if (isGroupAdded) {
         LOGGER_GROUP.info("Service group {} added to the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupAdded(groupId, endpoints);
       }
@@ -277,13 +272,34 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return groups.getOrDefault(group, Collections.emptyList());
   }
 
+  /**
+   * Adds service endpoint to the group and returns indication whether group is fully formed.
+   *
+   * @param group service group
+   * @param endpoint service ednpoint
+   * @return {@code true} if group is fully formed; {@code false} otherwise, for example when
+   *     there's not enough members yet or group was already formed and just keep updating
+   */
   private boolean addToGroup(ServiceGroup group, ServiceEndpoint endpoint) {
     Collection<ServiceEndpoint> endpoints =
         groups.computeIfAbsent(group, group1 -> new ArrayList<>());
-    // check an actual group size is it still ok to add
-    return endpoints.size() < group.size() && endpoints.add(endpoint);
+    endpoints.add(endpoint);
+
+    int size = group.size();
+    int countBefore = addedGroups.computeIfAbsent(group, group1 -> 1);
+    int countAfter = addedGroups.compute(group, (group1, count) -> count < size ? ++count : count);
+
+    return countBefore < countAfter && size == countAfter;
   }
 
+  /**
+   * Removes service endpoint from group.
+   *
+   * @param group service group
+   * @param endpoint service endpoint
+   * @return {@code true} if endpoint was removed from group; {@code false} if group didn't exist or
+   *     endpoint wasn't contained in the group
+   */
   private boolean removeFromGroup(ServiceGroup group, ServiceEndpoint endpoint) {
     if (!groups.containsKey(group)) {
       return false;
@@ -292,6 +308,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     boolean removed = endpoints.removeIf(input -> input.id().equals(endpoint.id()));
     if (removed && endpoints.isEmpty()) {
       groups.remove(group); // cleanup
+      addedGroups.remove(group); // cleanup
     }
     return removed;
   }

@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
-  public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
+  public static final Duration SHORT_TIMEOUT = Duration.ofMillis(1000);
 
   @BeforeAll
   public static void setUp() {
@@ -134,6 +134,68 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
+  }
+
+  @Test
+  public void testGroupIsUpdated(TestInfo testInfo) {
+    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+
+    Address seedAddress = startSeed();
+
+    int groupSize = 3;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+
+    // shutdown r3 and verify r1, r2 receive events
+    r1 = r1.resubscribe();
+    r2 = r2.resubscribe();
+    r3.shutdown();
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_REMOVED_FROM_GROUP, event.type()))
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+
+    // start r3 again and verify r1, r2 receive events
+    r1 = r1.resubscribe();
+    r2 = r2.resubscribe();
+    r3.recreate();
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
   }
 
   @Test
@@ -417,16 +479,17 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   private static class RecordingServiceDiscovery {
 
-    ServiceDiscovery instance;
     final Supplier<Mono<ServiceDiscovery>> supplier;
     final ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
+
+    ServiceDiscovery serviceDiscovery; // effectively final
 
     private RecordingServiceDiscovery(Supplier<Mono<ServiceDiscovery>> supplier) {
       this.supplier = supplier;
     }
 
     private RecordingServiceDiscovery(RecordingServiceDiscovery other) {
-      this.instance = other.instance;
+      this.serviceDiscovery = other.serviceDiscovery;
       this.supplier = other.supplier;
     }
 
@@ -439,7 +502,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     RecordingServiceDiscovery resubscribe() {
-      return new RecordingServiceDiscovery(this);
+      return new RecordingServiceDiscovery(this).subscribe();
     }
 
     RecordingServiceDiscovery recreate() {
@@ -448,23 +511,28 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery(supplier);
-      supplier
-          .get()
+      Mono<ServiceDiscovery> serviceDiscoveryMono = supplier.get();
+      serviceDiscoveryMono
           .log("serviceDiscovery", Level.INFO)
           .subscribe(
               serviceDiscovery -> {
-                result.instance = serviceDiscovery;
-                serviceDiscovery
-                    .listenDiscovery()
-                    .log("listenDiscovery", Level.INFO)
-                    .subscribe(result.discoveryEvents);
-                serviceDiscovery.start().block();
+                result.serviceDiscovery = serviceDiscovery;
+                result.subscribe();
+                result.serviceDiscovery.start().block();
               });
       return result;
     }
 
+    private RecordingServiceDiscovery subscribe() {
+      serviceDiscovery
+          .listenDiscovery()
+          .log("listenDiscovery", Level.INFO)
+          .subscribe(discoveryEvents);
+      return this;
+    }
+
     RecordingServiceDiscovery shutdown() {
-      instance.shutdown().block();
+      serviceDiscovery.shutdown().block();
       return this;
     }
   }
