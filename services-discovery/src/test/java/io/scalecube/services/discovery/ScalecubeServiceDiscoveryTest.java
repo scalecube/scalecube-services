@@ -33,7 +33,7 @@ import reactor.test.StepVerifier;
 class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
-  public static final Duration SHORT_TIMEOUT = Duration.ofMillis(1000);
+  public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
 
   @BeforeAll
   public static void setUp() {
@@ -364,6 +364,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
             rp ->
                 StepVerifier.create(rp)
                     .expectSubscription()
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
                     .expectNoEvent(SHORT_TIMEOUT)
                     .thenCancel()
                     .verify());
@@ -457,6 +459,25 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
+
+    // bring back shutdowned r1, r2 and verify events on non-group member r3
+    r3.resubscribe();
+    r1 = r1.recreate();
+    r2 = r2.recreate();
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
   }
 
   @Test

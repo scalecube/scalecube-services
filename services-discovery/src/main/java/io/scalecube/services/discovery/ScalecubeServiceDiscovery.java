@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +60,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     this.serviceEndpoint = serviceEndpoint;
 
     // Add myself to the group if 'groupness' is defined
-    Optional.ofNullable(serviceEndpoint.serviceGroup())
-        .ifPresent(serviceGroup -> addToGroup(serviceGroup, serviceEndpoint));
+    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
+    if (serviceGroup != null) {
+      if (serviceGroup.size() == 0) {
+        throw new IllegalArgumentException("serviceGroup is invalid, size can't be 0");
+      }
+      addToGroup(serviceGroup, serviceEndpoint);
+    }
 
     clusterConfig =
         ClusterConfig.defaultLanConfig()
@@ -82,6 +86,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     this.clusterConfig = other.clusterConfig;
     this.cluster = other.cluster;
     this.groups = other.groups;
+    this.addedGroups = other.addedGroups;
   }
 
   /**
@@ -195,7 +200,10 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       sink.next(discoveryEvent);
-      onDiscoveryEvent(discoveryEvent, sink);
+
+      if (discoveryEvent.serviceEndpoint().serviceGroup() != null) {
+        onDiscoveryEvent(discoveryEvent, sink);
+      }
     }
   }
 
@@ -204,12 +212,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
-    if (serviceGroup == null) {
-      LOGGER_GROUP.debug(
-          "Discovered service endpoint {}, but not registering it (serviceGroup is null)",
-          serviceEndpoint.id());
-      return;
-    }
 
     ServiceDiscoveryEvent groupDiscoveryEvent = null;
     String groupId = serviceGroup.id();
@@ -286,10 +288,16 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     endpoints.add(endpoint);
 
     int size = group.size();
-    int countBefore = addedGroups.computeIfAbsent(group, group1 -> 1);
-    int countAfter = addedGroups.compute(group, (group1, count) -> count < size ? ++count : count);
+    if (size == 1) {
+      return addedGroups.putIfAbsent(group, 1) == null;
+    }
 
-    return countBefore < countAfter && size == countAfter;
+    if (addedGroups.computeIfAbsent(group, group1 -> 0) == size) {
+      return false;
+    }
+
+    int countAfter = addedGroups.compute(group, (group1, count) -> count + 1);
+    return countAfter == size;
   }
 
   /**
