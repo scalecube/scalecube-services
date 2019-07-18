@@ -67,8 +67,8 @@ The example provisions 2 cluster nodes and making a remote interaction.
     Microservices microservices =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                self ->
+                    new ScalecubeServiceDiscovery(self)
                         .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
             .transport(ServiceTransports::rsocketServiceTransport)
             .services(new GreetingServiceImpl())
