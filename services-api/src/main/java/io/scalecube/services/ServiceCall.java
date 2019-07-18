@@ -380,7 +380,7 @@ public class ServiceCall {
 
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Type returnType = methodInfo.parameterizedReturnType();
-              final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
+              final boolean isServiceMessage = methodInfo.isReturnTypeServiceMessage();
 
               Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
@@ -476,12 +476,12 @@ public class ServiceCall {
     }
   }
 
-  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isRequestTypeServiceMessage) {
-    return flux -> isRequestTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
+    return flux -> isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
   }
 
-  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isRequestTypeServiceMessage) {
-    return mono -> isRequestTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
+  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
+    return mono -> isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
   }
 
   private Function<ServiceMessage, Object> msgToResp() {

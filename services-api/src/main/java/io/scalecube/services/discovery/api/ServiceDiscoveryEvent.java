@@ -1,6 +1,7 @@
 package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Optional;
@@ -48,7 +49,7 @@ public class ServiceDiscoveryEvent {
     this.type = type;
     this.serviceEndpoint = serviceEndpoint;
     this.groupId = groupId;
-    this.serviceEndpoints = serviceEndpoints;
+    this.serviceEndpoints = Collections.unmodifiableList(new ArrayList<>(serviceEndpoints));
   }
 
   public static ServiceDiscoveryEvent newEndpointAdded(ServiceEndpoint serviceEndpoint) {
@@ -137,12 +138,10 @@ public class ServiceDiscoveryEvent {
         + groupId
         + '\''
         + ", serviceEndpoint="
-        + Optional.ofNullable(serviceEndpoint) //
-            .map(ServiceEndpoint::id)
-            .orElse(null)
+        + Optional.ofNullable(serviceEndpoint).map(ServiceEndpoint::id).orElse(null)
         + ", serviceEndpoints="
-        + serviceEndpoints.stream() //
-            .map(ServiceEndpoint::id)
+        + serviceEndpoints.stream()
+            .map(se -> se.id() + "@" + se.address())
             .collect(Collectors.joining(",", "[", "]"))
         + '}';
   }
