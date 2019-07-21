@@ -47,18 +47,22 @@ public class Reflect {
       return method.getAnnotation(ResponseType.class).value();
     }
 
-    Type type = method.getGenericReturnType();
-    if (type instanceof ParameterizedType) {
-      Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
+    Class<?> methodReturnType = method.getReturnType();
 
+    if (Publisher.class.isAssignableFrom(methodReturnType)) {
+      Type actualReturnType =
+          ((ParameterizedType) method.getGenericReturnType()).getActualTypeArguments()[0];
       if (ServiceMessage.class.equals(actualReturnType)) {
         return Object.class;
       }
-
       return actualReturnType;
-    } else {
+    }
+
+    if (ServiceMessage.class.equals(methodReturnType)) {
       return Object.class;
     }
+
+    return methodReturnType;
   }
 
   /**
@@ -89,7 +93,7 @@ public class Reflect {
    * @param method in inspection.
    * @return type of parameter [0] or void
    */
-  public static Class<?> requestType(Method method) {
+  public static Type requestType(Method method) {
     if (method.getParameterTypes().length > 0) {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
@@ -97,18 +101,21 @@ public class Reflect {
         if (method.getParameters()[0].isAnnotationPresent(Principal.class)) {
           return Void.TYPE;
         }
-
-        if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
-          try {
-            return Class.forName(parameterizedRequestType(method).getTypeName());
-          } catch (ClassNotFoundException e) {
+        Class<?> parameterType = method.getParameterTypes()[0];
+        Type genericType = method.getGenericParameterTypes()[0];
+        if (Publisher.class.isAssignableFrom(parameterType)) {
+          Type actualRequestType = ((ParameterizedType) genericType).getActualTypeArguments()[0];
+          if (ServiceMessage.class.equals(actualRequestType)) {
             return Object.class;
           }
-        } else if (ServiceMessage.class.equals(method.getParameterTypes()[0])) {
-          return Object.class;
-        } else {
-          return method.getParameterTypes()[0];
+          return actualRequestType;
         }
+
+        if (ServiceMessage.class.equals(parameterType)) {
+          return Object.class;
+        }
+
+        return genericType;
       }
     } else {
       return Void.TYPE;
@@ -125,22 +132,6 @@ public class Reflect {
     Class<?>[] parameterTypes = method.getParameterTypes();
 
     return parameterTypes.length > 0 && ServiceMessage.class.equals(parameterTypes[0]);
-  }
-
-  /**
-   * Util function that returns the parameterizedType of a given object.
-   *
-   * @param object to inspect
-   * @return the parameterized Type of a given object or Object class if unknown.
-   */
-  public static Type parameterizedType(Object object) {
-    if (object != null) {
-      Type type = object.getClass().getGenericSuperclass();
-      if (type instanceof ParameterizedType) {
-        return ((ParameterizedType) type).getActualTypeArguments()[0];
-      }
-    }
-    return Object.class;
   }
 
   /**
@@ -168,22 +159,6 @@ public class Reflect {
                             requestType(method1),
                             isRequestTypeServiceMessage(method1),
                             isAuth(method1)))));
-  }
-
-  /**
-   * Util function that returns the parameterized of the request Type of a given object.
-   *
-   * @return the parameterized Type of a given object or Object class if unknown.
-   */
-  public static Type parameterizedRequestType(Method method) {
-    if (method != null && method.getGenericParameterTypes().length > 0) {
-      Type type = method.getGenericParameterTypes()[0];
-      if (type instanceof ParameterizedType) {
-        return ((ParameterizedType) type).getActualTypeArguments()[0];
-      }
-    }
-
-    return Object.class;
   }
 
   /**

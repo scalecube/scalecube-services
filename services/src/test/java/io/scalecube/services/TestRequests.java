@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.GreetingRequest;
 import java.time.Duration;
+import java.util.Arrays;
 
 public interface TestRequests {
 
@@ -79,4 +80,10 @@ public interface TestRequests {
 
   ServiceMessage SERVICE_NOT_FOUND =
       ServiceMessage.builder().qualifier(SERVICE_NAME, "unknown_service").build();
+
+  ServiceMessage LIST_GREETING_REQUESTS_REQ =
+      ServiceMessage.builder()
+          .qualifier(SERVICE_NAME, "listRequests")
+          .data(Arrays.asList(new GreetingRequest("joe"), new GreetingRequest("alisa")))
+          .build();
 }
