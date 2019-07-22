@@ -115,7 +115,7 @@ public class DelegatedLoopResources implements LoopResources {
         () -> {
           Mono<Void> promise = Mono.empty();
           if (running.compareAndSet(true, false)) {
-            if (bossGroup == null) {
+            if (bossGroup != null) {
               //noinspection unchecked
               promise = FutureMono.from((Future) bossGroup.shutdownGracefully());
             }
