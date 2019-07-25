@@ -646,23 +646,41 @@ public class Microservices {
 
   public interface MonitorMBean {
 
-    Collection<String> getId();
+    Collection<String> getInstanceId();
+
+    String getInstanceIdAsString();
 
     Collection<String> getDiscoveryAddress();
 
+    String getDiscoveryAddressAsString();
+
     Collection<String> getGatewayAddresses();
+
+    String getGatewayAddressesAsString();
 
     Collection<String> getServiceEndpoint();
 
+    String getServiceEndpointAsString();
+
     Collection<String> getServiceEndpoints();
+
+    String getServiceEndpointsAsString();
 
     Collection<String> getRecentServiceDiscoveryEvents();
 
+    String getRecentServiceDiscoveryEventsAsString();
+
     Collection<String> getClientServiceTransport();
+
+    String getClientServiceTransportAsString();
 
     Collection<String> getServerServiceTransport();
 
+    String getServerServiceTransportAsString();
+
     Collection<String> getServiceDiscovery();
+
+    String getServiceDiscoveryAsString();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -689,13 +707,23 @@ public class Microservices {
     }
 
     @Override
-    public Collection<String> getId() {
+    public Collection<String> getInstanceId() {
       return Collections.singletonList(microservices.id());
+    }
+
+    @Override
+    public String getInstanceIdAsString() {
+      return getInstanceId().iterator().next();
     }
 
     @Override
     public Collection<String> getDiscoveryAddress() {
       return Collections.singletonList(microservices.discovery().address().toString());
+    }
+
+    @Override
+    public String getDiscoveryAddressAsString() {
+      return getDiscoveryAddress().iterator().next();
     }
 
     @Override
@@ -706,8 +734,18 @@ public class Microservices {
     }
 
     @Override
+    public String getGatewayAddressesAsString() {
+      return getGatewayAddresses().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
     public Collection<String> getServiceEndpoint() {
       return Collections.singletonList(String.valueOf(microservices.discovery().serviceEndpoint()));
+    }
+
+    @Override
+    public String getServiceEndpointAsString() {
+      return getServiceEndpoint().iterator().next();
     }
 
     @Override
@@ -718,6 +756,11 @@ public class Microservices {
     }
 
     @Override
+    public String getRecentServiceDiscoveryEventsAsString() {
+      return getRecentServiceDiscoveryEvents().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
     public Collection<String> getServiceEndpoints() {
       return microservices.serviceRegistry.listServiceEndpoints().stream()
           .map(ServiceEndpoint::toString)
@@ -725,18 +768,44 @@ public class Microservices {
     }
 
     @Override
+    public String getServiceEndpointsAsString() {
+      return getServiceEndpoints().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
     public Collection<String> getClientServiceTransport() {
-      return Collections.singletonList(microservices.transportBootstrap.clientTransport.toString());
+      return Collections.singletonList(
+          Optional.ofNullable(microservices.transportBootstrap.clientTransport)
+              .map(Object::toString)
+              .orElse("null"));
+    }
+
+    @Override
+    public String getClientServiceTransportAsString() {
+      return getClientServiceTransport().iterator().next();
     }
 
     @Override
     public Collection<String> getServerServiceTransport() {
-      return Collections.singletonList(microservices.transportBootstrap.serverTransport.toString());
+      return Collections.singletonList(
+          Optional.ofNullable(microservices.transportBootstrap.serverTransport)
+              .map(Object::toString)
+              .orElse("null"));
+    }
+
+    @Override
+    public String getServerServiceTransportAsString() {
+      return getServerServiceTransport().iterator().next();
     }
 
     @Override
     public Collection<String> getServiceDiscovery() {
       return Collections.singletonList(microservices.discovery().toString());
+    }
+
+    @Override
+    public String getServiceDiscoveryAsString() {
+      return getServiceDiscovery().iterator().next();
     }
   }
 }
