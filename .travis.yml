@@ -20,9 +20,9 @@ deploy:
   script:
   - "./src/main/scripts/cd/release.sh"
   on:
-    tags: true
+    branch: master
 - provider: script
   script:
   - "./src/main/scripts/cd/release.sh"
   on:
-    branch: master
+    tags: true
