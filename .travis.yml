@@ -21,4 +21,8 @@ deploy:
   - "./src/main/scripts/cd/release.sh"
   on:
     tags: true
+- provider: script
+  script:
+  - "./src/main/scripts/cd/release.sh"
+  on:
     branch: master
