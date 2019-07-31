@@ -718,7 +718,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getDiscoveryAddress() {
-      return Collections.singletonList(microservices.discovery().address().toString());
+      return Collections.singletonList(String.valueOf(microservices.discovery().address()));
     }
 
     @Override
@@ -775,9 +775,7 @@ public class Microservices {
     @Override
     public Collection<String> getClientServiceTransport() {
       return Collections.singletonList(
-          Optional.ofNullable(microservices.transportBootstrap.clientTransport)
-              .map(Object::toString)
-              .orElse("null"));
+          String.valueOf(microservices.transportBootstrap.clientTransport));
     }
 
     @Override
@@ -788,9 +786,7 @@ public class Microservices {
     @Override
     public Collection<String> getServerServiceTransport() {
       return Collections.singletonList(
-          Optional.ofNullable(microservices.transportBootstrap.serverTransport)
-              .map(Object::toString)
-              .orElse("null"));
+          String.valueOf(microservices.transportBootstrap.serverTransport));
     }
 
     @Override
@@ -800,7 +796,7 @@ public class Microservices {
 
     @Override
     public Collection<String> getServiceDiscovery() {
-      return Collections.singletonList(microservices.discovery().toString());
+      return Collections.singletonList(String.valueOf(microservices.discovery()));
     }
 
     @Override
