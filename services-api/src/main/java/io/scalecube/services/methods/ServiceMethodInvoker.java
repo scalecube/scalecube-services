@@ -142,17 +142,17 @@ public final class ServiceMethodInvoker {
   }
 
   private Mono<Object> authenticate(ServiceMessage message) {
-    return Mono.defer(
-            () -> {
-              if (!methodInfo.isAuth()) {
-                return Mono.empty();
-              }
-              if (authenticator == null) {
-                throw new UnauthorizedException("Authenticator not found");
-              }
-              return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
-            })
-        .defaultIfEmpty(NO_PRINCIPAL);
+    return Mono.defer(() -> authenticate0(message)).defaultIfEmpty(NO_PRINCIPAL);
+  }
+
+  private Mono<Object> authenticate0(ServiceMessage message) {
+    if (!methodInfo.isAuth()) {
+      return Mono.empty();
+    }
+    if (authenticator == null) {
+      throw new UnauthorizedException("Authenticator not found");
+    }
+    return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -188,6 +188,11 @@ public final class ServiceMethodInvoker {
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
   }
 
+  /**
+   * Shortened version of {@code toString} method.
+   *
+   * @return service method invoker as string
+   */
   public String asString() {
     return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
         .add("methodInfo=" + methodInfo.asString())
