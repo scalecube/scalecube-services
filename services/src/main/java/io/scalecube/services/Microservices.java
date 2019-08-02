@@ -133,7 +133,7 @@ public class Microservices {
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
   private Microservices(Builder builder) {
-    this.id = UUID.randomUUID().toString();
+    this.id = generateId();
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
@@ -159,6 +159,10 @@ public class Microservices {
 
   public String id() {
     return this.id;
+  }
+
+  private static String generateId() {
+    return Long.toHexString(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
   }
 
   private Mono<Microservices> start() {
