@@ -11,6 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -141,17 +142,17 @@ public final class ServiceMethodInvoker {
   }
 
   private Mono<Object> authenticate(ServiceMessage message) {
-    return Mono.defer(
-        () -> {
-          if (!methodInfo.isAuth()) {
-            return Mono.empty();
-          }
-          if (authenticator == null) {
-            throw new UnauthorizedException("Authenticator not found");
-          }
-          return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
-        })
-        .defaultIfEmpty(NO_PRINCIPAL);
+    return Mono.defer(() -> authenticate0(message)).defaultIfEmpty(NO_PRINCIPAL);
+  }
+
+  private Mono<Object> authenticate0(ServiceMessage message) {
+    if (!methodInfo.isAuth()) {
+      return Mono.empty();
+    }
+    if (authenticator == null) {
+      throw new UnauthorizedException("Authenticator not found");
+    }
+    return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -187,9 +188,29 @@ public final class ServiceMethodInvoker {
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
   }
 
+  /**
+   * Shortened version of {@code toString} method.
+   *
+   * @return service method invoker as string
+   */
+  public String asString() {
+    return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+        .add("methodInfo=" + methodInfo.asString())
+        .add(
+            "serviceMethod='"
+                + service.getClass().getCanonicalName()
+                + "."
+                + method.getName()
+                + "("
+                + methodInfo.parameterCount()
+                + ")"
+                + "'")
+        .toString();
+  }
+
   @Override
   public String toString() {
-    String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
+    String classAndMethod = service.getClass().getCanonicalName() + "." + method.getName();
     String args =
         Stream.of(method.getParameters())
             .map(Parameter::getType)

@@ -97,6 +97,19 @@ public final class MethodInfo {
     return auth;
   }
 
+  /**
+   * Shortened version of {@code toString} method.
+   *
+   * @return method info as string
+   */
+  public String asString() {
+    final StringBuilder sb = new StringBuilder("MethodInfo{");
+    sb.append("qualifier='").append(qualifier).append('\'');
+    sb.append(", auth=").append(auth);
+    sb.append('}');
+    return sb.toString();
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("MethodInfo{");
