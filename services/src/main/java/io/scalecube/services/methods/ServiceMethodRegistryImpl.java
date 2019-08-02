@@ -4,6 +4,8 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -67,5 +69,10 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
   @Override
   public ServiceMethodInvoker getInvoker(String qualifier) {
     return methodInvokers.get(qualifier);
+  }
+
+  @Override
+  public List<ServiceMethodInvoker> listInvokers() {
+    return new ArrayList<>(methodInvokers.values());
   }
 }
