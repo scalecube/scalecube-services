@@ -194,7 +194,7 @@ public final class ServiceMethodInvoker {
         .add(
             "serviceMethod='"
                 + service.getClass().getCanonicalName()
-                + "#"
+                + "."
                 + method.getName()
                 + "("
                 + methodInfo.parameterCount()
@@ -205,7 +205,7 @@ public final class ServiceMethodInvoker {
 
   @Override
   public String toString() {
-    String classAndMethod = service.getClass().getCanonicalName() + "#" + method.getName();
+    String classAndMethod = service.getClass().getCanonicalName() + "." + method.getName();
     String args =
         Stream.of(method.getParameters())
             .map(Parameter::getType)

@@ -8,6 +8,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
@@ -667,6 +668,10 @@ public class Microservices {
     Collection<String> getServiceEndpoints();
 
     String getServiceEndpointsAsString();
+
+    Collection<String> getServiceMethodInvokers();
+
+    String getServiceMethodInvokersAsString();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -739,6 +744,18 @@ public class Microservices {
     @Override
     public String getServiceEndpointsAsString() {
       return getServiceEndpoints().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
+    public Collection<String> getServiceMethodInvokers() {
+      return microservices.methodRegistry.listInvokers().stream()
+          .map(ServiceMethodInvoker::asString)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getServiceMethodInvokersAsString() {
+      return getServiceMethodInvokers().stream().collect(Collectors.joining(",", "[", "]"));
     }
   }
 }
