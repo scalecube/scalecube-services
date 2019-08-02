@@ -11,6 +11,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -142,15 +143,15 @@ public final class ServiceMethodInvoker {
 
   private Mono<Object> authenticate(ServiceMessage message) {
     return Mono.defer(
-        () -> {
-          if (!methodInfo.isAuth()) {
-            return Mono.empty();
-          }
-          if (authenticator == null) {
-            throw new UnauthorizedException("Authenticator not found");
-          }
-          return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
-        })
+            () -> {
+              if (!methodInfo.isAuth()) {
+                return Mono.empty();
+              }
+              if (authenticator == null) {
+                throw new UnauthorizedException("Authenticator not found");
+              }
+              return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
+            })
         .defaultIfEmpty(NO_PRINCIPAL);
   }
 
@@ -185,6 +186,21 @@ public final class ServiceMethodInvoker {
     return (response instanceof ServiceMessage)
         ? (ServiceMessage) response
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  }
+
+  public String asString() {
+    return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+        .add("methodInfo=" + methodInfo.asString())
+        .add(
+            "serviceMethod='"
+                + service.getClass().getCanonicalName()
+                + "#"
+                + method.getName()
+                + "("
+                + methodInfo.parameterCount()
+                + ")"
+                + "'")
+        .toString();
   }
 
   @Override

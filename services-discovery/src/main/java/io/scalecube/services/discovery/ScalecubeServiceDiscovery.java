@@ -16,14 +16,21 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
@@ -31,6 +38,7 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -138,6 +146,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
                     this.cluster = cluster;
                     LOGGER.debug("Started {} with config -- {}", cluster, clusterConfig);
                   })
+              .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
               .thenReturn(this);
         });
   }
@@ -355,6 +364,14 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
   }
 
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", ScalecubeServiceDiscovery.class.getSimpleName() + "[", "]")
+        .add("cluster=" + cluster)
+        .add("clusterConfig=" + clusterConfig)
+        .toString();
+  }
+
   private static class MessageCodecImpl implements MessageCodec {
 
     @Override
@@ -365,6 +382,124 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     @Override
     public void serialize(Message message, OutputStream stream) throws Exception {
       DefaultObjectMapper.OBJECT_MAPPER.writeValue(stream, message);
+    }
+  }
+
+  public interface MonitorMBean {
+
+    Collection<String> getServiceGroup();
+
+    String getServiceGroupAsString();
+
+    Collection<String> getAddedGroups();
+
+    String getAddedGroupsAsString();
+
+    Collection<String> getServiceGroups();
+
+    String getServiceGroupsAsString();
+
+    Collection<String> getRecentServiceDiscoveryEvents();
+
+    String getRecentServiceDiscoveryEventsAsString();
+
+    Collection<String> getServiceDiscovery();
+
+    String getServiceDiscoveryAsString();
+  }
+
+  private static class JmxMonitorMBean implements MonitorMBean {
+
+    public static final int MAX_CACHE_SIZE = 128;
+
+    private final ScalecubeServiceDiscovery discovery;
+    private final ReplayProcessor<ServiceDiscoveryEvent> processor;
+
+    private JmxMonitorMBean(ScalecubeServiceDiscovery discovery) {
+      this.discovery = discovery;
+      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
+      discovery.listenDiscovery().subscribe(processor);
+    }
+
+    private static JmxMonitorMBean start(ScalecubeServiceDiscovery instance) throws Exception {
+      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
+      String id = instance.serviceEndpoint.id();
+      ObjectName objectName =
+          new ObjectName("io.scalecube.services:name=ScalecubeServiceDiscovery@" + id);
+      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
+      mbeanServer.registerMBean(standardMBean, objectName);
+      return jmxMBean;
+    }
+
+    @Override
+    public Collection<String> getServiceGroup() {
+      return Collections.singletonList(String.valueOf(discovery.serviceEndpoint.serviceGroup()));
+    }
+
+    @Override
+    public String getServiceGroupAsString() {
+      return getServiceGroup().iterator().next();
+    }
+
+    @Override
+    public Collection<String> getAddedGroups() {
+      return discovery.addedGroups.entrySet().stream()
+          .map(
+              entry -> {
+                ServiceGroup serviceGroup = entry.getKey();
+                int count = entry.getValue();
+                String id = serviceGroup.id();
+                int size = serviceGroup.size();
+                return id + ":" + size + "/count=" + count;
+              })
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getAddedGroupsAsString() {
+      return getAddedGroups().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
+    public Collection<String> getServiceGroups() {
+      return discovery.groups.entrySet().stream()
+          .map(
+              entry -> {
+                ServiceGroup serviceGroup = entry.getKey();
+                Collection<ServiceEndpoint> endpoints = entry.getValue();
+                String id = serviceGroup.id();
+                int size = serviceGroup.size();
+                return id + ":" + size + "/endpoints=" + endpoints.size();
+              })
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getServiceGroupsAsString() {
+      return getServiceGroups().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
+    public Collection<String> getRecentServiceDiscoveryEvents() {
+      List<String> recentEvents = new ArrayList<>(MAX_CACHE_SIZE);
+      processor.map(ServiceDiscoveryEvent::toString).subscribe(recentEvents::add);
+      return recentEvents;
+    }
+
+    @Override
+    public String getRecentServiceDiscoveryEventsAsString() {
+      return getRecentServiceDiscoveryEvents().stream().collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
+    public Collection<String> getServiceDiscovery() {
+      return Collections.singletonList(String.valueOf(discovery));
+    }
+
+    @Override
+    public String getServiceDiscoveryAsString() {
+      return getServiceDiscovery().iterator().next();
     }
   }
 }

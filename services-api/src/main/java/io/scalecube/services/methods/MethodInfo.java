@@ -97,6 +97,14 @@ public final class MethodInfo {
     return auth;
   }
 
+  public String asString() {
+    final StringBuilder sb = new StringBuilder("MethodInfo{");
+    sb.append("qualifier='").append(qualifier).append('\'');
+    sb.append(", auth=").append(auth);
+    sb.append('}');
+    return sb.toString();
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("MethodInfo{");
