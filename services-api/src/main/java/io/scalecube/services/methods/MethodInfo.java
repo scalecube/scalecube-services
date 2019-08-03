@@ -13,7 +13,7 @@ public final class MethodInfo {
   private final boolean isReturnTypeServiceMessage;
   private final CommunicationMode communicationMode;
   private final int parameterCount;
-  private final Class<?> requestType;
+  private final Type requestType;
   private final boolean isRequestTypeServiceMessage;
   private final boolean auth;
 
@@ -37,7 +37,7 @@ public final class MethodInfo {
       boolean isReturnTypeServiceMessage,
       CommunicationMode communicationMode,
       int parameterCount,
-      Class<?> requestType,
+      Type requestType,
       boolean isRequestTypeServiceMessage,
       boolean auth) {
 
@@ -86,10 +86,10 @@ public final class MethodInfo {
   }
 
   public boolean isRequestTypeVoid() {
-    return requestType.isAssignableFrom(Void.TYPE);
+    return Void.TYPE.equals(requestType);
   }
 
-  public Class<?> requestType() {
+  public Type requestType() {
     return requestType;
   }
 

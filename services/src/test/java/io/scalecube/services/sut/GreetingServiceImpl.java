@@ -4,6 +4,8 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -147,6 +149,15 @@ public final class GreetingServiceImpl implements GreetingService {
   @Override
   public void notifyGreeting() {
     print("[notifyGreeting] Hello... i am a service and i just notefied");
+  }
+
+  @Override
+  public Mono<List<GreetingResponse>> listRequests(List<GreetingRequest> requests) {
+    print("[listRequest] Hello... i am a service an just received a message:" + requests);
+    return Mono.just(
+        requests.stream()
+            .map(request -> new GreetingResponse(" hello to: " + request.getName()))
+            .collect(Collectors.toList()));
   }
 
   private void print(String message) {

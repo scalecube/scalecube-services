@@ -382,7 +382,7 @@ public class ServiceCall {
               final Type returnType = methodInfo.parameterizedReturnType();
               final boolean isServiceMessage = methodInfo.isReturnTypeServiceMessage();
 
-              Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
+              Object request = methodInfo.isRequestTypeVoid() ? null : params[0];
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:

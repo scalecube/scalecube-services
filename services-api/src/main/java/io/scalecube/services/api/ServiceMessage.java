@@ -1,5 +1,7 @@
 package io.scalecube.services.api;
 
+import io.scalecube.services.TypeUtils;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -141,18 +143,22 @@ public final class ServiceMessage {
   /**
    * Verify that this message contains data.
    *
-   * @param dataClass the expected class of the data
+   * @param dataType the expected type of the data
    * @return true if the data is instance of the dataClass
    */
-  public boolean hasData(Class<?> dataClass) {
-    if (dataClass == null) {
+  public boolean hasData(Type dataType) {
+    if (dataType == null) {
       return false;
     }
-    if (dataClass.isPrimitive()) {
-      return hasData();
-    } else {
-      return dataClass.isInstance(data);
+    if (dataType instanceof Class) {
+      Class<?> dataClass = (Class<?>) dataType;
+      if (dataClass.isPrimitive()) {
+        return hasData();
+      } else {
+        return dataClass.isInstance(data);
+      }
     }
+    return hasData() && TypeUtils.isAssignable(dataType, data.getClass());
   }
 
   /**

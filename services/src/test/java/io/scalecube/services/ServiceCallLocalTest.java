@@ -8,6 +8,7 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
+import static io.scalecube.services.TestRequests.LIST_GREETING_REQUESTS_REQ;
 import static io.scalecube.services.TestRequests.NOT_FOUND_REQ;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -15,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
@@ -22,7 +24,9 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -165,5 +169,19 @@ public class ServiceCallLocalTest extends BaseTest {
       assertEquals(
           ex.getMessage(), "No reachable member with such service: " + NOT_FOUND_REQ.qualifier());
     }
+  }
+
+  @Test
+  public void test_async_greetings_return_GreetingResponses() {
+    Type type = new TypeReference<List<GreetingResponse>>() {}.getType();
+
+    // When
+    Publisher<ServiceMessage> result = provider.call().requestOne(LIST_GREETING_REQUESTS_REQ, type);
+
+    // Then
+    List<GreetingResponse> greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    assertEquals(2, greetings.size());
+    assertEquals(" hello to: joe", greetings.get(0).getResult());
+    assertEquals(" hello to: alisa", greetings.get(1).getResult());
   }
 }
