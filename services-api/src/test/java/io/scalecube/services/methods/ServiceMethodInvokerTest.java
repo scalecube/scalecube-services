@@ -6,6 +6,7 @@ import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -22,6 +23,11 @@ class ServiceMethodInvokerTest {
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
+
+  private Consumer<Object> requestReleaser =
+      obj -> {
+        // no-op
+      };
 
   @Test
   @DisplayName("invokeOne should return empty response when service returns null")
@@ -54,7 +60,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message, requestReleaser)).verifyComplete();
   }
 
   @Test
@@ -88,7 +94,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeMany(message)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message, requestReleaser)).verifyComplete();
   }
 
   @Test
@@ -122,7 +128,8 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
+    StepVerifier.create(
+            serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser))
         .verifyComplete();
   }
 
@@ -158,7 +165,7 @@ class ServiceMethodInvokerTest {
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, requestReleaser);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -194,7 +201,8 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message);
+    final Flux<ServiceMessage> invokeOne =
+        serviceMethodInvoker.invokeMany(message, requestReleaser);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -232,7 +240,7 @@ class ServiceMethodInvokerTest {
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message));
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }

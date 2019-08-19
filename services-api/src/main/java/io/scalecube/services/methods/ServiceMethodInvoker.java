@@ -12,6 +12,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -62,10 +63,12 @@ public final class ServiceMethodInvoker {
    * Invokes service method with single response.
    *
    * @param message request service message
+   * @param requestReleaser request releaser
    * @return mono of service message
    */
-  public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
+  public Mono<ServiceMessage> invokeOne(ServiceMessage message, Consumer<Object> requestReleaser) {
     return authenticate(message)
+        .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
         .map(this::toResponse)
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
@@ -75,10 +78,12 @@ public final class ServiceMethodInvoker {
    * Invokes service method with message stream response.
    *
    * @param message request service message
+   * @param requestReleaser request releaser
    * @return flux of service messages
    */
-  public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
+  public Flux<ServiceMessage> invokeMany(ServiceMessage message, Consumer<Object> requestReleaser) {
     return authenticate(message)
+        .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
         .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
@@ -88,13 +93,16 @@ public final class ServiceMethodInvoker {
    * Invokes service method with bidirectional communication.
    *
    * @param publisher request service message
+   * @param requestReleaser request releaser
    * @return flux of service messages
    */
-  public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
+  public Flux<ServiceMessage> invokeBidirectional(
+      Publisher<ServiceMessage> publisher, Consumer<Object> requestReleaser) {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
                 authenticate(first.get())
+                    .doOnError(th -> applyRequestReleaser(first.get(), requestReleaser))
                     .flatMapMany(
                         principal ->
                             messages
@@ -186,6 +194,12 @@ public final class ServiceMethodInvoker {
     return (response instanceof ServiceMessage)
         ? (ServiceMessage) response
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  }
+
+  private void applyRequestReleaser(ServiceMessage request, Consumer<Object> requestReleaser) {
+    if (request.data() != null) {
+      requestReleaser.accept(request.data());
+    }
   }
 
   /**
