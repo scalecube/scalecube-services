@@ -14,6 +14,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -201,7 +202,7 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeOne(request)
+                .invokeOne(request, requestReleaser)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)
@@ -256,7 +257,7 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeMany(request)
+                .invokeMany(request, requestReleaser)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)
@@ -317,7 +318,7 @@ public class ServiceCall {
                     && methodRegistry.containsInvoker(qualifier)) { // local service
                   return methodRegistry
                       .getInvoker(qualifier)
-                      .invokeBidirectional(messages)
+                      .invokeBidirectional(messages, requestReleaser)
                       .map(this::throwIfError);
                 } else {
                   // remote service
@@ -366,51 +367,54 @@ public class ServiceCall {
     final ServiceCall serviceCall = this;
     final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
 
-    // noinspection unchecked
+    // noinspection unchecked,Convert2Lambda
     return (T)
         Proxy.newProxyInstance(
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
-            (proxy, method, params) -> {
-              Optional<Object> check =
-                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
-              if (check.isPresent()) {
-                return check.get(); // toString, hashCode was invoked.
-              }
+            new InvocationHandler() {
+              @Override
+              public Object invoke(Object proxy, Method method, Object[] params) {
+                Optional<Object> check =
+                    toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+                if (check.isPresent()) {
+                  return check.get(); // toString, hashCode was invoked.
+                }
 
-              final MethodInfo methodInfo = genericReturnTypes.get(method);
-              final Type returnType = methodInfo.parameterizedReturnType();
-              final boolean isServiceMessage = methodInfo.isReturnTypeServiceMessage();
+                final MethodInfo methodInfo = genericReturnTypes.get(method);
+                final Type returnType = methodInfo.parameterizedReturnType();
+                final boolean isServiceMessage = methodInfo.isReturnTypeServiceMessage();
 
-              Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
+                Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
-              switch (methodInfo.communicationMode()) {
-                case FIRE_AND_FORGET:
-                  return serviceCall.oneWay(toServiceMessage(methodInfo, request));
+                switch (methodInfo.communicationMode()) {
+                  case FIRE_AND_FORGET:
+                    return serviceCall.oneWay(toServiceMessage(methodInfo, request));
 
-                case REQUEST_RESPONSE:
-                  return serviceCall
-                      .requestOne(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asMono(isServiceMessage));
+                  case REQUEST_RESPONSE:
+                    return serviceCall
+                        .requestOne(toServiceMessage(methodInfo, request), returnType)
+                        .transform(asMono(isServiceMessage));
 
-                case REQUEST_STREAM:
-                  return serviceCall
-                      .requestMany(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asFlux(isServiceMessage));
+                  case REQUEST_STREAM:
+                    return serviceCall
+                        .requestMany(toServiceMessage(methodInfo, request), returnType)
+                        .transform(asFlux(isServiceMessage));
 
-                case REQUEST_CHANNEL:
-                  // this is REQUEST_CHANNEL so it means params[0] must be a publisher - its safe to
-                  // cast.
-                  return serviceCall
-                      .requestBidirectional(
-                          Flux.from((Publisher) request)
-                              .map(data -> toServiceMessage(methodInfo, data)),
-                          returnType)
-                      .transform(asFlux(isServiceMessage));
+                  case REQUEST_CHANNEL:
+                    // this is REQUEST_CHANNEL so it means params[0] must
+                    // be a publisher - its safe to cast.
+                    return serviceCall
+                        .requestBidirectional(
+                            Flux.from((Publisher) request)
+                                .map(data -> toServiceMessage(methodInfo, data)),
+                            returnType)
+                        .transform(asFlux(isServiceMessage));
 
-                default:
-                  throw new IllegalArgumentException(
-                      "Communication mode is not supported: " + method);
+                  default:
+                    throw new IllegalArgumentException(
+                        "Communication mode is not supported: " + method);
+                }
               }
             });
   }
@@ -422,8 +426,7 @@ public class ServiceCall {
                 .route(serviceRegistry, request)
                 .map(ServiceReference::address)
                 .orElseThrow(() -> noReachableMemberException(request));
-    return Mono.fromCallable(callable)
-        .doOnError(t -> Optional.ofNullable(request.data()).ifPresent(requestReleaser));
+    return Mono.fromCallable(callable).doOnError(th -> applyRequestReleaser(request));
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
@@ -492,7 +495,12 @@ public class ServiceCall {
     if (message.isError() && message.hasData(ErrorData.class)) {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
-
     return message;
+  }
+
+  private void applyRequestReleaser(ServiceMessage request) {
+    if (request.data() != null) {
+      requestReleaser.accept(request.data());
+    }
   }
 }

@@ -14,7 +14,7 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import java.util.Optional;
+import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +28,8 @@ import reactor.core.publisher.Mono;
 public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
+
+  private final Consumer<Object> requestReleaser = ReferenceCountUtil::safestRelease;
 
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
@@ -52,7 +54,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMap(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeOne(message);
+                return methodInvoker.invokeOne(message, requestReleaser);
               })
           .map(this::toPayload);
     }
@@ -64,7 +66,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMapMany(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeMany(message);
+                return methodInvoker.invokeMany(message, requestReleaser);
               })
           .map(this::toPayload);
     }
@@ -80,9 +82,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
                       methodRegistry.getInvoker(message.qualifier());
-                  return methodInvoker.invokeBidirectional(messages);
+                  return methodInvoker.invokeBidirectional(messages, requestReleaser);
                 }
-
                 return messages;
               })
           .map(this::toPayload);
@@ -106,15 +107,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
      */
     private void validateRequest(ServiceMessage message) throws ServiceException {
       if (message.qualifier() == null) {
-        Optional.ofNullable(message.data())
-            .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
+        applyRequestReleaser(message);
         LOGGER.error("Failed to invoke service with msg={}: qualifier is null", message);
         throw new BadRequestException("Qualifier is null in service msg request: " + message);
       }
 
       if (!methodRegistry.containsInvoker(message.qualifier())) {
-        Optional.ofNullable(message.data())
-            .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
+        applyRequestReleaser(message);
         LOGGER.error(
             "Failed to invoke service with msg={}: no service invoker found by qualifier={}",
             message,
@@ -122,6 +121,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
         throw new ServiceUnavailableException(
             "No service invoker found by qualifier=" + message.qualifier());
       }
+    }
+  }
+
+  private void applyRequestReleaser(ServiceMessage request) {
+    if (request.data() != null) {
+      requestReleaser.accept(request.data());
     }
   }
 }
