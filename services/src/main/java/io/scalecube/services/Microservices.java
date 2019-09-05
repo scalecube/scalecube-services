@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -32,8 +33,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -128,6 +131,10 @@ public class Microservices {
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final UnaryOperator<ServiceMessage> requestMapper;
+  private final UnaryOperator<ServiceMessage> responseMapper;
+  private final BiConsumer<ServiceMessage, Throwable> errorHandler;
+
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -144,6 +151,9 @@ public class Microservices {
     this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
+    this.requestMapper = builder.requestMapper;
+    this.responseMapper = builder.responseMapper;
+    this.errorHandler = builder.errorHandler;
 
     // Setup cleanup
     shutdown
@@ -224,10 +234,15 @@ public class Microservices {
 
   private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
-        serviceInfo.serviceInstance(),
-        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
-        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder),
-        Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator));
+        ServiceInfo.from(serviceInfo)
+            .errorMapper(Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper))
+            .dataDecoder(Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder))
+            .authenticator(Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator))
+            .requestMapper(Optional.ofNullable(serviceInfo.requestMapper()).orElse(requestMapper))
+            .responseMapper(
+                Optional.ofNullable(serviceInfo.responseMapper()).orElse(responseMapper))
+            .errorHandler(Optional.ofNullable(serviceInfo.errorHandler()).orElse(errorHandler))
+            .build());
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
@@ -322,6 +337,12 @@ public class Microservices {
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
+    private UnaryOperator<ServiceMessage> requestMapper = UnaryOperator.identity();
+    private UnaryOperator<ServiceMessage> responseMapper = UnaryOperator.identity();
+    private BiConsumer<ServiceMessage, Throwable> errorHandler =
+        (message, throwable) -> {
+          // no-op
+        };
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -407,6 +428,21 @@ public class Microservices {
 
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
+      return this;
+    }
+
+    public Builder requestMapper(UnaryOperator<ServiceMessage> requestMapper) {
+      this.requestMapper = requestMapper;
+      return this;
+    }
+
+    public Builder responseMapper(UnaryOperator<ServiceMessage> responseMapper) {
+      this.responseMapper = responseMapper;
+      return this;
+    }
+
+    public Builder errorHandler(BiConsumer<ServiceMessage, Throwable> errorHandler) {
+      this.errorHandler = errorHandler;
       return this;
     }
   }

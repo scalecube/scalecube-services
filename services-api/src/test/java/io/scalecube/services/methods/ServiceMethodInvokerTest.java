@@ -6,7 +6,9 @@ import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -18,6 +20,12 @@ class ServiceMethodInvokerTest {
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
   private static final boolean AUTH = false;
   private static final Authenticator dummyAuthenticator = credentials -> null;
+  private final UnaryOperator<ServiceMessage> requestMapper = UnaryOperator.identity();
+  private final UnaryOperator<ServiceMessage> responseMapper = UnaryOperator.identity();
+  private final BiConsumer<ServiceMessage, Throwable> errorHandler =
+      (message, throwable) -> {
+        // no-op
+      };
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
   private final StubService stubService = new StubServiceImpl();
@@ -55,7 +63,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -89,7 +100,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -123,7 +137,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -159,7 +176,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -196,7 +216,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -233,7 +256,10 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            requestMapper,
+            responseMapper,
+            errorHandler);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();

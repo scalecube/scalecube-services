@@ -10,9 +10,12 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -33,30 +36,43 @@ public final class ServiceMethodInvoker {
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final Authenticator<Object> authenticator;
+  private final UnaryOperator<ServiceMessage> requestMapper;
+  private final UnaryOperator<ServiceMessage> responseMapper;
+  private final BiConsumer<ServiceMessage, Throwable> errorHandler;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
    *
-   * @param method service method
-   * @param service service instance
-   * @param methodInfo method information
+   * @param method method
+   * @param service service
+   * @param methodInfo method info
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
+   * @param authenticator authenticator
+   * @param requestMapper request mapper
+   * @param responseMapper response mapper
+   * @param errorHandler error handler
    */
-  @SuppressWarnings("unchecked")
   public ServiceMethodInvoker(
       Method method,
       Object service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator) {
+      Authenticator authenticator,
+      UnaryOperator<ServiceMessage> requestMapper,
+      UnaryOperator<ServiceMessage> responseMapper,
+      BiConsumer<ServiceMessage, Throwable> errorHandler) {
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
+    //noinspection unchecked
     this.authenticator = authenticator;
+    this.requestMapper = requestMapper;
+    this.responseMapper = responseMapper;
+    this.errorHandler = errorHandler;
   }
 
   /**
@@ -67,11 +83,18 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message, Consumer<Object> requestReleaser) {
-    return authenticate(message)
-        .doOnError(th -> applyRequestReleaser(message, requestReleaser))
+    return Mono.just(message)
+        .map(requestMapper)
+        .flatMap(this::authenticate)
         .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
-        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
+        .map(response -> toResponse(response, message.headers()))
+        .doOnError(
+            throwable -> {
+              applyRequestReleaser(message, requestReleaser);
+              errorHandler.accept(message, throwable);
+            })
+        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)))
+        .map(responseMapper);
   }
 
   /**
@@ -82,11 +105,18 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message, Consumer<Object> requestReleaser) {
-    return authenticate(message)
-        .doOnError(th -> applyRequestReleaser(message, requestReleaser))
+    return Mono.just(message)
+        .map(requestMapper)
+        .flatMap(this::authenticate)
         .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
-        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
+        .map(response -> toResponse(response, message.headers()))
+        .doOnError(
+            throwable -> {
+              applyRequestReleaser(message, requestReleaser);
+              errorHandler.accept(message, throwable);
+            })
+        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)))
+        .map(responseMapper);
   }
 
   /**
@@ -100,15 +130,23 @@ public final class ServiceMethodInvoker {
       Publisher<ServiceMessage> publisher, Consumer<Object> requestReleaser) {
     return Flux.from(publisher)
         .switchOnFirst(
-            (first, messages) ->
-                authenticate(first.get())
-                    .doOnError(th -> applyRequestReleaser(first.get(), requestReleaser))
-                    .flatMapMany(
-                        principal ->
-                            messages
-                                .map(this::toRequest)
-                                .transform(request -> invoke(request, principal))))
-        .map(this::toResponse)
+            (first, messageFlux) -> {
+              ServiceMessage firstRequest = first.get();
+              Map<String, String> headers = firstRequest.headers();
+
+              return authenticate(firstRequest)
+                  .doOnError(th -> applyRequestReleaser(firstRequest, requestReleaser))
+                  .flatMapMany(
+                      principal ->
+                          messageFlux
+                              .map(requestMapper)
+                              .map(this::toRequest)
+                              .transform(
+                                  requestFlux ->
+                                      Flux.from(invoke(requestFlux, principal))
+                                          .map(response -> toResponse(response, headers))
+                                          .map(responseMapper)));
+            })
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -190,10 +228,17 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response) {
-    return (response instanceof ServiceMessage)
-        ? (ServiceMessage) response
-        : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  private ServiceMessage toResponse(Object response, Map<String, String> headers) {
+    if (response instanceof ServiceMessage) {
+      // return as is; it's assumed headers are copied inside service method
+      return (ServiceMessage) response;
+    }
+    // wrap response object into ServiceMessage and keep request headers
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.qualifier())
+        .headers(headers)
+        .data(response)
+        .build();
   }
 
   private void applyRequestReleaser(ServiceMessage request, Consumer<Object> requestReleaser) {

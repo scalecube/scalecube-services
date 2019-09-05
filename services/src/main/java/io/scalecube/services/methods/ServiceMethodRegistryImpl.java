@@ -1,9 +1,7 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import io.scalecube.services.ServiceInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,12 +13,8 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
       new ConcurrentHashMap<>();
 
   @Override
-  public void registerService(
-      Object serviceInstance,
-      ServiceProviderErrorMapper errorMapper,
-      ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator) {
-    Reflect.serviceInterfaces(serviceInstance)
+  public void registerService(ServiceInfo serviceInfo) {
+    Reflect.serviceInterfaces(serviceInfo.serviceInstance())
         .forEach(
             serviceInterface ->
                 Reflect.serviceMethods(serviceInterface)
@@ -52,11 +46,14 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                           ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
                                   method,
-                                  serviceInstance,
+                                  serviceInfo.serviceInstance(),
                                   methodInfo,
-                                  errorMapper,
-                                  dataDecoder,
-                                  authenticator);
+                                  serviceInfo.errorMapper(),
+                                  serviceInfo.dataDecoder(),
+                                  serviceInfo.authenticator(),
+                                  serviceInfo.requestMapper(),
+                                  serviceInfo.responseMapper(),
+                                  serviceInfo.errorHandler());
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }
