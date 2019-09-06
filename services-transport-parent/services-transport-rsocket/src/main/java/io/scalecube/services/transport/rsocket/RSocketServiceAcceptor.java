@@ -54,7 +54,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMap(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeOne(message, requestReleaser);
+                return methodInvoker.invokeOne(message);
               })
           .map(this::toPayload);
     }
@@ -66,7 +66,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMapMany(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeMany(message, requestReleaser);
+                return methodInvoker.invokeMany(message);
               })
           .map(this::toPayload);
     }

@@ -202,7 +202,7 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeOne(request, requestReleaser)
+                .invokeOne(request)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)
@@ -257,7 +257,7 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeMany(request, requestReleaser)
+                .invokeMany(request)
                 .map(this::throwIfError);
           } else {
             return addressLookup(request)

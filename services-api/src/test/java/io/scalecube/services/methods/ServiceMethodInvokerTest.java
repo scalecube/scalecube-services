@@ -71,7 +71,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeOne(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
 
   @Test
@@ -108,7 +108,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeMany(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message)).verifyComplete();
   }
 
   @Test
@@ -185,7 +185,7 @@ class ServiceMethodInvokerTest {
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, requestReleaser);
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -224,8 +224,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeMany(message, requestReleaser);
+    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
