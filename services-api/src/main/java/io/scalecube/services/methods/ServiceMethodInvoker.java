@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -83,9 +82,8 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.just(message)
-        .map(this::applyDataDecoder)
-        .map(requestMapper)
+    return applyDataDecoder(message)
+        .flatMap(this::applyRequestMapper)
         .doOnError(throwable -> errorHandler.accept(message, throwable))
         .flatMap(
             message1 ->
@@ -94,7 +92,7 @@ public final class ServiceMethodInvoker {
                     .map(response -> toResponse(response, message1.headers()))
                     .doOnError(throwable -> errorHandler.accept(message1, throwable)))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)))
-        .map(responseMapper);
+        .flatMap(this::applyResponseMapper);
   }
 
   /**
@@ -104,9 +102,8 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Mono.just(message)
-        .map(this::applyDataDecoder)
-        .map(requestMapper)
+    return applyDataDecoder(message)
+        .flatMap(this::applyRequestMapper)
         .doOnError(throwable -> errorHandler.accept(message, throwable))
         .flatMapMany(
             message1 ->
@@ -115,33 +112,38 @@ public final class ServiceMethodInvoker {
                     .map(response -> toResponse(response, message1.headers()))
                     .doOnError(throwable -> errorHandler.accept(message1, throwable)))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)))
-        .map(responseMapper);
+        .flatMap(this::applyResponseMapper);
   }
 
   /**
    * Invokes service method with bidirectional communication.
    *
    * @param publisher request service message
-   * @param requestReleaser request releaser
    * @return flux of service messages
    */
-  public Flux<ServiceMessage> invokeBidirectional(
-      Publisher<ServiceMessage> publisher, Consumer<Object> requestReleaser) {
+  public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) -> {
               if (!first.hasValue()) {
                 return messages;
               }
-              ServiceMessage firstRequest = first.get();
-              return authenticate(firstRequest)
-                  .doOnError(th -> applyRequestReleaser(firstRequest, requestReleaser))
+              ServiceMessage firstMessage = first.get();
+              return applyDataDecoder(firstMessage)
                   .flatMapMany(
-                      principal ->
-                          messages
-                              .map(this::applyDataDecoder)
-                              .map(this::toRequest)
-                              .transform(requests -> Flux.from(invoke(requests, principal))));
+                      message ->
+                          authenticate(message)
+                              .flatMapMany(
+                                  principal ->
+                                      messages
+                                          .flatMap(
+                                              m ->
+                                                  m == firstMessage
+                                                      ? Mono.just(message)
+                                                      : applyDataDecoder(m))
+                                          .map(this::toRequest)
+                                          .transform(
+                                              requests -> Flux.from(invoke(requests, principal)))));
             })
         .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
@@ -207,8 +209,19 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  private ServiceMessage applyDataDecoder(ServiceMessage message) {
-    return dataDecoder.apply(message, methodInfo.requestType());
+  private Mono<ServiceMessage> applyDataDecoder(ServiceMessage message) {
+    return Mono.fromCallable(() -> dataDecoder.apply(message, methodInfo.requestType()))
+        .doOnError(ex -> errorHandler.accept(message, ex));
+  }
+
+  private Mono<ServiceMessage> applyRequestMapper(ServiceMessage message) {
+    return Mono.fromCallable(() -> requestMapper.apply(message))
+        .doOnError(ex -> errorHandler.accept(message, ex));
+  }
+
+  private Mono<ServiceMessage> applyResponseMapper(ServiceMessage message) {
+    return Mono.fromCallable(() -> responseMapper.apply(message))
+        .doOnError(ex -> errorHandler.accept(message, ex));
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -242,12 +255,6 @@ public final class ServiceMethodInvoker {
         .headers(headers)
         .data(response)
         .build();
-  }
-
-  private void applyRequestReleaser(ServiceMessage request, Consumer<Object> requestReleaser) {
-    if (request.data() != null) {
-      requestReleaser.accept(request.data());
-    }
   }
 
   /**

@@ -7,7 +7,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,11 +30,6 @@ class ServiceMethodInvokerTest {
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
-
-  private Consumer<Object> requestReleaser =
-      obj -> {
-        // no-op
-      };
 
   @Test
   @DisplayName("invokeOne should return empty response when service returns null")
@@ -145,8 +139,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(
-            serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser))
+    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
         .verifyComplete();
   }
 
@@ -265,7 +258,7 @@ class ServiceMethodInvokerTest {
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser);
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message));
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }

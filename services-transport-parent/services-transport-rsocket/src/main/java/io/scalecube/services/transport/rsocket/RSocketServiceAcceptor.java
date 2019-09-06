@@ -77,14 +77,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .map(this::toMessage)
           .switchOnFirst(
               (first, messages) -> {
-                if (first.hasValue()) {
-                  ServiceMessage message = first.get();
-                  validateRequest(message);
-                  ServiceMethodInvoker methodInvoker =
-                      methodRegistry.getInvoker(message.qualifier());
-                  return methodInvoker.invokeBidirectional(messages, requestReleaser);
+                if (!first.hasValue()) {
+                  return messages;
                 }
-                return messages;
+                ServiceMessage message = first.get();
+                validateRequest(message);
+                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                return methodInvoker.invokeBidirectional(messages);
               })
           .map(this::toPayload);
     }

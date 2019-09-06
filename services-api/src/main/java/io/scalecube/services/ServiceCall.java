@@ -314,17 +314,17 @@ public class ServiceCall {
               if (!first.hasValue()) {
                 return messages;
               }
-              ServiceMessage firstRequest = first.get();
-              String qualifier = firstRequest.qualifier();
+              ServiceMessage message = first.get();
+              String qualifier = message.qualifier();
               if (methodRegistry != null
                   && methodRegistry.containsInvoker(qualifier)) { // local service
                 return methodRegistry
                     .getInvoker(qualifier)
-                    .invokeBidirectional(messages, requestReleaser)
+                    .invokeBidirectional(messages)
                     .map(this::throwIfError);
               } else {
                 // remote service
-                return addressLookup(firstRequest)
+                return addressLookup(message)
                     .flatMapMany(address -> requestBidirectional(messages, responseType, address));
               }
             });
