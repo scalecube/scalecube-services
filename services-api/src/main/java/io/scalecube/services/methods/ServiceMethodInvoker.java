@@ -137,10 +137,10 @@ public final class ServiceMethodInvoker {
                                   principal ->
                                       messages
                                           .flatMap(
-                                              m ->
-                                                  m == firstMessage
+                                              message1 ->
+                                                  message1 == firstMessage
                                                       ? Mono.just(message)
-                                                      : applyDataDecoder(m))
+                                                      : applyDataDecoder(message1))
                                           .map(this::toRequest)
                                           .transform(
                                               requests -> Flux.from(invoke(requests, principal)))));
