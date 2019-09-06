@@ -7,8 +7,12 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.Collections;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExceptionMapperExample {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(ExceptionMapperExample.class);
 
   /**
    * Example runner.
@@ -24,6 +28,22 @@ public class ExceptionMapperExample {
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
+                    .requestMapper(
+                        message -> {
+                          LOGGER.info("REQ ServiceAImpl >>>> {}", message);
+                          return message;
+                        })
+                    .responseMapper(
+                        message -> {
+                          LOGGER.info("RESP ServiceAImpl <<<< {}", message);
+                          return message;
+                        })
+                    .errorHandler(
+                        (message, throwable) ->
+                            LOGGER.error(
+                                "ERROR ServiceAImpl occurred: [{}] for request: {}",
+                                throwable,
+                                message))
                     .errorMapper(new ServiceAProviderErrorMapper()) // mapper per service instance
                     .build())
             .startAwait();
@@ -35,9 +55,26 @@ public class ExceptionMapperExample {
             .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, ms1))
             .transport(RSocketServiceTransport::new)
             .services(
-                call -> {
+                serviceCall -> {
                   ServiceA serviceA =
-                      call.errorMapper(
+                      serviceCall
+                          .requestMapper(
+                              message -> {
+                                LOGGER.info("REQ api(ServiceA) >>>> {}", message);
+                                return message;
+                              })
+                          .responseMapper(
+                              message -> {
+                                LOGGER.info("RESP api(ServiceA) <<<< {}", message);
+                                return message;
+                              })
+                          .errorHandler(
+                              (message, throwable) ->
+                                  LOGGER.error(
+                                      "ERROR api(ServiceA) occurred: [{}] for request: {}",
+                                      throwable,
+                                      message))
+                          .errorMapper(
                               new ServiceAClientErrorMapper()) // service client error mapper
                           .api(ServiceA.class);
 
