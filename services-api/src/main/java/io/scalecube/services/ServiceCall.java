@@ -311,24 +311,22 @@ public class ServiceCall {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) -> {
-              if (first.hasValue()) {
-                ServiceMessage request = first.get();
-                String qualifier = request.qualifier();
-                if (methodRegistry != null
-                    && methodRegistry.containsInvoker(qualifier)) { // local service
-                  return methodRegistry
-                      .getInvoker(qualifier)
-                      .invokeBidirectional(messages, requestReleaser)
-                      .map(this::throwIfError);
-                } else {
-                  // remote service
-                  return addressLookup(request)
-                      .flatMapMany(
-                          address -> requestBidirectional(messages, responseType, address));
-                }
+              if (!first.hasValue()) {
+                return messages;
               }
-
-              return messages;
+              ServiceMessage firstRequest = first.get();
+              String qualifier = firstRequest.qualifier();
+              if (methodRegistry != null
+                  && methodRegistry.containsInvoker(qualifier)) { // local service
+                return methodRegistry
+                    .getInvoker(qualifier)
+                    .invokeBidirectional(messages, requestReleaser)
+                    .map(this::throwIfError);
+              } else {
+                // remote service
+                return addressLookup(firstRequest)
+                    .flatMapMany(address -> requestBidirectional(messages, responseType, address));
+              }
             });
   }
 

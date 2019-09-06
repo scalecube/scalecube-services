@@ -516,14 +516,15 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return ServiceEndpoint.builder().id(UUID.randomUUID().toString()).build();
+    return ServiceEndpoint.builder().id(getId()).build();
   }
 
   public static ServiceEndpoint newServiceGroupEndpoint(String groupId, int groupSize) {
-    return ServiceEndpoint.builder()
-        .id(UUID.randomUUID().toString())
-        .serviceGroup(groupId, groupSize)
-        .build();
+    return ServiceEndpoint.builder().id(getId()).serviceGroup(groupId, groupSize).build();
+  }
+
+  private static String getId() {
+    return Long.toHexString(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
   }
 
   public Mono<ServiceDiscovery> newServiceGroupDiscovery(

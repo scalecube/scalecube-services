@@ -129,16 +129,20 @@ public final class ServiceMethodInvoker {
       Publisher<ServiceMessage> publisher, Consumer<Object> requestReleaser) {
     return Flux.from(publisher)
         .switchOnFirst(
-            (first, messageFlux) ->
-                authenticate(first.get())
-                    .doOnError(th -> applyRequestReleaser(first.get(), requestReleaser))
-                    .flatMapMany(
-                        principal ->
-                            messageFlux
-                                .map(this::applyDataDecoder)
-                                .map(this::toRequest)
-                                .transform(
-                                    requestFlux -> Flux.from(invoke(requestFlux, principal)))))
+            (first, messages) -> {
+              if (!first.hasValue()) {
+                return messages;
+              }
+              ServiceMessage firstRequest = first.get();
+              return authenticate(firstRequest)
+                  .doOnError(th -> applyRequestReleaser(firstRequest, requestReleaser))
+                  .flatMapMany(
+                      principal ->
+                          messages
+                              .map(this::applyDataDecoder)
+                              .map(this::toRequest)
+                              .transform(requests -> Flux.from(invoke(requests, principal))));
+            })
         .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
