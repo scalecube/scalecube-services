@@ -19,6 +19,7 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -82,8 +83,9 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return applyDataDecoder(message)
-        .flatMap(this::applyRequestMapper)
+    return Mono.just(message)
+        .map(this::toFullMessage)
+        .map(this::mapRequest)
         .doOnError(throwable -> errorHandler.accept(message, throwable))
         .flatMap(
             message1 ->
@@ -92,7 +94,7 @@ public final class ServiceMethodInvoker {
                     .map(response -> toResponse(response, message1.headers()))
                     .doOnError(throwable -> errorHandler.accept(message1, throwable)))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)))
-        .flatMap(this::applyResponseMapper);
+        .map(this::mapResponse);
   }
 
   /**
@@ -102,8 +104,9 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return applyDataDecoder(message)
-        .flatMap(this::applyRequestMapper)
+    return Mono.just(message)
+        .map(this::toFullMessage)
+        .map(this::mapRequest)
         .doOnError(throwable -> errorHandler.accept(message, throwable))
         .flatMapMany(
             message1 ->
@@ -112,7 +115,7 @@ public final class ServiceMethodInvoker {
                     .map(response -> toResponse(response, message1.headers()))
                     .doOnError(throwable -> errorHandler.accept(message1, throwable)))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)))
-        .flatMap(this::applyResponseMapper);
+        .map(this::mapResponse);
   }
 
   /**
@@ -129,18 +132,15 @@ public final class ServiceMethodInvoker {
                 return messages;
               }
               ServiceMessage firstMessage = first.get();
-              return applyDataDecoder(firstMessage)
+              return Mono.just(firstMessage)
+                  .map(this::toFullMessage)
                   .flatMapMany(
                       message ->
                           authenticate(message)
                               .flatMapMany(
                                   principal ->
                                       messages
-                                          .flatMap(
-                                              message1 ->
-                                                  message1 == firstMessage
-                                                      ? Mono.just(message)
-                                                      : applyDataDecoder(message1))
+                                          .map(m -> m == firstMessage ? message : toFullMessage(m))
                                           .map(this::toRequest)
                                           .transform(
                                               requests -> Flux.from(invoke(requests, principal)))));
@@ -209,19 +209,31 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  private Mono<ServiceMessage> applyDataDecoder(ServiceMessage message) {
-    return Mono.fromCallable(() -> dataDecoder.apply(message, methodInfo.requestType()))
-        .doOnError(ex -> errorHandler.accept(message, ex));
+  private ServiceMessage toFullMessage(ServiceMessage message) {
+    try {
+      return dataDecoder.apply(message, methodInfo.requestType());
+    } catch (Exception ex) {
+      errorHandler.accept(message, ex);
+      throw Exceptions.propagate(ex);
+    }
   }
 
-  private Mono<ServiceMessage> applyRequestMapper(ServiceMessage message) {
-    return Mono.fromCallable(() -> requestMapper.apply(message))
-        .doOnError(ex -> errorHandler.accept(message, ex));
+  private ServiceMessage mapRequest(ServiceMessage message) {
+    try {
+      return requestMapper.apply(message);
+    } catch (Exception ex) {
+      errorHandler.accept(message, ex);
+      throw Exceptions.propagate(ex);
+    }
   }
 
-  private Mono<ServiceMessage> applyResponseMapper(ServiceMessage message) {
-    return Mono.fromCallable(() -> responseMapper.apply(message))
-        .doOnError(ex -> errorHandler.accept(message, ex));
+  private ServiceMessage mapResponse(ServiceMessage message) {
+    try {
+      return responseMapper.apply(message);
+    } catch (Exception ex) {
+      errorHandler.accept(message, ex);
+      throw Exceptions.propagate(ex);
+    }
   }
 
   private Object toRequest(ServiceMessage message) {

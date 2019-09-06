@@ -22,8 +22,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +49,12 @@ public class ServiceCall {
       req -> {
         // no-op
       };
+  private UnaryOperator<ServiceMessage> requestMapper = UnaryOperator.identity();
+  private UnaryOperator<ServiceMessage> responseMapper = UnaryOperator.identity();
+  private BiConsumer<ServiceMessage, Throwable> errorHandler =
+      (message, throwable) -> {
+        // no-op
+      };
   private Map<String, String> credentials = Collections.emptyMap();
 
   /** Default constructor. */
@@ -58,6 +66,9 @@ public class ServiceCall {
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
+    this.requestMapper = other.requestMapper;
+    this.responseMapper = other.responseMapper;
+    this.errorHandler = other.errorHandler;
   }
 
   /**
@@ -157,6 +168,42 @@ public class ServiceCall {
   }
 
   /**
+   * Creates new {@link ServiceCall}'s definition with a given requestMapper.
+   *
+   * @param requestMapper given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall requestMapper(UnaryOperator<ServiceMessage> requestMapper) {
+    ServiceCall target = new ServiceCall(this);
+    target.requestMapper = requestMapper;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given responseMapper.
+   *
+   * @param responseMapper given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall responseMapper(UnaryOperator<ServiceMessage> responseMapper) {
+    ServiceCall target = new ServiceCall(this);
+    target.responseMapper = responseMapper;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given errorHandler.
+   *
+   * @param errorHandler given.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall errorHandler(BiConsumer<ServiceMessage, Throwable> errorHandler) {
+    ServiceCall target = new ServiceCall(this);
+    target.errorHandler = errorHandler;
+    return target;
+  }
+
+  /**
    * Issues fire-and-forget request.
    *
    * @param request request message to send.
@@ -225,10 +272,15 @@ public class ServiceCall {
         () -> {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
-          return transport
-              .create(address)
-              .requestResponse(request, responseType)
-              .map(this::throwIfError);
+          return Mono.just(request)
+              .map(this::mapRequest)
+              .flatMap(
+                  message1 ->
+                      Mono.fromCallable(() -> transport.create(address))
+                          .flatMap(channel -> channel.requestResponse(message1, responseType))
+                          .map(this::throwIfError)
+                          .doOnError(ex -> errorHandler.accept(message1, ex)))
+              .map(this::mapResponse);
         });
   }
 
@@ -282,10 +334,15 @@ public class ServiceCall {
         () -> {
           requireNonNull(address, "requestMany address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
-          return transport
-              .create(address)
-              .requestStream(request, responseType)
-              .map(this::throwIfError);
+          return Mono.just(request)
+              .map(this::mapRequest)
+              .flatMapMany(
+                  message1 ->
+                      Mono.fromCallable(() -> transport.create(address))
+                          .flatMapMany(channel -> channel.requestStream(message1, responseType))
+                          .map(this::throwIfError)
+                          .doOnError(ex -> errorHandler.accept(message1, ex)))
+              .map(this::mapResponse);
         });
   }
 
@@ -499,6 +556,24 @@ public class ServiceCall {
   private void applyRequestReleaser(ServiceMessage request) {
     if (request.data() != null) {
       requestReleaser.accept(request.data());
+    }
+  }
+
+  private ServiceMessage mapRequest(ServiceMessage message) {
+    try {
+      return requestMapper.apply(message);
+    } catch (Exception ex) {
+      errorHandler.accept(message, ex);
+      throw Exceptions.propagate(ex);
+    }
+  }
+
+  private ServiceMessage mapResponse(ServiceMessage message) {
+    try {
+      return responseMapper.apply(message);
+    } catch (Exception ex) {
+      errorHandler.accept(message, ex);
+      throw Exceptions.propagate(ex);
     }
   }
 }
