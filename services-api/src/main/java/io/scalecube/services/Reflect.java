@@ -9,6 +9,7 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Auth;
@@ -22,7 +23,6 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -211,16 +211,7 @@ public class Reflect {
    * @return service tags
    */
   public static Map<String, String> serviceTags(Class<?> serviceInterface) {
-    Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-    if (serviceAnnotation == null) {
-      throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceInterface));
-    }
-    String[] rawTags = serviceAnnotation.tags();
-    if (rawTags.length % 2 == 1) {
-      throw new IllegalStateException(String.format("Invalid tags for '%s'", serviceInterface));
-    }
-    return transformArrayToMap(rawTags);
+    return Reflect.transformArrayToMap(serviceInterface.getAnnotationsByType(Tag.class));
   }
 
   /**
@@ -230,36 +221,14 @@ public class Reflect {
    * @return service tags
    */
   public static Map<String, String> serviceMethodTags(Method serviceMethod) {
-    ServiceMethod serviceMethodAnnotation = serviceMethod.getAnnotation(ServiceMethod.class);
-    if (serviceMethodAnnotation == null) {
-      throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceMethodAnnotation));
-    }
-    String[] rawTags = serviceMethodAnnotation.tags();
-    if (rawTags.length % 2 == 1) {
-      throw new IllegalStateException(
-          String.format("Invalid tags for service method '%s'", serviceMethod.getName()));
-    }
-    return Reflect.transformArrayToMap(rawTags);
+    return Reflect.transformArrayToMap(serviceMethod.getAnnotationsByType(Tag.class));
   }
 
-  private static Map<String, String> transformArrayToMap(String[] array) {
-    if (array.length == 0) {
-      return Collections.emptyMap();
-    }
-    Map<String, String> tags = new HashMap<>();
-    for (int keyIndex = 0; keyIndex < array.length; keyIndex += 2) {
-      final int valueIndex = keyIndex + 1;
-      String tagName = array[keyIndex];
-      String tagValue = array[valueIndex];
-      tags.merge(
-          tagName,
-          tagValue,
-          (o, n) -> {
-            throw new IllegalStateException(String.format("Duplicate tag %s", tagName));
-          });
-    }
-    return Collections.unmodifiableMap(tags);
+  private static Map<String, String> transformArrayToMap(Tag[] array) {
+    return array == null || array.length == 0
+        ? Collections.emptyMap()
+        : Collections.unmodifiableMap(
+            Arrays.stream(array).collect(Collectors.toMap(Tag::key, Tag::value)));
   }
 
   /**
