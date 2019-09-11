@@ -12,9 +12,4 @@ public @interface Service {
 
   /** Name of the service. If not specified service class result will be used. */
   String value() default "";
-
-  /**
-   * Tags of service api
-   */
-  String[] tags() default {};
 }
