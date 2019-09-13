@@ -258,8 +258,9 @@ public final class ServiceMethodInvoker {
 
   private ServiceMessage toResponse(Object response, Map<String, String> headers) {
     if (response instanceof ServiceMessage) {
-      // return as is; it's assumed headers are copied inside service method
-      return (ServiceMessage) response;
+      // return as is, except qualifier; must be set to actual method info
+      ServiceMessage response1 = (ServiceMessage) response;
+      return ServiceMessage.from(response1).qualifier(methodInfo.qualifier()).build();
     }
     // wrap response object into ServiceMessage and keep request headers
     return ServiceMessage.builder()
