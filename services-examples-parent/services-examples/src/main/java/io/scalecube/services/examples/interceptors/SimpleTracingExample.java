@@ -90,19 +90,16 @@ public class SimpleTracingExample {
 
     LOGGER.info("### Calling foo.call().api(ServiceFoo.class) method 'foo'");
 
-    ServiceFoo serviceFoo = foo.call().api(ServiceFoo.class);
-    int data = 5;
-    ServiceMessage response =
-        serviceFoo
-            .foo(
-                ServiceMessage.builder()
-                    .qualifier(Qualifier.asString("example.service.foo", "foo"))
-                    .header("sid", 1)
-                    .data(data)
-                    .build())
-            .block();
+    ServiceMessage request =
+        ServiceMessage.builder()
+            .qualifier(Qualifier.asString("example.service.foo", "foo"))
+            .header("sid", 1)
+            .data(5)
+            .build();
 
-    LOGGER.info("### serviceFoo.foo({}) = {}", data, response);
+    ServiceMessage response = foo.call().api(ServiceFoo.class).foo(request).block();
+
+    LOGGER.info("### serviceFoo.foo({}) = {}", request.data(), response);
 
     Thread.currentThread().join();
   }
