@@ -4,24 +4,12 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.UnauthorizedException;
-import java.util.HashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class CustomTracingExample {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(CustomTracingExample.class);
-
-  private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
-        {
-          put("username", "Alice");
-          put("password", "qwerty");
-        }
-      };
 
   /**
    * Example runner.
@@ -32,16 +20,16 @@ public class CustomTracingExample {
   public static void main(String[] args) throws Exception {
     Microservices ms =
         Microservices.builder()
-            .authenticator(CustomTracingExample::authenticate)
-            .services(ServiceInfo.fromServiceInstance(new ServiceBazImpl()).build())
+            .services(
+                ServiceInfo.fromServiceInstance(new ServiceBazImpl())
+                    .requestMapper(CustomTracingExample::customLogRequest)
+                    .responseMapper(CustomTracingExample::customLogResponse)
+                    .build())
             .services(ServiceInfo.fromServiceInstance(new ServiceBarImpl()).build())
             .services(ServiceInfo.fromServiceInstance(new ServiceFooImpl()).build())
-            .services(ServiceInfo.fromServiceInstance(new SecuredServiceFooImpl()).build())
             .requestMapper(CustomTracingExample::logRequest)
             .responseMapper(CustomTracingExample::logResponse)
             .startAwait();
-
-    LOGGER.info("### Calling foo.call().api(ServiceFoo.class) method 'foo'");
 
     ServiceMessage request =
         ServiceMessage.builder()
@@ -53,13 +41,6 @@ public class CustomTracingExample {
     ServiceMessage response = ms.call().api(ServiceFoo.class).foo(request).block();
 
     LOGGER.info("### serviceFoo.foo({}) = {}", request.data(), response);
-
-    LOGGER.info("### Calling foo.credentials().api(SecuredServiceFoo.class) method 'securedFoo'");
-
-    ServiceMessage response1 =
-        ms.call().credentials(CREDENTIALS).api(SecuredServiceFoo.class).securedFoo(request).block();
-
-    LOGGER.info("### securedFoo.securedFoo({}) = {}", request.data(), response1);
 
     Thread.currentThread().join();
   }
@@ -74,25 +55,13 @@ public class CustomTracingExample {
     return m;
   }
 
-  static ServiceMessage logSecuredRequest(ServiceMessage m) {
-    LOGGER.info(">>> {}", m);
+  static ServiceMessage customLogRequest(ServiceMessage m) {
+    LOGGER.info("REQ {} -> q: {}, d: {}", m.header("sid"), m.qualifier(), m.data());
     return m;
   }
 
-  static ServiceMessage logSecureResponse(ServiceMessage m) {
-    LOGGER.info("<<< {}", m);
+  static ServiceMessage customLogResponse(ServiceMessage m) {
+    LOGGER.info("RESP {} <- q: {}, d: {}", m.header("sid"), m.qualifier(), m.data());
     return m;
-  }
-
-  static Mono<Object> authenticate(ServiceMessage m) {
-    Map<String, String> headers = m.headers();
-    String username = headers.get("username");
-    String password = headers.get("password");
-
-    if ("Alice".equals(username) && "qwerty".equals(password)) {
-      return Mono.just(new UserProfile("Alice", "ADMIN"));
-    }
-
-    return Mono.error(new UnauthorizedException("Authentication failed"));
   }
 }

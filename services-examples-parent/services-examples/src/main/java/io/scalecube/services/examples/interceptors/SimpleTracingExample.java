@@ -88,8 +88,6 @@ public class SimpleTracingExample {
             .responseMapper(SimpleTracingExample::logResponse)
             .startAwait();
 
-    LOGGER.info("### Calling foo.call().api(ServiceFoo.class) method 'foo'");
-
     ServiceMessage request =
         ServiceMessage.builder()
             .qualifier(Qualifier.asString("example.service.foo", "foo"))
