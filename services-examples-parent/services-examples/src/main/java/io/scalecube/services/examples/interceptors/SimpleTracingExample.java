@@ -39,12 +39,12 @@ public class SimpleTracingExample {
   }
 
   static ServiceMessage logRequest(ServiceMessage m) {
-    LOGGER.info(">>> q: {}, sid: {}", m.header("q"), m.header("sid"));
+    LOGGER.info(">>> q: {}, sid: {}, d: {}", m.header("q"), m.header("sid"), m.data());
     return m;
   }
 
   static ServiceMessage logResponse(ServiceMessage m) {
-    LOGGER.info("<<< q: {}, sid: {}", m.header("q"), m.header("sid"));
+    LOGGER.info("<<< q: {}, sid: {}, d: {}", m.header("q"), m.header("sid"), m.data());
     return m;
   }
 
