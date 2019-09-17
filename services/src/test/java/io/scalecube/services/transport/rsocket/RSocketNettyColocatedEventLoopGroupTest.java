@@ -134,7 +134,7 @@ public class RSocketNettyColocatedEventLoopGroupTest {
 
     @Override
     public Mono<String> call() {
-      return (callPing.get() ? pingService.ping() : pongService.pong())
+      return (callPing.getAndSet(!callPing.get()) ? pingService.ping() : pongService.pong())
           .map(ignore -> Thread.currentThread().getName());
     }
   }
