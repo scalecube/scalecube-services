@@ -1,10 +1,10 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.util.concurrent.EventExecutor;
+import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -12,7 +12,7 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetSocketAddress;
-import java.util.Iterator;
+import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -143,19 +143,12 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   private EventLoopGroup newEventLoopGroup() {
-    return Epoll.isAvailable()
-        ? new ExtendedEpollEventLoopGroup(numOfWorkers, this::chooseEventLoop)
-        : new ExtendedNioEventLoopGroup(numOfWorkers, this::chooseEventLoop);
-  }
-
-  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
-    while (executors.hasNext()) {
-      EventExecutor eventLoop = executors.next();
-      if (eventLoop.inEventLoop()) {
-        return (EventLoop) eventLoop;
-      }
-    }
-    return null;
+    ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
+    EventLoopGroup eventLoopGroup =
+        Epoll.isAvailable()
+            ? new EpollEventLoopGroup(numOfWorkers, threadFactory)
+            : new NioEventLoopGroup(numOfWorkers, threadFactory);
+    return LoopResources.colocate(eventLoopGroup);
   }
 
   private Mono<Void> shutdownEventLoopGroup() {
