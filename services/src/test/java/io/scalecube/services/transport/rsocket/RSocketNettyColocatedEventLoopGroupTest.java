@@ -29,7 +29,7 @@ public class RSocketNettyColocatedEventLoopGroupTest {
   private Microservices gateway;
 
   @BeforeEach
-  void setUp() {
+  public void setUp() {
 
     Supplier<ServiceTransport> transport = RSocketServiceTransport::new;
     this.gateway =
@@ -79,7 +79,7 @@ public class RSocketNettyColocatedEventLoopGroupTest {
   }
 
   @Test
-  void test() {
+  public void testColocatedEventLoopGroup() {
     ServiceCall call = gateway.call();
 
     FacadeService facade = call.api(FacadeService.class);
@@ -93,7 +93,7 @@ public class RSocketNettyColocatedEventLoopGroupTest {
   }
 
   @AfterEach
-  void tearDown() {
+  public void tearDown() {
     try {
       Mono.whenDelayError(
               Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
@@ -126,7 +126,7 @@ public class RSocketNettyColocatedEventLoopGroupTest {
     Mono<String> pong();
   }
 
-  class Facade implements FacadeService {
+  public static class Facade implements FacadeService {
 
     private final AtomicBoolean callPing = new AtomicBoolean();
     @Inject private PingService pingService;
