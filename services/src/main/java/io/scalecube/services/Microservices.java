@@ -497,6 +497,11 @@ public class Microservices {
                         }
                       }));
     }
+
+    @Override
+    public String toString() {
+      return "ServiceDiscoveryBootstrap{" + "discovery=" + discovery + '}';
+    }
   }
 
   private static class GatewayBootstrap {
@@ -557,6 +562,11 @@ public class Microservices {
           .findFirst()
           .orElseThrow(
               () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
+    }
+
+    @Override
+    public String toString() {
+      return "GatewayBootstrap{" + "gateways=" + gateways + '}';
     }
   }
 
@@ -639,11 +649,15 @@ public class Microservices {
     @Override
     public String toString() {
       return "ServiceTransportBootstrap{"
-          + "clientTransport="
-          + clientTransport.getClass()
+          + "serviceTransport="
+          + serviceTransport
+          + ", clientTransport="
+          + clientTransport
           + ", serverTransport="
-          + serverTransport.getClass()
-          + "}";
+          + serverTransport
+          + ", address="
+          + address
+          + '}';
     }
   }
 
