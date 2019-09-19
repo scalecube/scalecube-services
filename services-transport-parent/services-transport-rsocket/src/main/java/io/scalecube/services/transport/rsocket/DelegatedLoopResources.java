@@ -123,4 +123,16 @@ public class DelegatedLoopResources implements LoopResources {
           return promise;
         });
   }
+
+  @Override
+  public String toString() {
+    return "DelegatedLoopResources{"
+        + "bossGroup="
+        + bossGroup
+        + ", workerGroup="
+        + workerGroup
+        + ", running="
+        + running
+        + '}';
+  }
 }

@@ -167,4 +167,20 @@ public class RSocketServiceTransport implements ServiceTransport {
     return (LoopResources clientLoopResources) ->
         TcpClient.newConnection().runOn(clientLoopResources);
   }
+
+  @Override
+  public String toString() {
+    return "RSocketServiceTransport{"
+        + "numOfWorkers="
+        + numOfWorkers
+        + ", headersCodec="
+        + headersCodec
+        + ", eventLoopGroup="
+        + eventLoopGroup
+        + ", clientLoopResources="
+        + clientLoopResources
+        + ", serverLoopResources="
+        + serverLoopResources
+        + '}';
+  }
 }

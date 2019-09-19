@@ -12,8 +12,6 @@ import java.net.InetSocketAddress;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.netty.Connection;
-import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
@@ -24,7 +22,7 @@ public class RSocketServerTransport implements ServerTransport {
   private final ServiceMessageCodec codec;
   private final TcpServer tcpServer;
 
-  private CloseableChannel server; // calculated
+  private CloseableChannel serverChannel; // calculated
 
   /**
    * Constructor for this server transport.
@@ -39,7 +37,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Address address() {
-    InetSocketAddress address = server.address();
+    InetSocketAddress address = serverChannel.address();
     return Address.create(address.getHostString(), address.getPort());
   }
 
@@ -65,7 +63,7 @@ public class RSocketServerTransport implements ServerTransport {
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
               .transport(() -> TcpServerTransport.create(tcpServer))
               .start()
-              .doOnSuccess(channel -> this.server = channel)
+              .doOnSuccess(channel -> serverChannel = channel)
               .thenReturn(this);
         });
   }
@@ -74,11 +72,25 @@ public class RSocketServerTransport implements ServerTransport {
   public Mono<Void> stop() {
     return Mono.defer(
         () -> {
-          if (server == null) {
+          if (serverChannel == null) {
             return Mono.empty();
           }
-          server.dispose();
-          return server.onClose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+          serverChannel.dispose();
+          return serverChannel
+              .onClose()
+              .doOnError(e -> LOGGER.warn("Failed to close server: " + e));
         });
+  }
+
+  @Override
+  public String toString() {
+    return "RSocketServerTransport{"
+        + "codec="
+        + codec
+        + ", tcpServer="
+        + tcpServer
+        + ", serverChannel="
+        + serverChannel
+        + '}';
   }
 }
