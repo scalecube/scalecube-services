@@ -563,6 +563,11 @@ public class Microservices {
           .orElseThrow(
               () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
     }
+
+    @Override
+    public String toString() {
+      return "GatewayBootstrap{" + "gateways=" + gateways + '}';
+    }
   }
 
   public static class ServiceTransportBootstrap {
