@@ -170,10 +170,17 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public String toString() {
-    return "RSocketServiceTransport{" +
-        "numOfWorkers=" + numOfWorkers +
-        ", headersCodec=" + headersCodec +
-        ", eventLoopGroup=" + eventLoopGroup +
-        '}';
+    return "RSocketServiceTransport{"
+        + "numOfWorkers="
+        + numOfWorkers
+        + ", headersCodec="
+        + headersCodec
+        + ", eventLoopGroup="
+        + eventLoopGroup
+        + ", clientLoopResources="
+        + clientLoopResources
+        + ", serverLoopResources="
+        + serverLoopResources
+        + '}';
   }
 }
