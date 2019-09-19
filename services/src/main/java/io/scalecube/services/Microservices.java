@@ -639,11 +639,15 @@ public class Microservices {
     @Override
     public String toString() {
       return "ServiceTransportBootstrap{"
-          + "clientTransport="
-          + clientTransport.getClass()
+          + "serviceTransport="
+          + serviceTransport
+          + ", clientTransport="
+          + clientTransport
           + ", serverTransport="
-          + serverTransport.getClass()
-          + "}";
+          + serverTransport
+          + ", address="
+          + address
+          + '}';
     }
   }
 

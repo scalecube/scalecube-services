@@ -80,4 +80,9 @@ public class RSocketClientTransport implements ClientTransport {
             })
         .cache();
   }
+
+  @Override
+  public String toString() {
+    return "RSocketClientTransport{" + "codec=" + codec + ", tcpClient=" + tcpClient + '}';
+  }
 }
