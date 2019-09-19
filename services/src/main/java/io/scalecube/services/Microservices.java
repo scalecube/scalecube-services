@@ -497,6 +497,11 @@ public class Microservices {
                         }
                       }));
     }
+
+    @Override
+    public String toString() {
+      return "ServiceDiscoveryBootstrap{" + "discovery=" + discovery + '}';
+    }
   }
 
   private static class GatewayBootstrap {
