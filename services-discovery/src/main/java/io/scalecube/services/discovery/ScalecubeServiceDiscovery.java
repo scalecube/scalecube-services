@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
@@ -38,7 +39,6 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -413,12 +413,20 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     public static final int MAX_CACHE_SIZE = 128;
 
     private final ScalecubeServiceDiscovery discovery;
-    private final ReplayProcessor<ServiceDiscoveryEvent> processor;
+    private final List<ServiceDiscoveryEvent> recentServiceDiscoveryEvents;
 
     private JmxMonitorMBean(ScalecubeServiceDiscovery discovery) {
       this.discovery = discovery;
-      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      discovery.listenDiscovery().subscribe(processor);
+      this.recentServiceDiscoveryEvents = new CopyOnWriteArrayList<>();
+      discovery
+          .listenDiscovery()
+          .subscribe(
+              event -> {
+                recentServiceDiscoveryEvents.add(event);
+                if (recentServiceDiscoveryEvents.size() > MAX_CACHE_SIZE) {
+                  recentServiceDiscoveryEvents.remove(0);
+                }
+              });
     }
 
     private static JmxMonitorMBean start(ScalecubeServiceDiscovery instance) throws Exception {
@@ -482,9 +490,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     @Override
     public Collection<String> getRecentServiceDiscoveryEvents() {
-      List<String> recentEvents = new ArrayList<>(MAX_CACHE_SIZE);
-      processor.map(ServiceDiscoveryEvent::toString).subscribe(recentEvents::add);
-      return recentEvents;
+      return recentServiceDiscoveryEvents.stream()
+          .map(ServiceDiscoveryEvent::toString)
+          .collect(Collectors.toList());
     }
 
     @Override
