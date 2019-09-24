@@ -387,7 +387,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   public interface MonitorMBean {
 
-    String getServiceEndpoint();
+    String getClusterConfig();
 
     String getDiscoveryAddress();
 
@@ -422,47 +422,30 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
 
     private void init() {
-      discovery
-          .listenDiscovery()
-          .subscribe(
-              event -> {
-                recentDiscoveryEvents.add(event);
-                if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
-                  recentDiscoveryEvents.remove(0);
-                }
-              });
+      discovery.listenDiscovery().subscribe(this::onDiscoveryEvent);
     }
 
     @Override
-    public String getServiceEndpoint() {
-      return String.valueOf(discovery.serviceEndpoint);
+    public String getClusterConfig() {
+      return String.valueOf(discovery.clusterConfig);
+    }
+
+    @Override
+    public String getDiscoveryAddress() {
+      return String.valueOf(discovery.address());
     }
 
     @Override
     public String getAddedServiceGroups() {
       return discovery.addedGroups.entrySet().stream()
-          .map(
-              entry -> {
-                ServiceGroup serviceGroup = entry.getKey();
-                int count = entry.getValue();
-                String id = serviceGroup.id();
-                int size = serviceGroup.size();
-                return id + ":" + size + "/count=" + count;
-              })
+          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
           .collect(Collectors.joining(",", "[", "]"));
     }
 
     @Override
     public String getAllServiceGroups() {
       return discovery.groups.entrySet().stream()
-          .map(
-              entry -> {
-                ServiceGroup serviceGroup = entry.getKey();
-                Collection<ServiceEndpoint> endpoints = entry.getValue();
-                String id = serviceGroup.id();
-                int size = serviceGroup.size();
-                return id + ":" + size + "/endpoints=" + endpoints.size();
-              })
+          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
           .collect(Collectors.joining(",", "[", "]"));
     }
 
@@ -471,6 +454,26 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       return recentDiscoveryEvents.stream()
           .map(ServiceDiscoveryEvent::toString)
           .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private String toServiceGroupString(ServiceGroup serviceGroup, int count) {
+      String id = serviceGroup.id();
+      int size = serviceGroup.size();
+      return id + ":" + size + "/count=" + count;
+    }
+
+    private String toServiceGroupString(
+        ServiceGroup serviceGroup, Collection<ServiceEndpoint> endpoints) {
+      String id = serviceGroup.id();
+      int size = serviceGroup.size();
+      return id + ":" + size + "/endpoints=" + endpoints.size();
+    }
+
+    private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
+      recentDiscoveryEvents.add(event);
+      if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
+        recentDiscoveryEvents.remove(0);
+      }
     }
   }
 }

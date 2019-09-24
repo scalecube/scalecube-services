@@ -661,21 +661,11 @@ public class Microservices {
 
   public interface MonitorMBean {
 
-    String getInstanceId();
-
-    String getDiscoveryAddress();
-
-    String getGatewayAddresses();
-
     String getServiceEndpoint();
 
     String getAllServiceEndpoints();
 
     String getServiceMethodInvokers();
-
-    String getServiceDiscovery();
-
-    String getServiceTransport();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -697,23 +687,6 @@ public class Microservices {
     }
 
     @Override
-    public String getInstanceId() {
-      return microservices.id();
-    }
-
-    @Override
-    public String getDiscoveryAddress() {
-      return String.valueOf(microservices.discovery().address());
-    }
-
-    @Override
-    public String getGatewayAddresses() {
-      return microservices.gateways().stream()
-          .map(gw -> gw.id() + "/" + gw.address())
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
     public String getServiceEndpoint() {
       return String.valueOf(microservices.discovery().serviceEndpoint());
     }
@@ -730,16 +703,6 @@ public class Microservices {
       return microservices.methodRegistry.listInvokers().stream()
           .map(ServiceMethodInvoker::asString)
           .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public String getServiceDiscovery() {
-      return String.valueOf(microservices.discovery());
-    }
-
-    @Override
-    public String getServiceTransport() {
-      return String.valueOf(microservices.transportBootstrap.serviceTransport);
     }
   }
 }
