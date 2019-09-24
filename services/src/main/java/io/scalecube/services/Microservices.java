@@ -24,8 +24,6 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -663,29 +661,11 @@ public class Microservices {
 
   public interface MonitorMBean {
 
-    Collection<String> getInstanceId();
+    String getServiceEndpoint();
 
-    String getInstanceIdAsString();
+    String getAllServiceEndpoints();
 
-    Collection<String> getDiscoveryAddress();
-
-    String getDiscoveryAddressAsString();
-
-    Collection<String> getGatewayAddresses();
-
-    String getGatewayAddressesAsString();
-
-    Collection<String> getServiceEndpoint();
-
-    String getServiceEndpointAsString();
-
-    Collection<String> getServiceEndpoints();
-
-    String getServiceEndpointsAsString();
-
-    Collection<String> getServiceMethodInvokers();
-
-    String getServiceMethodInvokersAsString();
+    String getServiceMethodInvokers();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -707,69 +687,22 @@ public class Microservices {
     }
 
     @Override
-    public Collection<String> getInstanceId() {
-      return Collections.singletonList(microservices.id());
+    public String getServiceEndpoint() {
+      return String.valueOf(microservices.discovery().serviceEndpoint());
     }
 
     @Override
-    public String getInstanceIdAsString() {
-      return getInstanceId().iterator().next();
-    }
-
-    @Override
-    public Collection<String> getDiscoveryAddress() {
-      return Collections.singletonList(String.valueOf(microservices.discovery().address()));
-    }
-
-    @Override
-    public String getDiscoveryAddressAsString() {
-      return getDiscoveryAddress().iterator().next();
-    }
-
-    @Override
-    public Collection<String> getGatewayAddresses() {
-      return microservices.gateways().stream()
-          .map(gw -> gw.id() + "/" + gw.address())
-          .collect(Collectors.toList());
-    }
-
-    @Override
-    public String getGatewayAddressesAsString() {
-      return getGatewayAddresses().stream().collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public Collection<String> getServiceEndpoint() {
-      return Collections.singletonList(String.valueOf(microservices.discovery().serviceEndpoint()));
-    }
-
-    @Override
-    public String getServiceEndpointAsString() {
-      return getServiceEndpoint().iterator().next();
-    }
-
-    @Override
-    public Collection<String> getServiceEndpoints() {
+    public String getAllServiceEndpoints() {
       return microservices.serviceRegistry.listServiceEndpoints().stream()
           .map(ServiceEndpoint::toString)
-          .collect(Collectors.toList());
+          .collect(Collectors.joining(",", "[", "]"));
     }
 
     @Override
-    public String getServiceEndpointsAsString() {
-      return getServiceEndpoints().stream().collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public Collection<String> getServiceMethodInvokers() {
+    public String getServiceMethodInvokers() {
       return microservices.methodRegistry.listInvokers().stream()
           .map(ServiceMethodInvoker::asString)
-          .collect(Collectors.toList());
-    }
-
-    @Override
-    public String getServiceMethodInvokersAsString() {
-      return getServiceMethodInvokers().stream().collect(Collectors.joining(",", "[", "]"));
+          .collect(Collectors.joining(",", "[", "]"));
     }
   }
 }
