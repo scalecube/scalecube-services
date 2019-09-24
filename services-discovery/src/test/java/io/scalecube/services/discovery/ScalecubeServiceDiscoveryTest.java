@@ -602,10 +602,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     private RecordingServiceDiscovery subscribe() {
-      serviceDiscovery
-          .listenDiscovery()
-          .log("listenDiscovery", Level.INFO)
-          .subscribe(discoveryEvents);
+      serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
       return this;
     }
 

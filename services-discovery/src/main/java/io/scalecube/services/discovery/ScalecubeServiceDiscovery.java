@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
@@ -38,7 +39,6 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -387,43 +387,32 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   public interface MonitorMBean {
 
-    Collection<String> getServiceGroup();
+    String getClusterConfig();
 
-    String getServiceGroupAsString();
+    String getDiscoveryAddress();
 
-    Collection<String> getAddedGroups();
+    String getAddedServiceGroups();
 
-    String getAddedGroupsAsString();
+    String getAllServiceGroups();
 
-    Collection<String> getServiceGroups();
-
-    String getServiceGroupsAsString();
-
-    Collection<String> getRecentServiceDiscoveryEvents();
-
-    String getRecentServiceDiscoveryEventsAsString();
-
-    Collection<String> getServiceDiscovery();
-
-    String getServiceDiscoveryAsString();
+    String getRecentDiscoveryEvents();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
 
-    public static final int MAX_CACHE_SIZE = 128;
+    public static final int RECENT_DISCOVERY_EVENTS_SIZE = 128;
 
     private final ScalecubeServiceDiscovery discovery;
-    private final ReplayProcessor<ServiceDiscoveryEvent> processor;
+    private final List<ServiceDiscoveryEvent> recentDiscoveryEvents = new CopyOnWriteArrayList<>();
 
     private JmxMonitorMBean(ScalecubeServiceDiscovery discovery) {
       this.discovery = discovery;
-      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
-      discovery.listenDiscovery().subscribe(processor);
     }
 
     private static JmxMonitorMBean start(ScalecubeServiceDiscovery instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
+      jmxMBean.init();
       String id = instance.serviceEndpoint.id();
       ObjectName objectName =
           new ObjectName("io.scalecube.services:name=ScalecubeServiceDiscovery@" + id);
@@ -432,74 +421,59 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       return jmxMBean;
     }
 
-    @Override
-    public Collection<String> getServiceGroup() {
-      return Collections.singletonList(String.valueOf(discovery.serviceEndpoint.serviceGroup()));
+    private void init() {
+      discovery.listenDiscovery().subscribe(this::onDiscoveryEvent);
     }
 
     @Override
-    public String getServiceGroupAsString() {
-      return getServiceGroup().iterator().next();
+    public String getClusterConfig() {
+      return String.valueOf(discovery.clusterConfig);
     }
 
     @Override
-    public Collection<String> getAddedGroups() {
+    public String getDiscoveryAddress() {
+      return String.valueOf(discovery.address());
+    }
+
+    @Override
+    public String getAddedServiceGroups() {
       return discovery.addedGroups.entrySet().stream()
-          .map(
-              entry -> {
-                ServiceGroup serviceGroup = entry.getKey();
-                int count = entry.getValue();
-                String id = serviceGroup.id();
-                int size = serviceGroup.size();
-                return id + ":" + size + "/count=" + count;
-              })
-          .collect(Collectors.toList());
+          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
+          .collect(Collectors.joining(",", "[", "]"));
     }
 
     @Override
-    public String getAddedGroupsAsString() {
-      return getAddedGroups().stream().collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public Collection<String> getServiceGroups() {
+    public String getAllServiceGroups() {
       return discovery.groups.entrySet().stream()
-          .map(
-              entry -> {
-                ServiceGroup serviceGroup = entry.getKey();
-                Collection<ServiceEndpoint> endpoints = entry.getValue();
-                String id = serviceGroup.id();
-                int size = serviceGroup.size();
-                return id + ":" + size + "/endpoints=" + endpoints.size();
-              })
-          .collect(Collectors.toList());
+          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
+          .collect(Collectors.joining(",", "[", "]"));
     }
 
     @Override
-    public String getServiceGroupsAsString() {
-      return getServiceGroups().stream().collect(Collectors.joining(",", "[", "]"));
+    public String getRecentDiscoveryEvents() {
+      return recentDiscoveryEvents.stream()
+          .map(ServiceDiscoveryEvent::toString)
+          .collect(Collectors.joining(",", "[", "]"));
     }
 
-    @Override
-    public Collection<String> getRecentServiceDiscoveryEvents() {
-      List<String> recentEvents = new ArrayList<>(MAX_CACHE_SIZE);
-      processor.map(ServiceDiscoveryEvent::toString).subscribe(recentEvents::add);
-      return recentEvents;
+    private String toServiceGroupString(ServiceGroup serviceGroup, int count) {
+      String id = serviceGroup.id();
+      int size = serviceGroup.size();
+      return id + ":" + size + "/count=" + count;
     }
 
-    @Override
-    public String getRecentServiceDiscoveryEventsAsString() {
-      return getRecentServiceDiscoveryEvents().stream().collect(Collectors.joining(",", "[", "]"));
+    private String toServiceGroupString(
+        ServiceGroup serviceGroup, Collection<ServiceEndpoint> endpoints) {
+      String id = serviceGroup.id();
+      int size = serviceGroup.size();
+      return id + ":" + size + "/endpoints=" + endpoints.size();
     }
 
-    @Override
-    public Collection<String> getServiceDiscovery() {
-      return Collections.singletonList(String.valueOf(discovery));
-    }
-
-    @Override
-    public String getServiceDiscoveryAsString() {
-      return getServiceDiscovery().iterator().next();
+    private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
+      recentDiscoveryEvents.add(event);
+      if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
+        recentDiscoveryEvents.remove(0);
+      }
     }
   }
 }
