@@ -1,5 +1,6 @@
 package io.scalecube.services.examples;
 
+import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -84,5 +85,18 @@ public class GreetingServiceImpl implements GreetingService {
   public Flux<String> delayMany(String name) {
     return Flux.defer(
         () -> Flux.interval(Duration.ofMillis(500), Duration.ofSeconds(2)).map(i -> name));
+  }
+
+  @Override
+  public Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request) {
+    return Mono.just(new EmptyGreetingResponse());
+  }
+
+  @Override
+  public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
+    EmptyGreetingRequest greetingRequest = request.data();
+    ServiceMessage response =
+        ServiceMessage.from(request).data(new EmptyGreetingResponse()).build();
+    return Mono.just(response);
   }
 }

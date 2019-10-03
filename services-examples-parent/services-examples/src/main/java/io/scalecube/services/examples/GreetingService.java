@@ -1,7 +1,10 @@
 package io.scalecube.services.examples;
 
+import io.scalecube.services.annotations.RequestType;
+import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.ServiceMessage;
 import java.util.List;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,4 +52,12 @@ public interface GreetingService {
 
   @ServiceMethod("delay/many")
   Flux<String> delayMany(String name);
+
+  @ServiceMethod("empty/pojo")
+  Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request);
+
+  @ServiceMethod("empty/wrappedPojo")
+  @RequestType(EmptyGreetingRequest.class)
+  @ResponseType(EmptyGreetingResponse.class)
+  Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
 }
