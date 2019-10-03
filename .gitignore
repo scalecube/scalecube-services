@@ -15,3 +15,6 @@
 
 # IntelliJ IDEA project files and directories
 *.iml
+
+**/pom.xml.releaseBackup
+/release.properties
