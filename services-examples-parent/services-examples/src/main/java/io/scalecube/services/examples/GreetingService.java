@@ -41,14 +41,6 @@ public interface GreetingService {
   @ServiceMethod("empty/one")
   Mono<String> emptyOne(String name);
 
-  @ServiceMethod("empty/pojo")
-  Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request);
-
-  @ServiceMethod("empty/pojo-in-message")
-  @RequestType(EmptyGreetingRequest.class)
-  @ResponseType(EmptyGreetingResponse.class)
-  Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
-
   @ServiceMethod("empty/many")
   Flux<String> emptyMany(String name);
 
@@ -60,4 +52,12 @@ public interface GreetingService {
 
   @ServiceMethod("delay/many")
   Flux<String> delayMany(String name);
+
+  @ServiceMethod("empty/pojo")
+  Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request);
+
+  @ServiceMethod("empty/wrappedPojo")
+  @RequestType(EmptyGreetingRequest.class)
+  @ResponseType(EmptyGreetingResponse.class)
+  Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
 }

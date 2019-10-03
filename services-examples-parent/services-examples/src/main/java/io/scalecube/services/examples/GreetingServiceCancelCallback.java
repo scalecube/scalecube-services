@@ -1,5 +1,6 @@
 package io.scalecube.services.examples;
 
+import io.scalecube.services.api.ServiceMessage;
 import java.util.List;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -76,5 +77,15 @@ public class GreetingServiceCancelCallback implements GreetingService {
   @Override
   public Flux<String> delayMany(String name) {
     return greetingService.delayMany(name).doOnCancel(onCancel);
+  }
+
+  @Override
+  public Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request) {
+    return greetingService.emptyGreeting(request).doOnCancel(onCancel);
+  }
+
+  @Override
+  public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
+    return greetingService.emptyGreetingMessage(request).doOnCancel(onCancel);
   }
 }
