@@ -10,6 +10,8 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
+import io.scalecube.services.sut.EmptyGreetingRequest;
+import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
@@ -430,6 +432,17 @@ public class ServiceRemoteTest extends BaseTest {
 
     // call the service.
     StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
+  public void test_remote_mono_empty_request_response_greeting() {
+    GreetingService service = gateway.call().api(GreetingService.class);
+
+    // call the service.
+    StepVerifier.create(service.emptyGreeting(new EmptyGreetingRequest()))
+        .expectNextMatches(resp -> resp instanceof EmptyGreetingResponse)
         .expectComplete()
         .verify(TIMEOUT);
   }

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.TestRequests.GREETING_EMPTY_REQUEST_RESPONSE;
 import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAILING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
@@ -19,6 +20,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -70,13 +72,13 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_void_greeting() throws Exception {
+  public void test_local_void_greeting() {
     // WHEN
     provider.call().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
   }
 
   @Test
-  public void test_local_failng_void_greeting() throws Exception {
+  public void test_local_failng_void_greeting() {
 
     StepVerifier.create(provider.call().oneWay(GREETING_FAILING_VOID_REQ))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
@@ -84,7 +86,7 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_local_throwing_void_greeting() throws Exception {
+  public void test_local_throwing_void_greeting() {
     StepVerifier.create(provider.call().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
@@ -132,16 +134,12 @@ public class ServiceCallLocalTest extends BaseTest {
     Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
 
     Throwable exception =
-        assertThrows(
-            RuntimeException.class,
-            () -> {
-              Mono.from(future).block(Duration.ofSeconds(1));
-            });
+        assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofSeconds(1)));
     assertTrue(exception.getMessage().contains("Timeout on blocking read"));
   }
 
   @Test
-  public void test_local_async_greeting_return_Message() throws Exception {
+  public void test_local_async_greeting_return_Message() {
 
     ServiceMessage result = provider.call().requestOne(GREETING_REQUEST_REQ).block(timeout);
 
@@ -153,7 +151,18 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   @Test
-  public void test_async_greeting_return_string_service_not_found_error_case() throws Exception {
+  public void test_remote_mono_empty_request_response_greeting_messsage() {
+    StepVerifier.create(
+            provider
+                .call()
+                .requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
+        .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
+        .expectComplete()
+        .verify(timeout);
+  }
+
+  @Test
+  public void test_async_greeting_return_string_service_not_found_error_case() {
 
     ServiceCall service = provider.call();
 

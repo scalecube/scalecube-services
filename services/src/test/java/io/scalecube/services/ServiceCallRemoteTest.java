@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.TestRequests.GREETING_EMPTY_REQUEST_RESPONSE;
 import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAILING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
@@ -20,6 +21,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.QuoteService;
@@ -89,6 +91,15 @@ public class ServiceCallRemoteTest extends BaseTest {
   public void test_remote_void_greeting() {
     // When
     StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ)).expectComplete().verify(timeout);
+  }
+
+  @Test
+  public void test_remote_mono_empty_request_response_greeting_messsage() {
+    StepVerifier.create(
+            gateway.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
+        .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
+        .expectComplete()
+        .verify(timeout);
   }
 
   @Test

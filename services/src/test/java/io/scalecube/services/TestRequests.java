@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.sut.EmptyGreetingRequest;
 import io.scalecube.services.sut.GreetingRequest;
 import java.time.Duration;
 
@@ -79,4 +80,10 @@ public interface TestRequests {
 
   ServiceMessage SERVICE_NOT_FOUND =
       ServiceMessage.builder().qualifier(SERVICE_NAME, "unknown_service").build();
+
+  ServiceMessage GREETING_EMPTY_REQUEST_RESPONSE =
+      ServiceMessage.builder()
+          .qualifier(SERVICE_NAME, "emptyGreetingMessage")
+          .data(new EmptyGreetingRequest())
+          .build();
 }

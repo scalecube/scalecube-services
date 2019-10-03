@@ -145,6 +145,19 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request) {
+    print("[emptyGreeting] service received a message:" + request);
+    return Mono.just(new EmptyGreetingResponse());
+  }
+
+  @Override
+  public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
+    print("[emptyGreetingMessage] service received a message:" + request);
+    EmptyGreetingRequest request1 = request.data();
+    return Mono.just(ServiceMessage.from(request).data(new EmptyGreetingResponse()).build());
+  }
+
+  @Override
   public void notifyGreeting() {
     print("[notifyGreeting] Hello... i am a service and i just notefied");
   }
