@@ -60,6 +60,14 @@ public interface GreetingService {
   Mono<GreetingResponse> exceptionRequest(GreetingRequest request);
 
   @ServiceMethod
+  Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request);
+
+  @ServiceMethod
+  @RequestType(EmptyGreetingRequest.class)
+  @ResponseType(EmptyGreetingResponse.class)
+  Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
+
+  @ServiceMethod
   Flux<GreetingResponse> bidiGreeting(Publisher<GreetingRequest> request);
 
   @ServiceMethod
