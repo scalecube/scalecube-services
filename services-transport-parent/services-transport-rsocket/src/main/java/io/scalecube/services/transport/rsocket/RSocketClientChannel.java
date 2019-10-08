@@ -71,6 +71,10 @@ public class RSocketClientChannel implements ClientChannel {
   }
 
   private ServiceMessage toMessage(Payload payload) {
-    return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    try {
+      return messageCodec.decode(payload.sliceData().retain(), payload.sliceMetadata().retain());
+    } finally {
+      payload.release();
+    }
   }
 }
