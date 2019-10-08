@@ -6,8 +6,10 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -15,6 +17,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
@@ -26,6 +29,15 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance("application/json");
   private static final int NUM_OF_WORKERS = Runtime.getRuntime().availableProcessors();
+
+  static {
+    Hooks.onNextDropped(
+        obj -> {
+          if (obj instanceof ByteBufPayload) {
+            ReferenceCountUtil.safestRelease(obj);
+          }
+        });
+  }
 
   private int numOfWorkers = NUM_OF_WORKERS;
   private HeadersCodec headersCodec = HEADERS_CODEC;
