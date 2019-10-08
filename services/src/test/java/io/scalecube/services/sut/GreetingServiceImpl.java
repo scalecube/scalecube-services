@@ -4,9 +4,11 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import java.util.stream.LongStream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public final class GreetingServiceImpl implements GreetingService {
 
@@ -160,6 +162,12 @@ public final class GreetingServiceImpl implements GreetingService {
   @Override
   public void notifyGreeting() {
     print("[notifyGreeting] Hello... i am a service and i just notefied");
+  }
+
+  @Override
+  public Flux<Long> manyStream(Long cnt) {
+    return Flux.defer(
+        () -> Flux.fromStream(LongStream.range(0, cnt).boxed()).publishOn(Schedulers.parallel()));
   }
 
   private void print(String message) {

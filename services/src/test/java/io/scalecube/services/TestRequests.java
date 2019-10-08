@@ -86,4 +86,7 @@ public interface TestRequests {
           .qualifier(SERVICE_NAME, "emptyGreetingMessage")
           .data(new EmptyGreetingRequest())
           .build();
+
+  ServiceMessage GREETING_MANY_STREAM_30 =
+      ServiceMessage.builder().qualifier(SERVICE_NAME, "manyStream").data(30L).build();
 }

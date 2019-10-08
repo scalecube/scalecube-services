@@ -81,4 +81,7 @@ public interface GreetingService {
 
   @ServiceMethod
   Flux<GreetingResponse> greetingFluxEmpty(GreetingRequest request);
+
+  @ServiceMethod
+  Flux<Long> manyStream(Long cnt);
 }

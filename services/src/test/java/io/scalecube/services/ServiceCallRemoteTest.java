@@ -235,6 +235,24 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
+  @Test
+  public void test_many_stream_block_first() {
+    ServiceCall call = gateway.call();
+
+    ServiceMessage request = TestRequests.GREETING_MANY_STREAM_30;
+
+    for (int i = 0; i < 100; i++) {
+      //noinspection ConstantConditions
+      long first =
+          call.requestMany(request, Long.class)
+              .map(ServiceMessage::<Long>data)
+              .filter(k -> k != 0)
+              .take(1)
+              .blockFirst();
+      assertEquals(1, first);
+    }
+  }
+
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)

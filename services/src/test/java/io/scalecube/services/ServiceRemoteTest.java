@@ -457,6 +457,17 @@ public class ServiceRemoteTest extends BaseTest {
         .verify(TIMEOUT);
   }
 
+  @Test
+  public void test_many_stream_block_first() {
+    GreetingService service = gateway.call().api(GreetingService.class);
+
+    for (int i = 0; i < 100; i++) {
+      //noinspection ConstantConditions
+      long first = service.manyStream(30L).filter(k -> k != 0).take(1).blockFirst();
+      assertEquals(1, first);
+    }
+  }
+
   private GreetingService createProxy() {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
