@@ -1,12 +1,14 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_ADDED;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_LEAVING;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
@@ -55,11 +57,13 @@ public class ServiceRegistryTest {
 
     Mono.when(ms1.shutdown(), ms2.shutdown()).then(Mono.delay(TIMEOUT)).block();
 
-    assertEquals(4, events.size());
-    assertEquals(Type.ENDPOINT_ADDED, events.get(0).type());
-    assertEquals(Type.ENDPOINT_ADDED, events.get(1).type());
-    assertEquals(Type.ENDPOINT_REMOVED, events.get(2).type());
-    assertEquals(Type.ENDPOINT_REMOVED, events.get(3).type());
+    assertEquals(6, events.size());
+    assertEquals(ENDPOINT_ADDED, events.get(0).type());
+    assertEquals(ENDPOINT_ADDED, events.get(1).type());
+    assertEquals(ENDPOINT_LEAVING, events.get(2).type());
+    assertEquals(ENDPOINT_LEAVING, events.get(3).type());
+    assertEquals(ENDPOINT_REMOVED, events.get(4).type());
+    assertEquals(ENDPOINT_REMOVED, events.get(5).type());
 
     seed.shutdown().block();
   }
@@ -99,7 +103,7 @@ public class ServiceRegistryTest {
                       .startAwait();
               cluster.add(ms1);
             })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .then(
             () -> {
               Microservices ms2 =
@@ -110,27 +114,25 @@ public class ServiceRegistryTest {
                       .startAwait();
               cluster.add(ms2);
             })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_ADDED, event.type()))
-        .then(
-            () -> {
-              Microservices ms2 = cluster.remove(2);
-              ms2.shutdown().then(Mono.delay(TIMEOUT)).block();
-            })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_REMOVED, event.type()))
-        .then(
-            () -> {
-              Microservices ms1 = cluster.remove(1);
-              ms1.shutdown().then(Mono.delay(TIMEOUT)).block();
-            })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_REMOVED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .then(() -> cluster.remove(2).shutdown().block())
+        .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .thenAwait(TIMEOUT)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
+        .then(() -> cluster.remove(1).shutdown().block())
+        .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .thenAwait(TIMEOUT)
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
         .thenCancel()
         .verify(TIMEOUT);
 
     StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
-        .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
-        .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
-        .assertNext(type -> assertEquals(Type.ENDPOINT_REMOVED, type))
-        .assertNext(type -> assertEquals(Type.ENDPOINT_REMOVED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_LEAVING, type))
+        .assertNext(type -> assertEquals(ENDPOINT_REMOVED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_LEAVING, type))
+        .assertNext(type -> assertEquals(ENDPOINT_REMOVED, type))
         .thenCancel()
         .verify(TIMEOUT);
 
@@ -168,7 +170,7 @@ public class ServiceRegistryTest {
                       .startAwait();
               cluster.add(ms1);
             })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .then(
             () -> {
               Microservices ms2 =
@@ -179,13 +181,13 @@ public class ServiceRegistryTest {
                       .startAwait();
               cluster.add(ms2);
             })
-        .assertNext(event -> assertEquals(Type.ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .thenCancel()
         .verify(TIMEOUT);
 
     StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
-        .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
-        .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
+        .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .thenCancel()
         .verify(TIMEOUT);
 
