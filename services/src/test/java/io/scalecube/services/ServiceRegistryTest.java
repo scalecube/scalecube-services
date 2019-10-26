@@ -22,6 +22,8 @@ import reactor.test.StepVerifier;
 
 public class ServiceRegistryTest {
 
+  public static final Duration TIMEOUT = Duration.ofSeconds(6);
+
   @Test
   public void test_added_removed_registration_events() {
 
@@ -51,7 +53,7 @@ public class ServiceRegistryTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    Mono.when(ms1.shutdown(), ms2.shutdown()).block(Duration.ofSeconds(6));
+    Mono.when(ms1.shutdown(), ms2.shutdown()).then(Mono.delay(TIMEOUT)).block();
 
     assertEquals(4, events.size());
     assertEquals(Type.ENDPOINT_ADDED, events.get(0).type());
@@ -59,7 +61,7 @@ public class ServiceRegistryTest {
     assertEquals(Type.ENDPOINT_REMOVED, events.get(2).type());
     assertEquals(Type.ENDPOINT_REMOVED, events.get(3).type());
 
-    seed.shutdown().block(Duration.ofSeconds(6));
+    seed.shutdown().block();
   }
 
   private static ServiceDiscovery serviceDiscovery(
@@ -112,17 +114,17 @@ public class ServiceRegistryTest {
         .then(
             () -> {
               Microservices ms2 = cluster.remove(2);
-              ms2.shutdown().subscribe();
+              ms2.shutdown().then(Mono.delay(TIMEOUT)).block();
             })
         .assertNext(event -> assertEquals(Type.ENDPOINT_REMOVED, event.type()))
         .then(
             () -> {
               Microservices ms1 = cluster.remove(1);
-              ms1.shutdown().subscribe();
+              ms1.shutdown().then(Mono.delay(TIMEOUT)).block();
             })
         .assertNext(event -> assertEquals(Type.ENDPOINT_REMOVED, event.type()))
         .thenCancel()
-        .verify(Duration.ofSeconds(6));
+        .verify(TIMEOUT);
 
     StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
@@ -130,10 +132,11 @@ public class ServiceRegistryTest {
         .assertNext(type -> assertEquals(Type.ENDPOINT_REMOVED, type))
         .assertNext(type -> assertEquals(Type.ENDPOINT_REMOVED, type))
         .thenCancel()
-        .verify(Duration.ofSeconds(6));
+        .verify(TIMEOUT);
 
     Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
-        .block(Duration.ofSeconds(6));
+        .then(Mono.delay(TIMEOUT))
+        .block();
   }
 
   @Test
@@ -178,15 +181,16 @@ public class ServiceRegistryTest {
             })
         .assertNext(event -> assertEquals(Type.ENDPOINT_ADDED, event.type()))
         .thenCancel()
-        .verify(Duration.ofSeconds(6));
+        .verify(TIMEOUT);
 
     StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(Type.ENDPOINT_ADDED, type))
         .thenCancel()
-        .verify(Duration.ofSeconds(6));
+        .verify(TIMEOUT);
 
     Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
-        .block(Duration.ofSeconds(6));
+        .then(Mono.delay(TIMEOUT))
+        .block();
   }
 }
