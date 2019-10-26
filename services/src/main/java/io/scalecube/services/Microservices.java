@@ -440,12 +440,13 @@ public class Microservices {
                     .listenDiscovery()
                     .subscribe(
                         discoveryEvent -> {
-                          ServiceEndpoint serviceEndpoint1 = discoveryEvent.serviceEndpoint();
                           if (discoveryEvent.isEndpointAdded()) {
-                            serviceRegistry.registerService(serviceEndpoint1);
+                            serviceRegistry.registerService(discoveryEvent.serviceEndpoint());
                           }
-                          if (discoveryEvent.isEndpointRemoved()) {
-                            serviceRegistry.unregisterService(serviceEndpoint1.id());
+                          if (discoveryEvent.isEndpointLeaving()
+                              || discoveryEvent.isEndpointRemoved()) {
+                            serviceRegistry.unregisterService(
+                                discoveryEvent.serviceEndpoint().id());
                           }
                         });
             return Mono.just(discovery);
