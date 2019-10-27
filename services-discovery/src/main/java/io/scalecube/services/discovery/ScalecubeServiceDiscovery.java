@@ -70,8 +70,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     // Add myself to the group if 'groupness' is defined
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
     if (serviceGroup != null) {
-      if (serviceGroup.size() == 0) {
-        throw new IllegalArgumentException("serviceGroup is invalid, size can't be 0");
+      if (serviceGroup.size() <= 0) {
+        throw new IllegalArgumentException("serviceGroup is invalid: " + serviceGroup.size());
       }
       addToGroup(serviceGroup, serviceEndpoint);
     }
@@ -167,20 +167,17 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private void onMembershipEvent(
       MembershipEvent membershipEvent, FluxSink<ServiceDiscoveryEvent> sink) {
+    LOGGER.info("onMembershipEvent: {}", membershipEvent);
 
     ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
-
     if (discoveryEvent == null) {
-      LOGGER.info("onMembershipEvent: {}", membershipEvent);
+      LOGGER.warn(
+          "Not publishing discoveryEvent, discoveryEvent is null, membershipEvent: {}",
+          membershipEvent);
       return;
     }
 
-    LOGGER.info(
-        "onMembershipEvent: {}, service endpoint: {}",
-        membershipEvent,
-        discoveryEvent.serviceEndpoint().id());
-
-    // publish discovery event
+    LOGGER.info("Publish discoveryEvent: {}", discoveryEvent);
     sink.next(discoveryEvent);
 
     // handle groups and publish group discovery event, if needed
@@ -204,7 +201,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       LOGGER_GROUP.info(
-          "Added service endpoint {} to group {} (size now {})",
+          "Added serviceEndpoint={} to group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
@@ -213,7 +210,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       sink.next(ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
       if (isGroupAdded) {
-        LOGGER_GROUP.info("Service group {} added to the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupAdded(groupId, endpoints);
       }
     }
@@ -222,8 +218,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     if (discoveryEvent.isEndpointLeaving() || discoveryEvent.isEndpointRemoved()) {
       if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
         LOGGER_GROUP.warn(
-            "Failed to remove service endpoint {} from group {}, "
-                + "there were no such group or service endpoint was never registered in group",
+            "Failed to remove serviceEndpoint={} from group {}, "
+                + "there were no such group or serviceEndpoint was never registered in the group",
             serviceEndpoint.id(),
             groupId);
         return;
@@ -232,7 +228,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
       LOGGER_GROUP.info(
-          "Removed service endpoint {} from group {} (size now {})",
+          "Removed serviceEndpoint={} from group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
@@ -241,13 +237,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
           ServiceDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
 
       if (endpoints.isEmpty()) {
-        LOGGER_GROUP.info("Service group {} removed from the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupRemoved(groupId);
       }
     }
 
     // publish group event
     if (groupDiscoveryEvent != null) {
+      LOGGER.info("Publish discoveryEvent: {}", discoveryEvent);
       sink.next(groupDiscoveryEvent);
     }
   }
