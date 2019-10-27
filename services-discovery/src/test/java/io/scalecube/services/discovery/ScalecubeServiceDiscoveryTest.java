@@ -671,7 +671,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     Flux<ServiceDiscoveryEvent> allDiscoveryEvents() {
-      return discoveryEvents.log("discoveryEvents").onBackpressureBuffer();
+      return discoveryEvents.onBackpressureBuffer();
     }
 
     RecordingServiceDiscovery resubscribe() {
@@ -691,7 +691,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
     private RecordingServiceDiscovery subscribe(ServiceDiscovery serviceDiscovery) {
       this.serviceDiscovery = serviceDiscovery;
-      this.serviceDiscovery.listenDiscovery().log("listenDiscovery").subscribe(discoveryEvents);
+      this.serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
       this.serviceDiscovery.start().block();
       return this;
     }
