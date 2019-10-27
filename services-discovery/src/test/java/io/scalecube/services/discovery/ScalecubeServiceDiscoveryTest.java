@@ -530,6 +530,35 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
+  public void testServiceGroupDiscoveryAsSeedOnBehalfOfNonGroupMember(TestInfo testInfo) {
+    String groupId = groupId(testInfo);
+
+    int groupSize = 1;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceGroupDiscoveryAsSeed(groupId, groupSize));
+
+    Address seedAddress = r1.serviceDiscovery.address();
+
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+
+    StepVerifier.create(r1.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+
+    StepVerifier.create(r2.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(event -> assertEquals(GROUP_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void testGroupIsNotRemovedAsLongAsOneIsLeft(TestInfo testInfo) {
     String groupId = groupId(testInfo);
 
@@ -642,11 +671,11 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     Flux<ServiceDiscoveryEvent> allDiscoveryEvents() {
-      return discoveryEvents;
+      return discoveryEvents.log("discoveryEvents").onBackpressureBuffer();
     }
 
     RecordingServiceDiscovery resubscribe() {
-      return new RecordingServiceDiscovery(this).subscribe();
+      return new RecordingServiceDiscovery(this).subscribe(serviceDiscovery);
     }
 
     RecordingServiceDiscovery recreate() {
@@ -656,19 +685,14 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery(supplier);
       Mono<ServiceDiscovery> serviceDiscoveryMono = supplier.get();
-      serviceDiscoveryMono
-          .log("serviceDiscovery", Level.INFO)
-          .subscribe(
-              serviceDiscovery -> {
-                result.serviceDiscovery = serviceDiscovery;
-                result.subscribe();
-                result.serviceDiscovery.start().block();
-              });
+      serviceDiscoveryMono.log("serviceDiscovery", Level.INFO).subscribe(result::subscribe);
       return result;
     }
 
-    private RecordingServiceDiscovery subscribe() {
-      serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
+    private RecordingServiceDiscovery subscribe(ServiceDiscovery serviceDiscovery) {
+      this.serviceDiscovery = serviceDiscovery;
+      this.serviceDiscovery.listenDiscovery().log("listenDiscovery").subscribe(discoveryEvents);
+      this.serviceDiscovery.start().block();
       return this;
     }
 
