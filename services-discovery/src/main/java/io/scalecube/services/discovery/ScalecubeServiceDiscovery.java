@@ -141,11 +141,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
                     };
                   })
               .start()
-              .doOnSuccess(
-                  cluster -> {
-                    this.cluster = cluster;
-                    LOGGER.debug("Started {} with config -- {}", cluster, clusterConfig);
-                  })
+              .doOnSuccess(cluster -> this.cluster = cluster)
               .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
               .thenReturn(this);
         });
@@ -207,7 +203,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       boolean isGroupAdded = addToGroup(serviceGroup, serviceEndpoint);
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER_GROUP.debug(
+      LOGGER_GROUP.info(
           "Added service endpoint {} to group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
@@ -235,7 +231,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER_GROUP.debug(
+      LOGGER_GROUP.info(
           "Removed service endpoint {} from group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
