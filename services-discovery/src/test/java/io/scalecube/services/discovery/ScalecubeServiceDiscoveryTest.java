@@ -11,16 +11,17 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.scalecube.cluster.ClusterMath;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
+import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.time.Duration;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
   public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
+  public static final AtomicInteger ID_COUNTER = new AtomicInteger();
+  public static final GossipConfig GOSSIP_CONFIG = GossipConfig.defaultLocalConfig();
+  public static final MembershipConfig MEMBERSHIP_CONFIG = MembershipConfig.defaultLocalConfig();
+  public static final int CLUSTER_SIZE = 3 + 1; // r1 + r2 + r3 (plus 1 for be sure)
 
   @BeforeAll
   public static void setUp() {
@@ -58,7 +63,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -96,7 +104,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -123,7 +134,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     r3 = r3.recreate();
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -138,7 +152,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testGroupIsUpdated(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -200,7 +214,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testGroupIsAdded(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -234,7 +248,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testGroupMembersRestarted(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -291,7 +305,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testSameGroupIdDifferentGroupSizes(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -342,7 +356,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testSameGroupIdSameGroupSizeWithSeveralInstances(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -373,7 +387,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testSingleNodeGroupIsStillGroup(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -407,7 +421,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   @Test
   public void testGroupEventsOnBehalfOfNonGroupMember(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -481,8 +495,71 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
+  public void testServiceGroupDiscoveryAsSeed(TestInfo testInfo) {
+    String groupId = groupId(testInfo);
+
+    int groupSize = 3;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceGroupDiscoveryAsSeed(groupId, groupSize));
+
+    Address seedAddress = r1.serviceDiscovery.address();
+
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+  }
+
+  @Test
+  public void testServiceGroupDiscoveryAsSeedOnBehalfOfNonGroupMember(TestInfo testInfo) {
+    String groupId = groupId(testInfo);
+
+    int groupSize = 1;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceGroupDiscoveryAsSeed(groupId, groupSize));
+
+    Address seedAddress = r1.serviceDiscovery.address();
+
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+
+    StepVerifier.create(r1.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+
+    StepVerifier.create(r2.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(event -> assertEquals(GROUP_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void testGroupIsNotRemovedAsLongAsOneIsLeft(TestInfo testInfo) {
-    String groupId = Integer.toHexString(testInfo.getDisplayName().hashCode());
+    String groupId = groupId(testInfo);
 
     Address seedAddress = startSeed();
 
@@ -516,12 +593,12 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return ServiceEndpoint.builder().id(UUID.randomUUID().toString()).build();
+    return ServiceEndpoint.builder().id("" + ID_COUNTER.incrementAndGet()).build();
   }
 
   public static ServiceEndpoint newServiceGroupEndpoint(String groupId, int groupSize) {
     return ServiceEndpoint.builder()
-        .id(UUID.randomUUID().toString())
+        .id("" + ID_COUNTER.incrementAndGet())
         .serviceGroup(groupId, groupSize)
         .build();
   }
@@ -532,8 +609,19 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
           return new ScalecubeServiceDiscovery(serviceEndpoint)
-              .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
+              .options(opts -> opts.gossip(cfg -> GOSSIP_CONFIG))
+              .options(opts -> opts.membership(cfg -> MEMBERSHIP_CONFIG))
               .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
+        });
+  }
+
+  public Mono<ServiceDiscovery> newServiceGroupDiscoveryAsSeed(String groupId, int groupSize) {
+    return Mono.fromCallable(
+        () -> {
+          ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
+          return new ScalecubeServiceDiscovery(serviceEndpoint)
+              .options(opts -> opts.gossip(cfg -> GOSSIP_CONFIG))
+              .options(opts -> opts.membership(cfg -> MEMBERSHIP_CONFIG));
         });
   }
 
@@ -542,14 +630,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () -> {
           ServiceEndpoint serviceEndpoint = newServiceEndpoint();
           return new ScalecubeServiceDiscovery(serviceEndpoint)
-              .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
+              .options(opts -> opts.gossip(cfg -> GOSSIP_CONFIG))
+              .options(opts -> opts.membership(cfg -> MEMBERSHIP_CONFIG))
               .options(opts -> opts.membership(cfg -> cfg.seedMembers(seedAddress)));
         });
   }
 
   private Address startSeed() {
     return new ScalecubeServiceDiscovery(newServiceEndpoint())
-        .options(opts -> opts.gossip(cfg -> GossipConfig.defaultLocalConfig()))
+        .options(opts -> opts.gossip(cfg -> GOSSIP_CONFIG))
+        .options(opts -> opts.membership(cfg -> MEMBERSHIP_CONFIG))
         .start()
         .block()
         .address();
@@ -571,12 +661,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
       this.supplier = other.supplier;
     }
 
-    Flux<ServiceDiscoveryEvent> discoveryEvents() {
-      return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterDiscoveryEvents);
+    Flux<ServiceDiscoveryEvent> nonGroupDiscoveryEvents() {
+      return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterNonGroupDiscoveryEvents);
     }
 
     Flux<ServiceDiscoveryEvent> groupDiscoveryEvents() {
       return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterGroupDiscoveryEvents);
+    }
+
+    Flux<ServiceDiscoveryEvent> allDiscoveryEvents() {
+      return discoveryEvents.onBackpressureBuffer();
     }
 
     RecordingServiceDiscovery resubscribe() {
@@ -590,14 +684,12 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery(supplier);
       Mono<ServiceDiscovery> serviceDiscoveryMono = supplier.get();
-      serviceDiscoveryMono
-          .log("serviceDiscovery", Level.INFO)
-          .subscribe(
-              serviceDiscovery -> {
-                result.serviceDiscovery = serviceDiscovery;
-                result.subscribe();
-                result.serviceDiscovery.start().block();
-              });
+      serviceDiscoveryMono.subscribe(
+          serviceDiscovery -> {
+            result.serviceDiscovery = serviceDiscovery;
+            result.subscribe();
+            result.serviceDiscovery.start().block();
+          });
       return result;
     }
 
@@ -607,12 +699,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     RecordingServiceDiscovery shutdown() {
-      serviceDiscovery.shutdown().block();
+      int pingInterval = FailureDetectorConfig.defaultLocalConfig().pingInterval();
+      long timeout =
+          ClusterMath.suspicionTimeout(
+              MEMBERSHIP_CONFIG.suspicionMult(), CLUSTER_SIZE, pingInterval);
+      serviceDiscovery.shutdown().then(Mono.delay(Duration.ofMillis(timeout))).block();
       return this;
     }
   }
 
-  private static boolean filterDiscoveryEvents(ServiceDiscoveryEvent event) {
+  private static boolean filterNonGroupDiscoveryEvents(ServiceDiscoveryEvent event) {
     return event.isEndpointAdded() || event.isEndpointRemoved();
   }
 
@@ -621,5 +717,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         || event.isEndpointRemovedFromTheGroup()
         || event.isGroupAdded()
         || event.isGroupRemoved();
+  }
+
+  private String groupId(TestInfo testInfo) {
+    return Integer.toHexString(testInfo.getDisplayName().hashCode());
   }
 }

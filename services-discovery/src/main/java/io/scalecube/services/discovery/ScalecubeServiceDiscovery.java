@@ -44,8 +44,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER =
       LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceDiscovery");
-  private static final Logger LOGGER_GROUP =
-      LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceGroupDiscovery");
 
   private final ServiceEndpoint serviceEndpoint;
 
@@ -70,8 +68,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     // Add myself to the group if 'groupness' is defined
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
     if (serviceGroup != null) {
-      if (serviceGroup.size() == 0) {
-        throw new IllegalArgumentException("serviceGroup is invalid, size can't be 0");
+      if (serviceGroup.size() <= 0) {
+        throw new IllegalArgumentException("serviceGroup is invalid: " + serviceGroup.size());
       }
       addToGroup(serviceGroup, serviceEndpoint);
     }
@@ -136,16 +134,12 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
                     return new ClusterMessageHandler() {
                       @Override
                       public void onMembershipEvent(MembershipEvent event) {
-                        ScalecubeServiceDiscovery.this.onMembershipEvent(event, sink);
+                        ScalecubeServiceDiscovery.this.onMembershipEvent(event);
                       }
                     };
                   })
               .start()
-              .doOnSuccess(
-                  cluster -> {
-                    this.cluster = cluster;
-                    LOGGER.debug("Started {} with config -- {}", cluster, clusterConfig);
-                  })
+              .doOnSuccess(cluster -> this.cluster = cluster)
               .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
               .thenReturn(this);
         });
@@ -169,56 +163,33 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
         });
   }
 
-  private void onMembershipEvent(
-      MembershipEvent membershipEvent, FluxSink<ServiceDiscoveryEvent> sink) {
+  private void onMembershipEvent(MembershipEvent membershipEvent) {
+    LOGGER.debug("onMembershipEvent: {}", membershipEvent);
 
-    if (membershipEvent.isAdded()) {
-      LOGGER.debug("Member {} has joined the cluster", membershipEvent.member());
-    }
-    if (membershipEvent.isRemoved()) {
-      LOGGER.debug("Member {} has left the cluster", membershipEvent.member());
-    }
-
-    ServiceEndpoint serviceEndpoint = getServiceEndpoint(membershipEvent);
-
-    if (serviceEndpoint == null) {
+    ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
+    if (discoveryEvent == null) {
+      LOGGER.warn(
+          "Not publishing discoveryEvent, discoveryEvent is null, membershipEvent: {}",
+          membershipEvent);
       return;
     }
 
-    if (membershipEvent.isAdded()) {
-      LOGGER.info(
-          "Service endpoint {} is about to be added, since member {} has joined the cluster",
-          serviceEndpoint.id(),
-          membershipEvent.member());
-    }
-    if (membershipEvent.isRemoved()) {
-      LOGGER.info(
-          "Service endpoint {} is about to be removed, since member {} have left the cluster",
-          serviceEndpoint.id(),
-          membershipEvent.member());
-    }
+    publishEvent(discoveryEvent);
 
-    ServiceDiscoveryEvent discoveryEvent = null;
-
-    if (membershipEvent.isAdded()) {
-      discoveryEvent = ServiceDiscoveryEvent.newEndpointAdded(serviceEndpoint);
-    }
-    if (membershipEvent.isRemoved()) {
-      discoveryEvent = ServiceDiscoveryEvent.newEndpointRemoved(serviceEndpoint);
-    }
-
-    if (discoveryEvent != null) {
-      sink.next(discoveryEvent);
-
-      if (discoveryEvent.serviceEndpoint().serviceGroup() != null) {
-        onDiscoveryEvent(discoveryEvent, sink);
-      }
+    // handle groups and publish group discovery event, if needed
+    if (discoveryEvent.serviceEndpoint().serviceGroup() != null) {
+      onDiscoveryEvent(discoveryEvent);
     }
   }
 
-  private void onDiscoveryEvent(
-      ServiceDiscoveryEvent discoveryEvent, FluxSink<ServiceDiscoveryEvent> sink) {
+  private void publishEvent(ServiceDiscoveryEvent discoveryEvent) {
+    if (discoveryEvent != null) {
+      LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
+      sink.next(discoveryEvent);
+    }
+  }
 
+  private void onDiscoveryEvent(ServiceDiscoveryEvent discoveryEvent) {
     ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
     ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
 
@@ -230,27 +201,27 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       boolean isGroupAdded = addToGroup(serviceGroup, serviceEndpoint);
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER_GROUP.debug(
-          "Added service endpoint {} to group {} (size now {})",
+      LOGGER.debug(
+          "Added serviceEndpoint={} to group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
 
       // publish event regardless of isGroupAdded result
-      sink.next(ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
+      publishEvent(
+          ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
 
       if (isGroupAdded) {
-        LOGGER_GROUP.info("Service group {} added to the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupAdded(groupId, endpoints);
       }
     }
 
     // handle removal from group
-    if (discoveryEvent.isEndpointRemoved()) {
+    if (discoveryEvent.isEndpointLeaving() || discoveryEvent.isEndpointRemoved()) {
       if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
-        LOGGER_GROUP.warn(
-            "Failed to remove service endpoint {} from group {}, "
-                + "there were no such group or service endpoint was never registered in group",
+        LOGGER.warn(
+            "Failed to remove serviceEndpoint={} from group {}, "
+                + "there were no such group or serviceEndpoint was never registered in the group",
             serviceEndpoint.id(),
             groupId);
         return;
@@ -258,25 +229,22 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER_GROUP.debug(
-          "Removed service endpoint {} from group {} (size now {})",
+      LOGGER.debug(
+          "Removed serviceEndpoint={} from group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
           endpoints.size());
 
-      sink.next(
+      publishEvent(
           ServiceDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
 
       if (endpoints.isEmpty()) {
-        LOGGER_GROUP.info("Service group {} removed from the cluster", serviceGroup);
         groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupRemoved(groupId);
       }
     }
 
-    // post group event
-    if (groupDiscoveryEvent != null) {
-      sink.next(groupDiscoveryEvent);
-    }
+    // publish group event
+    publishEvent(groupDiscoveryEvent);
   }
 
   public Collection<ServiceEndpoint> getEndpointsFromGroup(ServiceGroup group) {
@@ -330,15 +298,25 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return removed;
   }
 
-  private ServiceEndpoint getServiceEndpoint(MembershipEvent membershipEvent) {
-    ServiceEndpoint metadata = null;
-    if (membershipEvent.isAdded()) {
-      metadata = (ServiceEndpoint) decode(membershipEvent.newMetadata());
+  private ServiceDiscoveryEvent toServiceDiscoveryEvent(MembershipEvent membershipEvent) {
+    ServiceDiscoveryEvent discoveryEvent = null;
+
+    if (membershipEvent.isAdded() && membershipEvent.newMetadata() != null) {
+      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.newMetadata());
+      discoveryEvent = ServiceDiscoveryEvent.newEndpointAdded(serviceEndpoint);
     }
-    if (membershipEvent.isRemoved()) {
-      metadata = (ServiceEndpoint) decode(membershipEvent.oldMetadata());
+
+    if (membershipEvent.isRemoved() && membershipEvent.oldMetadata() != null) {
+      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.oldMetadata());
+      discoveryEvent = ServiceDiscoveryEvent.newEndpointRemoved(serviceEndpoint);
     }
-    return metadata;
+
+    if (membershipEvent.isLeaving() && membershipEvent.newMetadata() != null) {
+      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.newMetadata());
+      discoveryEvent = ServiceDiscoveryEvent.newEndpointLeaving(serviceEndpoint);
+    }
+
+    return discoveryEvent;
   }
 
   private Object decode(ByteBuffer byteBuffer) {

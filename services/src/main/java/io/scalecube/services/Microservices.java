@@ -114,7 +114,7 @@ public class Microservices {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
-  private final String id;
+  private final String id = generateId();
   private final Metrics metrics;
   private final Map<String, String> tags;
   private final List<ServiceProvider> serviceProviders;
@@ -130,7 +130,6 @@ public class Microservices {
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
   private Microservices(Builder builder) {
-    this.id = generateId();
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
@@ -147,7 +146,7 @@ public class Microservices {
     shutdown
         .then(doShutdown())
         .doFinally(s -> onShutdown.onComplete())
-        .subscribe(null, ex -> LOGGER.warn("Exception occurred on microservices stop: " + ex));
+        .subscribe(null, ex -> LOGGER.warn("Exception occurred on shutdown: " + ex));
   }
 
   public static Builder builder() {
@@ -162,12 +161,16 @@ public class Microservices {
     return Long.toHexString(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
   }
 
+  @Override
+  public String toString() {
+    return "Microservices@" + id;
+  }
+
   private Mono<Microservices> start() {
-    LOGGER.info("Starting microservices {}", id);
+    LOGGER.info("Starting {}", this);
 
     // Create bootstrap scheduler
-    String schedulerName = "microservices" + Integer.toHexString(id.hashCode());
-    Scheduler scheduler = Schedulers.newSingle(schedulerName, true);
+    Scheduler scheduler = Schedulers.newSingle(toString(), true);
 
     return transportBootstrap
         .start(methodRegistry)
@@ -296,12 +299,12 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Shutting down microservices {}", id);
+          LOGGER.info("Shutting down {}", this);
           return Mono.whenDelayError(
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
-              .doFinally(s -> LOGGER.info("Microservices {} has been shut down", id));
+              .doFinally(s -> LOGGER.info("{} has been shut down", this));
         });
   }
 
@@ -440,12 +443,13 @@ public class Microservices {
                     .listenDiscovery()
                     .subscribe(
                         discoveryEvent -> {
-                          ServiceEndpoint serviceEndpoint1 = discoveryEvent.serviceEndpoint();
                           if (discoveryEvent.isEndpointAdded()) {
-                            serviceRegistry.registerService(serviceEndpoint1);
+                            serviceRegistry.registerService(discoveryEvent.serviceEndpoint());
                           }
-                          if (discoveryEvent.isEndpointRemoved()) {
-                            serviceRegistry.unregisterService(serviceEndpoint1.id());
+                          if (discoveryEvent.isEndpointLeaving()
+                              || discoveryEvent.isEndpointRemoved()) {
+                            serviceRegistry.unregisterService(
+                                discoveryEvent.serviceEndpoint().id());
                           }
                         });
             return Mono.just(discovery);
@@ -462,20 +466,20 @@ public class Microservices {
           () -> {
             if (discovery == null) {
               throw new IllegalStateException(
-                  "Create service discovery instance before starting it");
+                  "Create ServiceDiscovery instance before starting it");
             }
-            LOGGER.info("Starting service discovery -- {}", discovery);
+            LOGGER.debug("Starting ServiceDiscovery");
             return discovery
                 .start()
                 .doOnSuccess(
                     serviceDiscovery -> {
                       discovery = serviceDiscovery;
-                      LOGGER.info("Successfully started service discovery -- {}", discovery);
+                      LOGGER.debug("Successfully started ServiceDiscovery -- {}", discovery);
                     })
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Failed to start service discovery -- {}, cause: ", discovery, ex));
+                            "Failed to start ServiceDiscovery -- {}, cause: ", discovery, ex));
           });
     }
 
@@ -491,14 +495,9 @@ public class Microservices {
                           disposable.dispose();
                         }
                         if (discovery != null) {
-                          LOGGER.info("Service discovery -- {} has been stopped", discovery);
+                          LOGGER.debug("ServiceDiscovery -- {} has been stopped", discovery);
                         }
                       }));
-    }
-
-    @Override
-    public String toString() {
-      return "ServiceDiscoveryBootstrap{" + "discovery=" + discovery + '}';
     }
   }
 
@@ -517,20 +516,20 @@ public class Microservices {
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                LOGGER.info("Starting gateway -- {} with {}", gateway, options);
+                LOGGER.debug("Starting Gateway");
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
                     .doOnSuccess(
                         result ->
-                            LOGGER.info(
-                                "Successfully started gateway -- {} on {}",
+                            LOGGER.debug(
+                                "Successfully started Gateway -- {} on {}",
                                 result,
                                 result.address()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to start gateway -- {} with {}, cause: ",
+                                "Failed to start Gateway -- {} with {}, cause: ",
                                 gateway,
                                 options,
                                 ex));
@@ -545,7 +544,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (!gateways.isEmpty()) {
-                          LOGGER.info("Gateways have been stopped");
+                          LOGGER.debug("Gateways have been stopped");
                         }
                       }));
     }
@@ -559,12 +558,7 @@ public class Microservices {
           .filter(gw -> gw.id().equals(id))
           .findFirst()
           .orElseThrow(
-              () -> new IllegalArgumentException("Didn't find gateway under id: '" + id + "'"));
-    }
-
-    @Override
-    public String toString() {
-      return "GatewayBootstrap{" + "gateways=" + gateways + '}';
+              () -> new IllegalArgumentException("Didn't find gateway by id: '" + id + "'"));
     }
   }
 
@@ -606,7 +600,7 @@ public class Microservices {
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to bind server service " + "transport -- {} cause: ",
+                                "Failed to bind ServerTransport -- {} cause: ",
                                 serverTransport,
                                 ex));
               })
@@ -618,15 +612,15 @@ public class Microservices {
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
 
-                LOGGER.info(
-                    "Successfully bound server service transport -- {} on address {}",
+                LOGGER.debug(
+                    "Successfully bound ServerTransport -- {} on address {}",
                     this.serverTransport,
                     this.address);
 
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.info(
-                    "Successfully created client service transport -- {}", this.clientTransport);
+                LOGGER.debug(
+                    "Successfully created ClientTransport -- {}", this.clientTransport);
                 return this;
               });
     }
@@ -642,20 +636,6 @@ public class Microservices {
                           .map(ServiceTransport::stop)
                           .orElse(Mono.empty()))
                   .then());
-    }
-
-    @Override
-    public String toString() {
-      return "ServiceTransportBootstrap{"
-          + "serviceTransport="
-          + serviceTransport
-          + ", clientTransport="
-          + clientTransport
-          + ", serverTransport="
-          + serverTransport
-          + ", address="
-          + address
-          + '}';
     }
   }
 
@@ -676,7 +656,7 @@ public class Microservices {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
+          new ObjectName("io.scalecube.services:name=" + instance.toString());
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
