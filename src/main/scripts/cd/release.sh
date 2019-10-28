@@ -50,7 +50,7 @@ check_tag_for_rc
 
 mvn -P release -Darguments=-DskipTests release:prepare release:perform $MVN_RELEASE_VERSION $MVN_NEXT_VERSION -DautoVersionSubmodules=true -DscmCommentPrefix="$TRAVIS_COMMIT_MESSAGE [skip ci] " -B -V -s travis-settings.xml || exit 126
 
-mvn clean
+mvn -B -q clean 
 
 if [ -z "$NEW_RC_VERSION" ]; then 
   commit_to_develop
