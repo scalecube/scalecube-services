@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class ServiceEndpoint {
@@ -82,18 +83,14 @@ public class ServiceEndpoint {
 
   @Override
   public String toString() {
-    return "ServiceEndpoint{"
-        + "id='"
-        + id
-        + '\''
-        + ", address='"
-        + address
-        + '\''
-        + ", tags="
-        + tags
-        + ", serviceRegistrations="
-        + serviceRegistrations
-        + '}';
+    return new StringJoiner(", ", ServiceEndpoint.class.getSimpleName() + "[", "]")
+        .add("id='" + id + "'")
+        .add("address=" + address)
+        .add("contentTypes=" + contentTypes)
+        .add("tags(" + tags.size() + ")")
+        .add("serviceRegistrations(" + serviceRegistrations.size() + ")")
+        .add("serviceGroup=" + serviceGroup)
+        .toString();
   }
 
   public static class Builder {

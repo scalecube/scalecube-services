@@ -34,6 +34,7 @@ import reactor.test.StepVerifier;
 public class ServiceRemoteTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
+  public static final Duration TIMEOUT2 = Duration.ofSeconds(6);
 
   private static Microservices gateway;
   private static Microservices provider;
@@ -276,7 +277,7 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<String> future = service.callGreeting("joe");
 
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
-    provider.shutdown().block();
+    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
   }
 
   @Test
@@ -297,7 +298,7 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
-    provider.shutdown().block();
+    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
   }
 
   @Test
@@ -321,7 +322,7 @@ public class ServiceRemoteTest extends BaseTest {
             () -> Mono.from(service.callGreetingTimeout("joe")).block());
     assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
     System.out.println("done");
-    ms.shutdown();
+    ms.shutdown().then(Mono.delay(TIMEOUT2)).block();
   }
 
   @Test
@@ -344,7 +345,7 @@ public class ServiceRemoteTest extends BaseTest {
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
 
-    provider.shutdown().block();
+    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
   }
 
   @Test

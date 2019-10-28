@@ -11,10 +11,11 @@ public class ServiceDiscoveryEvent {
 
   public enum Type {
     ENDPOINT_ADDED, // service endpoint added
+    ENDPOINT_LEAVING, // service endpoint is leaving
     ENDPOINT_REMOVED, // service endpoint removed
     ENDPOINT_ADDED_TO_GROUP, // service endpoint added to the group
-    GROUP_ADDED, // service endpoint group added
     ENDPOINT_REMOVED_FROM_GROUP, // service endpoint added from the group
+    GROUP_ADDED, // service endpoint group added
     GROUP_REMOVED // service endpoint group removed
   }
 
@@ -30,7 +31,7 @@ public class ServiceDiscoveryEvent {
    * @param serviceEndpoint service endpoint
    */
   private ServiceDiscoveryEvent(Type type, ServiceEndpoint serviceEndpoint) {
-    this(type, serviceEndpoint, null, Collections.emptyList());
+    this(type, serviceEndpoint, null /*group*/, Collections.emptyList() /*endpoints*/);
   }
 
   /**
@@ -54,6 +55,10 @@ public class ServiceDiscoveryEvent {
 
   public static ServiceDiscoveryEvent newEndpointAdded(ServiceEndpoint serviceEndpoint) {
     return new ServiceDiscoveryEvent(Type.ENDPOINT_ADDED, serviceEndpoint);
+  }
+
+  public static ServiceDiscoveryEvent newEndpointLeaving(ServiceEndpoint serviceEndpoint) {
+    return new ServiceDiscoveryEvent(Type.ENDPOINT_LEAVING, serviceEndpoint);
   }
 
   public static ServiceDiscoveryEvent newEndpointRemoved(ServiceEndpoint serviceEndpoint) {
@@ -109,16 +114,12 @@ public class ServiceDiscoveryEvent {
     return Type.ENDPOINT_ADDED == type;
   }
 
+  public boolean isEndpointLeaving() {
+    return Type.ENDPOINT_LEAVING == type;
+  }
+
   public boolean isEndpointRemoved() {
     return Type.ENDPOINT_REMOVED == type;
-  }
-
-  public boolean isGroupAdded() {
-    return Type.GROUP_ADDED == type;
-  }
-
-  public boolean isGroupRemoved() {
-    return Type.GROUP_REMOVED == type;
   }
 
   public boolean isEndpointAddedToTheGroup() {
@@ -127,6 +128,14 @@ public class ServiceDiscoveryEvent {
 
   public boolean isEndpointRemovedFromTheGroup() {
     return Type.ENDPOINT_REMOVED_FROM_GROUP == type;
+  }
+
+  public boolean isGroupAdded() {
+    return Type.GROUP_ADDED == type;
+  }
+
+  public boolean isGroupRemoved() {
+    return Type.GROUP_REMOVED == type;
   }
 
   @Override
