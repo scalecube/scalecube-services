@@ -64,7 +64,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -102,7 +105,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -129,7 +135,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     r3 = r3.recreate();
 
     StepVerifier.create(
-            Flux.merge(r1.discoveryEvents(), r2.discoveryEvents(), r3.discoveryEvents()))
+            Flux.merge(
+                r1.nonGroupDiscoveryEvents(),
+                r2.nonGroupDiscoveryEvents(),
+                r3.nonGroupDiscoveryEvents()))
         .thenConsumeWhile(
             event -> {
               assertEquals(ENDPOINT_ADDED, event.type());
@@ -487,6 +496,69 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   @Test
+  public void testServiceGroupDiscoveryAsSeed(TestInfo testInfo) {
+    String groupId = groupId(testInfo);
+
+    int groupSize = 3;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceGroupDiscoveryAsSeed(groupId, groupSize));
+
+    Address seedAddress = r1.serviceDiscovery.address();
+
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+    RecordingServiceDiscovery r3 =
+        RecordingServiceDiscovery.create(
+            () -> newServiceGroupDiscovery(seedAddress, groupId, groupSize));
+
+    Stream.of(r1.groupDiscoveryEvents(), r2.groupDiscoveryEvents(), r3.groupDiscoveryEvents())
+        .forEach(
+            rp ->
+                StepVerifier.create(rp)
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+                    .assertNext(
+                        event -> {
+                          assertEquals(GROUP_ADDED, event.type());
+                          assertEquals(groupSize, event.groupSize());
+                        })
+                    .expectNoEvent(SHORT_TIMEOUT)
+                    .thenCancel()
+                    .verify());
+  }
+
+  @Test
+  public void testServiceGroupDiscoveryAsSeedOnBehalfOfNonGroupMember(TestInfo testInfo) {
+    String groupId = groupId(testInfo);
+
+    int groupSize = 1;
+
+    RecordingServiceDiscovery r1 =
+        RecordingServiceDiscovery.create(() -> newServiceGroupDiscoveryAsSeed(groupId, groupSize));
+
+    Address seedAddress = r1.serviceDiscovery.address();
+
+    RecordingServiceDiscovery r2 =
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress));
+
+    StepVerifier.create(r1.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+
+    StepVerifier.create(r2.allDiscoveryEvents())
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED_TO_GROUP, event.type()))
+        .assertNext(event -> assertEquals(GROUP_ADDED, event.type()))
+        .expectNoEvent(SHORT_TIMEOUT)
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void testGroupIsNotRemovedAsLongAsOneIsLeft(TestInfo testInfo) {
     String groupId = groupId(testInfo);
 
@@ -544,6 +616,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         });
   }
 
+  public Mono<ServiceDiscovery> newServiceGroupDiscoveryAsSeed(String groupId, int groupSize) {
+    return Mono.fromCallable(
+        () -> {
+          ServiceEndpoint serviceEndpoint = newServiceGroupEndpoint(groupId, groupSize);
+          return new ScalecubeServiceDiscovery(serviceEndpoint)
+              .options(opts -> opts.gossip(cfg -> GOSSIP_CONFIG))
+              .options(opts -> opts.membership(cfg -> MEMBERSHIP_CONFIG));
+        });
+  }
+
   private Mono<ServiceDiscovery> newServiceDiscovery(Address seedAddress) {
     return Mono.fromCallable(
         () -> {
@@ -580,12 +662,16 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
       this.supplier = other.supplier;
     }
 
-    Flux<ServiceDiscoveryEvent> discoveryEvents() {
-      return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterDiscoveryEvents);
+    Flux<ServiceDiscoveryEvent> nonGroupDiscoveryEvents() {
+      return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterNonGroupDiscoveryEvents);
     }
 
     Flux<ServiceDiscoveryEvent> groupDiscoveryEvents() {
       return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterGroupDiscoveryEvents);
+    }
+
+    Flux<ServiceDiscoveryEvent> allDiscoveryEvents() {
+      return discoveryEvents.onBackpressureBuffer();
     }
 
     RecordingServiceDiscovery resubscribe() {
@@ -625,7 +711,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
   }
 
-  private static boolean filterDiscoveryEvents(ServiceDiscoveryEvent event) {
+  private static boolean filterNonGroupDiscoveryEvents(ServiceDiscoveryEvent event) {
     return event.isEndpointAdded() || event.isEndpointRemoved();
   }
 
