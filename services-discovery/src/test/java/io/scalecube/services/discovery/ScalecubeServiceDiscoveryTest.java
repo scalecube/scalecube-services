@@ -22,7 +22,6 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.logging.Level;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -685,14 +684,12 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery(supplier);
       Mono<ServiceDiscovery> serviceDiscoveryMono = supplier.get();
-      serviceDiscoveryMono
-          .log("serviceDiscovery", Level.INFO)
-          .subscribe(
-              serviceDiscovery -> {
-                result.serviceDiscovery = serviceDiscovery;
-                result.subscribe();
-                result.serviceDiscovery.start().block();
-              });
+      serviceDiscoveryMono.subscribe(
+          serviceDiscovery -> {
+            result.serviceDiscovery = serviceDiscovery;
+            result.subscribe();
+            result.serviceDiscovery.start().block();
+          });
       return result;
     }
 
