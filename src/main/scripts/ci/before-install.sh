@@ -14,7 +14,7 @@ latest=$(curl "https://oss.sonatype.org/service/local/repositories/releases/cont
 
 echo Downloading latest version $latest of codacy reporter from sonatype 
 # download latest assembly jar 
-mvn dependency:get dependency:copy \
+mvn -B -q dependency:get dependency:copy \
    -DoutputDirectory=$HOME \
    -DoutputAbsoluteArtifactFilename=true \
    -Dmdep.stripVersion=true \
