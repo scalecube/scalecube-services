@@ -15,6 +15,7 @@
     <Logger name="io.scalecube.transport" level="info"/>
     <Logger name="io.scalecube.cluster" level="info"/>
     <Logger name="io.scalecube.services" level="info"/>
+    <Logger name="io.scalecube.services.discovery" level="info"/>
 
     <Root level="info">
       <AppenderRef ref="console"/>

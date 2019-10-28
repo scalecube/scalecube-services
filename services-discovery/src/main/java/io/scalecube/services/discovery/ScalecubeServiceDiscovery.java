@@ -164,7 +164,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private void onMembershipEvent(MembershipEvent membershipEvent) {
-    LOGGER.info("onMembershipEvent: {}", membershipEvent);
+    LOGGER.debug("onMembershipEvent: {}", membershipEvent);
 
     ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
     if (discoveryEvent == null) {
@@ -184,7 +184,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private void publishEvent(ServiceDiscoveryEvent discoveryEvent) {
     if (discoveryEvent != null) {
-      LOGGER.info("Publish discoveryEvent: {}", discoveryEvent);
+      LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
       sink.next(discoveryEvent);
     }
   }
@@ -201,7 +201,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       boolean isGroupAdded = addToGroup(serviceGroup, serviceEndpoint);
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER.info(
+      LOGGER.debug(
           "Added serviceEndpoint={} to group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
@@ -229,7 +229,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
       Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
 
-      LOGGER.info(
+      LOGGER.debug(
           "Removed serviceEndpoint={} from group {} (size now {})",
           serviceEndpoint.id(),
           groupId,
