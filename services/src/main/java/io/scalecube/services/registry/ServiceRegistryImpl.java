@@ -54,7 +54,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
-      LOGGER.info("ServiceEndpoint registered: {}", serviceEndpoint);
+      LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
       serviceEndpoint
           .serviceReferences()
           .forEach(
@@ -70,7 +70,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
-      LOGGER.info("ServiceEndpoint unregistered: {}", serviceEndpoint);
+      LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
 
       Map<String, ServiceReference> serviceReferencesOfEndpoint =
           referencesByQualifier.values().stream()
