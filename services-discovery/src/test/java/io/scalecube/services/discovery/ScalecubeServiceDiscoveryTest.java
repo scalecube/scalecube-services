@@ -675,7 +675,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     RecordingServiceDiscovery resubscribe() {
-      return new RecordingServiceDiscovery(this).subscribe(serviceDiscovery);
+      return new RecordingServiceDiscovery(this).subscribe();
     }
 
     RecordingServiceDiscovery recreate() {
@@ -685,14 +685,19 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     static RecordingServiceDiscovery create(Supplier<Mono<ServiceDiscovery>> supplier) {
       RecordingServiceDiscovery result = new RecordingServiceDiscovery(supplier);
       Mono<ServiceDiscovery> serviceDiscoveryMono = supplier.get();
-      serviceDiscoveryMono.log("serviceDiscovery", Level.INFO).subscribe(result::subscribe);
+      serviceDiscoveryMono
+          .log("serviceDiscovery", Level.INFO)
+          .subscribe(
+              serviceDiscovery -> {
+                result.serviceDiscovery = serviceDiscovery;
+                result.subscribe();
+                result.serviceDiscovery.start().block();
+              });
       return result;
     }
 
-    private RecordingServiceDiscovery subscribe(ServiceDiscovery serviceDiscovery) {
-      this.serviceDiscovery = serviceDiscovery;
-      this.serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
-      this.serviceDiscovery.start().block();
+    private RecordingServiceDiscovery subscribe() {
+      serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
       return this;
     }
 
