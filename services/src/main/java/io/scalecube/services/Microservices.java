@@ -468,13 +468,13 @@ public class Microservices {
               throw new IllegalStateException(
                   "Create ServiceDiscovery instance before starting it");
             }
-            LOGGER.info("Starting ServiceDiscovery");
+            LOGGER.debug("Starting ServiceDiscovery");
             return discovery
                 .start()
                 .doOnSuccess(
                     serviceDiscovery -> {
                       discovery = serviceDiscovery;
-                      LOGGER.info("Successfully started ServiceDiscovery -- {}", discovery);
+                      LOGGER.debug("Successfully started ServiceDiscovery -- {}", discovery);
                     })
                 .doOnError(
                     ex ->
@@ -495,7 +495,7 @@ public class Microservices {
                           disposable.dispose();
                         }
                         if (discovery != null) {
-                          LOGGER.info("ServiceDiscovery -- {} has been stopped", discovery);
+                          LOGGER.debug("ServiceDiscovery -- {} has been stopped", discovery);
                         }
                       }));
     }
@@ -516,13 +516,13 @@ public class Microservices {
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                LOGGER.info("Starting Gateway");
+                LOGGER.debug("Starting Gateway");
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
                     .doOnSuccess(
                         result ->
-                            LOGGER.info(
+                            LOGGER.debug(
                                 "Successfully started Gateway -- {} on {}",
                                 result,
                                 result.address()))
@@ -544,7 +544,7 @@ public class Microservices {
                   .doFinally(
                       s -> {
                         if (!gateways.isEmpty()) {
-                          LOGGER.info("Gateways have been stopped");
+                          LOGGER.debug("Gateways have been stopped");
                         }
                       }));
     }
@@ -612,14 +612,14 @@ public class Microservices {
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
 
-                LOGGER.info(
+                LOGGER.debug(
                     "Successfully bound ServerTransport -- {} on address {}",
                     this.serverTransport,
                     this.address);
 
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.info(
+                LOGGER.debug(
                     "Successfully created ClientTransport -- {}", this.clientTransport);
                 return this;
               });
