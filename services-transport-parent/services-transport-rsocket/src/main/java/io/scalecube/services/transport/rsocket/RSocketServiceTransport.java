@@ -4,9 +4,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.ReferenceCounted;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
@@ -32,11 +32,9 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   static {
     Hooks.onNextDropped(
-        obj -> {
-          if (obj instanceof ReferenceCounted) {
-            ReferenceCountUtil.safestRelease(obj);
-          }
-        });
+        obj ->
+            ReferenceCountUtil.safestRelease(
+                obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj));
   }
 
   private int numOfWorkers = NUM_OF_WORKERS;
