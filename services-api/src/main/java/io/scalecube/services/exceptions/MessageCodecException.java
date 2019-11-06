@@ -7,6 +7,11 @@ public class MessageCodecException extends RuntimeException {
   }
 
   @Override
+  public synchronized Throwable fillInStackTrace() {
+    return this;
+  }
+
+  @Override
   public String toString() {
     return getClass().getSimpleName() + "{errorMessage=" + getMessage() + '}';
   }
