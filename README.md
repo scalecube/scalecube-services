@@ -200,3 +200,9 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <artifactId>scalecube-services-transport-rsocket</artifactId>
   <version>${scalecube.version}</version>
  </dependency> 
+
+
+----
+
+Sponsored by:
+[OM2](https://www.om2.com/)
