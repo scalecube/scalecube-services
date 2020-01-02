@@ -54,7 +54,7 @@ public class RSocketServerTransport implements ServerTransport {
                   });
 
           return RSocketFactory.receive()
-              .frameDecoder(PayloadDecoder.ZERO_COPY)
+              .frameDecoder(PayloadDecoder.DEFAULT)
               .errorConsumer(
                   th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
