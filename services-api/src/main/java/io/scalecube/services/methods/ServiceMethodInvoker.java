@@ -232,4 +232,8 @@ public final class ServiceMethodInvoker {
             .collect(Collectors.joining(", ", "(", ")"));
     return classAndMethod + args;
   }
+
+  public Object getService() {
+    return service;
+  }
 }

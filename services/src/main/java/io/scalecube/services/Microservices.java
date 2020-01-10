@@ -301,10 +301,22 @@ public class Microservices {
         () -> {
           LOGGER.info("Shutting down {}", this);
           return Mono.whenDelayError(
+                  processBeforeDestroy(),
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
               .doFinally(s -> LOGGER.info("{} has been shut down", this));
+        });
+  }
+
+  private Mono<Void> processBeforeDestroy() {
+    return Mono.fromSupplier(
+        () -> {
+          methodRegistry.listInvokers().stream()
+              .map(ServiceMethodInvoker::getService)
+              .distinct()
+              .forEach(service -> Injector.processBeforeDestroy(this, service));
+          return null;
         });
   }
 

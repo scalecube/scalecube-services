@@ -1,7 +1,9 @@
 package io.scalecube.services;
 
 import io.scalecube.services.annotations.AfterConstruct;
+import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.routing.Router;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -65,15 +67,24 @@ final class Injector {
   }
 
   private static void processAfterConstruct(Microservices microservices, Object targetInstance) {
+    processMethodWithAnnotation(microservices, targetInstance, AfterConstruct.class);
+  }
+
+  public static void processBeforeDestroy(Microservices microservices, Object targetInstance) {
+    processMethodWithAnnotation(microservices, targetInstance, BeforeDestroy.class);
+  }
+
+  private static <A extends Annotation> void processMethodWithAnnotation(
+      Microservices microservices, Object targetInstance, Class<A> annotation) {
     Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
     Arrays.stream(declaredMethods)
-        .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
+        .filter(method -> method.isAnnotationPresent(annotation))
         .forEach(
-            afterConstructMethod -> {
+            targetMethod -> {
               try {
-                afterConstructMethod.setAccessible(true);
+                targetMethod.setAccessible(true);
                 Object[] parameters =
-                    Arrays.stream(afterConstructMethod.getParameters())
+                    Arrays.stream(targetMethod.getParameters())
                         .map(
                             mapper -> {
                               if (mapper.getType().equals(Microservices.class)) {
@@ -85,7 +96,7 @@ final class Injector {
                               }
                             })
                         .toArray();
-                afterConstructMethod.invoke(targetInstance, parameters);
+                targetMethod.invoke(targetInstance, parameters);
               } catch (Exception ex) {
                 throw new RuntimeException(ex);
               }
