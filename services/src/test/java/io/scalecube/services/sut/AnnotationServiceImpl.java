@@ -12,7 +12,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   private ReplayProcessor<ServiceDiscoveryEvent> serviceDiscoveryEvents;
 
   @AfterConstruct
-  void init(Microservices microservices) {
+  private void init(Microservices microservices) {
     this.serviceDiscoveryEvents = ReplayProcessor.create();
     microservices.discovery().listenDiscovery().subscribe(serviceDiscoveryEvents);
   }
@@ -23,7 +23,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   }
 
   @BeforeDestroy
-  void destroy(Microservices microservices) {
+  private void destroy(Microservices microservices) {
     this.serviceDiscoveryEvents = ReplayProcessor.create();
     microservices.discovery().listenDiscovery().subscribe(serviceDiscoveryEvents);
   }
