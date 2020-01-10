@@ -7,6 +7,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.ReplayProcessor;
 
+@SuppressWarnings("unused")
 public class AnnotationServiceImpl implements AnnotationService {
 
   private ReplayProcessor<ServiceDiscoveryEvent> serviceDiscoveryEvents;
