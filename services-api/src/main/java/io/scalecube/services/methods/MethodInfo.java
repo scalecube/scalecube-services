@@ -101,9 +101,9 @@ public final class MethodInfo {
   @Override
   public String toString() {
     return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
-        .add("serviceName='" + serviceName + "'")
-        .add("methodName='" + methodName + "'")
-        .add("qualifier='" + qualifier + "'")
+        .add("serviceName=" + serviceName)
+        .add("methodName=" + methodName)
+        .add("qualifier=" + qualifier)
         .add("parameterizedReturnType=" + parameterizedReturnType)
         .add("isReturnTypeServiceMessage=" + isReturnTypeServiceMessage)
         .add("communicationMode=" + communicationMode)

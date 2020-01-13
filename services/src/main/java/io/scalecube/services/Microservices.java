@@ -725,7 +725,7 @@ public class Microservices {
     private static String asString(ServiceInfo serviceInfo) {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
           .add("serviceInstance=" + serviceInfo.serviceInstance())
-          .add("tags=tags(" + serviceInfo.tags().size() + ")")
+          .add("tags=" + serviceInfo.tags())
           .add("authenticator=" + serviceInfo.authenticator())
           .toString();
     }

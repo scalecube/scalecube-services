@@ -18,7 +18,6 @@ public class ServiceEndpoint {
   private Set<String> contentTypes;
   private Map<String, String> tags;
   private Collection<ServiceRegistration> serviceRegistrations;
-  private ServiceGroup serviceGroup;
 
   /**
    * Constructor for SerDe.
@@ -34,7 +33,6 @@ public class ServiceEndpoint {
     this.tags = new HashMap<>(builder.tags);
     this.serviceRegistrations =
         Collections.unmodifiableCollection(new ArrayList<>(builder.serviceRegistrations));
-    this.serviceGroup = builder.serviceGroup;
   }
 
   public static Builder builder() {
@@ -55,10 +53,6 @@ public class ServiceEndpoint {
 
   public Map<String, String> tags() {
     return tags;
-  }
-
-  public ServiceGroup serviceGroup() {
-    return serviceGroup;
   }
 
   /**
@@ -84,12 +78,11 @@ public class ServiceEndpoint {
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceEndpoint.class.getSimpleName() + "[", "]")
-        .add("id='" + id + "'")
+        .add("id=" + id)
         .add("address=" + address)
         .add("contentTypes=" + contentTypes)
-        .add("tags(" + tags.size() + ")")
+        .add("tags=" + tags)
         .add("serviceRegistrations(" + serviceRegistrations.size() + ")")
-        .add("serviceGroup=" + serviceGroup)
         .toString();
   }
 
@@ -100,7 +93,6 @@ public class ServiceEndpoint {
     private Set<String> contentTypes = Collections.emptySet();
     private Map<String, String> tags = Collections.emptyMap();
     private Collection<ServiceRegistration> serviceRegistrations = new ArrayList<>();
-    private ServiceGroup serviceGroup;
 
     private Builder() {}
 
@@ -132,11 +124,6 @@ public class ServiceEndpoint {
 
     public Builder serviceRegistrations(Collection<ServiceRegistration> serviceRegistrations) {
       this.serviceRegistrations = serviceRegistrations;
-      return this;
-    }
-
-    public Builder serviceGroup(String groupId, int groupSize) {
-      this.serviceGroup = new ServiceGroup(groupId, groupSize);
       return this;
     }
 

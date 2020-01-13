@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.StringJoiner;
 
 public class ServiceRegistration {
 
@@ -49,14 +50,10 @@ public class ServiceRegistration {
 
   @Override
   public String toString() {
-    return "ServiceRegistration{"
-        + "namespace='"
-        + namespace
-        + '\''
-        + ", tags="
-        + tags
-        + ", methods="
-        + methods
-        + '}';
+    return new StringJoiner(", ", ServiceRegistration.class.getSimpleName() + "[", "]")
+        .add("namespace=" + namespace)
+        .add("tags=" + tags)
+        .add("methods(" + methods.size() + ")")
+        .toString();
   }
 }

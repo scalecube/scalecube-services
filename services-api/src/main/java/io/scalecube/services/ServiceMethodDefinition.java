@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.StringJoiner;
 
 /**
  * A Service Method Definition is a single method definition of a service inside service
@@ -76,14 +77,10 @@ public class ServiceMethodDefinition {
 
   @Override
   public String toString() {
-    return "ServiceMethodDefinition{"
-        + "action='"
-        + action
-        + '\''
-        + ", tags="
-        + tags
-        + ", auth="
-        + auth
-        + '}';
+    return new StringJoiner(", ", ServiceMethodDefinition.class.getSimpleName() + "[", "]")
+        .add("action=" + action)
+        .add("tags=" + tags)
+        .add("auth=" + auth)
+        .toString();
   }
 }

@@ -1,5 +1,7 @@
 package io.scalecube.services.api;
 
+import java.util.StringJoiner;
+
 public final class ErrorData {
 
   private int errorCode;
@@ -33,6 +35,9 @@ public final class ErrorData {
 
   @Override
   public String toString() {
-    return "ErrorData{" + "errorCode=" + errorCode + ", errorMessage='" + errorMessage + '\'' + '}';
+    return new StringJoiner(", ", ErrorData.class.getSimpleName() + "[", "]")
+        .add("errorCode=" + errorCode)
+        .add("errorMessage=" + errorMessage)
+        .toString();
   }
 }

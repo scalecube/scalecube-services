@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 public final class ServiceMessage {
 
@@ -184,7 +185,10 @@ public final class ServiceMessage {
 
   @Override
   public String toString() {
-    return "ServiceMessage {headers: " + headers + ", data: " + data + '}';
+    return new StringJoiner(", ", ServiceMessage.class.getSimpleName() + "[", "]")
+        .add("headers(" + headers.size() + ")")
+        .add("data=" + (data != null ? data.getClass().getName() : null))
+        .toString();
   }
 
   public static class Builder {
