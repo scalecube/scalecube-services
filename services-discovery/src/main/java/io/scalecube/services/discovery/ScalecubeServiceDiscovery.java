@@ -10,7 +10,6 @@ import io.scalecube.cluster.transport.api.Message;
 import io.scalecube.cluster.transport.api.MessageCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceGroup;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.io.IOException;
@@ -19,12 +18,7 @@ import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
@@ -51,9 +45,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private Cluster cluster;
 
-  private Map<ServiceGroup, Collection<ServiceEndpoint>> groups = new HashMap<>();
-  private Map<ServiceGroup, Integer> addedGroups = new HashMap<>();
-
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
 
@@ -64,17 +55,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    */
   public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint) {
     this.serviceEndpoint = serviceEndpoint;
-
-    // Add myself to the group if 'groupness' is defined
-    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
-    if (serviceGroup != null) {
-      if (serviceGroup.size() <= 0) {
-        throw new IllegalArgumentException("serviceGroup is invalid: " + serviceGroup.size());
-      }
-      addToGroup(serviceGroup, serviceEndpoint);
-    }
-
-    clusterConfig =
+    this.clusterConfig =
         ClusterConfig.defaultLanConfig()
             .metadata(serviceEndpoint)
             .transport(config -> config.messageCodec(new MessageCodecImpl()))
@@ -91,8 +72,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     this.serviceEndpoint = other.serviceEndpoint;
     this.clusterConfig = other.clusterConfig;
     this.cluster = other.cluster;
-    this.groups = other.groups;
-    this.addedGroups = other.addedGroups;
   }
 
   /**
@@ -174,128 +153,10 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       return;
     }
 
-    publishEvent(discoveryEvent);
-
-    // handle groups and publish group discovery event, if needed
-    if (discoveryEvent.serviceEndpoint().serviceGroup() != null) {
-      onDiscoveryEvent(discoveryEvent);
-    }
-  }
-
-  private void publishEvent(ServiceDiscoveryEvent discoveryEvent) {
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
       sink.next(discoveryEvent);
     }
-  }
-
-  private void onDiscoveryEvent(ServiceDiscoveryEvent discoveryEvent) {
-    ServiceEndpoint serviceEndpoint = discoveryEvent.serviceEndpoint();
-    ServiceGroup serviceGroup = serviceEndpoint.serviceGroup();
-
-    ServiceDiscoveryEvent groupDiscoveryEvent = null;
-    String groupId = serviceGroup.id();
-
-    // handle add to group
-    if (discoveryEvent.isEndpointAdded()) {
-      boolean isGroupAdded = addToGroup(serviceGroup, serviceEndpoint);
-      Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
-
-      LOGGER.debug(
-          "Added serviceEndpoint={} to group {} (size now {})",
-          serviceEndpoint.id(),
-          groupId,
-          endpoints.size());
-
-      // publish event regardless of isGroupAdded result
-      publishEvent(
-          ServiceDiscoveryEvent.newEndpointAddedToGroup(groupId, serviceEndpoint, endpoints));
-
-      if (isGroupAdded) {
-        groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupAdded(groupId, endpoints);
-      }
-    }
-
-    // handle removal from group
-    if (discoveryEvent.isEndpointLeaving() || discoveryEvent.isEndpointRemoved()) {
-      if (!removeFromGroup(serviceGroup, serviceEndpoint)) {
-        LOGGER.warn(
-            "Failed to remove serviceEndpoint={} from group {}, "
-                + "there were no such group or serviceEndpoint was never registered in the group",
-            serviceEndpoint.id(),
-            groupId);
-        return;
-      }
-
-      Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(serviceGroup);
-
-      LOGGER.debug(
-          "Removed serviceEndpoint={} from group {} (size now {})",
-          serviceEndpoint.id(),
-          groupId,
-          endpoints.size());
-
-      publishEvent(
-          ServiceDiscoveryEvent.newEndpointRemovedFromGroup(groupId, serviceEndpoint, endpoints));
-
-      if (endpoints.isEmpty()) {
-        groupDiscoveryEvent = ServiceDiscoveryEvent.newGroupRemoved(groupId);
-      }
-    }
-
-    // publish group event
-    publishEvent(groupDiscoveryEvent);
-  }
-
-  public Collection<ServiceEndpoint> getEndpointsFromGroup(ServiceGroup group) {
-    return groups.getOrDefault(group, Collections.emptyList());
-  }
-
-  /**
-   * Adds service endpoint to the group and returns indication whether group is fully formed.
-   *
-   * @param group service group
-   * @param endpoint service ednpoint
-   * @return {@code true} if group is fully formed; {@code false} otherwise, for example when
-   *     there's not enough members yet or group was already formed and just keep updating
-   */
-  private boolean addToGroup(ServiceGroup group, ServiceEndpoint endpoint) {
-    Collection<ServiceEndpoint> endpoints =
-        groups.computeIfAbsent(group, group1 -> new ArrayList<>());
-    endpoints.add(endpoint);
-
-    int size = group.size();
-    if (size == 1) {
-      return addedGroups.putIfAbsent(group, 1) == null;
-    }
-
-    if (addedGroups.computeIfAbsent(group, group1 -> 0) == size) {
-      return false;
-    }
-
-    int countAfter = addedGroups.compute(group, (group1, count) -> count + 1);
-    return countAfter == size;
-  }
-
-  /**
-   * Removes service endpoint from group.
-   *
-   * @param group service group
-   * @param endpoint service endpoint
-   * @return {@code true} if endpoint was removed from group; {@code false} if group didn't exist or
-   *     endpoint wasn't contained in the group
-   */
-  private boolean removeFromGroup(ServiceGroup group, ServiceEndpoint endpoint) {
-    if (!groups.containsKey(group)) {
-      return false;
-    }
-    Collection<ServiceEndpoint> endpoints = getEndpointsFromGroup(group);
-    boolean removed = endpoints.removeIf(input -> input.id().equals(endpoint.id()));
-    if (removed && endpoints.isEmpty()) {
-      groups.remove(group); // cleanup
-      addedGroups.remove(group); // cleanup
-    }
-    return removed;
   }
 
   private ServiceDiscoveryEvent toServiceDiscoveryEvent(MembershipEvent membershipEvent) {
@@ -369,10 +230,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     String getDiscoveryAddress();
 
-    String getAddedServiceGroups();
-
-    String getAllServiceGroups();
-
     String getRecentDiscoveryEvents();
   }
 
@@ -414,37 +271,10 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
 
     @Override
-    public String getAddedServiceGroups() {
-      return discovery.addedGroups.entrySet().stream()
-          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public String getAllServiceGroups() {
-      return discovery.groups.entrySet().stream()
-          .map(entry -> toServiceGroupString(entry.getKey(), entry.getValue()))
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
     public String getRecentDiscoveryEvents() {
       return recentDiscoveryEvents.stream()
           .map(ServiceDiscoveryEvent::toString)
           .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    private String toServiceGroupString(ServiceGroup serviceGroup, int count) {
-      String id = serviceGroup.id();
-      int size = serviceGroup.size();
-      return id + ":" + size + "/count=" + count;
-    }
-
-    private String toServiceGroupString(
-        ServiceGroup serviceGroup, Collection<ServiceEndpoint> endpoints) {
-      String id = serviceGroup.id();
-      int size = serviceGroup.size();
-      return id + ":" + size + "/endpoints=" + endpoints.size();
     }
 
     private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
