@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 /**
  * Service reference. This is merge of service method information together with service registration
@@ -88,30 +89,13 @@ public class ServiceReference {
 
   @Override
   public String toString() {
-    return "ServiceReference{"
-        + "qualifier='"
-        + qualifier
-        + '\''
-        + ", endpointId='"
-        + endpointId
-        + '\''
-        + ", address='"
-        + address
-        + '\''
-        + ", namespace='"
-        + namespace
-        + '\''
-        + ", contentTypes='"
-        + contentTypes
-        + '\''
-        + ", tags="
-        + tags
-        + ", action='"
-        + action
-        + '\''
-        + ", auth='"
-        + auth
-        + '\''
-        + '}';
+    return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
+        .add("endpointId=" + endpointId)
+        .add("address=" + address)
+        .add("qualifier=" + qualifier)
+        .add("contentTypes=" + contentTypes)
+        .add("tags(" + tags.size() + ")")
+        .add("auth=" + auth)
+        .toString();
   }
 }

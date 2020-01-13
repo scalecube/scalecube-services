@@ -57,7 +57,7 @@ public class ServiceInfo {
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
         .add("serviceInstance=" + serviceInstance)
-        .add("tags=" + tags)
+        .add("tags(" + tags.size() + ")")
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
         .add("authenticator=" + authenticator)
