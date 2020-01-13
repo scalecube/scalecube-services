@@ -37,7 +37,7 @@ final class Injector {
 
   private static void injectField(Microservices microservices, Field field, Object service) {
     if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-      Reflect.setField(field, service, microservices);
+      setField(field, service, microservices);
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
       Class<? extends Router> routerClass = injection.router();
@@ -46,7 +46,16 @@ final class Injector {
         call.router(routerClass);
       }
       final Object targetProxy = call.api(field.getType());
-      Reflect.setField(field, service, targetProxy);
+      setField(field, service, targetProxy);
+    }
+  }
+
+  private static void setField(Field field, Object object, Object value) {
+    try {
+      field.setAccessible(true);
+      field.set(object, value);
+    } catch (Exception e) {
+      throw Exceptions.propagate(e);
     }
   }
 

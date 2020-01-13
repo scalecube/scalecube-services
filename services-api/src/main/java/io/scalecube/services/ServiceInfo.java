@@ -73,7 +73,7 @@ public class ServiceInfo {
     private ServiceMessageDataDecoder dataDecoder;
     private Authenticator authenticator;
 
-    public Builder(ServiceInfo serviceInfo) {
+    private Builder(ServiceInfo serviceInfo) {
       this.serviceInstance = serviceInfo.serviceInstance;
       this.tags.putAll(new HashMap<>(serviceInfo.tags));
       this.errorMapper = serviceInfo.errorMapper;
@@ -81,7 +81,7 @@ public class ServiceInfo {
       this.authenticator = serviceInfo.authenticator;
     }
 
-    public Builder(Object serviceInstance) {
+    private Builder(Object serviceInstance) {
       this.serviceInstance = serviceInstance;
     }
 

@@ -15,7 +15,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Auth;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.methods.MethodInfo;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -387,15 +385,6 @@ public class Reflect {
     return reqTypes.length > 0
         && (Flux.class.isAssignableFrom(reqTypes[0])
             || Publisher.class.isAssignableFrom(reqTypes[0]));
-  }
-
-  public static void setField(Field field, Object object, Object value) {
-    field.setAccessible(true);
-    try {
-      field.set(object, value);
-    } catch (IllegalAccessException e) {
-      throw Exceptions.propagate(e);
-    }
   }
 
   public static boolean isService(Class<?> type) {
