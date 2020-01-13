@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.Qualifier;
 import java.lang.reflect.Type;
+import java.util.StringJoiner;
 
 public final class MethodInfo {
 
@@ -97,33 +98,19 @@ public final class MethodInfo {
     return auth;
   }
 
-  /**
-   * Shortened version of {@code toString} method.
-   *
-   * @return method info as string
-   */
-  public String asString() {
-    final StringBuilder sb = new StringBuilder("MethodInfo{");
-    sb.append("qualifier='").append(qualifier).append('\'');
-    sb.append(", auth=").append(auth);
-    sb.append('}');
-    return sb.toString();
-  }
-
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("MethodInfo{");
-    sb.append("serviceName='").append(serviceName).append('\'');
-    sb.append(", methodName='").append(methodName).append('\'');
-    sb.append(", qualifier='").append(qualifier).append('\'');
-    sb.append(", parameterizedReturnType=").append(parameterizedReturnType);
-    sb.append(", isReturnTypeServiceMessage=").append(isReturnTypeServiceMessage);
-    sb.append(", communicationMode=").append(communicationMode);
-    sb.append(", parameterCount=").append(parameterCount);
-    sb.append(", requestType=").append(requestType);
-    sb.append(", isRequestTypeServiceMessage=").append(isRequestTypeServiceMessage);
-    sb.append(", auth=").append(auth);
-    sb.append('}');
-    return sb.toString();
+    return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
+        .add("serviceName='" + serviceName + "'")
+        .add("methodName='" + methodName + "'")
+        .add("qualifier='" + qualifier + "'")
+        .add("parameterizedReturnType=" + parameterizedReturnType)
+        .add("isReturnTypeServiceMessage=" + isReturnTypeServiceMessage)
+        .add("communicationMode=" + communicationMode)
+        .add("parameterCount=" + parameterCount)
+        .add("requestType=" + requestType)
+        .add("isRequestTypeServiceMessage=" + isRequestTypeServiceMessage)
+        .add("auth=" + auth)
+        .toString();
   }
 }

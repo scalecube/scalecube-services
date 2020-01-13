@@ -363,6 +363,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
   }
 
+  @SuppressWarnings("unused")
   public interface MonitorMBean {
 
     String getClusterConfig();
