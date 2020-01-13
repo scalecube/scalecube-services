@@ -81,7 +81,7 @@ public class ServiceEndpoint {
         .add("id=" + id)
         .add("address=" + address)
         .add("contentTypes=" + contentTypes)
-        .add("tags(" + tags.size() + ")")
+        .add("tags=" + tags)
         .add("serviceRegistrations(" + serviceRegistrations.size() + ")")
         .toString();
   }

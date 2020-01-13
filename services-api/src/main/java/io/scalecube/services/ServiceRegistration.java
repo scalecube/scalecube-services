@@ -52,7 +52,7 @@ public class ServiceRegistration {
   public String toString() {
     return new StringJoiner(", ", ServiceRegistration.class.getSimpleName() + "[", "]")
         .add("namespace=" + namespace)
-        .add("tags(" + tags.size() + ")")
+        .add("tags=" + tags)
         .add("methods(" + methods.size() + ")")
         .toString();
   }

@@ -94,7 +94,7 @@ public class ServiceReference {
         .add("address=" + address)
         .add("qualifier=" + qualifier)
         .add("contentTypes=" + contentTypes)
-        .add("tags(" + tags.size() + ")")
+        .add("tags=" + tags)
         .add("auth=" + auth)
         .toString();
   }

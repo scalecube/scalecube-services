@@ -79,7 +79,7 @@ public class ServiceMethodDefinition {
   public String toString() {
     return new StringJoiner(", ", ServiceMethodDefinition.class.getSimpleName() + "[", "]")
         .add("action=" + action)
-        .add("tags(" + tags.size() + ")")
+        .add("tags=" + tags)
         .add("auth=" + auth)
         .toString();
   }
