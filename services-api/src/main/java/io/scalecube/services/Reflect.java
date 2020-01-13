@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -133,6 +134,7 @@ public class Reflect {
    * @param object to inspect
    * @return the parameterized Type of a given object or Object class if unknown.
    */
+  @SuppressWarnings("unused")
   public static Type parameterizedType(Object object) {
     if (object != null) {
       Type type = object.getClass().getGenericSuperclass();
@@ -269,7 +271,7 @@ public class Reflect {
    *
    * @param serviceInterface service interface to get qualifier for
    * @param method service's method to get qualifier for
-   * @return
+   * @return qualifier string
    */
   public static String qualifier(Class<?> serviceInterface, Method method) {
     return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
@@ -387,10 +389,13 @@ public class Reflect {
             || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 
-  public static void setField(Field field, Object object, Object value)
-      throws IllegalAccessException {
+  public static void setField(Field field, Object object, Object value) {
     field.setAccessible(true);
-    field.set(object, value);
+    try {
+      field.set(object, value);
+    } catch (IllegalAccessException e) {
+      throw Exceptions.propagate(e);
+    }
   }
 
   public static boolean isService(Class<?> type) {

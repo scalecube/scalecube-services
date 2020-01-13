@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
 
-public class ErrorFlowTest {
+public class ErrorFlowTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
   private static Microservices provider;

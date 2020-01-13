@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface ServiceMethodRegistry {
 
+  @SuppressWarnings("rawtypes")
   void registerService(
       Object serviceInstance,
       ServiceProviderErrorMapper errorMapper,

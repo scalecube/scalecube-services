@@ -44,6 +44,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
+
   public static final int TIMEOUT = 10;
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
@@ -269,7 +270,6 @@ public class RoutersTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
     return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(
-            opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
+        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

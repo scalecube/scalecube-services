@@ -11,7 +11,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,7 +42,7 @@ public final class ServiceMethodInvoker {
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public ServiceMethodInvoker(
       Method method,
       Object service,
@@ -202,24 +201,12 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  /**
-   * Shortened version of {@code toString} method.
-   *
-   * @return service method invoker as string
-   */
-  public String asString() {
-    return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-        .add("methodInfo=" + methodInfo.asString())
-        .add(
-            "serviceMethod='"
-                + service.getClass().getCanonicalName()
-                + "."
-                + method.getName()
-                + "("
-                + methodInfo.parameterCount()
-                + ")"
-                + "'")
-        .toString();
+  public Object service() {
+    return service;
+  }
+
+  public MethodInfo methodInfo() {
+    return methodInfo;
   }
 
   @Override
@@ -231,9 +218,5 @@ public final class ServiceMethodInvoker {
             .map(Class::getSimpleName)
             .collect(Collectors.joining(", ", "(", ")"));
     return classAndMethod + args;
-  }
-
-  public Object getService() {
-    return service;
   }
 }

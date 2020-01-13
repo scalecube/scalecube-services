@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
@@ -274,11 +275,7 @@ public class Microservices {
    * @return result of shutdown
    */
   public Mono<Void> shutdown() {
-    return Mono.defer(
-        () -> {
-          shutdown.onComplete();
-          return onShutdown;
-        });
+    return Mono.fromRunnable(shutdown::onComplete).then(onShutdown);
   }
 
   /**
@@ -310,14 +307,11 @@ public class Microservices {
   }
 
   private Mono<Void> processBeforeDestroy() {
-    return Mono.fromSupplier(
-        () -> {
-          methodRegistry.listInvokers().stream()
-              .map(ServiceMethodInvoker::getService)
-              .distinct()
-              .forEach(service -> Injector.processBeforeDestroy(this, service));
-          return null;
-        });
+    return Mono.whenDelayError(
+        methodRegistry.listInvokers().stream()
+            .map(ServiceMethodInvoker::service)
+            .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
+            .collect(Collectors.toList()));
   }
 
   public static final class Builder {
@@ -631,8 +625,7 @@ public class Microservices {
 
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.debug(
-                    "Successfully created ClientTransport -- {}", this.clientTransport);
+                LOGGER.debug("Successfully created ClientTransport -- {}", this.clientTransport);
                 return this;
               });
     }
@@ -667,8 +660,7 @@ public class Microservices {
     private static JmxMonitorMBean start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=" + instance.toString());
+      ObjectName objectName = new ObjectName("io.scalecube.services:name=" + instance.toString());
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
@@ -693,8 +685,23 @@ public class Microservices {
     @Override
     public String getServiceMethodInvokers() {
       return microservices.methodRegistry.listInvokers().stream()
-          .map(ServiceMethodInvoker::asString)
+          .map(JmxMonitorMBean::asString)
           .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private static String asString(ServiceMethodInvoker invoker) {
+      return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+          .add("methodInfo=" + invoker.methodInfo().asString())
+          .add(
+              "serviceMethod='"
+                  + invoker.service().getClass().getCanonicalName()
+                  + "."
+                  + invoker.methodInfo().methodName()
+                  + "("
+                  + invoker.methodInfo().parameterCount()
+                  + ")"
+                  + "'")
+          .toString();
     }
   }
 }

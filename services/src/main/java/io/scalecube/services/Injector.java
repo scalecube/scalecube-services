@@ -2,19 +2,17 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
+import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.routing.Router;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
 final class Injector {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(Injector.class);
 
   private Injector() {
     // Do not instantiate
@@ -38,31 +36,17 @@ final class Injector {
   }
 
   private static void injectField(Microservices microservices, Field field, Object service) {
-    try {
-      if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
-          && field.getType().equals(Microservices.class)) {
-        Reflect.setField(field, service, microservices);
-      } else if (field.isAnnotationPresent(io.scalecube.services.annotations.Inject.class)
-          && Reflect.isService(field.getType())) {
-        io.scalecube.services.annotations.Inject injection =
-            field.getAnnotation(io.scalecube.services.annotations.Inject.class);
-        Class<? extends Router> routerClass = injection.router();
-
-        final ServiceCall call = microservices.call();
-
-        if (!routerClass.isInterface()) {
-          call.router(routerClass);
-        }
-
-        final Object targetProxy = call.api(field.getType());
-
-        Reflect.setField(field, service, targetProxy);
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
+      Reflect.setField(field, service, microservices);
+    } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
+      Inject injection = field.getAnnotation(Inject.class);
+      Class<? extends Router> routerClass = injection.router();
+      final ServiceCall call = microservices.call();
+      if (!routerClass.isInterface()) {
+        call.router(routerClass);
       }
-    } catch (Exception ex) {
-      LOGGER.error(
-          "failed to set service proxy of type: {} reason:{}",
-          service.getClass().getName(),
-          ex.getMessage());
+      final Object targetProxy = call.api(field.getType());
+      Reflect.setField(field, service, targetProxy);
     }
   }
 
@@ -98,7 +82,7 @@ final class Injector {
                         .toArray();
                 targetMethod.invoke(targetInstance, parameters);
               } catch (Exception ex) {
-                throw new RuntimeException(ex);
+                throw Exceptions.propagate(ex);
               }
             });
   }
