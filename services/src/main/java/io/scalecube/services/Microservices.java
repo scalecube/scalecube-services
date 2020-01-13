@@ -8,6 +8,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
@@ -28,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
@@ -225,10 +227,11 @@ public class Microservices {
 
   private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
-        serviceInfo.serviceInstance(),
-        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper),
-        Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder),
-        Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator));
+        ServiceInfo.from(serviceInfo)
+            .errorMapper(Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper))
+            .dataDecoder(Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder))
+            .authenticator(Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator))
+            .build());
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
@@ -274,11 +277,7 @@ public class Microservices {
    * @return result of shutdown
    */
   public Mono<Void> shutdown() {
-    return Mono.defer(
-        () -> {
-          shutdown.onComplete();
-          return onShutdown;
-        });
+    return Mono.fromRunnable(shutdown::onComplete).then(onShutdown);
   }
 
   /**
@@ -301,11 +300,20 @@ public class Microservices {
         () -> {
           LOGGER.info("Shutting down {}", this);
           return Mono.whenDelayError(
+                  processBeforeDestroy(),
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
               .doFinally(s -> LOGGER.info("{} has been shut down", this));
         });
+  }
+
+  private Mono<Void> processBeforeDestroy() {
+    return Mono.whenDelayError(
+        methodRegistry.listServices().stream()
+            .map(ServiceInfo::serviceInstance)
+            .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
+            .collect(Collectors.toList()));
   }
 
   public static final class Builder {
@@ -619,8 +627,7 @@ public class Microservices {
 
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.debug(
-                    "Successfully created ClientTransport -- {}", this.clientTransport);
+                LOGGER.debug("Successfully created ClientTransport -- {}", this.clientTransport);
                 return this;
               });
     }
@@ -639,6 +646,7 @@ public class Microservices {
     }
   }
 
+  @SuppressWarnings("unused")
   public interface MonitorMBean {
 
     String getServiceEndpoint();
@@ -646,6 +654,8 @@ public class Microservices {
     String getAllServiceEndpoints();
 
     String getServiceMethodInvokers();
+
+    String getServiceInfos();
   }
 
   private static class JmxMonitorMBean implements MonitorMBean {
@@ -655,8 +665,7 @@ public class Microservices {
     private static JmxMonitorMBean start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=" + instance.toString());
+      ObjectName objectName = new ObjectName("io.scalecube.services:name=" + instance.toString());
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
@@ -681,8 +690,44 @@ public class Microservices {
     @Override
     public String getServiceMethodInvokers() {
       return microservices.methodRegistry.listInvokers().stream()
-          .map(ServiceMethodInvoker::asString)
+          .map(JmxMonitorMBean::asString)
           .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    @Override
+    public String getServiceInfos() {
+      return microservices.methodRegistry.listServices().stream()
+          .map(JmxMonitorMBean::asString)
+          .collect(Collectors.joining(",", "[", "]"));
+    }
+
+    private static String asString(ServiceMethodInvoker invoker) {
+      return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+          .add("methodInfo=" + asString(invoker.methodInfo()))
+          .add(
+              "serviceMethod="
+                  + invoker.service().getClass().getCanonicalName()
+                  + "."
+                  + invoker.methodInfo().methodName()
+                  + "("
+                  + invoker.methodInfo().parameterCount()
+                  + ")")
+          .toString();
+    }
+
+    private static String asString(MethodInfo methodInfo) {
+      return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
+          .add("qualifier=" + methodInfo.qualifier())
+          .add("auth=" + methodInfo.isAuth())
+          .toString();
+    }
+
+    private static String asString(ServiceInfo serviceInfo) {
+      return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+          .add("serviceInstance=" + serviceInfo.serviceInstance())
+          .add("tags=tags(" + serviceInfo.tags().size() + ")")
+          .add("authenticator=" + serviceInfo.authenticator())
+          .toString();
     }
   }
 }

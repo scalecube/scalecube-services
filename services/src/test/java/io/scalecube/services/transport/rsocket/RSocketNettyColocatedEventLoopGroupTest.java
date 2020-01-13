@@ -2,6 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Inject;
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class RSocketNettyColocatedEventLoopGroupTest {
+public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
 
   private Microservices ping;
 

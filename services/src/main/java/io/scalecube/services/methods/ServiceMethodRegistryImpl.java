@@ -1,26 +1,25 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import io.scalecube.services.ServiceInfo;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
+
+  private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
   private final ConcurrentMap<String, ServiceMethodInvoker> methodInvokers =
       new ConcurrentHashMap<>();
 
   @Override
-  public void registerService(
-      Object serviceInstance,
-      ServiceProviderErrorMapper errorMapper,
-      ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator) {
-    Reflect.serviceInterfaces(serviceInstance)
+  public void registerService(ServiceInfo serviceInfo) {
+    serviceInfos.add(serviceInfo);
+
+    Reflect.serviceInterfaces(serviceInfo.serviceInstance())
         .forEach(
             serviceInterface ->
                 Reflect.serviceMethods(serviceInterface)
@@ -42,21 +41,23 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isAuth(method));
 
-                          // register new service method invoker
                           String qualifier = methodInfo.qualifier();
+
                           if (methodInvokers.containsKey(qualifier)) {
                             throw new IllegalStateException(
                                 String.format(
                                     "MethodInvoker for api '%s' already exists", qualifier));
                           }
+
                           ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
                                   method,
-                                  serviceInstance,
+                                  serviceInfo.serviceInstance(),
                                   methodInfo,
-                                  errorMapper,
-                                  dataDecoder,
-                                  authenticator);
+                                  serviceInfo.errorMapper(),
+                                  serviceInfo.dataDecoder(),
+                                  serviceInfo.authenticator());
+
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));
   }
@@ -74,5 +75,10 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
   @Override
   public List<ServiceMethodInvoker> listInvokers() {
     return new ArrayList<>(methodInvokers.values());
+  }
+
+  @Override
+  public List<ServiceInfo> listServices() {
+    return new ArrayList<>(serviceInfos);
   }
 }

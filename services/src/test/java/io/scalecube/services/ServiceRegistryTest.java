@@ -22,7 +22,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.test.StepVerifier;
 
-public class ServiceRegistryTest {
+public class ServiceRegistryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(6);
 
