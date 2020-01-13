@@ -3,6 +3,7 @@ package io.scalecube.services.transport.rsocket;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
@@ -22,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
-public class RSocketServiceTransportTest {
+public class RSocketServiceTransportTest extends BaseTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();

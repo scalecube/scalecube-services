@@ -15,7 +15,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Auth;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.methods.MethodInfo;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
@@ -133,6 +132,7 @@ public class Reflect {
    * @param object to inspect
    * @return the parameterized Type of a given object or Object class if unknown.
    */
+  @SuppressWarnings("unused")
   public static Type parameterizedType(Object object) {
     if (object != null) {
       Type type = object.getClass().getGenericSuperclass();
@@ -269,7 +269,7 @@ public class Reflect {
    *
    * @param serviceInterface service interface to get qualifier for
    * @param method service's method to get qualifier for
-   * @return
+   * @return qualifier string
    */
   public static String qualifier(Class<?> serviceInterface, Method method) {
     return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
@@ -385,12 +385,6 @@ public class Reflect {
     return reqTypes.length > 0
         && (Flux.class.isAssignableFrom(reqTypes[0])
             || Publisher.class.isAssignableFrom(reqTypes[0]));
-  }
-
-  public static void setField(Field field, Object object, Object value)
-      throws IllegalAccessException {
-    field.setAccessible(true);
-    field.set(object, value);
   }
 
   public static boolean isService(Class<?> type) {
