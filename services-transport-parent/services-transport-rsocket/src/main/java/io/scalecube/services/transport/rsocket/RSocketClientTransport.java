@@ -2,8 +2,8 @@ package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
+import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -49,10 +49,7 @@ public class RSocketClientTransport implements ClientTransport {
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
-            .frameDecoder(
-                frame ->
-                    ByteBufPayload.create(
-                        frame.sliceData().retain(), frame.sliceMetadata().retain()))
+            .frameDecoder(PayloadDecoder.DEFAULT)
             .errorConsumer(
                 th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
             .transport(() -> TcpClientTransport.create(tcpClient))

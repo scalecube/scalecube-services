@@ -27,12 +27,12 @@
     <scalecube-commons.version>1.0.1</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.11</scalecube-config.version>
-    <reactor.version>Californium-SR8</reactor.version>
-    <rsocket.version>0.11.21</rsocket.version>
+    <reactor.version>Dysprosium-RELEASE</reactor.version>
+    <rsocket.version>1.0.0-RC5</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.36.Final</netty.version>
-    <reactor-netty.version>0.8.8.RELEASE</reactor-netty.version>
+    <netty.version>4.1.37.Final</netty.version>
+    <reactor-netty.version>0.9.0.RELEASE</reactor-netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
@@ -117,30 +117,19 @@
       <!-- RSocket -->
       <dependency>
         <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-core</artifactId>
+        <artifactId>rsocket-bom</artifactId>
         <version>${rsocket.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-transport-netty</artifactId>
-        <version>${rsocket.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Jackson -->
       <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
         <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>${jackson.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.datatype</groupId>
-        <artifactId>jackson-datatype-jsr310</artifactId>
-        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Protostuff/Protobuf -->
@@ -167,19 +156,11 @@
 
       <!-- Netty -->
       <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
-      </dependency>
-      <dependency>
         <groupId>io.netty</groupId>
-        <artifactId>netty-common</artifactId>
+        <artifactId>netty-bom</artifactId>
         <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
 
       <!-- Scalecube benchmarks -->
