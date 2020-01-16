@@ -37,7 +37,7 @@ public class ServiceEndpoint implements Externalizable {
 
   private ServiceEndpoint(Builder builder) {
     this.id = Objects.requireNonNull(builder.id);
-    this.address = Objects.requireNonNull(builder.address);
+    this.address = builder.address;
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.serviceRegistrations =

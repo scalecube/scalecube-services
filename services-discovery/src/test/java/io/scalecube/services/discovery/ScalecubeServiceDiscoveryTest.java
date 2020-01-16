@@ -143,10 +143,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return ServiceEndpoint.builder()
-        .id("" + ID_COUNTER.incrementAndGet())
-        .address(Address.from("localhost:80"))
-        .build();
+    return ServiceEndpoint.builder().id("" + ID_COUNTER.incrementAndGet()).build();
   }
 
   private Mono<ServiceDiscovery> newServiceDiscovery(Address seedAddress) {
