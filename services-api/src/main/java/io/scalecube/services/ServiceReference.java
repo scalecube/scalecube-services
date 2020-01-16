@@ -38,7 +38,7 @@ public class ServiceReference {
     this.namespace = serviceRegistration.namespace();
     this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
-    this.action = serviceMethodDefinition.getAction();
+    this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
     this.address = serviceEndpoint.address();
     this.auth = serviceMethodDefinition.isAuth();
@@ -83,7 +83,7 @@ public class ServiceReference {
     Map<String, String> tags = new HashMap<>();
     tags.putAll(serviceEndpoint.tags());
     tags.putAll(serviceRegistration.tags());
-    tags.putAll(serviceMethodDefinition.getTags());
+    tags.putAll(serviceMethodDefinition.tags());
     return tags;
   }
 

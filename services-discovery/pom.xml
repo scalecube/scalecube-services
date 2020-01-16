@@ -14,10 +14,6 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-cluster</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-codec-jackson</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>

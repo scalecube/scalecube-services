@@ -1,23 +1,16 @@
 package io.scalecube.services.discovery;
 
-import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterImpl;
 import io.scalecube.cluster.ClusterMessageHandler;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.cluster.transport.api.Message;
-import io.scalecube.cluster.transport.api.MessageCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,7 +21,6 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Exceptions;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -55,12 +47,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    */
   public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint) {
     this.serviceEndpoint = serviceEndpoint;
-    this.clusterConfig =
-        ClusterConfig.defaultLanConfig()
-            .metadata(serviceEndpoint)
-            .transport(config -> config.messageCodec(new MessageCodecImpl()))
-            .metadataEncoder(this::encode)
-            .metadataDecoder(this::decode);
+    this.clusterConfig = ClusterConfig.defaultLanConfig().metadata(serviceEndpoint);
   }
 
   /**
@@ -163,43 +150,30 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceDiscoveryEvent discoveryEvent = null;
 
     if (membershipEvent.isAdded() && membershipEvent.newMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.newMetadata());
+      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.newMetadata());
       discoveryEvent = ServiceDiscoveryEvent.newEndpointAdded(serviceEndpoint);
     }
 
     if (membershipEvent.isRemoved() && membershipEvent.oldMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.oldMetadata());
+      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.oldMetadata());
       discoveryEvent = ServiceDiscoveryEvent.newEndpointRemoved(serviceEndpoint);
     }
 
     if (membershipEvent.isLeaving() && membershipEvent.newMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = (ServiceEndpoint) decode(membershipEvent.newMetadata());
+      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.newMetadata());
       discoveryEvent = ServiceDiscoveryEvent.newEndpointLeaving(serviceEndpoint);
     }
 
     return discoveryEvent;
   }
 
-  private Object decode(ByteBuffer byteBuffer) {
+  private ServiceEndpoint decodeMetadata(ByteBuffer byteBuffer) {
     try {
-      return DefaultObjectMapper.OBJECT_MAPPER.readValue(
-          new ByteBufferBackedInputStream(byteBuffer), ServiceEndpoint.class);
-    } catch (IOException e) {
-      LOGGER.error("Failed to read metadata: " + e);
+      return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer);
+    } catch (Exception ex) {
+      // Gobble exception and don't ruin stack
+      LOGGER.error("Failed to read metadata: " + ex);
       return null;
-    }
-  }
-
-  private ByteBuffer encode(Object input) {
-    ServiceEndpoint serviceEndpoint = (ServiceEndpoint) input;
-    try {
-      return ByteBuffer.wrap(
-          DefaultObjectMapper.OBJECT_MAPPER
-              .writeValueAsString(serviceEndpoint)
-              .getBytes(StandardCharsets.UTF_8));
-    } catch (IOException e) {
-      LOGGER.error("Failed to write metadata: " + e);
-      throw Exceptions.propagate(e);
     }
   }
 
@@ -209,19 +183,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
         .add("cluster=" + cluster)
         .add("clusterConfig=" + clusterConfig)
         .toString();
-  }
-
-  private static class MessageCodecImpl implements MessageCodec {
-
-    @Override
-    public Message deserialize(InputStream stream) throws Exception {
-      return DefaultObjectMapper.OBJECT_MAPPER.readValue(stream, Message.class);
-    }
-
-    @Override
-    public void serialize(Message message, OutputStream stream) throws Exception {
-      DefaultObjectMapper.OBJECT_MAPPER.writeValue(stream, message);
-    }
   }
 
   @SuppressWarnings("unused")
