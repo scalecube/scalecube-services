@@ -9,13 +9,22 @@ import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceMethodDefinition;
+import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -32,9 +41,59 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   public static final MembershipConfig MEMBERSHIP_CONFIG = MembershipConfig.defaultLocalConfig();
   public static final int CLUSTER_SIZE = 3 + 1; // r1 + r2 + r3 (plus 1 for be sure)
 
+  private JdkMetadataCodec jdkMetadataCodec = new JdkMetadataCodec();
+
   @BeforeAll
   public static void setUp() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
+  }
+
+  @Test
+  public void testJdkMetadataCodec() {
+    ServiceEndpoint serviceEndpoint =
+        ServiceEndpoint.builder()
+            .id(UUID.randomUUID().toString())
+            .tags(Collections.singletonMap("K", "V"))
+            .contentTypes(Collections.singleton("json"))
+            .appendServiceRegistrations(
+                Collections.singletonList(
+                    new ServiceRegistration(
+                        "namespace",
+                        Collections.singletonMap("KK", "VV"),
+                        Collections.singletonList(
+                            new ServiceMethodDefinition(
+                                "action0", Collections.singletonMap("KKK0", "VVV"), true)))))
+            .appendServiceRegistrations(
+                Collections.singletonList(
+                    new ServiceRegistration(
+                        "namespace",
+                        Collections.singletonMap("KK", "VV"),
+                        Collections.singletonList(
+                            new ServiceMethodDefinition(
+                                "action1", Collections.singletonMap("KKK1", "VVV"), true)))))
+            .appendServiceRegistrations(
+                Collections.singletonList(
+                    new ServiceRegistration(
+                        "namespace",
+                        Collections.singletonMap("KK", "VV"),
+                        Collections.singletonList(
+                            new ServiceMethodDefinition(
+                                "action2", Collections.singletonMap("KKK2", "VVV"), true)))))
+            .build();
+
+    ByteBuffer buffer = jdkMetadataCodec.serialize(serviceEndpoint);
+    ServiceEndpoint serviceEndpoint1 = (ServiceEndpoint) jdkMetadataCodec.deserialize(buffer);
+    Assertions.assertEquals(serviceEndpoint.id(), serviceEndpoint1.id());
+    Assertions.assertEquals(1, serviceEndpoint1.tags().size());
+    Assertions.assertEquals(1, serviceEndpoint1.contentTypes().size());
+
+    List<ServiceRegistration> serviceRegistrations =
+        new ArrayList<>(serviceEndpoint1.serviceRegistrations());
+    Assertions.assertEquals(3, serviceRegistrations.size());
+    for (ServiceRegistration serviceRegistration : serviceRegistrations) {
+      Assertions.assertEquals(1, serviceRegistration.methods().size());
+      Assertions.assertEquals(1, serviceRegistration.tags().size());
+    }
   }
 
   @Test

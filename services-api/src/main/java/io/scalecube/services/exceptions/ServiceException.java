@@ -1,5 +1,7 @@
 package io.scalecube.services.exceptions;
 
+import java.util.StringJoiner;
+
 public abstract class ServiceException extends RuntimeException {
 
   private final int errorCode;
@@ -25,11 +27,9 @@ public abstract class ServiceException extends RuntimeException {
 
   @Override
   public String toString() {
-    return getClass().getSimpleName()
-        + "{errorCode="
-        + errorCode
-        + ", errorMessage="
-        + getMessage()
-        + '}';
+    return new StringJoiner(", ", getClass().getSimpleName() + "[", "]")
+        .add("errorCode=" + errorCode)
+        .add("errorMessage=" + getMessage())
+        .toString();
   }
 }

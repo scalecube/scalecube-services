@@ -13,7 +13,7 @@ public class WeightedRandomRouter implements Router {
     RandomCollection<ServiceReference> weightedRandom = new RandomCollection<>();
     serviceRegistry
         .lookupService(request)
-        .forEach(sr -> weightedRandom.add(Double.valueOf(sr.tags().get("Weight")), sr));
+        .forEach(sr -> weightedRandom.add(Double.parseDouble(sr.tags().get("Weight")), sr));
     return Optional.of(weightedRandom.next());
   }
 }

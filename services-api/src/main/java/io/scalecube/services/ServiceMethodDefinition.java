@@ -47,7 +47,7 @@ public class ServiceMethodDefinition implements Externalizable {
    * @param auth is method protected by authentication
    */
   public ServiceMethodDefinition(String action, Map<String, String> tags, boolean auth) {
-    this.action = Objects.requireNonNull(action);
+    this.action = Objects.requireNonNull(action, "ServiceMethodDefinition.action is required");
     this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
     this.auth = auth;
   }
@@ -90,7 +90,7 @@ public class ServiceMethodDefinition implements Externalizable {
   }
 
   @Override
-  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+  public void readExternal(ObjectInput in) throws IOException {
     // namespace
     action = in.readUTF();
 

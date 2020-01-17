@@ -38,7 +38,7 @@ public class ServiceRegistration implements Externalizable {
    */
   public ServiceRegistration(
       String namespace, Map<String, String> tags, Collection<ServiceMethodDefinition> methods) {
-    this.namespace = Objects.requireNonNull(namespace);
+    this.namespace = Objects.requireNonNull(namespace, "ServiceRegistration.namespace is required");
     this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
     this.methods = Collections.unmodifiableList(new ArrayList<>(methods));
   }

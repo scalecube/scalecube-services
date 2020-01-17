@@ -21,6 +21,7 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -150,18 +151,18 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceDiscoveryEvent discoveryEvent = null;
 
     if (membershipEvent.isAdded() && membershipEvent.newMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.newMetadata());
-      discoveryEvent = ServiceDiscoveryEvent.newEndpointAdded(serviceEndpoint);
+      discoveryEvent =
+          ServiceDiscoveryEvent.newEndpointAdded(decodeMetadata(membershipEvent.newMetadata()));
     }
 
     if (membershipEvent.isRemoved() && membershipEvent.oldMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.oldMetadata());
-      discoveryEvent = ServiceDiscoveryEvent.newEndpointRemoved(serviceEndpoint);
+      discoveryEvent =
+          ServiceDiscoveryEvent.newEndpointRemoved(decodeMetadata(membershipEvent.oldMetadata()));
     }
 
     if (membershipEvent.isLeaving() && membershipEvent.newMetadata() != null) {
-      ServiceEndpoint serviceEndpoint = decodeMetadata(membershipEvent.newMetadata());
-      discoveryEvent = ServiceDiscoveryEvent.newEndpointLeaving(serviceEndpoint);
+      discoveryEvent =
+          ServiceDiscoveryEvent.newEndpointLeaving(decodeMetadata(membershipEvent.newMetadata()));
     }
 
     return discoveryEvent;
@@ -169,11 +170,10 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private ServiceEndpoint decodeMetadata(ByteBuffer byteBuffer) {
     try {
-      return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer);
-    } catch (Exception ex) {
-      // Gobble exception and don't ruin stack
-      LOGGER.error("Failed to read metadata: " + ex);
-      return null;
+      return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer.duplicate());
+    } catch (Exception e) {
+      LOGGER.error("Failed to read metadata: " + e);
+      throw Exceptions.propagate(e);
     }
   }
 

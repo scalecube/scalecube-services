@@ -36,7 +36,7 @@ public class ServiceEndpoint implements Externalizable {
   public ServiceEndpoint() {}
 
   private ServiceEndpoint(Builder builder) {
-    this.id = Objects.requireNonNull(builder.id);
+    this.id = Objects.requireNonNull(builder.id, "ServiceEndpoint.id is required");
     this.address = builder.address;
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
@@ -96,7 +96,11 @@ public class ServiceEndpoint implements Externalizable {
     out.writeUTF(id);
 
     // address
-    out.writeUTF(address.toString());
+    boolean addressExists = address != null;
+    out.writeBoolean(addressExists);
+    if (addressExists) {
+      out.writeUTF(address.toString());
+    }
 
     // contentTypes
     out.writeInt(contentTypes.size());
@@ -124,12 +128,15 @@ public class ServiceEndpoint implements Externalizable {
     id = in.readUTF();
 
     // address
-    address = Address.from(in.readUTF());
+    boolean addressExists = in.readBoolean();
+    if (addressExists) {
+      address = Address.from(in.readUTF());
+    }
 
     // contentTypes
-    int capacitySize = in.readInt();
-    Set<String> contentTypes = new HashSet<>(capacitySize);
-    for (int i = 0; i < capacitySize; i++) {
+    int contentTypesSize = in.readInt();
+    Set<String> contentTypes = new HashSet<>(contentTypesSize);
+    for (int i = 0; i < contentTypesSize; i++) {
       contentTypes.add(in.readUTF());
     }
     this.contentTypes = Collections.unmodifiableSet(contentTypes);
