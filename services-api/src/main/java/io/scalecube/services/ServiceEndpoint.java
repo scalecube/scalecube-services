@@ -1,17 +1,26 @@
 package io.scalecube.services;
 
 import io.scalecube.net.Address;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-public class ServiceEndpoint {
+public class ServiceEndpoint implements Externalizable {
+
+  private static final long serialVersionUID = 1L;
 
   private String id;
   private Address address;
@@ -27,12 +36,12 @@ public class ServiceEndpoint {
   public ServiceEndpoint() {}
 
   private ServiceEndpoint(Builder builder) {
-    this.id = builder.id;
+    this.id = Objects.requireNonNull(builder.id, "ServiceEndpoint.id is required");
     this.address = builder.address;
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
-    this.tags = new HashMap<>(builder.tags);
+    this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.serviceRegistrations =
-        Collections.unmodifiableCollection(new ArrayList<>(builder.serviceRegistrations));
+        Collections.unmodifiableList(new ArrayList<>(builder.serviceRegistrations));
   }
 
   public static Builder builder() {
@@ -55,19 +64,14 @@ public class ServiceEndpoint {
     return tags;
   }
 
-  /**
-   * Return collection of service registratrions.
-   *
-   * @return collection of {@link ServiceRegistration}
-   */
   public Collection<ServiceRegistration> serviceRegistrations() {
     return serviceRegistrations;
   }
 
   /**
-   * Creates collection of service references from this service endpoint.
+   * Creates collection of service references from {@code serviceRegistrations}.
    *
-   * @return collection of {@link ServiceReference}
+   * @return {@link ServiceReference} collection
    */
   public Collection<ServiceReference> serviceReferences() {
     return serviceRegistrations.stream()
@@ -84,6 +88,76 @@ public class ServiceEndpoint {
         .add("tags=" + tags)
         .add("serviceRegistrations(" + serviceRegistrations.size() + ")")
         .toString();
+  }
+
+  @Override
+  public void writeExternal(ObjectOutput out) throws IOException {
+    // id
+    out.writeUTF(id);
+
+    // address
+    boolean addressExists = address != null;
+    out.writeBoolean(addressExists);
+    if (addressExists) {
+      out.writeUTF(address.toString());
+    }
+
+    // contentTypes
+    out.writeInt(contentTypes.size());
+    for (String contentType : contentTypes) {
+      out.writeUTF(contentType);
+    }
+
+    // tags
+    out.writeInt(tags.size());
+    for (Entry<String, String> entry : tags.entrySet()) {
+      out.writeUTF(entry.getKey());
+      out.writeUTF(entry.getValue());
+    }
+
+    // serviceRegistrations
+    out.writeInt(serviceRegistrations.size());
+    for (ServiceRegistration registration : serviceRegistrations) {
+      out.writeObject(registration);
+    }
+  }
+
+  @Override
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    // id
+    id = in.readUTF();
+
+    // address
+    boolean addressExists = in.readBoolean();
+    if (addressExists) {
+      address = Address.from(in.readUTF());
+    }
+
+    // contentTypes
+    int contentTypesSize = in.readInt();
+    Set<String> contentTypes = new HashSet<>(contentTypesSize);
+    for (int i = 0; i < contentTypesSize; i++) {
+      contentTypes.add(in.readUTF());
+    }
+    this.contentTypes = Collections.unmodifiableSet(contentTypes);
+
+    // tags
+    int tagsSize = in.readInt();
+    Map<String, String> tags = new HashMap<>(tagsSize);
+    for (int i = 0; i < tagsSize; i++) {
+      String key = in.readUTF();
+      String value = in.readUTF();
+      tags.put(key, value);
+    }
+    this.tags = Collections.unmodifiableMap(tags);
+
+    // serviceRegistrations
+    int serviceRegistrationsSize = in.readInt();
+    List<ServiceRegistration> serviceRegistrations = new ArrayList<>(serviceRegistrationsSize);
+    for (int i = 0; i < serviceRegistrationsSize; i++) {
+      serviceRegistrations.add((ServiceRegistration) in.readObject());
+    }
+    this.serviceRegistrations = Collections.unmodifiableList(serviceRegistrations);
   }
 
   public static class Builder {

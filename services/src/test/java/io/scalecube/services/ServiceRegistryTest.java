@@ -5,6 +5,9 @@ import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.END
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.ENDPOINT_REMOVED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.cluster.codec.jackson.JacksonMetadataCodec;
+import io.scalecube.cluster.metadata.JdkMetadataCodec;
+import io.scalecube.cluster.metadata.MetadataCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -17,7 +20,11 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.junit.jupiter.api.Test;
+import java.util.function.Function;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 import reactor.test.StepVerifier;
@@ -26,14 +33,20 @@ public class ServiceRegistryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(6);
 
-  @Test
-  public void test_added_removed_registration_events() {
+  private static Stream<Arguments> metadataCodecSource() {
+    return Stream.of(
+        Arguments.of(new JdkMetadataCodec()), Arguments.of(new JacksonMetadataCodec()));
+  }
+
+  @ParameterizedTest
+  @MethodSource("metadataCodecSource")
+  public void test_added_removed_registration_events(MetadataCodec metadataCodec) {
 
     List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
     Microservices seed =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -43,14 +56,14 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices ms1 =
         Microservices.builder()
-            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -68,21 +81,16 @@ public class ServiceRegistryTest extends BaseTest {
     seed.shutdown().block();
   }
 
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
-  }
-
-  @Test
-  public void test_listen_to_discovery_events() {
+  @ParameterizedTest
+  @MethodSource("metadataCodecSource")
+  public void test_listen_to_discovery_events(MetadataCodec metadataCodec) {
     ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
 
     List<Microservices> cluster = new CopyOnWriteArrayList<>();
 
     Microservices seed =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new AnnotationServiceImpl())
             .startAwait();
@@ -97,7 +105,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -108,7 +116,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -141,15 +149,16 @@ public class ServiceRegistryTest extends BaseTest {
         .block();
   }
 
-  @Test
-  public void test_delayed_listen_to_discovery_events() {
+  @ParameterizedTest
+  @MethodSource("metadataCodecSource")
+  public void test_delayed_listen_to_discovery_events(MetadataCodec metadataCodec) {
     ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
 
     List<Microservices> cluster = new CopyOnWriteArrayList<>();
 
     Microservices seed =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -164,7 +173,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
                       .startAwait();
@@ -175,7 +184,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -194,5 +203,18 @@ public class ServiceRegistryTest extends BaseTest {
     Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
         .then(Mono.delay(TIMEOUT))
         .block();
+  }
+
+  private Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
+      MetadataCodec metadataCodec) {
+    return se -> new ScalecubeServiceDiscovery(se).options(cfg -> cfg.metadataCodec(metadataCodec));
+  }
+
+  private static Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
+      Address address, MetadataCodec metadataCodec) {
+    return se ->
+        new ScalecubeServiceDiscovery(se)
+            .options(cfg -> cfg.metadataCodec(metadataCodec))
+            .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
   }
 }
