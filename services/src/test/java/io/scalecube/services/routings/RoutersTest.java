@@ -9,16 +9,15 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -49,6 +48,7 @@ public class RoutersTest extends BaseTest {
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private static Microservices gateway;
+  private static Address gatewayAddress;
   private static Microservices provider1;
   private static Microservices provider2;
   private static Microservices provider3;
@@ -60,10 +60,16 @@ public class RoutersTest extends BaseTest {
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    gatewayAddress = gateway.discovery().address();
+
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
-            .discovery(RoutersTest::serviceDiscovery)
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
@@ -78,7 +84,10 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider2 =
         Microservices.builder()
-            .discovery(RoutersTest::serviceDiscovery)
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
@@ -93,7 +102,10 @@ public class RoutersTest extends BaseTest {
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
         Microservices.builder()
-            .discovery(RoutersTest::serviceDiscovery)
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(tagService)
@@ -266,10 +278,5 @@ public class RoutersTest extends BaseTest {
         (serviceBCount.doubleValue() / n) > 0.5,
         "Service B's Weight=0.9; at least more than half "
             + "of invocations have to be routed to Service B");
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

@@ -473,8 +473,8 @@ public class ServiceRemoteTest extends BaseTest {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
+    return new ScalecubeServiceDiscovery(endpoint)
+        .membership(cfg -> cfg.seedMembers(gateway.discovery().address()));
   }
 }

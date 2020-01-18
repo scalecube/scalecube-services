@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
@@ -36,7 +35,10 @@ public class StreamingServiceTest extends BaseTest {
 
     node =
         Microservices.builder()
-            .discovery(StreamingServiceTest::serviceDiscovery)
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
@@ -183,10 +185,5 @@ public class StreamingServiceTest extends BaseTest {
         serviceCall.requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
 
     assertEquals(batchSize, serviceMessages.size());
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

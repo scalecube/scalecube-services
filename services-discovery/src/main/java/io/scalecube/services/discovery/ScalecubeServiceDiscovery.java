@@ -4,7 +4,11 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterImpl;
 import io.scalecube.cluster.ClusterMessageHandler;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipConfig;
+import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
+import io.scalecube.cluster.transport.api.TransportConfig;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -32,10 +36,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private static final Logger LOGGER =
       LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceDiscovery");
 
-  private final ServiceEndpoint serviceEndpoint;
-
+  private ServiceEndpoint serviceEndpoint;
   private ClusterConfig clusterConfig;
-
   private Cluster cluster;
 
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
@@ -63,15 +65,55 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   /**
-   * Setter for {@code ClusterConfig.Builder} options.
+   * Setter for {@code ClusterConfig} options.
    *
-   * @param opts ClusterConfig options builder
+   * @param opts options operator
    * @return new instance of {@code ScalecubeServiceDiscovery}
    */
   public ScalecubeServiceDiscovery options(UnaryOperator<ClusterConfig> opts) {
     ScalecubeServiceDiscovery d = new ScalecubeServiceDiscovery(this);
     d.clusterConfig = opts.apply(clusterConfig);
     return d;
+  }
+
+  /**
+   * Setter for {@code TransportConfig} options.
+   *
+   * @param opts options operator
+   * @return new instance of {@code ScalecubeServiceDiscovery}
+   */
+  public ScalecubeServiceDiscovery transport(UnaryOperator<TransportConfig> opts) {
+    return options(cfg -> cfg.transport(opts));
+  }
+
+  /**
+   * Setter for {@code MembershipConfig} options.
+   *
+   * @param opts options operator
+   * @return new instance of {@code ScalecubeServiceDiscovery}
+   */
+  public ScalecubeServiceDiscovery membership(UnaryOperator<MembershipConfig> opts) {
+    return options(cfg -> cfg.membership(opts));
+  }
+
+  /**
+   * Setter for {@code GossipConfig} options.
+   *
+   * @param opts options operator
+   * @return new instance of {@code ScalecubeServiceDiscovery}
+   */
+  public ScalecubeServiceDiscovery gossip(UnaryOperator<GossipConfig> opts) {
+    return options(cfg -> cfg.gossip(opts));
+  }
+
+  /**
+   * Setter for {@code FailureDetectorConfig} options.
+   *
+   * @param opts options operator
+   * @return new instance of {@code ScalecubeServiceDiscovery}
+   */
+  public ScalecubeServiceDiscovery failureDetector(UnaryOperator<FailureDetectorConfig> opts) {
+    return options(cfg -> cfg.failureDetector(opts));
   }
 
   @Override

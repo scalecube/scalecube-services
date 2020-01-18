@@ -1,10 +1,9 @@
 package io.scalecube.services.examples.exceptions;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.Collections;
 
@@ -30,9 +29,14 @@ public class ExceptionMapperExample {
 
     System.err.println("ms1 started: " + ms1.serviceAddress());
 
+    final Address address1 = ms1.discovery().address();
+
     Microservices ms2 =
         Microservices.builder()
-            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, ms1))
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(address1)))
             .transport(RSocketServiceTransport::new)
             .services(
                 call -> {
@@ -62,11 +66,5 @@ public class ExceptionMapperExample {
             () -> System.out.println("Completed!"));
 
     Thread.currentThread().join();
-  }
-
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceEndpoint serviceEndpoint, Microservices ms1) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(ms1.discovery().address())));
   }
 }
