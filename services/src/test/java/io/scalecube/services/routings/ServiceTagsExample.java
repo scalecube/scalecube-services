@@ -2,10 +2,8 @@ package io.scalecube.services.routings;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.routings.sut.CanaryService;
 import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
@@ -32,7 +30,10 @@ public class ServiceTagsExample {
 
     Microservices services1 =
         Microservices.builder()
-            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
@@ -42,7 +43,10 @@ public class ServiceTagsExample {
 
     Microservices services2 =
         Microservices.builder()
-            .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, seedAddress))
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
@@ -61,11 +65,5 @@ public class ServiceTagsExample {
                 System.out.println(success);
               });
     }
-  }
-
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
   }
 }

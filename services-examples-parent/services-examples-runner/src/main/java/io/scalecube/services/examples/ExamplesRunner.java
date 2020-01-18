@@ -32,9 +32,8 @@ public class ExamplesRunner {
    * Main method of gateway runner.
    *
    * @param args program arguments
-   * @throws Exception exception thrown
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     ConfigRegistry configRegistry = ConfigBootstrap.configRegistry();
 
     Config config =
@@ -53,7 +52,7 @@ public class ExamplesRunner {
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     Microservices.builder()
-        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
+        .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
             () ->
                 new RSocketServiceTransport()
@@ -77,14 +76,10 @@ public class ExamplesRunner {
         .block();
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(
-            opts ->
-                opts.membership(cfg1 -> cfg1.seedMembers(config.seedAddresses()))
-                    .transport(cfg1 -> cfg1.port(config.discoveryPort()))
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()));
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint, Config config) {
+    return new ScalecubeServiceDiscovery(endpoint)
+        .membership(cfg -> cfg.seedMembers(config.seedAddresses()))
+        .transport(cfg -> cfg.port(config.discoveryPort()));
   }
 
   public static class Config {

@@ -31,24 +31,22 @@ public class ErrorFlowTest extends BaseTest {
     provider =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.transport(cfg -> cfg.port(port.incrementAndGet()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.port(port.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    Address seedAddress = provider.discovery().address();
+    final Address seedAddress = provider.discovery().address();
 
     consumer =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts ->
-                                opts.membership(cfg -> cfg.seedMembers(seedAddress))
-                                    .transport(cfg -> cfg.port(port.incrementAndGet()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(seedAddress))
+                        .transport(cfg -> cfg.port(port.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }

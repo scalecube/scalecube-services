@@ -207,14 +207,15 @@ public class ServiceRegistryTest extends BaseTest {
 
   private Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
       MetadataCodec metadataCodec) {
-    return se -> new ScalecubeServiceDiscovery(se).options(cfg -> cfg.metadataCodec(metadataCodec));
+    return endpoint ->
+        new ScalecubeServiceDiscovery(endpoint).options(cfg -> cfg.metadataCodec(metadataCodec));
   }
 
   private static Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
       Address address, MetadataCodec metadataCodec) {
-    return se ->
-        new ScalecubeServiceDiscovery(se)
+    return endpoint ->
+        new ScalecubeServiceDiscovery(endpoint)
             .options(cfg -> cfg.metadataCodec(metadataCodec))
-            .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
+            .membership(cfg -> cfg.seedMembers(address));
   }
 }

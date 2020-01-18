@@ -2,9 +2,7 @@ package io.scalecube.services.examples.orderbook;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.services.examples.orderbook.service.OrderRequest;
@@ -40,10 +38,14 @@ public class Example1 {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
+    final Address gatewayAddress = gateway.discovery().address();
+
     Microservices ms =
         Microservices.builder()
             .discovery(
-                serviceEndpoint -> serviceDiscovery(serviceEndpoint, gateway.discovery().address()))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new DefaultMarketDataService())
             .startAwait();
@@ -64,7 +66,7 @@ public class Example1 {
                               new Order(
                                   new PriceLevel(Side.BUY, RANDOM.nextInt(10) + 1), // prices
                                   System.currentTimeMillis(),
-                                  Long.valueOf(RANDOM.nextInt(110) + 1 + "")), // units
+                                  Long.parseLong(RANDOM.nextInt(110) + 1 + "")), // units
                               INSTRUMENT))
                       .block();
                 } else {
@@ -74,7 +76,7 @@ public class Example1 {
                               new Order(
                                   new PriceLevel(Side.SELL, RANDOM.nextInt(10) + 1), // prices
                                   System.currentTimeMillis(),
-                                  Long.valueOf(RANDOM.nextInt(70) + 1 + "")), // units
+                                  Long.parseLong(RANDOM.nextInt(70) + 1 + "")), // units
                               INSTRUMENT))
                       .block();
                 }
@@ -87,12 +89,6 @@ public class Example1 {
             TimeUnit.MILLISECONDS);
 
     Thread.currentThread().join();
-  }
-
-  private static ServiceDiscovery serviceDiscovery(
-      ServiceEndpoint serviceEndpoint, Address address) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(address)));
   }
 
   private static void print(OrderBookSnapshoot snapshot) {
