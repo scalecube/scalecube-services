@@ -148,7 +148,8 @@ public class Microservices {
     shutdown
         .then(doShutdown())
         .doFinally(s -> onShutdown.onComplete())
-        .subscribe(null, ex -> LOGGER.warn("Exception occurred on shutdown: " + ex));
+        .subscribe(
+            null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
 
   public static Builder builder() {
@@ -169,13 +170,13 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    LOGGER.info("Starting {}", this);
+    LOGGER.info("[{}] Start", id);
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
 
     return transportBootstrap
-        .start(methodRegistry)
+        .start(this, methodRegistry)
         .publishOn(scheduler)
         .flatMap(
             input -> {
@@ -222,6 +223,7 @@ public class Microservices {
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             })
         .doOnSuccess(m -> listenJvmShutdown())
+        .doOnSuccess(m -> LOGGER.info("[{}] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
 
@@ -298,13 +300,13 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Shutting down {}", this);
+          LOGGER.info("[{}] Microservices is shutting down", id);
           return Mono.whenDelayError(
                   processBeforeDestroy(),
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
-              .doFinally(s -> LOGGER.info("{} has been shut down", this));
+              .doOnSuccess(s -> LOGGER.info("[{}] Microservices has been shut down", id));
         });
   }
 
@@ -589,7 +591,9 @@ public class Microservices {
       this.supplier = supplier;
     }
 
-    private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
+    private Mono<ServiceTransportBootstrap> start(
+        Microservices microservices, ServiceMethodRegistry methodRegistry) {
+
       if (supplier == null) {
         return Mono.just(ServiceTransportBootstrap.noOpInstance);
       }
@@ -598,19 +602,32 @@ public class Microservices {
 
       return serviceTransport
           .start()
+          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Start", microservices.id()))
+          .doOnSuccess(
+              transport -> LOGGER.info("[{}][ServiceTransport] Started", microservices.id()))
           .doOnSuccess(transport -> serviceTransport = transport) // reset with started
+          .doOnError(
+              ex ->
+                  LOGGER.error(
+                      "[{}][ServiceTransport] Failed to start: {}",
+                      microservices.id(),
+                      ex.toString()))
           .flatMap(
               transport -> {
                 // bind server transport
                 ServerTransport serverTransport = serviceTransport.serverTransport();
                 return serverTransport
                     .bind(methodRegistry)
+                    .doOnSubscribe(
+                        s -> LOGGER.info("[{}][ServerTransport] Start", microservices.id()))
+                    .doOnSuccess(
+                        s -> LOGGER.info("[{}][ServerTransport] Started", microservices.id()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to bind ServerTransport -- {} cause: ",
-                                serverTransport,
-                                ex));
+                                "[{}][ServerTransport] Failed to start: {}",
+                                microservices.id(),
+                                ex.toString()));
               })
           .doOnSuccess(transport -> serverTransport = transport) // reset with bound
           .map(
@@ -619,15 +636,10 @@ public class Microservices {
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
-
-                LOGGER.debug(
-                    "Successfully bound ServerTransport -- {} on address {}",
-                    this.serverTransport,
-                    this.address);
-
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.debug("Successfully created ClientTransport -- {}", this.clientTransport);
+                // log resulting service endpoint address
+                LOGGER.info("[{}][ServerTransport] address: {}", microservices.id(), this.address);
                 return this;
               });
     }

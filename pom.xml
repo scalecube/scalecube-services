@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.10.0.pr1</jackson.version>
-    <scalecube-cluster.version>2.4.10-RC6</scalecube-cluster.version>
+    <scalecube-cluster.version>2.4.10-RC7</scalecube-cluster.version>
     <scalecube-commons.version>1.0.1</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.11</scalecube-config.version>
@@ -245,7 +245,7 @@
       </snapshots>
       <id>bintray</id>
       <name>bintray</name>
-      <url>http://jcenter.bintray.com</url>
+      <url>https://jcenter.bintray.com</url>
     </repository>
     <repository>
       <snapshots>
@@ -253,7 +253,7 @@
       </snapshots>
       <id>central</id>
       <name>central</name>
-      <url>http://repo1.maven.org</url>
+      <url>https://repo1.maven.org/maven2</url>
     </repository>
   </repositories>
 
@@ -272,7 +272,7 @@
       </snapshots>
       <id>central</id>
       <name>bintray-plugins</name>
-      <url>http://jcenter.bintray.com</url>
+      <url>https://jcenter.bintray.com</url>
     </pluginRepository>
   </pluginRepositories>
 
