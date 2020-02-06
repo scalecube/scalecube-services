@@ -237,7 +237,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(new GatewayOptions().call(call).metrics(metrics));
+    return gatewayBootstrap.start(this, new GatewayOptions().call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -521,28 +521,37 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(GatewayOptions options) {
+    private Mono<GatewayBootstrap> start(Microservices microservices, GatewayOptions options) {
       return Flux.fromIterable(factories)
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                LOGGER.debug("Starting Gateway");
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
+                    .doOnSubscribe(
+                        s ->
+                            LOGGER.info(
+                                "[{}][{}][{}] Starting",
+                                microservices.id(),
+                                gateway.getClass().getSimpleName(),
+                                gateway.id()))
                     .doOnSuccess(
                         result ->
-                            LOGGER.debug(
-                                "Successfully started Gateway -- {} on {}",
-                                result,
+                            LOGGER.info(
+                                "[{}][{}][{}][{}] Started",
+                                microservices.id(),
+                                result.getClass().getSimpleName(),
+                                result.id(),
                                 result.address()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to start Gateway -- {} with {}, cause: ",
-                                gateway,
-                                options,
-                                ex));
+                                "[{}][{}][{}] Failed to start: {}",
+                                microservices.id(),
+                                gateway.getClass().getSimpleName(),
+                                gateway.id(),
+                                ex.toString()));
               })
           .then(Mono.just(this));
     }
@@ -602,33 +611,37 @@ public class Microservices {
 
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport) // reset with started
-          .flatMap(
-              transport -> {
-                // bind server transport
-                return serviceTransport.serverTransport().bind(methodRegistry);
-              })
-          .doOnSuccess(transport -> serverTransport = transport) // reset with bound
+          .doOnSuccess(transport -> serviceTransport = transport)
+          .flatMap(transport -> serviceTransport.serverTransport().bind(methodRegistry))
+          .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
                 this.address =
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
-                // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
                 return this;
               })
-          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Starting", microservices.id()))
+          .doOnSubscribe(
+              s ->
+                  LOGGER.info(
+                      "[{}][{}] Starting",
+                      microservices.id(),
+                      serviceTransport.getClass().getSimpleName()))
           .doOnSuccess(
               transport ->
                   LOGGER.info(
-                      "[{}][ServiceTransport][{}] Started", microservices.id(), this.address))
+                      "[{}][{}][{}] Started",
+                      microservices.id(),
+                      serviceTransport.getClass().getSimpleName(),
+                      this.address))
           .doOnError(
               ex ->
                   LOGGER.error(
-                      "[{}][ServiceTransport] Failed to start: {}",
+                      "[{}][{}] Failed to start: {}",
                       microservices.id(),
+                      serviceTransport.getClass().getSimpleName(),
                       ex.toString()));
     }
 
