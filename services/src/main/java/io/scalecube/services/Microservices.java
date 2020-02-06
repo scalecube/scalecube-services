@@ -170,7 +170,7 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    LOGGER.info("[{}] Start", id);
+    LOGGER.info("[{}] Starting", id);
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
@@ -300,13 +300,13 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          LOGGER.info("[{}] Microservices is shutting down", id);
+          LOGGER.info("[{}][doShutdown] Shutting down", id);
           return Mono.whenDelayError(
                   processBeforeDestroy(),
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
-              .doOnSuccess(s -> LOGGER.info("[{}] Microservices has been shut down", id));
+              .doOnSuccess(s -> LOGGER.info("[{}][doShutdown] Shutdown", id));
         });
   }
 
@@ -602,32 +602,11 @@ public class Microservices {
 
       return serviceTransport
           .start()
-          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Start", microservices.id()))
-          .doOnSuccess(
-              transport -> LOGGER.info("[{}][ServiceTransport] Started", microservices.id()))
           .doOnSuccess(transport -> serviceTransport = transport) // reset with started
-          .doOnError(
-              ex ->
-                  LOGGER.error(
-                      "[{}][ServiceTransport] Failed to start: {}",
-                      microservices.id(),
-                      ex.toString()))
           .flatMap(
               transport -> {
                 // bind server transport
-                ServerTransport serverTransport = serviceTransport.serverTransport();
-                return serverTransport
-                    .bind(methodRegistry)
-                    .doOnSubscribe(
-                        s -> LOGGER.info("[{}][ServerTransport] Start", microservices.id()))
-                    .doOnSuccess(
-                        s -> LOGGER.info("[{}][ServerTransport] Started", microservices.id()))
-                    .doOnError(
-                        ex ->
-                            LOGGER.error(
-                                "[{}][ServerTransport] Failed to start: {}",
-                                microservices.id(),
-                                ex.toString()));
+                return serviceTransport.serverTransport().bind(methodRegistry);
               })
           .doOnSuccess(transport -> serverTransport = transport) // reset with bound
           .map(
@@ -638,10 +617,19 @@ public class Microservices {
                         serverTransport.address().port());
                 // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                // log resulting service endpoint address
-                LOGGER.info("[{}][ServerTransport] address: {}", microservices.id(), this.address);
                 return this;
-              });
+              })
+          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Starting", microservices.id()))
+          .doOnSuccess(
+              transport ->
+                  LOGGER.info(
+                      "[{}][ServiceTransport][{}] Started", microservices.id(), this.address))
+          .doOnError(
+              ex ->
+                  LOGGER.error(
+                      "[{}][ServiceTransport] Failed to start: {}",
+                      microservices.id(),
+                      ex.toString()));
     }
 
     private Mono<Void> shutdown() {
