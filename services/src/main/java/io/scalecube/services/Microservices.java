@@ -209,12 +209,12 @@ public class Microservices {
                       .collect(Collectors.toList());
 
               return discoveryBootstrap
-                  .create(serviceEndpointBuilder.build(), serviceRegistry)
+                  .listenDiscovery(serviceEndpointBuilder.build(), serviceRegistry)
                   .publishOn(scheduler)
                   .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
+                  .then(Mono.defer(discoveryBootstrap::createAndStartListen).publishOn(scheduler))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -436,78 +436,39 @@ public class Microservices {
       this.discoveryFactory = factory;
     }
 
-    /**
-     * Creates instance of {@code ServiceDiscovery}.
-     *
-     * @param serviceEndpoint local service endpoint
-     * @param serviceRegistry service registry
-     * @return new {@code ServiceDiscovery} instance
-     */
-    private Mono<ServiceDiscovery> create(
+    private Mono<ServiceDiscovery> createAndStartListen(
         ServiceEndpoint serviceEndpoint, ServiceRegistry serviceRegistry) {
       return Mono.defer(
           () -> {
             discovery = discoveryFactory.apply(serviceEndpoint);
+
             disposable =
                 discovery
                     .listenDiscovery()
                     .subscribe(
-                        discoveryEvent -> {
-                          if (discoveryEvent.isEndpointAdded()) {
-                            serviceRegistry.registerService(discoveryEvent.serviceEndpoint());
+                        event -> {
+                          if (event.isEndpointAdded()) {
+                            serviceRegistry.registerService(event.serviceEndpoint());
                           }
-                          if (discoveryEvent.isEndpointLeaving()
-                              || discoveryEvent.isEndpointRemoved()) {
-                            serviceRegistry.unregisterService(
-                                discoveryEvent.serviceEndpoint().id());
+                          if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+                            serviceRegistry.unregisterService(event.serviceEndpoint().id());
                           }
                         });
-            return Mono.just(discovery);
-          });
-    }
 
-    /**
-     * Starts {@code ServiceDiscovery} instance.
-     *
-     * @return started {@code ServiceDiscovery} instance
-     */
-    private Mono<ServiceDiscovery> start() {
-      return Mono.defer(
-          () -> {
-            if (discovery == null) {
-              throw new IllegalStateException(
-                  "Create ServiceDiscovery instance before starting it");
-            }
-            LOGGER.debug("Starting ServiceDiscovery");
-            return discovery
-                .start()
-                .doOnSuccess(
-                    serviceDiscovery -> {
-                      discovery = serviceDiscovery;
-                      LOGGER.debug("Successfully started ServiceDiscovery -- {}", discovery);
-                    })
-                .doOnError(
-                    ex ->
-                        LOGGER.error(
-                            "Failed to start ServiceDiscovery -- {}, cause: ", discovery, ex));
+
+
+            return discovery.start().doOnSuccess(serviceDiscovery -> discovery = serviceDiscovery);
           });
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
-          () ->
-              Optional.ofNullable(discovery) //
-                  .map(ServiceDiscovery::shutdown)
-                  .orElse(Mono.empty())
-                  .doFinally(
-                      s -> {
-                        if (disposable != null) {
-                          disposable.dispose();
-                        }
-                        if (discovery != null) {
-                          LOGGER.debug("ServiceDiscovery -- {} has been stopped", discovery);
-                        }
-                      }));
+          () -> {
+            if (disposable != null) {
+              disposable.dispose();
+            }
+            return discovery != null ? discovery.shutdown() : Mono.empty();
+          });
     }
   }
 
@@ -547,7 +508,7 @@ public class Microservices {
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "[{}][{}][{}] Failed to start: {}",
+                                "[{}][{}][{}] Failed to start, cause: {}",
                                 microservices.id(),
                                 gateway.getClass().getSimpleName(),
                                 gateway.id(),
@@ -557,15 +518,7 @@ public class Microservices {
     }
 
     private Mono<Void> shutdown() {
-      return Mono.defer(
-          () ->
-              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
-                  .doFinally(
-                      s -> {
-                        if (!gateways.isEmpty()) {
-                          LOGGER.debug("Gateways have been stopped");
-                        }
-                      }));
+      return Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new));
     }
 
     private List<Gateway> gateways() {
@@ -639,7 +592,7 @@ public class Microservices {
           .doOnError(
               ex ->
                   LOGGER.error(
-                      "[{}][{}] Failed to start: {}",
+                      "[{}][{}] Failed to start, cause: {}",
                       microservices.id(),
                       serviceTransport.getClass().getSimpleName(),
                       ex.toString()));
