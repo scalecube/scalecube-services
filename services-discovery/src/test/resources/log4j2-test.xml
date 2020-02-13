@@ -10,15 +10,21 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.netty" level="info"/>
-    <Logger name="reactor.netty" level="info"/>
-    <Logger name="io.scalecube.transport" level="info"/>
-    <Logger name="io.scalecube.cluster" level="info"/>
-    <Logger name="io.scalecube.services" level="info"/>
-    <Logger name="io.scalecube.services.discovery" level="info"/>
+    <Logger name="io.scalecube.seed" level="${env:seedLogLevel:-WARN}"/>
+    <Logger name="io.scalecube.services" level="${env:servicesLogLevel:-WARN}"/>
+    <Logger name="io.scalecube.transport" level="${env:servicesTransportLogLevel:-WARN}"/>
+    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-WARN}"/>
+    <Logger name="io.scalecube.config" level="${env:configLogLevel:-WARN}"/>
+    <Logger name="reactor.util" level="${env:reactorUtilLogLevel:-WARN}"/>
+    <Logger name="reactor.core" level="${env:reactorCoreLogLevel:-WARN}"/>
+    <Logger name="reactor.netty" level="${env:reactorNettyLogLevel:-WARN}"/>
+    <Logger name="io.netty" level="${env:nettyLogLevel:-WARN}"/>
+    <logger name="io.rsocket.transport.netty" level="${env:rsocketTransportNettyLogLevel:-WARN}"/>
+    <logger name="io.rsocket.FrameLogger" level="${env:rsocketFrameLoggerLogLevel:-WARN}"/>
+    <logger name="io.rsocket" level="${env:rsocketLogLevel:-WARN}"/>
 
-    <Root level="info">
-      <AppenderRef ref="console"/>
+    <Root level="${env:logLevel:-DEBUG}">
+      <AppenderRef ref="${env:logAppender:-console}"/>
     </Root>
   </Loggers>
 
