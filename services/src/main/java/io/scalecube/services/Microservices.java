@@ -445,6 +445,11 @@ public class Microservices {
     private Mono<ServiceDiscovery> startListen(Microservices microservices) {
       return Mono.defer(
           () -> {
+            if (discovery == null) {
+              LOGGER.info("[{}] ServiceDiscovery not set", microservices.id());
+              return Mono.empty();
+            }
+
             disposable =
                 discovery
                     .listenDiscovery()
@@ -579,10 +584,11 @@ public class Microservices {
     }
 
     private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
-      if (supplier == NULL_SUPPLIER) {
+      if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
+        LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
       }
-      serviceTransport = supplier.get();
+
       return serviceTransport
           .start()
           .doOnSuccess(transport -> serviceTransport = transport)
