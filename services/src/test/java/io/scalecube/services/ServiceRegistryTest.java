@@ -6,6 +6,7 @@ import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type.END
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.cluster.codec.jackson.JacksonMetadataCodec;
+import io.scalecube.cluster.codec.jackson.smile.JacksonSmileMetadataCodec;
 import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
 import io.scalecube.net.Address;
@@ -35,7 +36,9 @@ public class ServiceRegistryTest extends BaseTest {
 
   private static Stream<Arguments> metadataCodecSource() {
     return Stream.of(
-        Arguments.of(new JdkMetadataCodec()), Arguments.of(new JacksonMetadataCodec()));
+        Arguments.of(new JdkMetadataCodec()),
+        Arguments.of(new JacksonMetadataCodec()),
+        Arguments.of(new JacksonSmileMetadataCodec()));
   }
 
   @ParameterizedTest

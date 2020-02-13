@@ -182,13 +182,7 @@ public class Microservices {
         .flatMap(
             input -> {
               final ServiceCall call = call();
-              final Address serviceAddress;
-
-              if (input != ServiceTransportBootstrap.NULL_INSTANCE) {
-                serviceAddress = input.address;
-              } else {
-                serviceAddress = null;
-              }
+              final Address serviceAddress = input.address;
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
@@ -209,13 +203,14 @@ public class Microservices {
                       .map(ServiceInfo::serviceInstance)
                       .collect(Collectors.toList());
 
-              final ServiceEndpoint serviceEndpoint = serviceEndpointBuilder.build();
-
-              return startGateway(call)
+              return discoveryBootstrap
+                  .createInstance(serviceEndpointBuilder.build())
+                  .publishOn(scheduler)
+                  .then(startGateway(call))
                   .publishOn(scheduler)
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(discoveryBootstrap.startListen(this, serviceEndpoint))
+                  .then(discoveryBootstrap.startListen(this))
                   .publishOn(scheduler)
                   .thenReturn(this);
             })
@@ -426,28 +421,35 @@ public class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
+    public static final Function<ServiceEndpoint, ServiceDiscovery> NULL_FACTORY = i -> null;
+
     private final Function<ServiceEndpoint, ServiceDiscovery> factory;
 
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
     private ServiceDiscoveryBootstrap() {
-      this(i -> NoOpServiceDiscovery.INSTANCE);
+      this(NULL_FACTORY);
     }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
       this.factory = factory;
     }
 
-    private Mono<ServiceDiscovery> startListen(
-        Microservices microservices, ServiceEndpoint serviceEndpoint) {
+    private Mono<ServiceDiscovery> createInstance(ServiceEndpoint serviceEndpoint) {
+      return factory == NULL_FACTORY
+          ? Mono.empty()
+          : Mono.defer(() -> Mono.just(discovery = factory.apply(serviceEndpoint)));
+    }
+
+    private Mono<ServiceDiscovery> startListen(Microservices microservices) {
       return Mono.defer(
           () -> {
-            discovery = factory.apply(serviceEndpoint);
             disposable =
                 discovery
                     .listenDiscovery()
                     .subscribe(event -> onDiscoveryEvent(microservices, event));
+
             return discovery
                 .start()
                 .doOnSuccess(discovery -> this.discovery = discovery)
@@ -559,13 +561,14 @@ public class Microservices {
 
     public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
     public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
+    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", -1);
 
     private final Supplier<ServiceTransport> supplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address address;
+    private Address address = NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
       this(NULL_SUPPLIER);
