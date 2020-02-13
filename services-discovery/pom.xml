@@ -38,6 +38,11 @@
       <artifactId>scalecube-codec-jackson</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-codec-jackson-smile</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
 </project>

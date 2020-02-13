@@ -4,6 +4,7 @@ import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -148,7 +149,8 @@ public class Microservices {
     shutdown
         .then(doShutdown())
         .doFinally(s -> onShutdown.onComplete())
-        .subscribe(null, ex -> LOGGER.warn("Exception occurred on shutdown: " + ex));
+        .subscribe(
+            null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
 
   public static Builder builder() {
@@ -169,24 +171,18 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    LOGGER.info("Starting {}", this);
+    LOGGER.info("[{}] Starting", id);
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
 
     return transportBootstrap
-        .start(methodRegistry)
+        .start(this)
         .publishOn(scheduler)
         .flatMap(
             input -> {
               final ServiceCall call = call();
-              final Address serviceAddress;
-
-              if (input != ServiceTransportBootstrap.noOpInstance) {
-                serviceAddress = input.address;
-              } else {
-                serviceAddress = null;
-              }
+              final Address serviceAddress = input.address;
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
@@ -208,12 +204,14 @@ public class Microservices {
                       .collect(Collectors.toList());
 
               return discoveryBootstrap
-                  .create(serviceEndpointBuilder.build(), serviceRegistry)
+                  .createInstance(serviceEndpointBuilder.build())
                   .publishOn(scheduler)
-                  .then(Mono.defer(() -> startGateway(call)).publishOn(scheduler))
+                  .then(startGateway(call))
+                  .publishOn(scheduler)
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(Mono.defer(discoveryBootstrap::start).publishOn(scheduler))
+                  .then(discoveryBootstrap.startListen(this))
+                  .publishOn(scheduler)
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -222,6 +220,7 @@ public class Microservices {
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             })
         .doOnSuccess(m -> listenJvmShutdown())
+        .doOnSuccess(m -> LOGGER.info("[{}] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
 
@@ -235,7 +234,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(new GatewayOptions().call(call).metrics(metrics));
+    return gatewayBootstrap.start(this, new GatewayOptions().call(call).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -298,13 +297,13 @@ public class Microservices {
   private Mono<Void> doShutdown() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Shutting down {}", this);
+          LOGGER.info("[{}][doShutdown] Shutting down", id);
           return Mono.whenDelayError(
                   processBeforeDestroy(),
                   discoveryBootstrap.shutdown(),
                   gatewayBootstrap.shutdown(),
                   transportBootstrap.shutdown())
-              .doFinally(s -> LOGGER.info("{} has been shut down", this));
+              .doOnSuccess(s -> LOGGER.info("[{}][doShutdown] Shutdown", id));
         });
   }
 
@@ -422,90 +421,83 @@ public class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
-    private Function<ServiceEndpoint, ServiceDiscovery> discoveryFactory =
-        ignore -> NoOpServiceDiscovery.INSTANCE;
+    public static final Function<ServiceEndpoint, ServiceDiscovery> NULL_FACTORY = i -> null;
+
+    private final Function<ServiceEndpoint, ServiceDiscovery> factory;
 
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
-    private ServiceDiscoveryBootstrap() {}
+    private ServiceDiscoveryBootstrap() {
+      this(NULL_FACTORY);
+    }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
-      this.discoveryFactory = factory;
+      this.factory = factory;
     }
 
-    /**
-     * Creates instance of {@code ServiceDiscovery}.
-     *
-     * @param serviceEndpoint local service endpoint
-     * @param serviceRegistry service registry
-     * @return new {@code ServiceDiscovery} instance
-     */
-    private Mono<ServiceDiscovery> create(
-        ServiceEndpoint serviceEndpoint, ServiceRegistry serviceRegistry) {
-      return Mono.defer(
-          () -> {
-            discovery = discoveryFactory.apply(serviceEndpoint);
-            disposable =
-                discovery
-                    .listenDiscovery()
-                    .subscribe(
-                        discoveryEvent -> {
-                          if (discoveryEvent.isEndpointAdded()) {
-                            serviceRegistry.registerService(discoveryEvent.serviceEndpoint());
-                          }
-                          if (discoveryEvent.isEndpointLeaving()
-                              || discoveryEvent.isEndpointRemoved()) {
-                            serviceRegistry.unregisterService(
-                                discoveryEvent.serviceEndpoint().id());
-                          }
-                        });
-            return Mono.just(discovery);
-          });
+    private Mono<ServiceDiscovery> createInstance(ServiceEndpoint serviceEndpoint) {
+      return factory == NULL_FACTORY
+          ? Mono.empty()
+          : Mono.defer(() -> Mono.just(discovery = factory.apply(serviceEndpoint)));
     }
 
-    /**
-     * Starts {@code ServiceDiscovery} instance.
-     *
-     * @return started {@code ServiceDiscovery} instance
-     */
-    private Mono<ServiceDiscovery> start() {
+    private Mono<ServiceDiscovery> startListen(Microservices microservices) {
       return Mono.defer(
           () -> {
             if (discovery == null) {
-              throw new IllegalStateException(
-                  "Create ServiceDiscovery instance before starting it");
+              LOGGER.info("[{}] ServiceDiscovery not set", microservices.id());
+              return Mono.empty();
             }
-            LOGGER.debug("Starting ServiceDiscovery");
+
+            disposable =
+                discovery
+                    .listenDiscovery()
+                    .subscribe(event -> onDiscoveryEvent(microservices, event));
+
             return discovery
                 .start()
+                .doOnSuccess(discovery -> this.discovery = discovery)
+                .doOnSubscribe(
+                    s ->
+                        LOGGER.info(
+                            "[{}][{}] Starting",
+                            microservices.id(),
+                            discovery.getClass().getSimpleName()))
                 .doOnSuccess(
-                    serviceDiscovery -> {
-                      discovery = serviceDiscovery;
-                      LOGGER.debug("Successfully started ServiceDiscovery -- {}", discovery);
-                    })
+                    discovery ->
+                        LOGGER.info(
+                            "[{}][{}][{}] Started",
+                            microservices.id(),
+                            discovery.getClass().getSimpleName(),
+                            discovery.address()))
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Failed to start ServiceDiscovery -- {}, cause: ", discovery, ex));
+                            "[{}][{}] Failed to start, cause: {}",
+                            microservices.id(),
+                            discovery.getClass().getSimpleName(),
+                            ex.toString()));
           });
+    }
+
+    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
+      if (event.isEndpointAdded()) {
+        microservices.serviceRegistry.registerService(event.serviceEndpoint());
+      }
+      if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+        microservices.serviceRegistry.unregisterService(event.serviceEndpoint().id());
+      }
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
-          () ->
-              Optional.ofNullable(discovery) //
-                  .map(ServiceDiscovery::shutdown)
-                  .orElse(Mono.empty())
-                  .doFinally(
-                      s -> {
-                        if (disposable != null) {
-                          disposable.dispose();
-                        }
-                        if (discovery != null) {
-                          LOGGER.debug("ServiceDiscovery -- {} has been stopped", discovery);
-                        }
-                      }));
+          () -> {
+            if (disposable != null) {
+              disposable.dispose();
+            }
+            return discovery != null ? discovery.shutdown() : Mono.empty();
+          });
     }
   }
 
@@ -519,42 +511,43 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(GatewayOptions options) {
+    private Mono<GatewayBootstrap> start(Microservices microservices, GatewayOptions options) {
       return Flux.fromIterable(factories)
           .flatMap(
               factory -> {
                 Gateway gateway = factory.apply(options);
-                LOGGER.debug("Starting Gateway");
                 return gateway
                     .start()
                     .doOnSuccess(gateways::add)
+                    .doOnSubscribe(
+                        s ->
+                            LOGGER.info(
+                                "[{}][{}][{}] Starting",
+                                microservices.id(),
+                                gateway.getClass().getSimpleName(),
+                                gateway.id()))
                     .doOnSuccess(
-                        result ->
-                            LOGGER.debug(
-                                "Successfully started Gateway -- {} on {}",
-                                result,
-                                result.address()))
+                        gateway1 ->
+                            LOGGER.info(
+                                "[{}][{}][{}][{}] Started",
+                                microservices.id(),
+                                gateway1.getClass().getSimpleName(),
+                                gateway1.id(),
+                                gateway1.address()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "Failed to start Gateway -- {} with {}, cause: ",
-                                gateway,
-                                options,
-                                ex));
+                                "[{}][{}][{}] Failed to start, cause: {}",
+                                microservices.id(),
+                                gateway.getClass().getSimpleName(),
+                                gateway.id(),
+                                ex.toString()));
               })
           .then(Mono.just(this));
     }
 
     private Mono<Void> shutdown() {
-      return Mono.defer(
-          () ->
-              Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
-                  .doFinally(
-                      s -> {
-                        if (!gateways.isEmpty()) {
-                          LOGGER.debug("Gateways have been stopped");
-                        }
-                      }));
+      return Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new));
     }
 
     private List<Gateway> gateways() {
@@ -563,73 +556,69 @@ public class Microservices {
 
     private Gateway gateway(String id) {
       return gateways.stream()
-          .filter(gw -> gw.id().equals(id))
+          .filter(gateway -> gateway.id().equals(id))
           .findFirst()
-          .orElseThrow(
-              () -> new IllegalArgumentException("Didn't find gateway by id: '" + id + "'"));
+          .orElseThrow(() -> new IllegalArgumentException("Didn't find gateway by id=" + id));
     }
   }
 
   public static class ServiceTransportBootstrap {
 
-    public static final ServiceTransportBootstrap noOpInstance = new ServiceTransportBootstrap();
+    public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
+    public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
+    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", -1);
 
     private final Supplier<ServiceTransport> supplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address address;
+    private Address address = NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
-      this(null);
+      this(NULL_SUPPLIER);
     }
 
     public ServiceTransportBootstrap(Supplier<ServiceTransport> supplier) {
       this.supplier = supplier;
     }
 
-    private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
-      if (supplier == null) {
-        return Mono.just(ServiceTransportBootstrap.noOpInstance);
+    private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
+      if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
+        LOGGER.info("[{}] ServiceTransport not set", microservices.id());
+        return Mono.just(NULL_INSTANCE);
       }
-
-      serviceTransport = supplier.get();
 
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport) // reset with started
+          .doOnSuccess(transport -> serviceTransport = transport)
           .flatMap(
-              transport -> {
-                // bind server transport
-                ServerTransport serverTransport = serviceTransport.serverTransport();
-                return serverTransport
-                    .bind(methodRegistry)
-                    .doOnError(
-                        ex ->
-                            LOGGER.error(
-                                "Failed to bind ServerTransport -- {} cause: ",
-                                serverTransport,
-                                ex));
-              })
-          .doOnSuccess(transport -> serverTransport = transport) // reset with bound
+              transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
+          .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
                 this.address =
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
-
-                LOGGER.debug(
-                    "Successfully bound ServerTransport -- {} on address {}",
-                    this.serverTransport,
-                    this.address);
-
-                // create client transport
                 this.clientTransport = serviceTransport.clientTransport();
-                LOGGER.debug("Successfully created ClientTransport -- {}", this.clientTransport);
                 return this;
-              });
+              })
+          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Starting", microservices.id()))
+          .doOnSuccess(
+              transport ->
+                  LOGGER.info(
+                      "[{}][{}][{}] Started",
+                      microservices.id(),
+                      serviceTransport.getClass().getSimpleName(),
+                      this.address))
+          .doOnError(
+              ex ->
+                  LOGGER.error(
+                      "[{}][{}] Failed to start, cause: {}",
+                      microservices.id(),
+                      serviceTransport.getClass().getSimpleName(),
+                      ex.toString()));
     }
 
     private Mono<Void> shutdown() {
