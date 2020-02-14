@@ -33,8 +33,7 @@ import reactor.core.publisher.Mono;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger("io.scalecube.services.discovery.ServiceDiscovery");
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
   private ServiceEndpoint serviceEndpoint;
   private ClusterConfig clusterConfig;
