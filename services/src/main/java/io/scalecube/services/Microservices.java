@@ -113,7 +113,7 @@ import sun.misc.SignalHandler;
  *
  * }</pre>
  */
-public class Microservices {
+public final class Microservices {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
@@ -171,7 +171,7 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-    LOGGER.info("[{}] Starting", id);
+    LOGGER.info("[{}][start] Starting", id);
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
@@ -220,7 +220,7 @@ public class Microservices {
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             })
         .doOnSuccess(m -> listenJvmShutdown())
-        .doOnSuccess(m -> LOGGER.info("[{}] Started", id))
+        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
 
@@ -459,24 +459,18 @@ public class Microservices {
                 .start()
                 .doOnSuccess(discovery -> this.discovery = discovery)
                 .doOnSubscribe(
-                    s ->
-                        LOGGER.info(
-                            "[{}][{}] Starting",
-                            microservices.id(),
-                            discovery.getClass().getSimpleName()))
+                    s -> LOGGER.info("[{}][serviceDiscovery][start] Starting", microservices.id()))
                 .doOnSuccess(
                     discovery ->
                         LOGGER.info(
-                            "[{}][{}][{}] Started",
+                            "[{}][serviceDiscovery][start] Started, address: {}",
                             microservices.id(),
-                            discovery.getClass().getSimpleName(),
                             discovery.address()))
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "[{}][{}] Failed to start, cause: {}",
+                            "[{}][serviceDiscovery][start] Exception occurred: {}",
                             microservices.id(),
-                            discovery.getClass().getSimpleName(),
                             ex.toString()));
           });
     }
@@ -522,24 +516,21 @@ public class Microservices {
                     .doOnSubscribe(
                         s ->
                             LOGGER.info(
-                                "[{}][{}][{}] Starting",
+                                "[{}][gateway][{}][start] Starting",
                                 microservices.id(),
-                                gateway.getClass().getSimpleName(),
                                 gateway.id()))
                     .doOnSuccess(
                         gateway1 ->
                             LOGGER.info(
-                                "[{}][{}][{}][{}] Started",
+                                "[{}][gateway][{}][start] Started, address: {}",
                                 microservices.id(),
-                                gateway1.getClass().getSimpleName(),
                                 gateway1.id(),
                                 gateway1.address()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
-                                "[{}][{}][{}] Failed to start, cause: {}",
+                                "[{}][gateway][{}][start] Exception occurred: {}",
                                 microservices.id(),
-                                gateway.getClass().getSimpleName(),
                                 gateway.id(),
                                 ex.toString()));
               })
@@ -604,20 +595,19 @@ public class Microservices {
                 this.clientTransport = serviceTransport.clientTransport();
                 return this;
               })
-          .doOnSubscribe(s -> LOGGER.info("[{}][ServiceTransport] Starting", microservices.id()))
+          .doOnSubscribe(
+              s -> LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id()))
           .doOnSuccess(
               transport ->
                   LOGGER.info(
-                      "[{}][{}][{}] Started",
+                      "[{}][serviceTransport][start] Started, address: {}",
                       microservices.id(),
-                      serviceTransport.getClass().getSimpleName(),
                       this.address))
           .doOnError(
               ex ->
                   LOGGER.error(
-                      "[{}][{}] Failed to start, cause: {}",
+                      "[{}][serviceTransport][start] Exception occurred: {}",
                       microservices.id(),
-                      serviceTransport.getClass().getSimpleName(),
                       ex.toString()));
     }
 
