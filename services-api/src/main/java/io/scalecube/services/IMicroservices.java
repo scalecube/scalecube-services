@@ -5,10 +5,9 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 
 public interface IMicroservices {
 
-    ServiceCall call();
+  ServiceCall call();
 
-    Address serviceAddress();
+  Address serviceAddress();
 
-    ServiceDiscovery discovery();
-
+  ServiceDiscovery discovery();
 }

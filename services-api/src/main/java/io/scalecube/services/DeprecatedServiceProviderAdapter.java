@@ -1,10 +1,9 @@
 package io.scalecube.services;
 
-import reactor.core.publisher.Mono;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
-
-import static java.util.Objects.requireNonNull;
+import reactor.core.publisher.Mono;
 
 @Deprecated
 public class DeprecatedServiceProviderAdapter implements ServicesProvider {
