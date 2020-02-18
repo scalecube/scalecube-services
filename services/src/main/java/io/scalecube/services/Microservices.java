@@ -113,7 +113,7 @@ import sun.misc.SignalHandler;
  *
  * }</pre>
  */
-public class Microservices {
+public class Microservices implements IMicroservices {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
@@ -241,6 +241,7 @@ public class Microservices {
     return this.metrics;
   }
 
+  @Override
   public Address serviceAddress() {
     return transportBootstrap.address;
   }
@@ -250,6 +251,7 @@ public class Microservices {
    *
    * @return new {@code ServiceCall} instance.
    */
+  @Override
   public ServiceCall call() {
     return new ServiceCall()
         .transport(transportBootstrap.clientTransport)
@@ -266,6 +268,7 @@ public class Microservices {
     return gatewayBootstrap.gateway(id);
   }
 
+  @Override
   public ServiceDiscovery discovery() {
     return discoveryBootstrap.discovery;
   }
