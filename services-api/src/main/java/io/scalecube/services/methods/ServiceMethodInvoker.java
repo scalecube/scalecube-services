@@ -11,7 +11,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.StringJoiner;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,11 +28,12 @@ public final class ServiceMethodInvoker {
   private static final Object NO_PRINCIPAL = new Object();
 
   private final Method method;
-  private final Object service;
+  private final Supplier<Object> service;
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final Authenticator<Object> authenticator;
+  private final Class<?> serviceType;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -41,15 +45,26 @@ public final class ServiceMethodInvoker {
    * @param dataDecoder data decoder
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public ServiceMethodInvoker(
+  public <T> ServiceMethodInvoker(
+      Class<?> serviceType,
       Method method,
-      Object service,
+      Supplier<Object> service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
       Authenticator authenticator) {
+    this.serviceType = serviceType;
     this.method = method;
-    this.service = service;
+    this.service =
+        new Supplier<Object>() {
+          private final AtomicReference<Object> instance = new AtomicReference<>();
+
+          @Override
+          public Object get() {
+            instance.compareAndSet(null, service.get());
+            return instance.get();
+          }
+        };
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
@@ -114,10 +129,10 @@ public final class ServiceMethodInvoker {
     Throwable throwable = null;
     try {
       if (methodInfo.parameterCount() == 0) {
-        result = (Publisher<?>) method.invoke(service);
+        result = (Publisher<?>) method.invoke(service.get());
       } else {
         Object[] arguments = prepareArguments(request, principal);
-        result = (Publisher<?>) method.invoke(service, arguments);
+        result = (Publisher<?>) method.invoke(service.get(), arguments);
       }
       if (result == null) {
         result = Mono.empty();
@@ -199,8 +214,13 @@ public final class ServiceMethodInvoker {
     }
   }
 
+  public Class<?> serviceType() {
+    return serviceType;
+  }
+
+  @Deprecated
   public Object service() {
-    return service;
+    return service.get();
   }
 
   public MethodInfo methodInfo() {
@@ -211,7 +231,7 @@ public final class ServiceMethodInvoker {
   public String toString() {
     return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
         .add("method=" + method)
-        .add("service=" + service)
+        .add("service=" + serviceType)
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)

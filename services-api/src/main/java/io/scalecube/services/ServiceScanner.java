@@ -22,8 +22,7 @@ public class ServiceScanner {
    * @return list of {@code ServiceRegistration}-s
    */
   public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
-    return Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
-        .filter(serviceInterface -> serviceInterface.isAnnotationPresent(Service.class))
+    return Reflect.serviceInterfaces(serviceInfo.type())
         .map(
             serviceInterface -> {
               Map<String, String> serviceInfoTags = serviceInfo.tags();

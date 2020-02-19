@@ -48,10 +48,12 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -81,11 +83,12 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             false,
             AUTH);
-
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -116,10 +119,12 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -152,10 +157,12 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -189,10 +196,12 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -226,10 +235,12 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
+    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
+            stubService.getClass(),
             method,
-            stubService,
+            () -> stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,

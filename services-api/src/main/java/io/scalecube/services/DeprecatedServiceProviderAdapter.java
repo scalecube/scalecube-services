@@ -3,19 +3,28 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collection;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 
 @Deprecated
 public class DeprecatedServiceProviderAdapter implements ServicesProvider {
 
-  private final ServiceProvider delegate;
+  private final Collection<ServiceProvider> delegates;
 
-  public DeprecatedServiceProviderAdapter(ServiceProvider delegate) {
-    this.delegate = requireNonNull(delegate);
+  public DeprecatedServiceProviderAdapter(Collection<ServiceProvider> delegates) {
+    this.delegates = requireNonNull(delegates);
   }
 
   @Override
   public Mono<Collection<ServiceInfo>> provide(IMicroservices microservices) {
-    return Mono.defer(() -> Mono.fromSupplier(() -> delegate.provide(microservices.call())));
+    Supplier<Mono<Collection<ServiceInfo>>> beanSupplier =
+        () ->
+            Mono.just(
+                delegates.stream()
+                    .map(delegate -> delegate.provide(microservices.call()))
+                    .flatMap(Collection::stream)
+                    .collect(Collectors.toList()));
+    return Mono.defer(beanSupplier);
   }
 }

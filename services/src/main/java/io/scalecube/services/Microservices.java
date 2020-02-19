@@ -23,6 +23,7 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
+
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -192,23 +193,27 @@ public final class Microservices implements IMicroservices {
                       .tags(tags);
 
               // invoke service providers and register services
-              List<Object> serviceInstances =
-                  serviceProviders.stream()
-                      .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                      .peek(this::registerInMethodRegistry)
-                      .peek(
+              ServicesProvider servicesProvider =
+                  new DeprecatedServiceProviderAdapter(serviceProviders);
+              Mono<List<ServiceInfo>> serviceInstanceSuppliers =
+                  servicesProvider
+                      .provide(this)
+                      .flatMapIterable(i -> i)
+                      .doOnNext(this::registerInMethodRegistry)
+                      .doOnNext(
                           serviceInfo ->
                               serviceEndpointBuilder.appendServiceRegistrations(
                                   ServiceScanner.scanServiceInfo(serviceInfo)))
-                      .map(ServiceInfo::serviceInstance)
-                      .collect(Collectors.toList());
+                      .collectList();
 
-              return discoveryBootstrap
-                  .createInstance(serviceEndpointBuilder.build())
+              return serviceInstanceSuppliers
+                  .publishOn(scheduler)
+                  // FIXME: 19.02.2020 if use then(Mono), incorrect order of operations
+                  .flatMap(
+                      ignore -> discoveryBootstrap.createInstance(serviceEndpointBuilder.build()))
                   .publishOn(scheduler)
                   .then(startGateway(call))
                   .publishOn(scheduler)
-                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(discoveryBootstrap.startListen(this))
                   .publishOn(scheduler)
@@ -313,7 +318,7 @@ public final class Microservices implements IMicroservices {
   private Mono<Void> processBeforeDestroy() {
     return Mono.whenDelayError(
         methodRegistry.listServices().stream()
-            .map(ServiceInfo::serviceInstance)
+            .map(ServiceInfo::serviceInstanceSupplier)
             .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
             .collect(Collectors.toList()));
   }
@@ -688,7 +693,7 @@ public final class Microservices implements IMicroservices {
           .add("methodInfo=" + asString(invoker.methodInfo()))
           .add(
               "serviceMethod="
-                  + invoker.service().getClass().getCanonicalName()
+                  + invoker.serviceType().getCanonicalName()
                   + "."
                   + invoker.methodInfo().methodName()
                   + "("
@@ -706,7 +711,7 @@ public final class Microservices implements IMicroservices {
 
     private static String asString(ServiceInfo serviceInfo) {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-          .add("serviceInstance=" + serviceInfo.serviceInstance())
+          .add("serviceInstance=" + serviceInfo.serviceInstanceSupplier())
           .add("tags=" + serviceInfo.tags())
           .add("authenticator=" + serviceInfo.authenticator())
           .toString();
