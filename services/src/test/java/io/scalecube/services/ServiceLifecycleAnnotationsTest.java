@@ -18,8 +18,8 @@ public class ServiceLifecycleAnnotationsTest extends BaseTest {
     final CountDownLatch afterConstruct = new CountDownLatch(1);
     final CountDownLatch beforeDestroy = new CountDownLatch(1);
 
-    Microservices microservices =
-        Microservices.builder()
+    ScaleCube microservices =
+        ScaleCube.builder()
             .services(
                 ServiceInfo.fromServiceInstance(
                         new TestService() {
@@ -55,7 +55,7 @@ public class ServiceLifecycleAnnotationsTest extends BaseTest {
     Assertions.assertThrows(
         Exception.class,
         () ->
-            Microservices.builder()
+            ScaleCube.builder()
                 .services(
                     ServiceInfo.fromServiceInstance(
                             new TestService() {

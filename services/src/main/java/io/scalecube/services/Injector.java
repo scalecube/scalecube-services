@@ -26,7 +26,7 @@ final class Injector {
    * @param services services set
    * @return microservices instance
    */
-  public static Microservices inject(Microservices microservices, Collection<Object> services) {
+  public static ScaleCube inject(ScaleCube microservices, Collection<Object> services) {
     services.forEach(
         service ->
             Arrays.stream(service.getClass().getDeclaredFields())
@@ -35,8 +35,8 @@ final class Injector {
     return microservices;
   }
 
-  private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
+  private static void injectField(ScaleCube microservices, Field field, Object service) {
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(ScaleCube.class)) {
       setField(field, service, microservices);
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
@@ -59,16 +59,16 @@ final class Injector {
     }
   }
 
-  private static void processAfterConstruct(Microservices microservices, Object targetInstance) {
+  private static void processAfterConstruct(ScaleCube microservices, Object targetInstance) {
     processMethodWithAnnotation(microservices, targetInstance, AfterConstruct.class);
   }
 
-  public static void processBeforeDestroy(Microservices microservices, Object targetInstance) {
+  public static void processBeforeDestroy(ScaleCube microservices, Object targetInstance) {
     processMethodWithAnnotation(microservices, targetInstance, BeforeDestroy.class);
   }
 
   private static <A extends Annotation> void processMethodWithAnnotation(
-      Microservices microservices, Object targetInstance, Class<A> annotation) {
+      ScaleCube microservices, Object targetInstance, Class<A> annotation) {
     Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
     Arrays.stream(declaredMethods)
         .filter(method -> method.isAnnotationPresent(annotation))
@@ -80,7 +80,7 @@ final class Injector {
                     Arrays.stream(targetMethod.getParameters())
                         .map(
                             mapper -> {
-                              if (mapper.getType().equals(Microservices.class)) {
+                              if (mapper.getType().equals(ScaleCube.class)) {
                                 return microservices;
                               } else if (Reflect.isService(mapper.getType())) {
                                 return microservices.call().api(mapper.getType());

@@ -1,7 +1,7 @@
 package io.scalecube.services.examples.services;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.Microservices;
+import io.scalecube.services.ScaleCube;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
@@ -15,16 +15,16 @@ public class Example1 {
    * @param args - program arguments
    */
   public static void main(String[] args) {
-    Microservices gateway =
-        Microservices.builder()
+    ScaleCube gateway =
+        ScaleCube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     final Address gatewayAddress = gateway.discovery().address();
 
-    Microservices service2Node =
-        Microservices.builder()
+    ScaleCube service2Node =
+        ScaleCube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -33,8 +33,8 @@ public class Example1 {
             .services(new Service2Impl())
             .startAwait();
 
-    Microservices service1Node =
-        Microservices.builder()
+    ScaleCube service1Node =
+        ScaleCube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

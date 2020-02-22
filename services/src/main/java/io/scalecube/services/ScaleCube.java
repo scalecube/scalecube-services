@@ -114,9 +114,9 @@ import sun.misc.SignalHandler;
  *
  * }</pre>
  */
-public final class Microservices implements IMicroservices {
+public final class ScaleCube implements Microservices {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(ScaleCube.class);
 
   private final String id = generateId();
   private final Metrics metrics;
@@ -133,7 +133,7 @@ public final class Microservices implements IMicroservices {
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
-  private Microservices(Builder builder) {
+  private ScaleCube(Builder builder) {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
@@ -171,7 +171,7 @@ public final class Microservices implements IMicroservices {
     return "Microservices@" + id;
   }
 
-  private Mono<Microservices> start() {
+  private Mono<ScaleCube> start() {
     LOGGER.info("[{}][start] Starting", id);
 
     // Create bootstrap scheduler
@@ -222,7 +222,7 @@ public final class Microservices implements IMicroservices {
         .onErrorResume(
             ex -> {
               // return original error then shutdown
-              return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
+              return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(ScaleCube.class);
             })
         .doOnSuccess(m -> listenJvmShutdown())
         .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
@@ -339,11 +339,11 @@ public final class Microservices implements IMicroservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
 
-    public Mono<Microservices> start() {
-      return Mono.defer(() -> new Microservices(this).start());
+    public Mono<ScaleCube> start() {
+      return Mono.defer(() -> new ScaleCube(this).start());
     }
 
-    public Microservices startAwait() {
+    public ScaleCube startAwait() {
       return start().block();
     }
 
@@ -450,7 +450,7 @@ public final class Microservices implements IMicroservices {
           : Mono.defer(() -> Mono.just(discovery = factory.apply(serviceEndpoint)));
     }
 
-    private Mono<ServiceDiscovery> startListen(Microservices microservices) {
+    private Mono<ServiceDiscovery> startListen(ScaleCube microservices) {
       return Mono.defer(
           () -> {
             if (discovery == null) {
@@ -483,7 +483,7 @@ public final class Microservices implements IMicroservices {
           });
     }
 
-    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
+    private void onDiscoveryEvent(ScaleCube microservices, ServiceDiscoveryEvent event) {
       if (event.isEndpointAdded()) {
         microservices.serviceRegistry.registerService(event.serviceEndpoint());
       }
@@ -513,7 +513,7 @@ public final class Microservices implements IMicroservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Microservices microservices, GatewayOptions options) {
+    private Mono<GatewayBootstrap> start(ScaleCube microservices, GatewayOptions options) {
       return Flux.fromIterable(factories)
           .flatMap(
               factory -> {
@@ -582,7 +582,7 @@ public final class Microservices implements IMicroservices {
       this.supplier = supplier;
     }
 
-    private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
+    private Mono<ServiceTransportBootstrap> start(ScaleCube microservices) {
       if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
         LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
@@ -647,9 +647,9 @@ public final class Microservices implements IMicroservices {
 
   private static class JmxMonitorMBean implements MonitorMBean {
 
-    private final Microservices microservices;
+    private final ScaleCube microservices;
 
-    private static JmxMonitorMBean start(Microservices instance) throws Exception {
+    private static JmxMonitorMBean start(ScaleCube instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName = new ObjectName("io.scalecube.services:name=" + instance.toString());
@@ -658,7 +658,7 @@ public final class Microservices implements IMicroservices {
       return jmxMBean;
     }
 
-    private JmxMonitorMBean(Microservices microservices) {
+    private JmxMonitorMBean(ScaleCube microservices) {
       this.microservices = microservices;
     }
 

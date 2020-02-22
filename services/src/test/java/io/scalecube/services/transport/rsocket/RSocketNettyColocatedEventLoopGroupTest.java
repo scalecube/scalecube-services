@@ -3,7 +3,7 @@ package io.scalecube.services.transport.rsocket;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.Microservices;
+import io.scalecube.services.ScaleCube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
@@ -19,20 +19,20 @@ import reactor.test.StepVerifier;
 
 public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
 
-  private Microservices ping;
-  private Microservices pong;
-  private Microservices gateway;
+  private ScaleCube ping;
+  private ScaleCube pong;
+  private ScaleCube gateway;
 
   @BeforeEach
   public void setUp() {
     this.gateway =
-        Microservices.builder()
+        ScaleCube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    Microservices facade =
-        Microservices.builder()
+    ScaleCube facade =
+        ScaleCube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -42,7 +42,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .startAwait();
 
     this.ping =
-        Microservices.builder()
+        ScaleCube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -52,7 +52,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .startAwait();
 
     this.pong =
-        Microservices.builder()
+        ScaleCube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -80,9 +80,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
   public void tearDown() {
     try {
       Mono.whenDelayError(
-              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(ping).map(Microservices::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(pong).map(Microservices::shutdown).orElse(Mono.empty()))
+              Optional.ofNullable(gateway).map(ScaleCube::shutdown).orElse(Mono.empty()),
+              Optional.ofNullable(ping).map(ScaleCube::shutdown).orElse(Mono.empty()),
+              Optional.ofNullable(pong).map(ScaleCube::shutdown).orElse(Mono.empty()))
           .block();
     } catch (Throwable ignore) {
       // no-op

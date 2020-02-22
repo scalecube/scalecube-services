@@ -17,7 +17,7 @@ public class DeprecatedServiceProviderAdapter implements ServicesProvider {
   }
 
   @Override
-  public Mono<Collection<ServiceInfo>> provide(IMicroservices microservices) {
+  public Mono<Collection<ServiceInfo>> provide(Microservices microservices) {
     Supplier<Mono<Collection<ServiceInfo>>> beanSupplier =
         () ->
             Mono.just(

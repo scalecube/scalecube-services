@@ -36,8 +36,8 @@ public class ServiceRemoteTest extends BaseTest {
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
   public static final Duration TIMEOUT2 = Duration.ofSeconds(6);
 
-  private static Microservices gateway;
-  private static Microservices provider;
+  private static ScaleCube gateway;
+  private static ScaleCube provider;
 
   @BeforeAll
   public static void setup() {
@@ -61,15 +61,15 @@ public class ServiceRemoteTest extends BaseTest {
     }
   }
 
-  private static Microservices gateway() {
-    return Microservices.builder()
+  private static ScaleCube gateway() {
+    return ScaleCube.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }
 
-  private static Microservices serviceProvider() {
-    return Microservices.builder()
+  private static ScaleCube serviceProvider() {
+    return ScaleCube.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .services(new GreetingServiceImpl())
@@ -264,8 +264,8 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     // noinspection unused
-    Microservices provider =
-        Microservices.builder()
+    ScaleCube provider =
+        ScaleCube.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new CoarseGrainedServiceImpl()) // add service a and b
@@ -287,8 +287,8 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     // noinspection unused
-    Microservices provider =
-        Microservices.builder()
+    ScaleCube provider =
+        ScaleCube.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another)
@@ -307,8 +307,8 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices ms =
-        Microservices.builder()
+    ScaleCube ms =
+        ScaleCube.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
@@ -332,8 +332,8 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices provider =
-        Microservices.builder()
+    ScaleCube provider =
+        ScaleCube.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
@@ -416,8 +416,8 @@ public class ServiceRemoteTest extends BaseTest {
     Map<String, String> tags = new HashMap<>();
     tags.put("HOSTNAME", "host1");
 
-    Microservices ms =
-        Microservices.builder()
+    ScaleCube ms =
+        ScaleCube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .tags(tags)
