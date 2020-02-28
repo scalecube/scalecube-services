@@ -25,14 +25,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.StringJoiner;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -121,7 +114,7 @@ public final class ScaleCube implements Microservices {
   private final String id = generateId();
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final List<ServiceProvider> serviceProviders;
+  private final ServicesProvider serviceProvider;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
   private final Authenticator<?> authenticator;
@@ -136,7 +129,11 @@ public final class ScaleCube implements Microservices {
   private ScaleCube(Builder builder) {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
+    this.serviceProvider = builder.serviceProviders.stream().reduce(microservices -> Mono.just(Collections.emptyList()),
+            (sp1, sp2) -> microservices -> sp1.provide(microservices)
+                    .mergeWith(sp2.provide(microservices))
+                    .collectList()
+                    .map(c -> c.stream().flatMap(Collection::stream).collect(Collectors.toList())));
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.authenticator = builder.authenticator;
@@ -193,10 +190,9 @@ public final class ScaleCube implements Microservices {
                       .tags(tags);
 
               // invoke service providers and register services
-              ServicesProvider servicesProvider =
-                  new DeprecatedServiceProviderAdapter(serviceProviders);
+
               Mono<List<ServiceInfo>> serviceInstanceSuppliers =
-                  servicesProvider
+                  serviceProvider
                       .provide(this)
                       .flatMapIterable(i -> i)
                       .doOnNext(this::registerInMethodRegistry)
@@ -327,7 +323,7 @@ public final class ScaleCube implements Microservices {
 
     private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
-    private List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private List<ServicesProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<?> authenticator = null;
@@ -348,7 +344,7 @@ public final class ScaleCube implements Microservices {
     }
 
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
+      serviceProviders.add(call -> Mono.just(Arrays.stream(services).collect(Collectors.toList())));
       return this;
     }
 
@@ -361,17 +357,17 @@ public final class ScaleCube implements Microservices {
     public Builder services(Object... services) {
       serviceProviders.add(
           call ->
-              Arrays.stream(services)
+              Mono.just(Arrays.stream(services)
                   .map(
                       s ->
                           s instanceof ServiceInfo
                               ? (ServiceInfo) s
                               : ServiceInfo.fromServiceInstance(s).build())
-                  .collect(Collectors.toList()));
+                  .collect(Collectors.toList())));
       return this;
     }
 
-    public Builder services(ServiceProvider serviceProvider) {
+    public Builder services(ServicesProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }
