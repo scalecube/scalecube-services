@@ -6,8 +6,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServicesProvider;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
-import org.springframework.beans.factory.support.GenericBeanDefinition;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.GenericApplicationContext;
@@ -22,11 +21,9 @@ public class SpringServicesProvider implements ServicesProvider {
 
   @Override
   public Mono<Collection<ServiceInfo>> provide(Microservices microservices) {
-    GenericApplicationContext context = new GenericApplicationContext();
+    AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
     context.registerBean(ServiceCall.class, microservices::call);
-    GenericBeanDefinition bd = new GenericBeanDefinition();
-    bd.setBeanClass(Beans.class);
-    context.registerBeanDefinition("simple", bd);
+    context.register(Beans.class);
     context.refresh();
     context.start();
 
@@ -40,8 +37,8 @@ public class SpringServicesProvider implements ServicesProvider {
   @Configuration
   static class Beans {
     @Bean
-    public LocalService simpleBean(ServiceCall serviceCall) {
-      return new SimpleBean(serviceCall);
+    public LocalService localServiceBean(ServiceCall serviceCall) {
+      return new LocalServiceBean(serviceCall);
     }
   }
 
@@ -59,13 +56,13 @@ public class SpringServicesProvider implements ServicesProvider {
       Mono<Long>get();
   }
 
-  public static class SimpleBean implements LocalService {
+  public static class LocalServiceBean implements LocalService {
 
     private final SimpleService serviceCall;
 
-    public SimpleBean(ServiceCall serviceCall) {
+    public LocalServiceBean(ServiceCall serviceCall) {
       this.serviceCall = serviceCall.api(SimpleService.class);
-      System.out.println( this.serviceCall.get().block(Duration.ofSeconds(1)));
+      this.serviceCall.get().subscribe(System.out::println);
     }
 
     public Mono<Long> get() {

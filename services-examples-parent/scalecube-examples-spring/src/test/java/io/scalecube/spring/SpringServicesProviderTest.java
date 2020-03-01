@@ -72,7 +72,7 @@ class SpringServicesProviderTest {
         Mono<Long> result =
                 service.get();
         Long block = result.block(Duration.ofSeconds(10));
-        assertEquals(1L, block.longValue());
+        assertEquals(-1L, block.longValue());
     }
 
     private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
