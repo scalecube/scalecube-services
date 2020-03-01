@@ -7,15 +7,15 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+
+import org.reactivestreams.Publisher;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.StringJoiner;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,7 +28,7 @@ public final class ServiceMethodInvoker {
   private static final Object NO_PRINCIPAL = new Object();
 
   private final Method method;
-  private final Supplier<Object> service;
+  private final Object service;
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
@@ -48,23 +48,14 @@ public final class ServiceMethodInvoker {
   public <T> ServiceMethodInvoker(
       Class<?> serviceType,
       Method method,
-      Supplier<Object> service,
+      Object service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
       Authenticator authenticator) {
     this.serviceType = serviceType;
     this.method = method;
-    this.service =
-        new Supplier<Object>() {
-          private final AtomicReference<Object> instance = new AtomicReference<>();
-
-          @Override
-          public Object get() {
-            instance.compareAndSet(null, service.get());
-            return instance.get();
-          }
-        };
+    this.service = service;
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
@@ -129,10 +120,10 @@ public final class ServiceMethodInvoker {
     Throwable throwable = null;
     try {
       if (methodInfo.parameterCount() == 0) {
-        result = (Publisher<?>) method.invoke(service.get());
+        result = (Publisher<?>) method.invoke(service);
       } else {
         Object[] arguments = prepareArguments(request, principal);
-        result = (Publisher<?>) method.invoke(service.get(), arguments);
+        result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
         result = Mono.empty();
@@ -220,7 +211,7 @@ public final class ServiceMethodInvoker {
 
   @Deprecated
   public Object service() {
-    return service.get();
+    return service;
   }
 
   public MethodInfo methodInfo() {

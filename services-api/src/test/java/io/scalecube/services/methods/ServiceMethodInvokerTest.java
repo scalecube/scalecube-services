@@ -5,10 +5,13 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import java.lang.reflect.Method;
-import java.util.function.Consumer;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
+import java.util.function.Consumer;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -53,7 +56,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -88,7 +91,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -124,7 +127,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -162,7 +165,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -201,7 +204,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
@@ -240,7 +243,7 @@ class ServiceMethodInvokerTest {
         new ServiceMethodInvoker(
             stubService.getClass(),
             method,
-            () -> stubService,
+            stubService,
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,

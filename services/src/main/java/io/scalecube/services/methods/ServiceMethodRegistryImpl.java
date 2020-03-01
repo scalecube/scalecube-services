@@ -53,7 +53,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                               new ServiceMethodInvoker(
                                   serviceInfo.type(),
                                   method,
-                                  serviceInfo.serviceInstanceSupplier(),
+                                  serviceInfo.serviceInstance(),
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),

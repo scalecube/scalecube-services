@@ -12,16 +12,14 @@ import java.util.function.Supplier;
 @SuppressWarnings("rawtypes")
 public class ServiceInfo {
 
-  private final Class<?> serviceType;
-  private final Supplier<Object> serviceInstanceSupplier;
+  private final Object serviceInstance;
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final Authenticator authenticator;
 
   private ServiceInfo(Builder builder) {
-    this.serviceType = builder.serviceType;
-    this.serviceInstanceSupplier = builder.serviceInstanceSupplier;
+    this.serviceInstance = builder.serviceInstance;
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
@@ -33,11 +31,11 @@ public class ServiceInfo {
   }
 
   public static Builder fromServiceInstance(Object serviceInstance) {
-    return new Builder(serviceInstance.getClass(), () -> serviceInstance);
+    return new Builder(serviceInstance);
   }
 
-  public Supplier<Object> serviceInstanceSupplier() {
-    return serviceInstanceSupplier;
+  public Object serviceInstance() {
+    return serviceInstance;
   }
 
   public Map<String, String> tags() {
@@ -57,13 +55,13 @@ public class ServiceInfo {
   }
 
   public Class<?> type() {
-    return serviceType;
+    return this.serviceInstance().getClass();
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
-        .add("serviceInstance=" + serviceInstanceSupplier)
+        .add("serviceInstance=" + serviceInstance)
         .add("tags=" + tags)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
@@ -74,25 +72,22 @@ public class ServiceInfo {
   @SuppressWarnings("rawtypes")
   public static class Builder {
 
-    private final Class<?> serviceType;
-    private final Supplier<Object> serviceInstanceSupplier;
+    private final Object serviceInstance;
     private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
     private Authenticator authenticator;
 
     private Builder(ServiceInfo serviceInfo) {
-      this.serviceInstanceSupplier = serviceInfo.serviceInstanceSupplier;
-      this.serviceType = serviceInfo.serviceType;
+      this.serviceInstance = serviceInfo.serviceInstance;
       this.tags.putAll(new HashMap<>(serviceInfo.tags));
       this.errorMapper = serviceInfo.errorMapper;
       this.dataDecoder = serviceInfo.dataDecoder;
       this.authenticator = serviceInfo.authenticator;
     }
 
-    private Builder(Class<?> serviceType, Supplier<Object> serviceInstanceSupplier) {
-      this.serviceType = serviceType;
-      this.serviceInstanceSupplier = serviceInstanceSupplier;
+    private Builder(Object serviceInstance) {
+      this.serviceInstance = serviceInstance;
     }
 
     public Builder tag(String key, String value) {

@@ -314,7 +314,7 @@ public final class ScaleCube implements Microservices {
   private Mono<Void> processBeforeDestroy() {
     return Mono.whenDelayError(
         methodRegistry.listServices().stream()
-            .map(ServiceInfo::serviceInstanceSupplier)
+            .map(ServiceInfo::serviceInstance)
             .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
             .collect(Collectors.toList()));
   }
@@ -707,7 +707,7 @@ public final class ScaleCube implements Microservices {
 
     private static String asString(ServiceInfo serviceInfo) {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-          .add("serviceInstance=" + serviceInfo.serviceInstanceSupplier())
+          .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .add("authenticator=" + serviceInfo.authenticator())
           .toString();
