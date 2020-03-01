@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static java.util.Arrays.asList;
+
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
@@ -25,7 +27,15 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 
 import java.lang.management.ManagementFactory;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -129,11 +139,16 @@ public final class ScaleCube implements Microservices {
   private ScaleCube(Builder builder) {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
-    this.serviceProvider = builder.serviceProviders.stream().reduce(microservices -> Mono.just(Collections.emptyList()),
-            (sp1, sp2) -> microservices -> sp1.provide(microservices)
-                    .mergeWith(sp2.provide(microservices))
-                    .collectList()
-                    .map(c -> c.stream().flatMap(Collection::stream).collect(Collectors.toList())));
+    this.serviceProvider =
+        builder.serviceProviders.stream()
+            .reduce(
+                microservices -> Mono.just(Collections.emptyList()),
+                (sp1, sp2) ->
+                    microservices -> {
+                      Flux<ServiceInfo> services1 = sp1.provide(this).flatMapIterable(i -> i);
+                      Flux<ServiceInfo> services2 = sp2.provide(this).flatMapIterable(i -> i);
+                      return services1.mergeWith(services2).collectList();
+                    });
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.authenticator = builder.authenticator;
@@ -344,7 +359,7 @@ public final class ScaleCube implements Microservices {
     }
 
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(call -> Mono.just(Arrays.stream(services).collect(Collectors.toList())));
+      serviceProviders.add(call -> Mono.just(asList(services)));
       return this;
     }
 
@@ -357,13 +372,28 @@ public final class ScaleCube implements Microservices {
     public Builder services(Object... services) {
       serviceProviders.add(
           call ->
-              Mono.just(Arrays.stream(services)
-                  .map(
-                      s ->
-                          s instanceof ServiceInfo
-                              ? (ServiceInfo) s
-                              : ServiceInfo.fromServiceInstance(s).build())
-                  .collect(Collectors.toList())));
+              Mono.just(
+                  Arrays.stream(services)
+                      .map(
+                          s ->
+                              s instanceof ServiceInfo
+                                  ? (ServiceInfo) s
+                                  : ServiceInfo.fromServiceInstance(s).build())
+                      .collect(Collectors.toList())));
+      return this;
+    }
+
+    /**
+     * Set up service provider
+     *
+     * @param serviceProvider - old service provider
+     * @return this
+     * @deprecated use {@link this#services(ServicesProvider)}
+     */
+    @Deprecated
+    public Builder services(ServiceProvider serviceProvider) {
+      serviceProviders.add(
+          microservices -> Mono.just(serviceProvider.provide(microservices.call())));
       return this;
     }
 

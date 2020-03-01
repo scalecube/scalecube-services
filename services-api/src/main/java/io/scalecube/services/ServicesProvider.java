@@ -6,5 +6,5 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface ServicesProvider {
 
-  Mono<Collection<ServiceInfo>> provide(Microservices microservices);
+  Mono<? extends Collection<ServiceInfo>> provide(Microservices microservices);
 }

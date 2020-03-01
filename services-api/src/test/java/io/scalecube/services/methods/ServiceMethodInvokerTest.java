@@ -9,12 +9,12 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
-import java.util.function.Consumer;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.lang.reflect.Method;
+import java.util.function.Consumer;
 
 class ServiceMethodInvokerTest {
 
