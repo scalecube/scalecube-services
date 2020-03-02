@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static java.util.Arrays.asList;
-
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
@@ -11,6 +9,8 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.inject.ScaleCubeServicesProvider;
+import io.scalecube.services.inject.ServiceProviderAdapter;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -28,8 +28,6 @@ import io.scalecube.services.transport.api.ServiceTransport;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,15 +138,7 @@ public final class ScaleCube implements Microservices {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProvider =
-        builder.serviceProviders.stream()
-            .reduce(
-                microservices -> Mono.just(Collections.emptyList()),
-                (sp1, sp2) ->
-                    microservices -> {
-                      Flux<ServiceInfo> services1 = sp1.provide(this).flatMapIterable(i -> i);
-                      Flux<ServiceInfo> services2 = sp2.provide(this).flatMapIterable(i -> i);
-                      return services1.mergeWith(services2).collectList();
-                    });
+        builder.serviceProviders.stream().reduce(ServicesProvider.EMPTY, ServicesProvider::union);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.authenticator = builder.authenticator;
@@ -330,7 +320,7 @@ public final class ScaleCube implements Microservices {
     return Mono.whenDelayError(
         methodRegistry.listServices().stream()
             .map(ServiceInfo::serviceInstance)
-            .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
+            .map(s -> serviceProvider.shutDown(this))
             .collect(Collectors.toList()));
   }
 
@@ -358,8 +348,16 @@ public final class ScaleCube implements Microservices {
       return start().block();
     }
 
+    /**
+     * Adds service instance to microservice.
+     *
+     * @param services service info instance.
+     * @return builder
+     * @deprecated use {@link this#services(ServicesProvider)}
+     */
+    @Deprecated
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(call -> Mono.just(asList(services)));
+      serviceProviders.add(ScaleCubeServicesProvider.from(services));
       return this;
     }
 
@@ -368,18 +366,11 @@ public final class ScaleCube implements Microservices {
      *
      * @param services service instance.
      * @return builder
+     * @deprecated use {@link this#services(ServicesProvider)}
      */
+    @Deprecated
     public Builder services(Object... services) {
-      serviceProviders.add(
-          call ->
-              Mono.just(
-                  Arrays.stream(services)
-                      .map(
-                          s ->
-                              s instanceof ServiceInfo
-                                  ? (ServiceInfo) s
-                                  : ServiceInfo.fromServiceInstance(s).build())
-                      .collect(Collectors.toList())));
+      serviceProviders.add(ScaleCubeServicesProvider.from(services));
       return this;
     }
 
@@ -392,8 +383,7 @@ public final class ScaleCube implements Microservices {
      */
     @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
-      serviceProviders.add(
-          microservices -> Mono.just(serviceProvider.provide(microservices.call())));
+      serviceProviders.add(new ServiceProviderAdapter(serviceProvider));
       return this;
     }
 
