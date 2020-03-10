@@ -9,8 +9,8 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.inject.ScaleCubeServicesProvider;
-import io.scalecube.services.inject.ServiceProviderAdapter;
+import io.scalecube.services.inject.ScaleCubeServicesLifeCycleManager;
+import io.scalecube.services.inject.ServiceLifeCycleManagerAdapter;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -38,17 +38,21 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
+
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
@@ -122,7 +126,7 @@ public final class ScaleCube implements Microservices {
   private final String id = generateId();
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final ServicesProvider serviceProvider;
+  private final ServicesLifeCycleManager serviceProvider;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
   private final Authenticator<?> authenticator;
@@ -138,7 +142,8 @@ public final class ScaleCube implements Microservices {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProvider =
-        builder.serviceProviders.stream().reduce(ServicesProvider.EMPTY, ServicesProvider::union);
+        builder.serviceProviders.stream()
+            .reduce(ServicesLifeCycleManager.EMPTY, ServicesLifeCycleManager::union);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.authenticator = builder.authenticator;
@@ -196,9 +201,9 @@ public final class ScaleCube implements Microservices {
 
               // invoke service providers and register services
 
-              Mono<List<ServiceInfo>> serviceInstanceSuppliers =
+              Mono<List<ServiceInfo>> serviceInstances =
                   serviceProvider
-                      .provide(this)
+                      .constructServices(this)
                       .flatMapIterable(i -> i)
                       .doOnNext(this::registerInMethodRegistry)
                       .doOnNext(
@@ -207,16 +212,16 @@ public final class ScaleCube implements Microservices {
                                   ServiceScanner.scanServiceInfo(serviceInfo)))
                       .collectList();
 
-              return serviceInstanceSuppliers
-                  .publishOn(scheduler)
-                  // FIXME: 19.02.2020 if use then(Mono), incorrect order of operations
-                  .flatMap(
-                      ignore -> discoveryBootstrap.createInstance(serviceEndpointBuilder.build()))
+              Mono<ServiceDiscovery> discoveryBootstrap =
+                  this.discoveryBootstrap.createInstance(serviceEndpointBuilder.build());
+
+              return serviceInstances
+                  .flatMap(services -> discoveryBootstrap.flatMap(ignore -> serviceProvider.postConstruct(this)))
                   .publishOn(scheduler)
                   .then(startGateway(call))
                   .publishOn(scheduler)
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(discoveryBootstrap.startListen(this))
+                  .then(this.discoveryBootstrap.startListen(this))
                   .publishOn(scheduler)
                   .thenReturn(this);
             })
@@ -328,7 +333,7 @@ public final class ScaleCube implements Microservices {
 
     private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
-    private List<ServicesProvider> serviceProviders = new ArrayList<>();
+    private List<ServicesLifeCycleManager> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<?> authenticator = null;
@@ -353,11 +358,11 @@ public final class ScaleCube implements Microservices {
      *
      * @param services service info instance.
      * @return builder
-     * @deprecated use {@link this#services(ServicesProvider)}
+     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
      */
     @Deprecated
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(ScaleCubeServicesProvider.from(services));
+      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from(services));
       return this;
     }
 
@@ -366,28 +371,28 @@ public final class ScaleCube implements Microservices {
      *
      * @param services service instance.
      * @return builder
-     * @deprecated use {@link this#services(ServicesProvider)}
+     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
      */
     @Deprecated
     public Builder services(Object... services) {
-      serviceProviders.add(ScaleCubeServicesProvider.from(services));
+      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from(services));
       return this;
     }
 
     /**
-     * Set up service provider
+     * Set up service provider.
      *
      * @param serviceProvider - old service provider
      * @return this
-     * @deprecated use {@link this#services(ServicesProvider)}
+     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
      */
     @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
-      serviceProviders.add(new ServiceProviderAdapter(serviceProvider));
+      serviceProviders.add(new ServiceLifeCycleManagerAdapter(serviceProvider));
       return this;
     }
 
-    public Builder services(ServicesProvider serviceProvider) {
+    public Builder services(ServicesLifeCycleManager serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }

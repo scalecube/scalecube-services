@@ -1,35 +1,36 @@
 package io.scalecube.services.inject;
 
-import static java.util.Arrays.asList;
-
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServicesProvider;
+import io.scalecube.services.ServicesLifeCycleManager;
+
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import reactor.core.publisher.Mono;
 
-public class ScaleCubeServicesProvider implements ServicesProvider {
+public class ScaleCubeServicesLifeCycleManager implements ServicesLifeCycleManager {
 
   private final Collection<?> services;
 
-  public static ScaleCubeServicesProvider from(Object... services) {
-    return from(services == null ? Collections.emptyList() : asList(services));
+  public static ScaleCubeServicesLifeCycleManager from(Object... services) {
+    return from(services == null ? Collections.emptyList() : Arrays.asList(services));
   }
 
-  public static ScaleCubeServicesProvider from(Collection<?> services) {
-    return new ScaleCubeServicesProvider(services);
+  public static ScaleCubeServicesLifeCycleManager from(Collection<?> services) {
+    return new ScaleCubeServicesLifeCycleManager(services);
   }
 
-  private ScaleCubeServicesProvider(Collection<?> services) {
+  private ScaleCubeServicesLifeCycleManager(Collection<?> services) {
     this.services = services == null ? Collections.emptyList() : services;
   }
 
   @Override
-  public Mono<? extends Collection<ServiceInfo>> provide(Microservices microservices) {
+  public Mono<? extends Collection<ServiceInfo>> constructServices(Microservices microservices) {
     List<ServiceInfo> services =
         this.services.stream()
             .map(
@@ -48,6 +49,12 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
                 })
             .collect(Collectors.toList());
     return Mono.just(services);
+  }
+
+  @Override
+  public Mono<Void> postConstruct(Microservices microservices) {
+    this.services.forEach(service -> Injector.processAfterConstruct(microservices, service));
+    return Mono.empty();
   }
 
   @Override

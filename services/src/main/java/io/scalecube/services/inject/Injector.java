@@ -16,7 +16,7 @@ import java.util.Collection;
 import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
-final class Injector {
+public final class Injector {
 
   private Injector() {
     // Do not instantiate
@@ -33,7 +33,6 @@ final class Injector {
   public static Object inject(Microservices microservices, Object service) {
     Arrays.stream(service.getClass().getDeclaredFields())
         .forEach(field -> injectField(microservices, field, service));
-    processAfterConstruct(microservices, service);
     return service;
   }
 
@@ -62,7 +61,7 @@ final class Injector {
     }
   }
 
-  private static void processAfterConstruct(Microservices microservices, Object targetInstance) {
+  public static void processAfterConstruct(Microservices microservices, Object targetInstance) {
     processMethodWithAnnotation(microservices, targetInstance, AfterConstruct.class);
   }
 

@@ -10,6 +10,7 @@
   <artifactId>scalecube-services-examples-runner</artifactId>
 
   <properties>
+    <!--suppress UnresolvedMavenProperty -->
     <extratags>${env.TRAVIS_COMMIT}</extratags>
     <mainClass>io.scalecube.services.examples.ExamplesRunner</mainClass>
   </properties>
