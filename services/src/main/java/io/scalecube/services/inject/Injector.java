@@ -4,15 +4,17 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ScaleCube;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.routing.Router;
+
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.Collection;
+
 import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
@@ -30,12 +32,12 @@ public final class Injector {
    * @param service service
    * @return service instance
    */
-  public static Object inject(Microservices microservices, Object service) {
-    Arrays.stream(service.getClass().getDeclaredFields())
-        .forEach(field -> injectField(microservices, field, service));
+  public static ServiceInfo inject(Microservices microservices, ServiceInfo service) {
+    Object serviceInstance = service.serviceInstance();
+    Arrays.stream(serviceInstance.getClass().getDeclaredFields())
+        .forEach(field -> injectField(microservices, field, serviceInstance));
     return service;
   }
-
 
   private static void injectField(Microservices microservices, Field field, Object service) {
     if (field.isAnnotationPresent(Inject.class) && field.getType().equals(ScaleCube.class)) {
@@ -61,12 +63,15 @@ public final class Injector {
     }
   }
 
-  public static void processAfterConstruct(Microservices microservices, Object targetInstance) {
-    processMethodWithAnnotation(microservices, targetInstance, AfterConstruct.class);
+  public static void processAfterConstruct(
+      Microservices microservices, ServiceInfo targetInstance) {
+    processMethodWithAnnotation(
+        microservices, targetInstance.serviceInstance(), AfterConstruct.class);
   }
 
-  public static void processBeforeDestroy(Microservices microservices, Object targetInstance) {
-    processMethodWithAnnotation(microservices, targetInstance, BeforeDestroy.class);
+  public static void processBeforeDestroy(Microservices microservices, ServiceInfo targetInstance) {
+    processMethodWithAnnotation(
+        microservices, targetInstance.serviceInstance(), BeforeDestroy.class);
   }
 
   private static <A extends Annotation> void processMethodWithAnnotation(

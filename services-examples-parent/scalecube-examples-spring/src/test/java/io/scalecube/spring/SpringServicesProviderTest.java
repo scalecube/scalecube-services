@@ -20,7 +20,7 @@ import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SpringServicesLifeCycleManagerTest {
+class SpringServicesProviderTest {
 
   private static ScaleCube microserviceWithSpring;
   private static ScaleCube microserviceWithoutSpring;
@@ -51,13 +51,13 @@ class SpringServicesLifeCycleManagerTest {
     return ScaleCube.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
-        .services(new SpringServicesLifeCycleManager(Beans.class))
+        .serviceProvider(new SpringServicesProvider(Beans.class))
         .startAwait();
   }
 
   private static ScaleCube microserviceWithoutSpring() {
     return ScaleCube.builder()
-        .discovery(SpringServicesLifeCycleManagerTest::serviceDiscovery)
+        .discovery(SpringServicesProviderTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .services((SimpleService) () -> Mono.just(1L))
         .startAwait();

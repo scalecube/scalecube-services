@@ -2,64 +2,65 @@ package io.scalecube.services.inject;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServicesLifeCycleManager;
+import io.scalecube.services.ServiceProvider;
+import io.scalecube.services.ServicesProvider;
 
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import reactor.core.publisher.Mono;
 
-public class ScaleCubeServicesLifeCycleManager implements ServicesLifeCycleManager {
+/**
+ * Default {@link ServicesProvider}.
+ */
+public class ScaleCubeServicesLifeCycleManager implements ServicesProvider {
 
-  private final Collection<?> services;
+  private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
 
-  public static ScaleCubeServicesLifeCycleManager from(Object... services) {
-    return from(services == null ? Collections.emptyList() : Arrays.asList(services));
+  // lazy init
+  private Collection<ServiceInfo> services;
+
+  /**
+   * Create instance from {@link ServiceProvider}.
+   *
+   * @param serviceProviders old service providers.
+   * @return default services provider.
+   */
+  public static ServicesProvider create(Collection<ServiceProvider> serviceProviders) {
+    return new ScaleCubeServicesLifeCycleManager(serviceProviders);
   }
 
-  public static ScaleCubeServicesLifeCycleManager from(Collection<?> services) {
-    return new ScaleCubeServicesLifeCycleManager(services);
-  }
-
-  private ScaleCubeServicesLifeCycleManager(Collection<?> services) {
-    this.services =
-        services == null
-            ? Collections.emptyList()
-            : services.stream()
-                .map(
-                    service ->
-                        service instanceof ServiceInfo
-                            ? ((ServiceInfo) service).serviceInstance()
-                            : service)
+  private ScaleCubeServicesLifeCycleManager(Collection<ServiceProvider> serviceProviders) {
+    this.serviceFactory =
+        microservices ->
+            serviceProviders.stream()
+                .map(serviceProvider -> serviceProvider.provide(microservices.call()))
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Use {@link io.scalecube.services.annotations.Inject} for inject {@link Microservices},
+   * {@link io.scalecube.services.ServiceCall}.
+   */
   @Override
   public Mono<? extends Collection<ServiceInfo>> constructServices(Microservices microservices) {
-    List<ServiceInfo> services =
-        this.services.stream()
-            .map(
-                service -> {
-                  Object serviceInstance;
-                  ServiceInfo serviceInfo;
-                  if (service instanceof ServiceInfo) {
-                    serviceInfo = (ServiceInfo) service;
-                    serviceInstance = serviceInfo.serviceInstance();
-                  } else {
-                    serviceInstance = service;
-                    serviceInfo = ServiceInfo.fromServiceInstance(serviceInstance).build();
-                  }
-                  Injector.inject(microservices, serviceInstance);
-                  return serviceInfo;
-                })
+    this.services =
+        this.serviceFactory.apply(microservices).stream()
+            .map(service -> Injector.inject(microservices, service))
             .collect(Collectors.toList());
-    return Mono.just(services);
+    return Mono.just(this.services);
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Use {@link io.scalecube.services.annotations.AfterConstruct} for initialization service's
+   * instance.
+   */
   @Override
   public Mono<Void> postConstruct(Microservices microservices) {
     return Mono.fromRunnable(
@@ -68,6 +69,12 @@ public class ScaleCubeServicesLifeCycleManager implements ServicesLifeCycleManag
                 service -> Injector.processAfterConstruct(microservices, service)));
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Use {@link io.scalecube.services.annotations.BeforeDestroy} for finilization service's
+   * instance.
+   */
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
     this.services.forEach(service -> Injector.processBeforeDestroy(microservices, service));

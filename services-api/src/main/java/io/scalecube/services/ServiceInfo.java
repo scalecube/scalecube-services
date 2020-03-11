@@ -90,26 +90,82 @@ public class ServiceInfo {
       this.serviceInstance = serviceInstance;
     }
 
+    /**
+     * Add tag for service info.
+     *
+     * @param key tag name.
+     * @param value tag value.
+     * @return current builder's state.
+     */
     public Builder tag(String key, String value) {
       tags.put(key, value);
       return this;
     }
 
+    /**
+     * Set up {@link ServiceProviderErrorMapper}.
+     *
+     * @param errorMapper error mapper.
+     * @return current builder's state.
+     */
     public Builder errorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
       return this;
     }
 
+    /**
+     * Set up {@link ServiceMessageDataDecoder}.
+     *
+     * @param dataDecoder data decoder.
+     * @return current builder's state.
+     */
     public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
       return this;
     }
 
+    /**
+     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
+     *
+     * @param errorMapper error mapper.
+     * @return current builder's state.
+     */
+    public Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
+      if (this.errorMapper == null) {
+        this.errorMapper = errorMapper;
+      }
+      return this;
+    }
+
+    /**
+     * Set up {@link ServiceMessageDataDecoder} if it hasn't been set up before.
+     *
+     * @param dataDecoder data decoder.
+     * @return current builder's state.
+     */
+    public Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
+      if (this.dataDecoder == null) {
+        this.dataDecoder = dataDecoder;
+      }
+      return this;
+    }
+
+    /**
+     * Set up {@link Authenticator}.
+     *
+     * @param authenticator authenticator.
+     * @return current builder's state.
+     */
     public Builder authenticator(Authenticator authenticator) {
       this.authenticator = authenticator;
       return this;
     }
 
+    /**
+     * Build service info.
+     *
+     * @return service info.
+     */
     public ServiceInfo build() {
       return new ServiceInfo(this);
     }

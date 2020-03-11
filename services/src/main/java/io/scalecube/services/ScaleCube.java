@@ -10,7 +10,6 @@ import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.inject.ScaleCubeServicesLifeCycleManager;
-import io.scalecube.services.inject.ServiceLifeCycleManagerAdapter;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -28,6 +27,7 @@ import io.scalecube.services.transport.api.ServiceTransport;
 
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +38,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -126,7 +127,7 @@ public final class ScaleCube implements Microservices {
   private final String id = generateId();
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final ServicesLifeCycleManager serviceProvider;
+  private final ServicesProvider servicesProvider;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
   private final Authenticator<?> authenticator;
@@ -141,9 +142,9 @@ public final class ScaleCube implements Microservices {
   private ScaleCube(Builder builder) {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
-    this.serviceProvider =
-        builder.serviceProviders.stream()
-            .reduce(ServicesLifeCycleManager.EMPTY, ServicesLifeCycleManager::union);
+
+    this.servicesProvider = builder.servicesProvider;
+
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.authenticator = builder.authenticator;
@@ -195,8 +196,8 @@ public final class ScaleCube implements Microservices {
               // invoke service providers and register services
 
               Mono<ServiceEndpoint> serviceInstances =
-                  this.serviceProvider
-                      .constructServices(this)
+                  this.servicesProvider
+                      .provide(this)
                       .doOnNext(services -> services.forEach(this::registerInMethodRegistry))
                       .map(
                           services -> {
@@ -216,7 +217,7 @@ public final class ScaleCube implements Microservices {
               return serviceInstances
                   .flatMap(this.discoveryBootstrap::createInstance)
                   .publishOn(scheduler)
-                  .then(this.serviceProvider.postConstruct(this))
+                  .then(this.servicesProvider.postConstruct(this))
                   .publishOn(scheduler)
                   .then(startGateway(call))
                   .publishOn(scheduler)
@@ -322,14 +323,16 @@ public final class ScaleCube implements Microservices {
   }
 
   private Mono<Microservices> processBeforeDestroy() {
-    return serviceProvider.shutDown(this);
+    return servicesProvider.shutDown(this);
   }
 
   public static final class Builder {
 
     private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
-    private List<ServicesLifeCycleManager> serviceProviders = new ArrayList<>();
+    private List<ServiceInfo> services = new ArrayList<>();
+    private List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private ServicesProvider servicesProvider;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<?> authenticator = null;
@@ -341,7 +344,27 @@ public final class ScaleCube implements Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
 
+    private void build() {
+      ServiceProvider serviceProvider =
+          this.services.stream()
+              .map(
+                  service ->
+                      ServiceInfo.from(service)
+                          .dataDecoderIfAbsent(this.dataDecoder)
+                          .errorMapperIfAbsent(this.errorMapper)
+                          .build())
+              .collect(
+                  Collectors.collectingAndThen(
+                      Collectors.toList(), services -> (ServiceProvider) call -> services));
+      this.serviceProviders.add(serviceProvider);
+      this.servicesProvider =
+          this.servicesProvider == null
+              ? ScaleCubeServicesLifeCycleManager.create(this.serviceProviders)
+              : this.servicesProvider;
+    }
+
     public Mono<ScaleCube> start() {
+      build();
       return Mono.defer(() -> new ScaleCube(this).start());
     }
 
@@ -352,44 +375,58 @@ public final class ScaleCube implements Microservices {
     /**
      * Adds service instance to microservice.
      *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
+     * is installed. This method has been left for backward compatibility only and will be removed
+     * in future releases.
+     *
      * @param services service info instance.
      * @return builder
-     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
+     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
      */
     @Deprecated
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from((Object[]) services));
+      this.services.addAll(Arrays.asList(services));
       return this;
     }
 
     /**
      * Adds service instance to microservice.
      *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
+     * is installed. This method has been left for backward compatibility only and will be removed
+     * in future releases.
+     *
      * @param services service instance.
      * @return builder
-     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
+     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
      */
     @Deprecated
     public Builder services(Object... services) {
-      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from(services));
+      Stream.of(services)
+          .map(service -> ServiceInfo.fromServiceInstance(service).build())
+          .forEach(this.services::add);
       return this;
     }
 
     /**
      * Set up service provider.
      *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
+     * is installed. This method has been left for backward compatibility only and will be removed
+     * in future releases.
+     *
      * @param serviceProvider - old service provider
      * @return this
-     * @deprecated use {@link this#services(ServicesLifeCycleManager)}
+     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
      */
     @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
-      serviceProviders.add(new ServiceLifeCycleManagerAdapter(serviceProvider));
+      this.serviceProviders.add(serviceProvider);
       return this;
     }
 
-    public Builder services(ServicesLifeCycleManager serviceProvider) {
-      serviceProviders.add(serviceProvider);
+    public Builder serviceProvider(ServicesProvider serviceProvider) {
+      this.servicesProvider = serviceProvider;
       return this;
     }
 
@@ -470,17 +507,17 @@ public final class ScaleCube implements Microservices {
     private Mono<ServiceDiscovery> startListen(ScaleCube microservices) {
       return Mono.defer(
           () -> {
-            if (discovery == null) {
+            if (this.discovery == null) {
               LOGGER.info("[{}] ServiceDiscovery not set", microservices.id());
               return Mono.empty();
             }
 
-            disposable =
-                discovery
+            this.disposable =
+                this.discovery
                     .listenDiscovery()
                     .subscribe(event -> onDiscoveryEvent(microservices, event));
 
-            return discovery
+            return this.discovery
                 .start()
                 .doOnSuccess(discovery -> this.discovery = discovery)
                 .doOnSubscribe(
