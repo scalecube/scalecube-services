@@ -192,31 +192,31 @@ public final class ScaleCube implements Microservices {
               final ServiceCall call = call();
               final Address serviceAddress = input.address;
 
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
-                  ServiceEndpoint.builder()
-                      .id(id)
-                      .address(serviceAddress)
-                      .contentTypes(DataCodec.getAllContentTypes())
-                      .tags(tags);
-
               // invoke service providers and register services
 
-              Mono<List<ServiceInfo>> serviceInstances =
-                  serviceProvider
+              Mono<ServiceEndpoint> serviceInstances =
+                  this.serviceProvider
                       .constructServices(this)
-                      .flatMapIterable(i -> i)
-                      .doOnNext(this::registerInMethodRegistry)
-                      .doOnNext(
-                          serviceInfo ->
-                              serviceEndpointBuilder.appendServiceRegistrations(
-                                  ServiceScanner.scanServiceInfo(serviceInfo)))
-                      .collectList();
-
-              Mono<ServiceDiscovery> discoveryBootstrap =
-                  this.discoveryBootstrap.createInstance(serviceEndpointBuilder.build());
+                      .doOnNext(services -> services.forEach(this::registerInMethodRegistry))
+                      .map(
+                          services -> {
+                            final ServiceEndpoint.Builder serviceEndpointBuilder =
+                                ServiceEndpoint.builder()
+                                    .id(id)
+                                    .address(serviceAddress)
+                                    .contentTypes(DataCodec.getAllContentTypes())
+                                    .tags(tags);
+                            services.forEach(
+                                service ->
+                                    serviceEndpointBuilder.appendServiceRegistrations(
+                                        ServiceScanner.scanServiceInfo(service)));
+                            return serviceEndpointBuilder.build();
+                          });
 
               return serviceInstances
-                  .flatMap(services -> discoveryBootstrap.flatMap(ignore -> serviceProvider.postConstruct(this)))
+                  .flatMap(this.discoveryBootstrap::createInstance)
+                  .publishOn(scheduler)
+                  .then(this.serviceProvider.postConstruct(this))
                   .publishOn(scheduler)
                   .then(startGateway(call))
                   .publishOn(scheduler)
@@ -321,12 +321,8 @@ public final class ScaleCube implements Microservices {
         });
   }
 
-  private Mono<Void> processBeforeDestroy() {
-    return Mono.whenDelayError(
-        methodRegistry.listServices().stream()
-            .map(ServiceInfo::serviceInstance)
-            .map(s -> serviceProvider.shutDown(this))
-            .collect(Collectors.toList()));
+  private Mono<Microservices> processBeforeDestroy() {
+    return serviceProvider.shutDown(this);
   }
 
   public static final class Builder {
@@ -362,7 +358,7 @@ public final class ScaleCube implements Microservices {
      */
     @Deprecated
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from(services));
+      serviceProviders.add(ScaleCubeServicesLifeCycleManager.from((Object[]) services));
       return this;
     }
 

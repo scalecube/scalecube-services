@@ -11,7 +11,8 @@ public interface ServicesLifeCycleManager {
   ServicesLifeCycleManager EMPTY =
       new ServicesLifeCycleManager() {
         @Override
-        public Mono<? extends Collection<ServiceInfo>> constructServices(Microservices microservices) {
+        public Mono<? extends Collection<ServiceInfo>> constructServices(
+            Microservices microservices) {
           return Mono.just(Collections.emptyList());
         }
 
@@ -37,7 +38,8 @@ public interface ServicesLifeCycleManager {
       ServicesLifeCycleManager provider1, ServicesLifeCycleManager provider2) {
     return new ServicesLifeCycleManager() {
       @Override
-      public Mono<? extends Collection<ServiceInfo>> constructServices(Microservices microservices) {
+      public Mono<? extends Collection<ServiceInfo>> constructServices(
+          Microservices microservices) {
         Flux<ServiceInfo> services1 = flatService(microservices, provider1);
         Flux<ServiceInfo> services2 = flatService(microservices, provider2);
         return services1.mergeWith(services2).collectList();

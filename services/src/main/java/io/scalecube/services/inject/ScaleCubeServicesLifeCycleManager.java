@@ -26,7 +26,16 @@ public class ScaleCubeServicesLifeCycleManager implements ServicesLifeCycleManag
   }
 
   private ScaleCubeServicesLifeCycleManager(Collection<?> services) {
-    this.services = services == null ? Collections.emptyList() : services;
+    this.services =
+        services == null
+            ? Collections.emptyList()
+            : services.stream()
+                .map(
+                    service ->
+                        service instanceof ServiceInfo
+                            ? ((ServiceInfo) service).serviceInstance()
+                            : service)
+                .collect(Collectors.toList());
   }
 
   @Override
@@ -53,14 +62,15 @@ public class ScaleCubeServicesLifeCycleManager implements ServicesLifeCycleManag
 
   @Override
   public Mono<Void> postConstruct(Microservices microservices) {
-    this.services.forEach(service -> Injector.processAfterConstruct(microservices, service));
-    return Mono.empty();
+    return Mono.fromRunnable(
+        () ->
+            this.services.forEach(
+                service -> Injector.processAfterConstruct(microservices, service)));
   }
 
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
-    Stream.of(this.services)
-        .forEach(service -> Injector.processBeforeDestroy(microservices, service));
+    this.services.forEach(service -> Injector.processBeforeDestroy(microservices, service));
     return Mono.just(microservices);
   }
 }
