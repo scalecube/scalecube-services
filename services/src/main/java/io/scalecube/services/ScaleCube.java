@@ -50,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Scheduler;
@@ -186,30 +187,23 @@ public final class ScaleCube implements Microservices {
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
-
+    Hooks.onOperatorDebug();
     return transportBootstrap
         .start(this)
+        // because ServiceTransportBootstrap#address may return nullable value in local case
+        .map(transport -> (Supplier<Address>) transport::address)
+        .flatMap(this::initializeServiceEndpoint)
+        .flatMap(this.discoveryBootstrap::createInstance)
         .publishOn(scheduler)
-        .flatMap(
-            input -> {
-              final ServiceCall call = call();
-              final Address serviceAddress = input.address;
-
-              Mono<ServiceEndpoint> serviceEndpointMono = initializeServiceEndpoint(serviceAddress);
-
-              return serviceEndpointMono
-                  .flatMap(this.discoveryBootstrap::createInstance)
-                  .publishOn(scheduler)
-                  .then(this.servicesProvider.provideService(this))
-                  .doOnNext(this::registerInMethodRegistry)
-                  .publishOn(scheduler)
-                  .then(startGateway(call))
-                  .publishOn(scheduler)
-                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(this.discoveryBootstrap.startListen(this))
-                  .publishOn(scheduler)
-                  .thenReturn(this);
-            })
+        .then(this.servicesProvider.provideService(this))
+        .doOnNext(this::registerInMethodRegistry)
+        .publishOn(scheduler)
+        .then(startGateway())
+        .publishOn(scheduler)
+        .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
+        .then(this.discoveryBootstrap.startListen(this))
+        .publishOn(scheduler)
+        .thenReturn(this)
         .onErrorResume(
             ex -> {
               // return original error then shutdown
@@ -220,7 +214,7 @@ public final class ScaleCube implements Microservices {
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
+  private Mono<ServiceEndpoint> initializeServiceEndpoint(Supplier<Address> serviceAddress) {
     return this.servicesProvider
         .provideServiceDefinitions(this)
         .map(
@@ -228,7 +222,7 @@ public final class ScaleCube implements Microservices {
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
                       .id(this.id)
-                      .address(serviceAddress)
+                      .address(serviceAddress.get())
                       .contentTypes(DataCodec.getAllContentTypes())
                       .tags(this.tags);
               serviceDefinitions.forEach(
@@ -252,8 +246,8 @@ public final class ScaleCube implements Microservices {
         });
   }
 
-  private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(this, new GatewayOptions().call(call).metrics(metrics));
+  private Mono<GatewayBootstrap> startGateway() {
+    return gatewayBootstrap.start(this, new GatewayOptions().call(this.call()).metrics(metrics));
   }
 
   public Metrics metrics() {
@@ -678,6 +672,10 @@ public final class ScaleCube implements Microservices {
                       "[{}][serviceTransport][start] Exception occurred: {}",
                       microservices.id(),
                       ex.toString()));
+    }
+
+    public Address address() {
+      return address;
     }
 
     private Mono<Void> shutdown() {
