@@ -63,15 +63,21 @@ public final class Injector {
     }
   }
 
-  public static void processAfterConstruct(
-      Microservices microservices, ServiceInfo targetInstance) {
-    processMethodWithAnnotation(
-        microservices, targetInstance.serviceInstance(), AfterConstruct.class);
+  /**
+   * Run methods with {@link AfterConstruct} annotations.
+   *
+   * @param microservices scale cube instance.
+   * @param serviceInfo service info.
+   * @return service info with modified service's instance.
+   */
+  public static ServiceInfo processAfterConstruct(
+      Microservices microservices, ServiceInfo serviceInfo) {
+    processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), AfterConstruct.class);
+    return serviceInfo;
   }
 
-  public static void processBeforeDestroy(Microservices microservices, ServiceInfo targetInstance) {
-    processMethodWithAnnotation(
-        microservices, targetInstance.serviceInstance(), BeforeDestroy.class);
+  public static void processBeforeDestroy(Microservices microservices, ServiceInfo serviceInfo) {
+    processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), BeforeDestroy.class);
   }
 
   private static <A extends Annotation> void processMethodWithAnnotation(

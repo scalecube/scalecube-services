@@ -5,6 +5,8 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 
 public interface Microservices {
 
+  String id();
+
   ServiceCall call();
 
   Address serviceAddress();

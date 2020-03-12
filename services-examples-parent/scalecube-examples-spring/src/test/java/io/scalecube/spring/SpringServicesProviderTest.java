@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -108,7 +109,7 @@ class SpringServicesProviderTest {
     public LocalServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
       this.serviceCall = serviceCall.api(SimpleService.class);
       this.serviceCall.get().subscribe(System.out::println);
-      serviceDiscovery.listenDiscovery().subscribe(System.out::println);
+      serviceDiscovery.listenDiscovery().subscribe();
     }
 
     public Mono<Long> get() {
