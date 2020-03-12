@@ -82,8 +82,8 @@ class SpringServicesProviderTest {
   @Configuration
   static class Beans {
     @Bean
-    public LocalService localServiceBean(ServiceCall serviceCall) {
-      return new LocalServiceBean(serviceCall, null);
+    public LocalService localServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
+      return new LocalServiceBean(serviceCall, serviceDiscovery);
     }
   }
 
@@ -108,7 +108,7 @@ class SpringServicesProviderTest {
     public LocalServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
       this.serviceCall = serviceCall.api(SimpleService.class);
       this.serviceCall.get().subscribe(System.out::println);
-//      serviceDiscovery.listenDiscovery().subscribe();
+      serviceDiscovery.listenDiscovery().subscribe();
     }
 
     public Mono<Long> get() {
