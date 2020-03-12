@@ -13,9 +13,7 @@ import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Default {@link ServicesProvider}.
- */
+/** Default {@link ServicesProvider}. */
 public class ScaleCubeServicesProvider implements ServicesProvider {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
@@ -78,11 +76,13 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    */
   @Override
   public Mono<? extends Collection<ServiceInfo>> provideService(Microservices microservices) {
-    return Mono.fromCallable(
+    return Mono.defer(
         () ->
-            this.services.stream()
-                .map(service -> Injector.processAfterConstruct(microservices, service))
-                .collect(Collectors.toList()));
+            Mono.fromCallable(
+                () ->
+                    this.services.stream()
+                        .map(service -> Injector.processAfterConstruct(microservices, service))
+                        .collect(Collectors.toList())));
   }
 
   /**

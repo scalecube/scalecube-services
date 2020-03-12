@@ -195,11 +195,9 @@ public final class ScaleCube implements Microservices {
               final ServiceCall call = call();
               final Address serviceAddress = input.address;
 
-              // invoke service providers and register services
+              Mono<ServiceEndpoint> serviceEndpointMono = initializeServiceEndpoint(serviceAddress);
 
-              Mono<ServiceEndpoint> serviceInstances = initializeServiceEndpoint(serviceAddress);
-
-              return serviceInstances
+              return serviceEndpointMono
                   .flatMap(this.discoveryBootstrap::createInstance)
                   .publishOn(scheduler)
                   .then(this.servicesProvider.provideService(this))

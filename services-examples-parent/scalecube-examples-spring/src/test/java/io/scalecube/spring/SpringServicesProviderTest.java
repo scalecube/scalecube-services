@@ -16,10 +16,9 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SpringServicesProviderTest {
 
@@ -27,7 +26,7 @@ class SpringServicesProviderTest {
   private static ScaleCube microserviceWithoutSpring;
 
   @BeforeAll
-  public static void setup() {
+  public static void setUp() {
     Hooks.onOperatorDebug();
     microserviceWithSpring = microserviceWithSpring();
     microserviceWithoutSpring = microserviceWithoutSpring();
@@ -65,7 +64,7 @@ class SpringServicesProviderTest {
   }
 
   @Test
-  public void test_remote_greeting_request_completes_before_timeout() {
+  public void testWithSpringServicesProvider() {
 
     LocalService service = microserviceWithSpring.call().api(LocalService.class);
 
@@ -83,8 +82,8 @@ class SpringServicesProviderTest {
   @Configuration
   static class Beans {
     @Bean
-    public LocalService localServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
-      return new LocalServiceBean(serviceCall, serviceDiscovery);
+    public LocalService localServiceBean(ServiceCall serviceCall) {
+      return new LocalServiceBean(serviceCall, null);
     }
   }
 
@@ -109,7 +108,7 @@ class SpringServicesProviderTest {
     public LocalServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
       this.serviceCall = serviceCall.api(SimpleService.class);
       this.serviceCall.get().subscribe(System.out::println);
-      serviceDiscovery.listenDiscovery().subscribe();
+//      serviceDiscovery.listenDiscovery().subscribe();
     }
 
     public Mono<Long> get() {

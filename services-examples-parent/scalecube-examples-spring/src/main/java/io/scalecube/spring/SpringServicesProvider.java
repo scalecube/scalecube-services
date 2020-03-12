@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 
 public class SpringServicesProvider implements ServicesProvider {
 
-  private final Function<Microservices, AnnotationConfigApplicationContext> ctxFactory;
+  private final Class<?>[] configurations;
 
   // lazy init
   private AnnotationConfigApplicationContext ctx;
@@ -36,35 +36,22 @@ public class SpringServicesProvider implements ServicesProvider {
    * @param configurations spring configurations.
    */
   public SpringServicesProvider(Class<?>... configurations) {
-    this.ctxFactory =
-        microservices -> {
-          GenericBeanDefinition discoveryBd = new GenericBeanDefinition();
-          discoveryBd.setBeanClass(ServiceDiscovery.class);
-          discoveryBd.setLazyInit(true);
-          discoveryBd.setSynthetic(true);
-          discoveryBd.setInstanceSupplier(microservices::discovery);
-          discoveryBd.setSource(this);
-
-          GenericBeanDefinition serviceCallBd = new GenericBeanDefinition();
-          serviceCallBd.setBeanClass(ServiceCall.class);
-          serviceCallBd.setLazyInit(true);
-          serviceCallBd.setSynthetic(true);
-          serviceCallBd.setInstanceSupplier(microservices::call);
-          serviceCallBd.setSource(this);
-
-          AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
-          context.registerBeanDefinition("discovery-" + microservices.id(), discoveryBd);
-          context.registerBeanDefinition("serviceCall-" + microservices.id(), serviceCallBd);
-
-          Stream.of(configurations).forEach(context::register);
-          return context;
-        };
+    this.configurations = configurations;
   }
 
   @Override
   public Mono<Collection<ServiceDefinition>> provideServiceDefinitions(
       Microservices microservices) {
-    this.ctx = this.ctxFactory.apply(microservices);
+
+    this.ctx = new AnnotationConfigApplicationContext();
+    String id = microservices.id();
+    this.ctx.registerBeanDefinition(
+        "discovery-" + id, createBeanDef(ServiceDiscovery.class, microservices::discovery));
+    this.ctx.registerBeanDefinition(
+        "serviceCall-" + id, createBeanDef(ServiceCall.class, microservices::call));
+
+    Stream.of(this.configurations).forEach(this.ctx::register);
+
     String[] serviceBeanNames = this.ctx.getBeanDefinitionNames();
     List<ServiceDefinition> serviceDefinitions =
         Stream.of(serviceBeanNames)
@@ -75,27 +62,42 @@ public class SpringServicesProvider implements ServicesProvider {
             .filter(type -> type.getAnnotation(Service.class) != null)
             .map(type -> new ServiceDefinition(type, Collections.emptyMap()))
             .collect(Collectors.toList());
-    return Mono.just(serviceDefinitions);
+    return Mono.defer(() -> Mono.just(serviceDefinitions));
+  }
+
+  private <T> GenericBeanDefinition createBeanDef(Class<T> type, Supplier<T> instanceSupplier) {
+    GenericBeanDefinition discoveryBd = new GenericBeanDefinition();
+    discoveryBd.setBeanClass(type);
+    discoveryBd.setLazyInit(true);
+    discoveryBd.setSynthetic(true);
+    discoveryBd.setInstanceSupplier(instanceSupplier);
+    discoveryBd.setSource(this);
+    return discoveryBd;
   }
 
   @Override
   public Mono<? extends Collection<ServiceInfo>> provideService(Microservices microservices) {
-    this.ctx.refresh();
-    this.ctx.start();
-    List<ServiceInfo> services =
-        this.ctx.getBeansWithAnnotation(Service.class).values().stream()
-            .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
-            .collect(Collectors.toList());
-    return Mono.defer(() -> Mono.just(services));
+    return Mono.defer(
+        () -> {
+          this.ctx.refresh();
+          this.ctx.start();
+          List<ServiceInfo> services =
+              this.ctx.getBeansWithAnnotation(Service.class).values().stream()
+                  .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
+                  .collect(Collectors.toList());
+          return Mono.just(services);
+        });
   }
 
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
-    return Mono.fromCallable(
-        () -> {
-          this.ctx.stop();
-          this.ctx.close();
-          return microservices;
-        });
+    return Mono.defer(
+        () ->
+            Mono.fromCallable(
+                () -> {
+                  this.ctx.stop();
+                  this.ctx.close();
+                  return microservices;
+                }));
   }
 }
