@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
-/** Default {@link ServicesProvider}. */
+/**
+ * Default {@link ServicesProvider}.
+ */
 public class ScaleCubeServicesProvider implements ServicesProvider {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
