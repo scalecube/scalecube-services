@@ -187,7 +187,6 @@ public final class ScaleCube implements Microservices {
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
-    Hooks.onOperatorDebug();
     return transportBootstrap
         .start(this)
         // because ServiceTransportBootstrap#address may return nullable value in local case
