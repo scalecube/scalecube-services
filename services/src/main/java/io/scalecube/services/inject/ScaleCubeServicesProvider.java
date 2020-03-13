@@ -13,7 +13,9 @@ import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
-/** Default {@link ServicesProvider}. Thread-safe. */
+/**
+ * Default {@link ServicesProvider}. Thread-safe.
+ */
 public class ScaleCubeServicesProvider implements ServicesProvider {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
