@@ -7,15 +7,12 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
-
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,7 +30,6 @@ public final class ServiceMethodInvoker {
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final Authenticator<Object> authenticator;
-  private final Class<?> serviceType;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -45,15 +41,13 @@ public final class ServiceMethodInvoker {
    * @param dataDecoder data decoder
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
-  public <T> ServiceMethodInvoker(
-      Class<?> serviceType,
+  public ServiceMethodInvoker(
       Method method,
       Object service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
       Authenticator authenticator) {
-    this.serviceType = serviceType;
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
@@ -205,11 +199,6 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  public Class<?> serviceType() {
-    return serviceType;
-  }
-
-  @Deprecated
   public Object service() {
     return service;
   }
@@ -222,7 +211,7 @@ public final class ServiceMethodInvoker {
   public String toString() {
     return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
         .add("method=" + method)
-        .add("service=" + serviceType)
+        .add("service=" + service)
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)

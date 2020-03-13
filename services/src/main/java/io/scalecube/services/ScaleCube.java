@@ -751,7 +751,7 @@ public final class ScaleCube implements Microservices {
           .add("methodInfo=" + asString(invoker.methodInfo()))
           .add(
               "serviceMethod="
-                  + invoker.serviceType().getCanonicalName()
+                  + invoker.service()
                   + "."
                   + invoker.methodInfo().methodName()
                   + "("

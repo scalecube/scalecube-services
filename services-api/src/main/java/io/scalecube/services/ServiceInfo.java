@@ -53,10 +53,6 @@ public class ServiceInfo {
     return authenticator;
   }
 
-  public Class<?> type() {
-    return this.serviceInstance().getClass();
-  }
-
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")

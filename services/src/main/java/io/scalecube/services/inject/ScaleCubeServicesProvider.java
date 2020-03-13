@@ -65,7 +65,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
             .collect(Collectors.toList());
     List<ServiceDefinition> definitions =
         this.services.stream()
-            .map(serviceInfo -> new ServiceDefinition(serviceInfo.type(), serviceInfo.tags()))
+            .map(serviceInfo -> new ServiceDefinition(serviceInfo.serviceInstance().getClass(), serviceInfo.tags()))
             .collect(Collectors.toList());
     return Mono.just(definitions);
   }

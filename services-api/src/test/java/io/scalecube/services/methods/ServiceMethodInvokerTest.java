@@ -5,16 +5,13 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-
+import java.lang.reflect.Method;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import java.lang.reflect.Method;
-import java.util.function.Consumer;
 
 class ServiceMethodInvokerTest {
 
@@ -51,10 +48,8 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
-    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,
@@ -86,10 +81,9 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             false,
             AUTH);
-    // FIXME: 19.02.2020
+
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,
@@ -122,10 +116,8 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
-    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,
@@ -160,10 +152,8 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
-    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,
@@ -199,10 +189,8 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
-    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,
@@ -238,10 +226,8 @@ class ServiceMethodInvokerTest {
             false,
             AUTH);
 
-    // FIXME: 19.02.2020
     serviceMethodInvoker =
         new ServiceMethodInvoker(
-            stubService.getClass(),
             method,
             stubService,
             methodInfo,

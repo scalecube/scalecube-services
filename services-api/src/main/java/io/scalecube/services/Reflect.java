@@ -251,13 +251,14 @@ public class Reflect {
   /**
    * Util function to get service interfaces collections from service instance.
    *
-   * @param serviceType type with extends service interface with @Service annotation.
+   * @param serviceObject with extends service interface with @Service annotation.
    * @return service interface class.
    */
-  public static Stream<Class<?>> serviceInterfaces(Class<?> serviceType) {
-    Class<?>[] interfaces = serviceType.getInterfaces();
+  public static Collection<Class<?>> serviceInterfaces(Object serviceObject) {
+    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
     return Arrays.stream(interfaces)
-        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));
+        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
+        .collect(Collectors.toList());
   }
 
   public static String methodName(Method method) {

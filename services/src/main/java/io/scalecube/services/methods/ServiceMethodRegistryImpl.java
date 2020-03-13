@@ -19,7 +19,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
   public void registerService(ServiceInfo serviceInfo) {
     serviceInfos.add(serviceInfo);
 
-    Reflect.serviceInterfaces(serviceInfo.type())
+    Reflect.serviceInterfaces(serviceInfo.serviceInstance())
         .forEach(
             serviceInterface ->
                 Reflect.serviceMethods(serviceInterface)
@@ -51,7 +51,6 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
                           ServiceMethodInvoker invoker =
                               new ServiceMethodInvoker(
-                                  serviceInfo.type(),
                                   method,
                                   serviceInfo.serviceInstance(),
                                   methodInfo,
