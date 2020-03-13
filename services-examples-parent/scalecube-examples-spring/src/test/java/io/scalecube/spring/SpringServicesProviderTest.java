@@ -1,6 +1,6 @@
 package io.scalecube.spring;
 
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.annotations.Service;
@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SpringServicesProviderTest {
 
-  private static ScaleCube microserviceWithSpring;
-  private static ScaleCube microserviceWithoutSpring;
+  private static Scalecube microserviceWithSpring;
+  private static Scalecube microserviceWithoutSpring;
 
   @BeforeAll
   public static void setUp() {
@@ -47,16 +47,16 @@ class SpringServicesProviderTest {
     }
   }
 
-  private static ScaleCube microserviceWithSpring() {
-    return ScaleCube.builder()
+  private static Scalecube microserviceWithSpring() {
+    return Scalecube.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .serviceProvider(new SpringServicesProvider(Beans.class))
         .startAwait();
   }
 
-  private static ScaleCube microserviceWithoutSpring() {
-    return ScaleCube.builder()
+  private static Scalecube microserviceWithoutSpring() {
+    return Scalecube.builder()
         .discovery(SpringServicesProviderTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .services((SimpleService) () -> Mono.just(1L))

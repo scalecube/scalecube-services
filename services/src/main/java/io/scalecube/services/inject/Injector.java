@@ -2,7 +2,7 @@ package io.scalecube.services.inject;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.AfterConstruct;
@@ -40,7 +40,7 @@ public final class Injector {
   }
 
   private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(ScaleCube.class)) {
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Scalecube.class)) {
       setField(field, service, microservices);
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
@@ -93,7 +93,7 @@ public final class Injector {
                     Arrays.stream(targetMethod.getParameters())
                         .map(
                             mapper -> {
-                              if (mapper.getType().equals(ScaleCube.class)) {
+                              if (mapper.getType().equals(Scalecube.class)) {
                                 return microservices;
                               } else if (Reflect.isService(mapper.getType())) {
                                 return microservices.call().api(mapper.getType());

@@ -48,21 +48,21 @@ final class ServiceAuthRemoteTest {
         return Mono.error(new UnauthorizedException("Authentication failed"));
       };
 
-  private static ScaleCube caller;
-  private static ScaleCube service;
+  private static Scalecube caller;
+  private static Scalecube service;
 
   @BeforeAll
   static void beforeAll() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
 
     caller =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     service =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .authenticator(authenticator)
@@ -103,8 +103,8 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Authentication failed if authenticator not provided")
   void failedAuthenticationWhenAuthenticatorNotProvided() {
-    ScaleCube service =
-        ScaleCube.builder()
+    Scalecube service =
+        Scalecube.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new SecuredServiceImpl())
@@ -161,8 +161,8 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
-    ScaleCube service =
-        ScaleCube.builder()
+    Scalecube service =
+        Scalecube.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .authenticator(authenticator)
@@ -182,8 +182,8 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
-    ScaleCube service =
-        ScaleCube.builder()
+    Scalecube service =
+        Scalecube.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new PartiallySecuredServiceImpl())

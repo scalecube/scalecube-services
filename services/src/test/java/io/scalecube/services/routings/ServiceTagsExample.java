@@ -1,7 +1,7 @@
 package io.scalecube.services.routings;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -20,16 +20,16 @@ public class ServiceTagsExample {
    * @param args arguments
    */
   public static void main(String[] args) {
-    ScaleCube gateway =
-        ScaleCube.builder()
+    Scalecube gateway =
+        Scalecube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Address seedAddress = gateway.discovery().address();
 
-    ScaleCube services1 =
-        ScaleCube.builder()
+    Scalecube services1 =
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -41,8 +41,8 @@ public class ServiceTagsExample {
                     .build())
             .startAwait();
 
-    ScaleCube services2 =
-        ScaleCube.builder()
+    Scalecube services2 =
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

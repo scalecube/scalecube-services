@@ -37,7 +37,7 @@ public class ServiceCallLocalTest extends BaseTest {
   public static final int TIMEOUT = 3;
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
-  private static ScaleCube provider;
+  private static Scalecube provider;
 
   @BeforeAll
   public static void setup() {
@@ -63,8 +63,8 @@ public class ServiceCallLocalTest extends BaseTest {
         GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
   }
 
-  private static ScaleCube serviceProvider() {
-    return ScaleCube.builder()
+  private static Scalecube serviceProvider() {
+    return Scalecube.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .services(new GreetingServiceImpl())

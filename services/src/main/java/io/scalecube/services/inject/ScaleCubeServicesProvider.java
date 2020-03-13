@@ -7,21 +7,19 @@ import io.scalecube.services.ServiceProvider;
 import io.scalecube.services.ServicesProvider;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
-/**
- * Default {@link ServicesProvider}.
- */
+/** Default {@link ServicesProvider}. Thread-safe. */
 public class ScaleCubeServicesProvider implements ServicesProvider {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
 
   // lazy init
-  private Collection<ServiceInfo> services;
+  private AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
 
   /**
    * Create the instance from {@link ServiceProvider}.
@@ -39,6 +37,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
             serviceProviders.stream()
                 .map(serviceProvider -> serviceProvider.provide(microservices.call()))
                 .flatMap(Collection::stream)
+                .map(service -> Injector.inject(microservices, service))
                 .collect(Collectors.toList());
   }
 
@@ -59,15 +58,14 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
   @Override
   public Mono<? extends Collection<ServiceDefinition>> provideServiceDefinitions(
       Microservices microservices) {
-    this.services =
-        this.serviceFactory.apply(microservices).stream()
-            .map(service -> Injector.inject(microservices, service))
-            .collect(Collectors.toList());
-    List<ServiceDefinition> definitions =
-        this.services.stream()
-            .map(serviceInfo -> new ServiceDefinition(serviceInfo.serviceInstance().getClass(), serviceInfo.tags()))
-            .collect(Collectors.toList());
-    return Mono.just(definitions);
+    return Mono.fromCallable(
+        () ->
+            this.services(microservices).stream()
+                .map(
+                    serviceInfo ->
+                        new ServiceDefinition(
+                            serviceInfo.serviceInstance().getClass(), serviceInfo.tags()))
+                .collect(Collectors.toList()));
   }
 
   /**
@@ -78,13 +76,11 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    */
   @Override
   public Mono<? extends Collection<ServiceInfo>> provideService(Microservices microservices) {
-    return Mono.defer(
+    return Mono.fromCallable(
         () ->
-            Mono.fromCallable(
-                () ->
-                    this.services.stream()
-                        .map(service -> Injector.processAfterConstruct(microservices, service))
-                        .collect(Collectors.toList())));
+            this.services(microservices).stream()
+                .map(service -> Injector.processAfterConstruct(microservices, service))
+                .collect(Collectors.toList()));
   }
 
   /**
@@ -95,7 +91,20 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    */
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
-    this.services.forEach(service -> Injector.processBeforeDestroy(microservices, service));
-    return Mono.just(microservices);
+    return Mono.fromRunnable(
+            () -> {
+              if (this.services.get() != null) {
+                this.services
+                    .get()
+                    .forEach(service -> Injector.processBeforeDestroy(microservices, service));
+              }
+            })
+        .thenReturn(microservices);
+  }
+
+  private Collection<ServiceInfo> services(Microservices microservices) {
+    return this.services.updateAndGet(
+        currentValue ->
+            currentValue == null ? this.serviceFactory.apply(microservices) : currentValue);
   }
 }

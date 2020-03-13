@@ -1,6 +1,6 @@
 package io.scalecube.services.sut;
 
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import reactor.core.publisher.Flux;
@@ -11,7 +11,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   private ReplayProcessor<ServiceDiscoveryEvent> serviceDiscoveryEvents;
 
   @AfterConstruct
-  void init(ScaleCube microservices) {
+  void init(Scalecube microservices) {
     this.serviceDiscoveryEvents = ReplayProcessor.create();
     microservices.discovery().listenDiscovery().subscribe(serviceDiscoveryEvents);
   }

@@ -45,7 +45,7 @@ final class ServiceAuthLocalTest extends BaseTest {
         return Mono.error(new UnauthorizedException("Authentication failed"));
       };
 
-  private ScaleCube service;
+  private Scalecube service;
 
   @BeforeAll
   static void beforeAll() {
@@ -63,7 +63,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
     service =
-        ScaleCube.builder()
+        Scalecube.builder()
             .authenticator(authenticator)
             .services(new SecuredServiceImpl())
             .startAwait();
@@ -87,7 +87,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   @Test
   @DisplayName("Authentication failed if authenticator not provided")
   void failedAuthenticationWhenAuthenticatorNotProvided() {
-    service = ScaleCube.builder().services(new SecuredServiceImpl()).startAwait();
+    service = Scalecube.builder().services(new SecuredServiceImpl()).startAwait();
 
     SecuredService securedService =
         service.call().credentials(CREDENTIALS).api(SecuredService.class);
@@ -115,7 +115,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   @DisplayName("Authentication failed with invalid or empty credentials")
   void failedAuthenticationWithInvalidOrEmptyCredentials() {
     service =
-        ScaleCube.builder()
+        Scalecube.builder()
             .authenticator(authenticator)
             .services(new SecuredServiceImpl())
             .startAwait();
@@ -145,7 +145,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
     service =
-        ScaleCube.builder()
+        Scalecube.builder()
             .authenticator(authenticator)
             .services(new PartiallySecuredServiceImpl())
             .startAwait();
@@ -161,7 +161,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   @Test
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
-    service = ScaleCube.builder().services(new PartiallySecuredServiceImpl()).startAwait();
+    service = Scalecube.builder().services(new PartiallySecuredServiceImpl()).startAwait();
 
     PartiallySecuredService proxy = service.call().api(PartiallySecuredService.class);
 

@@ -40,8 +40,8 @@ public class ServiceCallRemoteTest extends BaseTest {
   public static final int TIMEOUT = 3;
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
-  private static ScaleCube gateway;
-  private static ScaleCube provider;
+  private static Scalecube gateway;
+  private static Scalecube provider;
 
   @BeforeAll
   public static void setup() {
@@ -64,8 +64,8 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
-  private static ScaleCube serviceProvider(Object service) {
-    return ScaleCube.builder()
+  private static Scalecube serviceProvider(Object service) {
+    return Scalecube.builder()
         .discovery(
             endpoint ->
                 new ScalecubeServiceDiscovery(endpoint)
@@ -226,7 +226,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     // Add service to cluster AFTER creating a call object.
     // (prove address lookup occur only after subscription)
-    ScaleCube quotesService = serviceProvider(new SimpleQuoteService());
+    Scalecube quotesService = serviceProvider(new SimpleQuoteService());
 
     StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(timeout);
 
@@ -255,8 +255,8 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
-  private static ScaleCube gateway() {
-    return ScaleCube.builder()
+  private static Scalecube gateway() {
+    return Scalecube.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .startAwait();

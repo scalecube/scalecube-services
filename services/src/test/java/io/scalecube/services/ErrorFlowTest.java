@@ -23,13 +23,13 @@ import reactor.test.StepVerifier;
 public class ErrorFlowTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
-  private static ScaleCube provider;
-  private static ScaleCube consumer;
+  private static Scalecube provider;
+  private static Scalecube consumer;
 
   @BeforeAll
   public static void initNodes() {
     provider =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -41,7 +41,7 @@ public class ErrorFlowTest extends BaseTest {
     final Address seedAddress = provider.discovery().address();
 
     consumer =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

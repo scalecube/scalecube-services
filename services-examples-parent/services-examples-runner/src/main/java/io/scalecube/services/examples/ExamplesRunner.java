@@ -7,7 +7,7 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -51,7 +51,7 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    ScaleCube.builder()
+    Scalecube.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
             () ->

@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.ScaleCube;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
@@ -47,16 +47,16 @@ public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 10;
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
-  private static ScaleCube gateway;
+  private static Scalecube gateway;
   private static Address gatewayAddress;
-  private static ScaleCube provider1;
-  private static ScaleCube provider2;
-  private static ScaleCube provider3;
+  private static Scalecube provider1;
+  private static Scalecube provider2;
+  private static Scalecube provider3;
 
   @BeforeAll
   public static void setup() {
     gateway =
-        ScaleCube.builder() //
+        Scalecube.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -65,7 +65,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider1 =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -83,7 +83,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider2 =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -101,7 +101,7 @@ public class RoutersTest extends BaseTest {
 
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
-        ScaleCube.builder()
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
