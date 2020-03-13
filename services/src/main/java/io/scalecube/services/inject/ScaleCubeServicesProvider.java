@@ -94,14 +94,13 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
     return Mono.fromRunnable(
-            () -> {
-              if (this.services.get() != null) {
-                this.services
-                    .get()
-                    .forEach(service -> Injector.processBeforeDestroy(microservices, service));
-              }
-            })
-        .thenReturn(microservices);
+        () -> {
+          if (this.services.get() != null) {
+            this.services
+                .get()
+                .forEach(service -> Injector.processBeforeDestroy(microservices, service));
+          }
+        }).thenReturn(microservices);
   }
 
   private Collection<ServiceInfo> services(Microservices microservices) {
