@@ -7,7 +7,6 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServicesProvider;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -15,11 +14,9 @@ import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-
 import org.springframework.util.ClassUtils;
 import reactor.core.publisher.Mono;
 

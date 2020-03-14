@@ -11,8 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.Scalecube;
 import io.scalecube.services.Reflect;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;

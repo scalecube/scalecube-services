@@ -13,17 +13,11 @@ import java.util.Map.Entry;
 /** Simple binary codec for headers service message. */
 public class DefaultHeadersCodec implements HeadersCodec {
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String contentType() {
     return "application/octet-stream";
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
     if (headers.isEmpty()) {
@@ -40,9 +34,6 @@ public class DefaultHeadersCodec implements HeadersCodec {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
     if (stream.available() < 1) {

@@ -9,12 +9,10 @@ import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.routing.Router;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
-
 import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */

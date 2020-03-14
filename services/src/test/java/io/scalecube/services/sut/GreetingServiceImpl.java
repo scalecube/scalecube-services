@@ -12,8 +12,7 @@ import reactor.core.scheduler.Schedulers;
 
 public final class GreetingServiceImpl implements GreetingService {
 
-  @Inject
-  Scalecube ms;
+  @Inject Scalecube ms;
 
   private int instanceId;
 

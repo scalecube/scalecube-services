@@ -1,5 +1,7 @@
 package io.scalecube.spring;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
@@ -8,6 +10,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -15,10 +18,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SpringServicesProviderTest {
 
@@ -82,7 +81,8 @@ class SpringServicesProviderTest {
   @Configuration
   static class Beans {
     @Bean
-    public LocalService localServiceBean(ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
+    public LocalService localServiceBean(
+        ServiceCall serviceCall, ServiceDiscovery serviceDiscovery) {
       return new LocalServiceBean(serviceCall, serviceDiscovery);
     }
   }

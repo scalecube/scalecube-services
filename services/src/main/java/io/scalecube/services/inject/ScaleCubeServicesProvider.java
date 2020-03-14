@@ -5,17 +5,12 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceProvider;
 import io.scalecube.services.ServicesProvider;
-
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import reactor.core.publisher.Mono;
 
-/**
- * Default {@link ServicesProvider}. Thread-safe.
- */
 public class ScaleCubeServicesProvider implements ServicesProvider {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
@@ -93,14 +88,13 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    */
   @Override
   public Mono<Microservices> shutDown(Microservices microservices) {
-    return Mono.fromRunnable(
-        () -> {
-          if (this.services.get() != null) {
-            this.services
-                .get()
-                .forEach(service -> Injector.processBeforeDestroy(microservices, service));
-          }
-        }).thenReturn(microservices);
+    return Mono.fromRunnable(() -> shutdown0(microservices)).thenReturn(microservices);
+  }
+
+  private void shutdown0(Microservices microservices) {
+    if (this.services.get() != null) {
+      this.services.get().forEach(service -> Injector.processBeforeDestroy(microservices, service));
+    }
   }
 
   private Collection<ServiceInfo> services(Microservices microservices) {
