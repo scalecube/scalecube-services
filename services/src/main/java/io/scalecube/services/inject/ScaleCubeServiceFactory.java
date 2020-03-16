@@ -4,14 +4,14 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceProvider;
-import io.scalecube.services.ServicesProvider;
+import io.scalecube.services.ServiceFactory;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 
-public class ScaleCubeServicesProvider implements ServicesProvider {
+public class ScaleCubeServiceFactory implements ServiceFactory {
 
   private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
 
@@ -24,11 +24,11 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    * @param serviceProviders old service providers.
    * @return default services provider.
    */
-  public static ServicesProvider create(Collection<ServiceProvider> serviceProviders) {
-    return new ScaleCubeServicesProvider(serviceProviders);
+  public static ServiceFactory create(Collection<ServiceProvider> serviceProviders) {
+    return new ScaleCubeServiceFactory(serviceProviders);
   }
 
-  private ScaleCubeServicesProvider(Collection<ServiceProvider> serviceProviders) {
+  private ScaleCubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
     this.serviceFactory =
         microservices ->
             serviceProviders.stream()
@@ -42,7 +42,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    * Since the service instance factory ({@link ServiceProvider}) we have to leave behind does not
    * provide us with information about the types of services produced, there is nothing left for us
    * to do but start creating all the services and then retrieve the type of service, previously
-   * saving it as a {@link ScaleCubeServicesProvider} state.
+   * saving it as a {@link ScaleCubeServiceFactory} state.
    *
    * <p>{@inheritDoc}
    *
@@ -53,7 +53,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    * @see ServiceDefinition
    */
   @Override
-  public Mono<? extends Collection<ServiceDefinition>> provideServiceDefinitions(
+  public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
       Microservices microservices) {
     return Mono.fromCallable(
         () ->
@@ -72,7 +72,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    * instance.
    */
   @Override
-  public Mono<? extends Collection<ServiceInfo>> provideService(Microservices microservices) {
+  public Mono<? extends Collection<ServiceInfo>> initializeServices(Microservices microservices) {
     return Mono.fromCallable(
         () ->
             this.services(microservices).stream()
@@ -87,7 +87,7 @@ public class ScaleCubeServicesProvider implements ServicesProvider {
    * instance.
    */
   @Override
-  public Mono<Microservices> shutDown(Microservices microservices) {
+  public Mono<Microservices> shutdownServices(Microservices microservices) {
     return Mono.fromRunnable(() -> shutdown0(microservices)).thenReturn(microservices);
   }
 

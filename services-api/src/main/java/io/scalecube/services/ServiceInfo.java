@@ -6,6 +6,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 @SuppressWarnings("rawtypes")
@@ -126,10 +127,7 @@ public class ServiceInfo {
      * @return current builder's state.
      */
     public Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
-      if (this.errorMapper == null) {
-        this.errorMapper = errorMapper;
-      }
-      return this;
+      return Objects.isNull(this.errorMapper) ? this.errorMapper(errorMapper) : this;
     }
 
     /**
@@ -139,10 +137,7 @@ public class ServiceInfo {
      * @return current builder's state.
      */
     public Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
-      if (this.dataDecoder == null) {
-        this.dataDecoder = dataDecoder;
-      }
-      return this;
+      return Objects.isNull(this.dataDecoder) ? this.dataDecoder(dataDecoder) : this;
     }
 
     /**
@@ -154,6 +149,16 @@ public class ServiceInfo {
     public Builder authenticator(Authenticator authenticator) {
       this.authenticator = authenticator;
       return this;
+    }
+
+    /**
+     * Set up {@link Authenticator} if it hasn't been set up before.
+     *
+     * @param authenticator authenticator.
+     * @return current builder's state.
+     */
+    public Builder authenticatorIfAbsent(Authenticator authenticator) {
+      return Objects.isNull(this.authenticator) ? this.authenticator(authenticator) : this;
     }
 
     /**

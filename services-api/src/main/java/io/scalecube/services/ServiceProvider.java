@@ -5,7 +5,7 @@ import java.util.Collection;
 /**
  * Provide service instances.
  *
- * @deprecated use {@link ServicesProvider}
+ * @deprecated use {@link ServiceFactory}
  */
 @FunctionalInterface
 @Deprecated

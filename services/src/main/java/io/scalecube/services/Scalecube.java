@@ -9,7 +9,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.inject.ScaleCubeServicesProvider;
+import io.scalecube.services.inject.ScaleCubeServiceFactory;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -124,15 +124,15 @@ public final class Scalecube implements Microservices {
   private final String id = generateId();
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final ServicesProvider servicesProvider;
+  private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<?> authenticator;
+  private final Authenticator<?> defaultAuthenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
-  private final ServiceProviderErrorMapper errorMapper;
-  private final ServiceMessageDataDecoder dataDecoder;
+  private final ServiceProviderErrorMapper defaultErrorMapper;
+  private final ServiceMessageDataDecoder defaultDataDecoder;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -140,16 +140,16 @@ public final class Scalecube implements Microservices {
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
 
-    this.servicesProvider = builder.servicesProvider;
+    this.serviceFactory = builder.serviceFactory;
 
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
-    this.authenticator = builder.authenticator;
+    this.defaultAuthenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
-    this.errorMapper = builder.errorMapper;
-    this.dataDecoder = builder.dataDecoder;
+    this.defaultErrorMapper = builder.errorMapper;
+    this.defaultDataDecoder = builder.dataDecoder;
 
     // Setup cleanup
     shutdown
@@ -189,7 +189,7 @@ public final class Scalecube implements Microservices {
         .flatMap(this::initializeServiceEndpoint)
         .flatMap(this.discoveryBootstrap::createInstance)
         .publishOn(scheduler)
-        .then(this.servicesProvider.provideService(this))
+        .then(this.serviceFactory.initializeServices(this))
         .doOnNext(this::registerInMethodRegistry)
         .publishOn(scheduler)
         .then(startGateway())
@@ -209,35 +209,34 @@ public final class Scalecube implements Microservices {
   }
 
   private Mono<ServiceEndpoint> initializeServiceEndpoint(Supplier<Address> serviceAddress) {
-    return this.servicesProvider
-        .provideServiceDefinitions(this)
-        .map(
-            serviceDefinitions -> {
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
-                  ServiceEndpoint.builder()
-                      .id(this.id)
-                      .address(serviceAddress.get())
-                      .contentTypes(DataCodec.getAllContentTypes())
-                      .tags(this.tags);
-              serviceDefinitions.forEach(
-                  serviceDefinition ->
-                      serviceEndpointBuilder.appendServiceRegistrations(
-                          ServiceScanner.scanServiceDefinition(serviceDefinition)));
-              return serviceEndpointBuilder.build();
-            });
+    Mono<? extends Collection<ServiceDefinition>> serviceDefinitionsMono =
+        Mono.defer(() -> this.serviceFactory.getServiceDefinitions(this));
+    return serviceDefinitionsMono.map(
+        serviceDefinitions -> {
+          final ServiceEndpoint.Builder serviceEndpointBuilder =
+              ServiceEndpoint.builder()
+                  .id(this.id)
+                  .address(serviceAddress.get())
+                  .contentTypes(DataCodec.getAllContentTypes())
+                  .tags(this.tags);
+          serviceDefinitions.forEach(
+              serviceDefinition ->
+                  serviceEndpointBuilder.appendServiceRegistrations(
+                      ServiceScanner.scanServiceDefinition(serviceDefinition)));
+          return serviceEndpointBuilder.build();
+        });
   }
 
   private void registerInMethodRegistry(Collection<ServiceInfo> services) {
-    services.forEach(
-        serviceInfo -> {
-          methodRegistry.registerService(
-              ServiceInfo.from(serviceInfo)
-                  .errorMapperIfAbsent(this.errorMapper)
-                  .dataDecoderIfAbsent(this.dataDecoder)
-                  .authenticator(
-                      Optional.ofNullable(serviceInfo.authenticator()).orElse(this.authenticator))
-                  .build());
-        });
+    services.stream()
+        .map(
+            serviceInfo ->
+                ServiceInfo.from(serviceInfo)
+                    .errorMapperIfAbsent(this.defaultErrorMapper)
+                    .dataDecoderIfAbsent(this.defaultDataDecoder)
+                    .authenticatorIfAbsent(this.defaultAuthenticator)
+                    .build())
+        .forEach(methodRegistry::registerService);
   }
 
   private Mono<GatewayBootstrap> startGateway() {
@@ -318,7 +317,7 @@ public final class Scalecube implements Microservices {
   }
 
   private Mono<Microservices> processBeforeDestroy() {
-    return servicesProvider.shutDown(this);
+    return serviceFactory.shutdownServices(this);
   }
 
   public static final class Builder {
@@ -327,7 +326,7 @@ public final class Scalecube implements Microservices {
     private Map<String, String> tags = new HashMap<>();
     private List<ServiceInfo> services = new ArrayList<>();
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
-    private ServicesProvider servicesProvider;
+    private ServiceFactory serviceFactory;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<?> authenticator = null;
@@ -353,10 +352,10 @@ public final class Scalecube implements Microservices {
                       Collectors.toList(), services -> (ServiceProvider) call -> services));
       this.serviceProviders.add(serviceProvider);
       List<ServiceProvider> serviceProviders = Collections.unmodifiableList(this.serviceProviders);
-      this.servicesProvider =
-          this.servicesProvider == null
-              ? ScaleCubeServicesProvider.create(serviceProviders)
-              : this.servicesProvider;
+      this.serviceFactory =
+          this.serviceFactory == null
+              ? ScaleCubeServiceFactory.create(serviceProviders)
+              : this.serviceFactory;
     }
 
     public Mono<Scalecube> start() {
@@ -371,13 +370,13 @@ public final class Scalecube implements Microservices {
     /**
      * Adds service instance to microservice.
      *
-     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
-     * is installed. This method has been left for backward compatibility only and will be removed
-     * in future releases.
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
      *
      * @param services service info instance.
      * @return builder
-     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
+     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
      */
     @Deprecated
     public Builder services(ServiceInfo... services) {
@@ -388,13 +387,13 @@ public final class Scalecube implements Microservices {
     /**
      * Adds service instance to microservice.
      *
-     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
-     * is installed. This method has been left for backward compatibility only and will be removed
-     * in future releases.
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
      *
      * @param services service instance.
      * @return builder
-     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
+     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
      */
     @Deprecated
     public Builder services(Object... services) {
@@ -407,13 +406,13 @@ public final class Scalecube implements Microservices {
     /**
      * Set up service provider.
      *
-     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServicesProvider}
-     * is installed. This method has been left for backward compatibility only and will be removed
-     * in future releases.
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
      *
      * @param serviceProvider - old service provider
      * @return this
-     * @deprecated use {@link this#serviceProvider(ServicesProvider)}
+     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
      */
     @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
@@ -421,8 +420,8 @@ public final class Scalecube implements Microservices {
       return this;
     }
 
-    public Builder serviceProvider(ServicesProvider serviceProvider) {
-      this.servicesProvider = serviceProvider;
+    public Builder serviceProvider(ServiceFactory serviceProvider) {
+      this.serviceFactory = serviceProvider;
       return this;
     }
 

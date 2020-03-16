@@ -4,17 +4,16 @@ import java.util.Collection;
 import reactor.core.publisher.Mono;
 
 /** Manages the life cycle of all services registered with Scale Cube Services. */
-public interface ServicesProvider {
+public interface ServiceFactory {
 
   /**
    * Provide service definitions.
    *
    * @param microservices scale cube instance.
-   * @return collection of service definitions - service type&amp;tags.
+   * @return collection of service definitions - service type and tags.
    * @see ServiceDefinition
    */
-  Mono<? extends Collection<ServiceDefinition>> provideServiceDefinitions(
-      Microservices microservices);
+  Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(Microservices microservices);
 
   /**
    * Initialize instances of services.
@@ -22,7 +21,7 @@ public interface ServicesProvider {
    * @param microservices scale cube instance.
    * @return Completed Mono if initialization was successful for all services.
    */
-  Mono<? extends Collection<ServiceInfo>> provideService(Microservices microservices);
+  Mono<? extends Collection<ServiceInfo>> initializeServices(Microservices microservices);
 
   /**
    * Finalization of service instances.
@@ -30,5 +29,5 @@ public interface ServicesProvider {
    * @param microservices scale cube instance.
    * @return completed Mono if finalization was successful for all services.
    */
-  Mono<Microservices> shutDown(Microservices microservices);
+  Mono<Microservices> shutdownServices(Microservices microservices);
 }
