@@ -2,9 +2,9 @@ package io.scalecube.services.inject;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceProvider;
-import io.scalecube.services.ServiceFactory;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
