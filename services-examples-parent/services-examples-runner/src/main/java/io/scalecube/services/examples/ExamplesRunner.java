@@ -11,6 +11,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.nio.file.Path;
 import java.util.List;
@@ -69,7 +70,8 @@ public class ExamplesRunner {
                                 .wiretap(false)
                                 .port(config.servicePort())
                                 .runOn(loopResources)
-                                .noSSL()))
+                                .noSSL())
+                    .headersCodec(HeadersCodec.getInstance("application/json")))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait()
         .onShutdown()

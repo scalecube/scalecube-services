@@ -213,6 +213,20 @@ public final class ServiceMessage {
       return this;
     }
 
+    /**
+     * Sets a given data format.
+     *
+     * @param dataFormat data format, can be optional
+     * @return self
+     */
+    public Builder dataFormatIfAbsent(String dataFormat) {
+      if (dataFormat == null) {
+        return this;
+      }
+      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
+      return this;
+    }
+
     private Map<String, String> headers() {
       return this.headers;
     }

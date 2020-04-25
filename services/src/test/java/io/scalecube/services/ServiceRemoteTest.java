@@ -16,6 +16,7 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.HashMap;
@@ -33,6 +34,7 @@ import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
 
+  private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance("application/json");
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
   public static final Duration TIMEOUT2 = Duration.ofSeconds(6);
 
@@ -64,14 +66,14 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
-        .transport(RSocketServiceTransport::new)
+        .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
         .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
-        .transport(RSocketServiceTransport::new)
+        .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -267,7 +269,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
+            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -290,7 +292,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
+            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
             .services(another)
             .startAwait();
 
@@ -310,7 +312,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
+            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
             .services(another) // add service a and b
             .startAwait();
 
@@ -335,7 +337,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices provider =
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
+            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
             .services(another) // add service a and b
             .startAwait();
 
@@ -419,7 +421,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(RSocketServiceTransport::new)
+            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
             .tags(tags)
             .services(new GreetingServiceImpl())
             .startAwait();
