@@ -19,6 +19,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -60,6 +61,8 @@ public class ServiceCall {
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
+    this.requestReleaser = other.requestReleaser;
+    this.credentials = new HashMap<>(other.credentials);
   }
 
   /**
@@ -418,6 +421,7 @@ public class ServiceCall {
                   case REQUEST_CHANNEL:
                     // this is REQUEST_CHANNEL so it means params[0] must
                     // be a publisher - its safe to cast.
+                    //noinspection rawtypes
                     return serviceCall
                         .requestBidirectional(
                             Flux.from((Publisher) request)

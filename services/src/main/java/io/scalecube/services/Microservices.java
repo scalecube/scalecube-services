@@ -129,7 +129,7 @@ public final class Microservices {
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final String dataEncoderContentType;
+  private final String contentType;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -145,7 +145,7 @@ public final class Microservices {
     this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
-    this.dataEncoderContentType = builder.dataEncoderContentType;
+    this.contentType = builder.contentType;
 
     // Setup cleanup
     shutdown
@@ -257,7 +257,7 @@ public final class Microservices {
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
-        .contentType(dataEncoderContentType)
+        .contentType(contentType)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -333,7 +333,7 @@ public final class Microservices {
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
-    private String dataEncoderContentType;
+    private String contentType = "application/json";
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -422,12 +422,8 @@ public final class Microservices {
       return this;
     }
 
-    public Builder defaultDataEncoder(DataCodec dataEncoder) {
-      return defaultDataEncoderContentType(dataEncoder.contentType());
-    }
-
-    public Builder defaultDataEncoderContentType(String contentType) {
-      this.dataEncoderContentType = contentType;
+    public Builder contentType(String contentType) {
+      this.contentType = contentType;
       return this;
     }
   }

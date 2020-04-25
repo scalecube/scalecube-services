@@ -214,9 +214,10 @@ public final class ServiceMessage {
     }
 
     /**
-     * Sets a given data format.
+     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
+     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
      *
-     * @param dataFormat data format, can be optional
+     * @param dataFormat data format, optional
      * @return self
      */
     public Builder dataFormatIfAbsent(String dataFormat) {

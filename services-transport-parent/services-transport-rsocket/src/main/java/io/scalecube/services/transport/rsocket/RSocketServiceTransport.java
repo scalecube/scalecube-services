@@ -29,8 +29,6 @@ import reactor.netty.tcp.TcpServer;
 /** RSocket service transport. */
 public class RSocketServiceTransport implements ServiceTransport {
 
-  private static final int NUM_OF_WORKERS = Runtime.getRuntime().availableProcessors();
-
   static {
     Hooks.onNextDropped(
         obj ->
@@ -38,7 +36,7 @@ public class RSocketServiceTransport implements ServiceTransport {
                 obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj));
   }
 
-  private int numOfWorkers = NUM_OF_WORKERS;
+  private int numOfWorkers = Runtime.getRuntime().availableProcessors();
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs;
   private Function<LoopResources, TcpServer> tcpServerProvider = defaultTcpServerProvider();
@@ -64,10 +62,12 @@ public class RSocketServiceTransport implements ServiceTransport {
     this.eventLoopGroup = other.eventLoopGroup;
     this.clientLoopResources = other.clientLoopResources;
     this.serverLoopResources = other.serverLoopResources;
+    this.tcpServerProvider = other.tcpServerProvider;
+    this.tcpClientProvider = other.tcpClientProvider;
   }
 
   /**
-   * Sets a worker threads number.
+   * Setter for {@code numOfWorkers}.
    *
    * @param numOfWorkers number of worker threads
    * @return new {@code RSocketServiceTransport} instance
@@ -79,7 +79,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
-   * Sets a {@code HeadersCodec}.
+   * Setter for {@code headersCodec}.
    *
    * @param headersCodec headers codec
    * @return new {@code RSocketServiceTransport} instance
@@ -91,19 +91,19 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
-   * Sets a set of {@code DataCodec}.
+   * Setter for {@code dataCodecs}.
    *
    * @param dataCodecs set of data codecs
    * @return new {@code RSocketServiceTransport} instance
    */
-  public RSocketServiceTransport dataCodec(Collection<DataCodec> dataCodecs) {
+  public RSocketServiceTransport dataCodecs(Collection<DataCodec> dataCodecs) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
     rst.dataCodecs = dataCodecs;
     return rst;
   }
 
   /**
-   * Sets a provider function for custom {@code TcpServer}.
+   * Setter for {@code tcpServerProvider}.
    *
    * @param factory {@code TcpServer} provider function
    * @return new {@code RSocketServiceTransport} instance
@@ -115,7 +115,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
-   * Sets a provider function for custom {@code TcpClient}.
+   * Setter for {@code tcpClientProvider}.
    *
    * @param factory {@code TcpClient} provider function
    * @return new {@code RSocketServiceTransport} instance
@@ -179,7 +179,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   private Mono<Void> shutdownEventLoopGroup() {
-    //noinspection unchecked
+    //noinspection unchecked,rawtypes
     return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
   }
 
