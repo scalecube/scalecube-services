@@ -27,13 +27,7 @@ public final class ServiceMessageCodec {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
 
   private final HeadersCodec headersCodec;
-
   private final Map<String, DataCodec> dataCodecs;
-
-  /** Message codec with default Headers/Data Codecs. */
-  public ServiceMessageCodec() {
-    this(null, null);
-  }
 
   /**
    * Create instance from headersCodec and set of DataCodec.
@@ -66,17 +60,6 @@ public final class ServiceMessageCodec {
                         return Collections.unmodifiableMap(buffer);
                       }));
     }
-  }
-
-  /**
-   * Construct messageCodec with custom headers codec and default data codecs.
-   *
-   * @param headersCodec headers codec
-   * @deprecated use {@link ServiceMessageCodec#ServiceMessageCodec(HeadersCodec, Collection)}
-   */
-  @Deprecated
-  public ServiceMessageCodec(HeadersCodec headersCodec) {
-    this(headersCodec, null);
   }
 
   /**

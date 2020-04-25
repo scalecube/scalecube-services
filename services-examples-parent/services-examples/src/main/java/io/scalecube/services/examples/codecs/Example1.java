@@ -5,15 +5,11 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
-import io.scalecube.services.transport.api.DataCodec;
-import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 
 public class Example1 {
 
   public static final String CONTENT_TYPE = "application/protostuff";
-  private static final HeadersCodec HEADERS_CODEC = HeadersCodec.getInstance(CONTENT_TYPE);
-  private static final DataCodec DATA_CODEC = DataCodec.getInstance(CONTENT_TYPE);
 
   /**
    * Start the example.
@@ -25,8 +21,8 @@ public class Example1 {
     Microservices seed =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
-            .defaultDataEncoder(DATA_CODEC) // need to send with non-default data format
+            .transport(RSocketServiceTransport::new)
+            .contentType(CONTENT_TYPE) // need to send with non-default data format
             .startAwait();
 
     final Address seedAddress = seed.discovery().address();
@@ -38,7 +34,7 @@ public class Example1 {
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
-            .transport(() -> new RSocketServiceTransport().headersCodec(HEADERS_CODEC))
+            .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
