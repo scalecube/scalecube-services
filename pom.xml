@@ -24,9 +24,9 @@
   <properties>
     <jackson.version>2.10.0.pr1</jackson.version>
     <scalecube-cluster.version>2.4.10</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.1</scalecube-commons.version>
+    <scalecube-commons.version>1.0.2</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.11</scalecube-config.version>
+    <scalecube-config.version>0.4.3</scalecube-config.version>
     <reactor.version>Dysprosium-RELEASE</reactor.version>
     <rsocket.version>1.0.0-RC5</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
