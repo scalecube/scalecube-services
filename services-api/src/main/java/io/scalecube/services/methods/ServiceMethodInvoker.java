@@ -67,7 +67,7 @@ public final class ServiceMethodInvoker {
     return authenticate(message)
         .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
+        .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
@@ -82,7 +82,7 @@ public final class ServiceMethodInvoker {
     return authenticate(message)
         .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
+        .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -104,8 +104,8 @@ public final class ServiceMethodInvoker {
                         principal ->
                             messages
                                 .map(this::toRequest)
-                                .transform(request -> invoke(request, principal))))
-        .map(this::toResponse)
+                                .transform(request -> invoke(request, principal)))
+                    .map(response -> toResponse(response, first.get().dataFormat())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -187,10 +187,19 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response) {
-    return (response instanceof ServiceMessage)
-        ? (ServiceMessage) response
-        : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  private ServiceMessage toResponse(Object response, String dataFormat) {
+    if (response instanceof ServiceMessage) {
+      ServiceMessage message = (ServiceMessage) response;
+      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
+        return ServiceMessage.from(message).dataFormat(dataFormat).build();
+      }
+      return message;
+    }
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.qualifier())
+        .data(response)
+        .dataFormatIfAbsent(dataFormat)
+        .build();
   }
 
   private void applyRequestReleaser(ServiceMessage request, Consumer<Object> requestReleaser) {

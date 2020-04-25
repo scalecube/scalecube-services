@@ -213,6 +213,21 @@ public final class ServiceMessage {
       return this;
     }
 
+    /**
+     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
+     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
+     *
+     * @param dataFormat data format, optional
+     * @return self
+     */
+    public Builder dataFormatIfAbsent(String dataFormat) {
+      if (dataFormat == null) {
+        return this;
+      }
+      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
+      return this;
+    }
+
     private Map<String, String> headers() {
       return this.headers;
     }

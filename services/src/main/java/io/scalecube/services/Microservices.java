@@ -129,6 +129,7 @@ public final class Microservices {
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final String contentType;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -144,6 +145,7 @@ public final class Microservices {
     this.transportBootstrap = builder.transportBootstrap;
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
+    this.contentType = builder.contentType;
 
     // Setup cleanup
     shutdown
@@ -255,6 +257,7 @@ public final class Microservices {
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
+        .contentType(contentType)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -330,6 +333,7 @@ public final class Microservices {
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
+    private String contentType = "application/json";
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -415,6 +419,11 @@ public final class Microservices {
 
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
+      return this;
+    }
+
+    public Builder contentType(String contentType) {
+      this.contentType = contentType;
       return this;
     }
   }
