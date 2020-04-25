@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 public final class ServiceMessage {
 
@@ -184,7 +185,10 @@ public final class ServiceMessage {
 
   @Override
   public String toString() {
-    return "ServiceMessage {headers: " + headers + ", data: " + data + '}';
+    return new StringJoiner(", ", ServiceMessage.class.getSimpleName() + "[", "]")
+        .add("headers(" + headers.size() + ")")
+        .add("data=" + (data != null ? data.getClass().getName() : null))
+        .toString();
   }
 
   public static class Builder {
@@ -206,6 +210,21 @@ public final class ServiceMessage {
 
     public Builder dataFormat(String dataFormat) {
       headers.put(HEADER_DATA_FORMAT, dataFormat);
+      return this;
+    }
+
+    /**
+     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
+     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
+     *
+     * @param dataFormat data format, optional
+     * @return self
+     */
+    public Builder dataFormatIfAbsent(String dataFormat) {
+      if (dataFormat == null) {
+        return this;
+      }
+      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
       return this;
     }
 

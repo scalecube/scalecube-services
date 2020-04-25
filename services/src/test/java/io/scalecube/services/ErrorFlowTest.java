@@ -20,7 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
 
-public class ErrorFlowTest {
+public class ErrorFlowTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
   private static Microservices provider;
@@ -31,24 +31,22 @@ public class ErrorFlowTest {
     provider =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(opts -> opts.transport(cfg -> cfg.port(port.incrementAndGet()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.port(port.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    Address seedAddress = provider.discovery().address();
+    final Address seedAddress = provider.discovery().address();
 
     consumer =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts ->
-                                opts.membership(cfg -> cfg.seedMembers(seedAddress))
-                                    .transport(cfg -> cfg.port(port.incrementAndGet()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(seedAddress))
+                        .transport(cfg -> cfg.port(port.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }

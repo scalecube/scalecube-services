@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
@@ -67,7 +66,10 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
-        .discovery(ServiceCallRemoteTest::serviceDiscovery)
+        .discovery(
+            endpoint ->
+                new ScalecubeServiceDiscovery(endpoint)
+                    .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
         .transport(RSocketServiceTransport::new)
         .services(service)
         .startAwait();
@@ -258,10 +260,5 @@ public class ServiceCallRemoteTest extends BaseTest {
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .startAwait();
-  }
-
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(opts -> opts.membership(cfg -> cfg.seedMembers(gateway.discovery().address())));
   }
 }

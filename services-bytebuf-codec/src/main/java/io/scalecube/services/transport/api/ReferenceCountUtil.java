@@ -24,7 +24,7 @@ public final class ReferenceCountUtil {
           && ((ReferenceCounted) msg).refCnt() > 0
           && ((ReferenceCounted) msg).release();
     } catch (Throwable t) {
-      LOGGER.warn("Failed to release reference counted object: {}", msg, t);
+      LOGGER.warn("Failed to release reference counted object: {}, cause: {}", msg, t.toString());
       return false;
     }
   }

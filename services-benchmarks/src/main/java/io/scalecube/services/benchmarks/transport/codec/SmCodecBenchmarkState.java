@@ -15,6 +15,7 @@ import io.scalecube.services.transport.protostuff.ProtostuffCodec;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.UUID;
 
 public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState> {
@@ -41,7 +42,8 @@ public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState>
 
   @Override
   protected void beforeAll() {
-    this.serviceMessageCodec = new ServiceMessageCodec(headersCodec);
+    this.serviceMessageCodec =
+        new ServiceMessageCodec(headersCodec, Collections.singletonList(dataCodec));
     this.serviceMessage = generateServiceMessage(generateData());
     this.payloadMessage = generatePayload(serviceMessage);
   }

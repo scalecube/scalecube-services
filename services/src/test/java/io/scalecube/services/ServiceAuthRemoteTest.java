@@ -198,9 +198,8 @@ final class ServiceAuthRemoteTest {
     service.shutdown().block(TIMEOUT);
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(
-            config -> config.membership(opts -> opts.seedMembers(caller.discovery().address())));
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
+    return new ScalecubeServiceDiscovery(endpoint)
+        .membership(cfg -> cfg.seedMembers(caller.discovery().address()));
   }
 }

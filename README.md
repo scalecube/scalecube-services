@@ -21,27 +21,27 @@ based on gossip protocol, without single point-of-failure or bottlenecks.<br><br
 </table>
 ScaleCube Services Features:
 
-* Provision and interconnect microservices as a service-mesh (cluster)</li>
+* Provision and interconnect microservices peers in a cluster
+* Fully Distributed with No single-point-of-failure or single-point-of-bottleneck
+* Fast - Low latency and high throughput
+* Scaleable over- cores, jvms, clusters, regions.
+* Built-in Service Discovery and service routing
+* Zero configuration, automatic peer-to-peer service discovery using gossip
+* Simple non-blocking, asynchronous programming model
 * Reactive Streams support.
   * Fire And Forget - Send and not wait for a reply
   * Request Response - Send single request and expect single reply
   * Request Stream - Send single request and expect stream of responses. 
   * Request bidirectional - send stream of requests and expect stream of responses.
-* No single-point-of-failure or single-point-of-bottleneck
-* Cluster aware and distributed
-* Modular, flexible deployment models and topology
-* Zero configuration, automatic peer-to-peer service discovery using gossip
-* Simple non-blocking, asynchronous programming model
-* Resilient due to failure detection, fault tolerance, and elasticity
+* Built-in failure detection, fault tolerance, and elasticity
 * Routing and balancing strategies for both stateless and stateful services
-* Low latency and high throughput
-* Takes advantage of the JVM and scales over available cores
-* Embeddable to existing Java applications
-* Natural Circuit-Breaker due to tight integration with scalecube-cluster failure detector.
+* Embeddable into existing applications
+* Natural Circuit-Breaker via scalecube-cluster discovery and failure detector.
 * Support Service instance tagging.
+* Modular, flexible deployment models and topology
 * pluggable api-gateway providers (http / websocket / rsocket)
-* pluggable service transport
-* pluggable encoders 
+* pluggable service transports (tcp / aeron / rsocket)
+* pluggable encoders (json, SBE, Google protocol buffers)
 
 User Guide:
 
@@ -199,5 +199,9 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-transport-rsocket</artifactId>
   <version>${scalecube.version}</version>
- </dependency>
- 
+ </dependency> 
+```
+
+----
+
+## Sponsored by [OM2](https://www.om2.com/)

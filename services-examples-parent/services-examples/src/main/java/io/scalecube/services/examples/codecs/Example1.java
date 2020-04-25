@@ -1,4 +1,4 @@
-package io.scalecube.services.examples.helloworld;
+package io.scalecube.services.examples.codecs;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
@@ -7,15 +7,9 @@ import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 
-/**
- * The Hello World project is a time-honored tradition in computer programming. It is a simple
- * exercise that gets you started when learning something new. Let’s get started with ScaleCube!
- *
- * <p>the example starts 2 cluster member nodes. 1. seed is a member node and holds no services of
- * its own. 2. The <code>microservices</code> variable is a member that joins seed member and
- * provision <code>GreetingService</code> instance.
- */
 public class Example1 {
+
+  public static final String CONTENT_TYPE = "application/protostuff";
 
   /**
    * Start the example.
@@ -28,6 +22,7 @@ public class Example1 {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
+            .contentType(CONTENT_TYPE) // need to send with non-default data format
             .startAwait();
 
     final Address seedAddress = seed.discovery().address();

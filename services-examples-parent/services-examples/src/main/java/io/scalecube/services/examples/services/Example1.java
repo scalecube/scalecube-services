@@ -1,5 +1,6 @@
 package io.scalecube.services.examples.services;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -20,15 +21,14 @@ public class Example1 {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
+    final Address gatewayAddress = gateway.discovery().address();
+
     Microservices service2Node =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts ->
-                                opts.membership(
-                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Service2Impl())
             .startAwait();
@@ -36,12 +36,9 @@ public class Example1 {
     Microservices service1Node =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts ->
-                                opts.membership(
-                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Service1Impl())
             .startAwait();

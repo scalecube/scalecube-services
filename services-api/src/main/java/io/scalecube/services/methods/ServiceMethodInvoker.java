@@ -9,12 +9,9 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -43,7 +40,7 @@ public final class ServiceMethodInvoker {
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
    */
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public ServiceMethodInvoker(
       Method method,
       Object service,
@@ -70,7 +67,7 @@ public final class ServiceMethodInvoker {
     return authenticate(message)
         .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
+        .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
@@ -85,7 +82,7 @@ public final class ServiceMethodInvoker {
     return authenticate(message)
         .doOnError(th -> applyRequestReleaser(message, requestReleaser))
         .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
-        .map(this::toResponse)
+        .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -107,8 +104,8 @@ public final class ServiceMethodInvoker {
                         principal ->
                             messages
                                 .map(this::toRequest)
-                                .transform(request -> invoke(request, principal))))
-        .map(this::toResponse)
+                                .transform(request -> invoke(request, principal)))
+                    .map(response -> toResponse(response, first.get().dataFormat())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -190,10 +187,19 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response) {
-    return (response instanceof ServiceMessage)
-        ? (ServiceMessage) response
-        : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
+  private ServiceMessage toResponse(Object response, String dataFormat) {
+    if (response instanceof ServiceMessage) {
+      ServiceMessage message = (ServiceMessage) response;
+      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
+        return ServiceMessage.from(message).dataFormat(dataFormat).build();
+      }
+      return message;
+    }
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.qualifier())
+        .data(response)
+        .dataFormatIfAbsent(dataFormat)
+        .build();
   }
 
   private void applyRequestReleaser(ServiceMessage request, Consumer<Object> requestReleaser) {
@@ -202,34 +208,23 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  /**
-   * Shortened version of {@code toString} method.
-   *
-   * @return service method invoker as string
-   */
-  public String asString() {
-    return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-        .add("methodInfo=" + methodInfo.asString())
-        .add(
-            "serviceMethod='"
-                + service.getClass().getCanonicalName()
-                + "."
-                + method.getName()
-                + "("
-                + methodInfo.parameterCount()
-                + ")"
-                + "'")
-        .toString();
+  public Object service() {
+    return service;
+  }
+
+  public MethodInfo methodInfo() {
+    return methodInfo;
   }
 
   @Override
   public String toString() {
-    String classAndMethod = service.getClass().getCanonicalName() + "." + method.getName();
-    String args =
-        Stream.of(method.getParameters())
-            .map(Parameter::getType)
-            .map(Class::getSimpleName)
-            .collect(Collectors.joining(", ", "(", ")"));
-    return classAndMethod + args;
+    return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
+        .add("method=" + method)
+        .add("service=" + service)
+        .add("methodInfo=" + methodInfo)
+        .add("errorMapper=" + errorMapper)
+        .add("dataDecoder=" + dataDecoder)
+        .add("authenticator=" + authenticator)
+        .toString();
   }
 }

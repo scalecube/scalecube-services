@@ -2,78 +2,62 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class RSocketNettyColocatedEventLoopGroupTest {
+public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
 
   private Microservices ping;
-
   private Microservices pong;
-
-  private Microservices facade;
-
   private Microservices gateway;
 
   @BeforeEach
   public void setUp() {
-
-    Supplier<ServiceTransport> transport = RSocketServiceTransport::new;
     this.gateway =
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
-            .transport(transport)
+            .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    this.facade =
+    Microservices facade =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opt ->
-                                opt.membership(
-                                    cfg -> cfg.seedMembers(gateway.discovery().address()))))
-            .transport(transport)
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+            .transport(RSocketServiceTransport::new)
             .services(new Facade())
             .startAwait();
 
     this.ping =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opt ->
-                                opt.membership(
-                                    cfg -> cfg.seedMembers(facade.discovery().address()))))
-            .transport(transport)
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+            .transport(RSocketServiceTransport::new)
             .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();
 
     this.pong =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opt ->
-                                opt.membership(
-                                    cfg -> cfg.seedMembers(facade.discovery().address()))))
-            .transport(transport)
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+            .transport(RSocketServiceTransport::new)
             .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();
   }

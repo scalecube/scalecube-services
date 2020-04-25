@@ -7,6 +7,7 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
+import io.scalecube.runners.Runners;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -32,9 +33,8 @@ public class ExamplesRunner {
    * Main method of gateway runner.
    *
    * @param args program arguments
-   * @throws Exception exception thrown
    */
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     ConfigRegistry configRegistry = ConfigBootstrap.configRegistry();
 
     Config config =
@@ -52,39 +52,38 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    Microservices.builder()
-        .discovery(serviceEndpoint -> serviceDiscovery(serviceEndpoint, config))
-        .transport(
-            () ->
-                new RSocketServiceTransport()
-                    .tcpClient(
-                        loopResources ->
-                            TcpClient.newConnection()
-                                .runOn(loopResources)
-                                .wiretap(false)
-                                .noProxy()
-                                .noSSL())
-                    .tcpServer(
-                        loopResources ->
-                            TcpServer.create()
-                                .wiretap(false)
-                                .port(config.servicePort())
-                                .runOn(loopResources)
-                                .noSSL()))
-        .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
-        .startAwait()
-        .onShutdown()
-        .block();
+    Microservices microservices =
+        Microservices.builder()
+            .discovery(endpoint -> serviceDiscovery(endpoint, config))
+            .transport(
+                () ->
+                    new RSocketServiceTransport()
+                        .tcpClient(
+                            loopResources ->
+                                TcpClient.newConnection()
+                                    .runOn(loopResources)
+                                    .wiretap(false)
+                                    .noProxy()
+                                    .noSSL())
+                        .tcpServer(
+                            loopResources ->
+                                TcpServer.create()
+                                    .wiretap(false)
+                                    .port(config.servicePort())
+                                    .runOn(loopResources)
+                                    .noSSL()))
+            .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
+            .startAwait();
+
+    Runners.onShutdown(() -> microservices.shutdown().subscribe());
+
+    microservices.onShutdown().block();
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint serviceEndpoint, Config config) {
-    return new ScalecubeServiceDiscovery(serviceEndpoint)
-        .options(
-            opts ->
-                opts.membership(cfg1 -> cfg1.seedMembers(config.seedAddresses()))
-                    .transport(cfg1 -> cfg1.port(config.discoveryPort()))
-                    .memberHost(config.memberHost())
-                    .memberPort(config.memberPort()));
+  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint, Config config) {
+    return new ScalecubeServiceDiscovery(endpoint)
+        .membership(cfg -> cfg.seedMembers(config.seedAddresses()))
+        .transport(cfg -> cfg.port(config.discoveryPort()));
   }
 
   public static class Config {

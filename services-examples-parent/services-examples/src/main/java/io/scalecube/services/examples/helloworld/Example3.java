@@ -1,5 +1,6 @@
 package io.scalecube.services.examples.helloworld;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
@@ -30,16 +31,15 @@ public class Example3 {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
+    final Address seedAddress = seed.discovery().address();
+
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
         Microservices.builder()
             .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .options(
-                            opts ->
-                                opts.membership(
-                                    cfg -> cfg.seedMembers(seed.discovery().address()))))
+                endpoint ->
+                    new ScalecubeServiceDiscovery(endpoint)
+                        .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new BidiGreetingImpl())
             .startAwait();

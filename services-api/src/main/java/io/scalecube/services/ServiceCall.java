@@ -19,6 +19,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -48,6 +49,7 @@ public class ServiceCall {
         // no-op
       };
   private Map<String, String> credentials = Collections.emptyMap();
+  private String contentType;
 
   /** Default constructor. */
   public ServiceCall() {}
@@ -58,6 +60,9 @@ public class ServiceCall {
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
+    this.contentType = other.contentType;
+    this.requestReleaser = other.requestReleaser;
+    this.credentials = new HashMap<>(other.credentials);
   }
 
   /**
@@ -153,6 +158,18 @@ public class ServiceCall {
   public ServiceCall credentials(Map<String, String> credentials) {
     ServiceCall target = new ServiceCall(this);
     target.credentials = credentials;
+    return target;
+  }
+
+  /**
+   * Creates new {@link ServiceCall}'s definition with a given content type.
+   *
+   * @param contentType content type.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall contentType(String contentType) {
+    ServiceCall target = new ServiceCall(this);
+    target.contentType = contentType;
     return target;
   }
 
@@ -404,6 +421,7 @@ public class ServiceCall {
                   case REQUEST_CHANNEL:
                     // this is REQUEST_CHANNEL so it means params[0] must
                     // be a publisher - its safe to cast.
+                    //noinspection rawtypes
                     return serviceCall
                         .requestBidirectional(
                             Flux.from((Publisher) request)
@@ -434,6 +452,7 @@ public class ServiceCall {
       return ServiceMessage.from((ServiceMessage) request)
           .qualifier(methodInfo.serviceName(), methodInfo.methodName())
           .headers(credentials)
+          .dataFormatIfAbsent(contentType)
           .build();
     }
 
@@ -441,6 +460,7 @@ public class ServiceCall {
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .headers(credentials)
         .data(request)
+        .dataFormatIfAbsent(contentType)
         .build();
   }
 

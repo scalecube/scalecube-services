@@ -6,7 +6,9 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.StringJoiner;
 
+@SuppressWarnings("rawtypes")
 public class ServiceInfo {
 
   private final Object serviceInstance;
@@ -21,6 +23,10 @@ public class ServiceInfo {
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
     this.authenticator = builder.authenticator;
+  }
+
+  public static Builder from(ServiceInfo serviceInfo) {
+    return new Builder(serviceInfo);
   }
 
   public static Builder fromServiceInstance(Object serviceInstance) {
@@ -47,14 +53,35 @@ public class ServiceInfo {
     return authenticator;
   }
 
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
+        .add("serviceInstance=" + serviceInstance)
+        .add("tags=" + tags)
+        .add("errorMapper=" + errorMapper)
+        .add("dataDecoder=" + dataDecoder)
+        .add("authenticator=" + authenticator)
+        .toString();
+  }
+
+  @SuppressWarnings("rawtypes")
   public static class Builder {
-    private final Object serviceInstance;
-    private final Map<String, String> tags = new HashMap<>();
+
+    private Object serviceInstance;
+    private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
     private Authenticator authenticator;
 
-    public Builder(Object serviceInstance) {
+    private Builder(ServiceInfo serviceInfo) {
+      this.serviceInstance = serviceInfo.serviceInstance;
+      this.tags.putAll(new HashMap<>(serviceInfo.tags));
+      this.errorMapper = serviceInfo.errorMapper;
+      this.dataDecoder = serviceInfo.dataDecoder;
+      this.authenticator = serviceInfo.authenticator;
+    }
+
+    private Builder(Object serviceInstance) {
       this.serviceInstance = serviceInstance;
     }
 
