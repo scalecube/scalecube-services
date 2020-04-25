@@ -47,8 +47,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -221,7 +219,6 @@ public final class Microservices {
               // return original error then shutdown
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Microservices.class);
             })
-        .doOnSuccess(m -> listenJvmShutdown())
         .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
@@ -289,12 +286,6 @@ public final class Microservices {
    */
   public Mono<Void> onShutdown() {
     return onShutdown;
-  }
-
-  private void listenJvmShutdown() {
-    SignalHandler handler = signal -> shutdown.onComplete();
-    Signal.handle(new Signal("TERM"), handler);
-    Signal.handle(new Signal("INT"), handler);
   }
 
   private Mono<Void> doShutdown() {
