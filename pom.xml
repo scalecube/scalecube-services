@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.11.0</jackson.version>
-    <scalecube-cluster.version>2.4.11-SNAPSHOT</scalecube-cluster.version>
+    <scalecube-cluster.version>2.4.11</scalecube-cluster.version>
     <scalecube-commons.version>1.0.2</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.4.3</scalecube-config.version>
@@ -96,6 +96,11 @@
       </dependency>
 
       <!-- Logging -->
+      <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>${slf4j.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
         <artifactId>log4j-bom</artifactId>
