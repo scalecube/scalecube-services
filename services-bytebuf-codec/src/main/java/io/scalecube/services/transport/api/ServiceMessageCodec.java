@@ -29,6 +29,11 @@ public final class ServiceMessageCodec {
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
+  /** Message codec with default Headers/Data Codecs. */
+  public ServiceMessageCodec() {
+    this(null, null);
+  }
+
   /**
    * Create instance from headersCodec and set of DataCodec.
    *
