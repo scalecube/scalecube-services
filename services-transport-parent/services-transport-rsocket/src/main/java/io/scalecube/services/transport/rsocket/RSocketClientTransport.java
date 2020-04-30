@@ -1,7 +1,7 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
-import io.rsocket.RSocketFactory;
+import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.scalecube.net.Address;
@@ -46,16 +46,10 @@ public class RSocketClientTransport implements ClientTransport {
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
-
-    Mono<RSocket> rsocketMono =
-        RSocketFactory.connect()
-            .frameDecoder(PayloadDecoder.DEFAULT)
-            .errorConsumer(
-                th -> LOGGER.warn("Exception occurred at rsocket client transport: " + th))
-            .transport(() -> TcpClientTransport.create(tcpClient))
-            .start();
-
-    return rsocketMono
+    return RSocketConnector.create()
+        .payloadDecoder(PayloadDecoder.DEFAULT)
+        .errorConsumer(th1 -> LOGGER.warn("Exception occurred at rsocket client transport: " + th1))
+        .connect(() -> TcpClientTransport.create(tcpClient))
         .doOnSuccess(
             rsocket -> {
               LOGGER.info("Connected successfully on {}", address);
