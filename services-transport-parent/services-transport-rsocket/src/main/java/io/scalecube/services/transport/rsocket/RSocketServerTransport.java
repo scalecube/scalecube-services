@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocketFactory;
+import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -52,14 +53,12 @@ public class RSocketServerTransport implements ServerTransport {
                     connection.onDispose(
                         () -> LOGGER.info("Connection closed on {}", connection.channel()));
                   });
-
-          return RSocketFactory.receive()
-              .frameDecoder(PayloadDecoder.DEFAULT)
+          return RSocketServer.create()
+              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+              .payloadDecoder(PayloadDecoder.DEFAULT)
               .errorConsumer(
                   th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
-              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-              .transport(() -> TcpServerTransport.create(tcpServer))
-              .start()
+              .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)
               .thenReturn(this);
         });

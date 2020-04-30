@@ -18,7 +18,6 @@ import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
@@ -32,7 +31,7 @@ import reactor.test.StepVerifier;
 
 public class ServiceRegistryTest extends BaseTest {
 
-  public static final Duration TIMEOUT = Duration.ofSeconds(6);
+  public static final Duration TIMEOUT = Duration.ofSeconds(30);
 
   private static Stream<Arguments> metadataCodecSource() {
     return Stream.of(
@@ -44,8 +43,7 @@ public class ServiceRegistryTest extends BaseTest {
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void test_added_removed_registration_events(MetadataCodec metadataCodec) {
-
-    List<ServiceDiscoveryEvent> events = new ArrayList<>();
+    ReplayProcessor<ServiceDiscoveryEvent> events = ReplayProcessor.create();
 
     Microservices seed =
         Microservices.builder()
@@ -53,7 +51,7 @@ public class ServiceRegistryTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    seed.discovery().listenDiscovery().subscribe(events::add);
+    seed.discovery().listenDiscovery().subscribe(events);
 
     Address seedAddress = seed.discovery().address();
 
@@ -71,17 +69,17 @@ public class ServiceRegistryTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    Mono.when(ms1.shutdown(), ms2.shutdown()).then(Mono.delay(TIMEOUT)).block();
-
-    assertEquals(6, events.size());
-    assertEquals(ENDPOINT_ADDED, events.get(0).type());
-    assertEquals(ENDPOINT_ADDED, events.get(1).type());
-    assertEquals(ENDPOINT_LEAVING, events.get(2).type());
-    assertEquals(ENDPOINT_LEAVING, events.get(3).type());
-    assertEquals(ENDPOINT_REMOVED, events.get(4).type());
-    assertEquals(ENDPOINT_REMOVED, events.get(5).type());
-
-    seed.shutdown().block();
+    StepVerifier.create(events)
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
+        .then(() -> Mono.whenDelayError(ms1.shutdown(), ms2.shutdown()).block(TIMEOUT))
+        .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
+        .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
+        .then(() -> seed.shutdown().block(TIMEOUT))
+        .thenCancel()
+        .verify(TIMEOUT);
   }
 
   @ParameterizedTest
@@ -126,13 +124,11 @@ public class ServiceRegistryTest extends BaseTest {
               cluster.add(ms2);
             })
         .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
-        .then(() -> cluster.remove(2).shutdown().block())
+        .then(() -> cluster.remove(2).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
-        .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
-        .then(() -> cluster.remove(1).shutdown().block())
+        .then(() -> cluster.remove(1).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
-        .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
         .thenCancel()
         .verify(TIMEOUT);
@@ -147,9 +143,8 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
-        .then(Mono.delay(TIMEOUT))
-        .block();
+    Mono.whenDelayError(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
+        .block(TIMEOUT);
   }
 
   @ParameterizedTest
@@ -203,9 +198,8 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    Mono.when(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
-        .then(Mono.delay(TIMEOUT))
-        .block();
+    Mono.whenDelayError(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
+        .block(TIMEOUT);
   }
 
   private Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
