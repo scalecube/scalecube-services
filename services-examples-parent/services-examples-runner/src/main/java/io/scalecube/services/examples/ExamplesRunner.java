@@ -7,6 +7,8 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
+import io.scalecube.runners.Runners;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -51,7 +53,7 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    Scalecube.builder()
+    Microservices microservices = Scalecube.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
             () ->
@@ -71,9 +73,11 @@ public class ExamplesRunner {
                                 .runOn(loopResources)
                                 .noSSL()))
         .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
-        .startAwait()
-        .onShutdown()
-        .block();
+        .startAwait();
+
+    Runners.onShutdown(() -> microservices.shutdown().subscribe());
+
+    microservices.onShutdown().block();
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint, Config config) {

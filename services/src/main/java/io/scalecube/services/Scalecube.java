@@ -51,8 +51,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -133,6 +131,7 @@ public final class Scalecube implements Microservices {
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper defaultErrorMapper;
   private final ServiceMessageDataDecoder defaultDataDecoder;
+  private final String contentType;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -150,6 +149,7 @@ public final class Scalecube implements Microservices {
     this.transportBootstrap = builder.transportBootstrap;
     this.defaultErrorMapper = builder.errorMapper;
     this.defaultDataDecoder = builder.dataDecoder;
+    this.contentType = builder.contentType;
 
     // Setup cleanup
     shutdown
@@ -203,7 +203,6 @@ public final class Scalecube implements Microservices {
               // return original error then shutdown
               return Mono.whenDelayError(Mono.error(ex), shutdown()).cast(Scalecube.class);
             })
-        .doOnSuccess(m -> listenJvmShutdown())
         .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
@@ -263,6 +262,7 @@ public final class Scalecube implements Microservices {
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
+        .contentType(contentType)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -295,12 +295,6 @@ public final class Scalecube implements Microservices {
    */
   public Mono<Void> onShutdown() {
     return onShutdown;
-  }
-
-  private void listenJvmShutdown() {
-    SignalHandler handler = signal -> shutdown.onComplete();
-    Signal.handle(new Signal("TERM"), handler);
-    Signal.handle(new Signal("INT"), handler);
   }
 
   private Mono<Void> doShutdown() {
@@ -337,6 +331,7 @@ public final class Scalecube implements Microservices {
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
+    private String contentType = "application/json";
 
     private void build() {
       ServiceProvider serviceProvider =
@@ -472,6 +467,11 @@ public final class Scalecube implements Microservices {
 
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
+      return this;
+    }
+
+    public Builder contentType(String contentType) {
+      this.contentType = contentType;
       return this;
     }
   }

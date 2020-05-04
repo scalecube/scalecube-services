@@ -1,4 +1,4 @@
-FROM openjdk:8
+FROM openjdk:11
 
 ARG EXECUTABLE_JAR
 ENV YOURKIT_AGENT "-agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so=port=10001,listen=all"
