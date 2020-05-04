@@ -200,7 +200,7 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    Mono.whenDelayError(cluster.stream().map(Microservices::shutdown).toArray(Mono[]::new))
+    Mono.whenDelayError(cluster.stream().map(Scalecube::shutdown).toArray(Mono[]::new))
         .block(TIMEOUT);
   }
 

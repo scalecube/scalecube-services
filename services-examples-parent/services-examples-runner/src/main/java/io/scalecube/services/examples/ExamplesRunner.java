@@ -53,7 +53,7 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    Microservices microservices = Scalecube.builder()
+    Scalecube microservices = Scalecube.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
             () ->

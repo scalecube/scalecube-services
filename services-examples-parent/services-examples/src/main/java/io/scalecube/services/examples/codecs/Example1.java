@@ -2,6 +2,7 @@ package io.scalecube.services.examples.codecs;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Scalecube;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
@@ -18,8 +19,8 @@ public class Example1 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed =
-        Microservices.builder()
+    Scalecube seed =
+        Scalecube.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .contentType(CONTENT_TYPE) // need to send with non-default data format
@@ -28,8 +29,8 @@ public class Example1 {
     final Address seedAddress = seed.discovery().address();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    Microservices ms =
-        Microservices.builder()
+    Scalecube ms =
+        Scalecube.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
