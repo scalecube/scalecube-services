@@ -12,9 +12,9 @@ import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-class DefaultHeadersCodecTest {
+class JdkHeadersCodecTest {
 
-  private HeadersCodec codec = new DefaultHeadersCodec();
+  private HeadersCodec codec = new JdkHeadersCodec();
 
   @ParameterizedTest
   @MethodSource("provider")

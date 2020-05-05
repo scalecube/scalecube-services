@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /** Simple binary codec for headers service message. */
-public final class DefaultHeadersCodec implements HeadersCodec {
+public final class JdkHeadersCodec implements HeadersCodec {
 
   /**
    * {@inheritDoc}
