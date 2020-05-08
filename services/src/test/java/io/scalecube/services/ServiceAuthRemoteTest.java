@@ -28,7 +28,7 @@ final class ServiceAuthRemoteTest {
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
   private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
+      new HashMap<>() {
         {
           put("username", "Alice");
           put("password", "qwerty");
@@ -36,7 +36,7 @@ final class ServiceAuthRemoteTest {
       };
 
   private static final Authenticator<UserProfile> authenticator =
-      message -> {
+      (message, authContextRegistry) -> {
         Map<String, String> headers = message.headers();
         String username = headers.get("username");
         String password = headers.get("password");

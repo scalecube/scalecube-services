@@ -1,12 +1,14 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.auth.AuthContextRegistry;
 import io.scalecube.services.metrics.Metrics;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 public class GatewayOptions {
 
+  private AuthContextRegistry authContextRegistry;
   private Executor workerPool;
   private ServiceCall call;
   private Metrics metrics;
@@ -26,6 +28,7 @@ public class GatewayOptions {
     this.workerPool = other.workerPool;
     this.call = other.call;
     this.metrics = other.metrics;
+    this.authContextRegistry = other.authContextRegistry;
   }
 
   private GatewayOptions set(Consumer<GatewayOptions> c) {
@@ -72,5 +75,13 @@ public class GatewayOptions {
 
   public Metrics metrics() {
     return metrics;
+  }
+
+  public GatewayOptions authContextRegistry(AuthContextRegistry authContextRegistry) {
+    return set(o -> o.authContextRegistry = authContextRegistry);
+  }
+
+  public AuthContextRegistry authContextRegistry() {
+    return authContextRegistry;
   }
 }

@@ -1,7 +1,10 @@
 package io.scalecube.services.methods;
 
+import static org.mockito.Mockito.mock;
+
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.AuthContextRegistry;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
@@ -17,7 +20,8 @@ class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
   private static final boolean AUTH = false;
-  private static final Authenticator dummyAuthenticator = credentials -> null;
+  private static final Authenticator dummyAuthenticator = (message, authContextRegistry1) -> null;
+  private static final AuthContextRegistry authContextRegistry = mock(AuthContextRegistry.class);
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
   private final StubService stubService = new StubServiceImpl();
@@ -55,7 +59,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -89,7 +94,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -123,7 +129,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -159,7 +166,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -196,7 +204,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -233,7 +242,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            dummyAuthenticator,
+            authContextRegistry);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();

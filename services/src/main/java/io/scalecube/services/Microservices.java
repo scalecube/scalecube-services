@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.AuthContextRegistry;
+import io.scalecube.services.auth.AuthContextRegistryImpl;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -121,6 +123,7 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
+  private final AuthContextRegistry authContextRegistry;
   private final Authenticator<?> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
@@ -137,6 +140,7 @@ public final class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
+    this.authContextRegistry = builder.authContextRegistry;
     this.authenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
@@ -229,7 +233,8 @@ public final class Microservices {
             .errorMapper(Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper))
             .dataDecoder(Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder))
             .authenticator(Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator))
-            .build());
+            .build(),
+        authContextRegistry);
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
@@ -268,6 +273,10 @@ public final class Microservices {
 
   public ServiceDiscovery discovery() {
     return discoveryBootstrap.discovery;
+  }
+
+  public AuthContextRegistry authContextRegistry() {
+    return authContextRegistry;
   }
 
   /**
@@ -316,6 +325,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
+    private AuthContextRegistry authContextRegistry = new AuthContextRegistryImpl();
     private Authenticator<?> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
@@ -370,6 +380,11 @@ public final class Microservices {
 
     public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
       this.methodRegistry = methodRegistry;
+      return this;
+    }
+
+    public Builder authContextRegistry(AuthContextRegistry authContextRegistry) {
+      this.authContextRegistry = authContextRegistry;
       return this;
     }
 
@@ -584,7 +599,10 @@ public final class Microservices {
           .start()
           .doOnSuccess(transport -> serviceTransport = transport)
           .flatMap(
-              transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
+              transport ->
+                  serviceTransport
+                      .serverTransport()
+                      .bind(microservices.methodRegistry, microservices.authContextRegistry))
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {

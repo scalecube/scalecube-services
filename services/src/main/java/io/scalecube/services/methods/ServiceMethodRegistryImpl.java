@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.auth.AuthContextRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -16,7 +17,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
       new ConcurrentHashMap<>();
 
   @Override
-  public void registerService(ServiceInfo serviceInfo) {
+  public void registerService(ServiceInfo serviceInfo, AuthContextRegistry authContextRegistry) {
     serviceInfos.add(serviceInfo);
 
     Reflect.serviceInterfaces(serviceInfo.serviceInstance())
@@ -56,7 +57,8 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
-                                  serviceInfo.authenticator());
+                                  serviceInfo.authenticator(),
+                                  authContextRegistry);
 
                           methodInvokers.put(methodInfo.qualifier(), invoker);
                         }));

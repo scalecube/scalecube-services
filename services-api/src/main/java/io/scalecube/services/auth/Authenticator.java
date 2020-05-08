@@ -14,7 +14,8 @@ public interface Authenticator<P> {
    * Returns principal by given credentials.
    *
    * @param message service message
+   * @param authContextRegistry auth context registry
    * @return async result with obtained principal
    */
-  Mono<P> authenticate(ServiceMessage message);
+  Mono<P> authenticate(ServiceMessage message, AuthContextRegistry authContextRegistry);
 }

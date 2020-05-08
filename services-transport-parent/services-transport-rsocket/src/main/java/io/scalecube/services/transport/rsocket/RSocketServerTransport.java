@@ -1,11 +1,11 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.rsocket.RSocketFactory;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.AuthContextRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
@@ -43,7 +43,8 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport> bind(
+      ServiceMethodRegistry methodRegistry, AuthContextRegistry authContextRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =

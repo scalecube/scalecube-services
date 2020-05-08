@@ -25,7 +25,7 @@ final class ServiceAuthLocalTest extends BaseTest {
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
+      new HashMap<>() {
         {
           put("username", "Alice");
           put("password", "qwerty");
@@ -33,7 +33,7 @@ final class ServiceAuthLocalTest extends BaseTest {
       };
 
   private static final Authenticator<UserProfile> authenticator =
-      message -> {
+      (message, authContextRegistry) -> {
         Map<String, String> headers = message.headers();
         String username = headers.get("username");
         String password = headers.get("password");

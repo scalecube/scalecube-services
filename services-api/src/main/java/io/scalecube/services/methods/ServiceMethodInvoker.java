@@ -1,6 +1,7 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.AuthContextRegistry;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
@@ -30,6 +31,7 @@ public final class ServiceMethodInvoker {
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final Authenticator<Object> authenticator;
+  private final AuthContextRegistry authContextRegistry;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -39,6 +41,7 @@ public final class ServiceMethodInvoker {
    * @param methodInfo method information
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
+   * @param authContextRegistry auth context registry
    */
   @SuppressWarnings({"unchecked", "rawtypes"})
   public ServiceMethodInvoker(
@@ -47,13 +50,15 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator) {
+      Authenticator authenticator,
+      AuthContextRegistry authContextRegistry) {
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
     this.authenticator = authenticator;
+    this.authContextRegistry = authContextRegistry;
   }
 
   /**
@@ -157,7 +162,9 @@ public final class ServiceMethodInvoker {
     if (authenticator == null) {
       throw new UnauthorizedException("Authenticator not found");
     }
-    return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
+    return authenticator
+        .authenticate(message, authContextRegistry)
+        .onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
