@@ -31,6 +31,7 @@ public final class ServiceMessageCodec {
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
+
   /** Message codec with default Headers/Data Codecs. */
   public ServiceMessageCodec() {
     this(null, null);
@@ -46,7 +47,7 @@ public final class ServiceMessageCodec {
    * <p>Default HeadersCodec is DefaultHeadersCodec. This is lightweight binary codec written on
    * vanilla java.
    *
-   * @param headersCodec codec for message headers. Default, {@link JdkHeadersCodec}
+   * @param headersCodec codec for message headers. Default, {@link JdkCodec}
    * @param dataCodecs codecs for message body. Codec will select by Message Content Type.
    */
   public ServiceMessageCodec(
