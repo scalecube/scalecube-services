@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 class JdkHeadersCodecTest {
 
-  private HeadersCodec codec = new JdkHeadersCodec();
+  private final HeadersCodec codec = new JdkCodec();
 
   @ParameterizedTest
   @MethodSource("provider")
