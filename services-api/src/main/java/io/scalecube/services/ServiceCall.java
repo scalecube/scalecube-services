@@ -5,7 +5,6 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
@@ -22,8 +21,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -39,66 +36,33 @@ public class ServiceCall {
   private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
 
-  private ClientTransport transport;
-  private ServiceMethodRegistry methodRegistry;
-  private ServiceRegistry serviceRegistry;
+  private final ClientTransport transport;
+  private final ServiceMethodRegistry methodRegistry;
+  private final ServiceRegistry serviceRegistry;
+
   private Router router;
-  private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-  private Consumer<Object> requestReleaser =
-      req -> {
-        // no-op
-      };
+  private ServiceClientErrorMapper errorMapper;
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType;
 
-  /** Default constructor. */
-  public ServiceCall() {}
+  ServiceCall(
+      ClientTransport transport,
+      ServiceMethodRegistry methodRegistry,
+      ServiceRegistry serviceRegistry) {
+    this.transport = transport;
+    this.methodRegistry = methodRegistry;
+    this.serviceRegistry = serviceRegistry;
+  }
 
   private ServiceCall(ServiceCall other) {
     this.transport = other.transport;
     this.methodRegistry = other.methodRegistry;
     this.serviceRegistry = other.serviceRegistry;
+    // Set resettable fields
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
-    this.requestReleaser = other.requestReleaser;
-    this.credentials = new HashMap<>(other.credentials);
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given client transport.
-   *
-   * @param clientTransport client transport.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall transport(ClientTransport clientTransport) {
-    ServiceCall target = new ServiceCall(this);
-    target.transport = clientTransport;
-    return target;
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given service registry.
-   *
-   * @param serviceRegistry service registry.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall serviceRegistry(ServiceRegistry serviceRegistry) {
-    ServiceCall target = new ServiceCall(this);
-    target.serviceRegistry = serviceRegistry;
-    return target;
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given method registry.
-   *
-   * @param methodRegistry method registry.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall methodRegistry(ServiceMethodRegistry methodRegistry) {
-    ServiceCall target = new ServiceCall(this);
-    target.methodRegistry = methodRegistry;
-    return target;
+    this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
   /**
@@ -134,18 +98,6 @@ public class ServiceCall {
   public ServiceCall errorMapper(ServiceClientErrorMapper errorMapper) {
     ServiceCall target = new ServiceCall(this);
     target.errorMapper = errorMapper;
-    return target;
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given requestReleaser.
-   *
-   * @param requestReleaser given.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall requestReleaser(Consumer<Object> requestReleaser) {
-    ServiceCall target = new ServiceCall(this);
-    target.requestReleaser = requestReleaser;
     return target;
   }
 
@@ -219,11 +171,12 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeOne(request, requestReleaser)
+                .invokeOne(request)
                 .map(this::throwIfError);
           } else {
-            return addressLookup(request)
-                .flatMap(address -> requestOne(request, responseType, address)); // remote service
+            // remote service
+            return Mono.fromCallable(() -> addressLookup(request))
+                .flatMap(address -> requestOne(request, responseType, address));
           }
         });
   }
@@ -274,12 +227,13 @@ public class ServiceCall {
               && methodRegistry.containsInvoker(qualifier)) { // local service
             return methodRegistry
                 .getInvoker(request.qualifier())
-                .invokeMany(request, requestReleaser)
+                .invokeMany(request)
                 .map(this::throwIfError);
           } else {
-            return addressLookup(request)
+            // remote service
+            return Mono.fromCallable(() -> addressLookup(request))
                 .flatMapMany(
-                    address -> requestMany(request, responseType, address)); // remote service
+                    address -> requestMany(request, responseType, address));
           }
         });
   }
@@ -335,11 +289,11 @@ public class ServiceCall {
                     && methodRegistry.containsInvoker(qualifier)) { // local service
                   return methodRegistry
                       .getInvoker(qualifier)
-                      .invokeBidirectional(messages, requestReleaser)
+                      .invokeBidirectional(messages)
                       .map(this::throwIfError);
                 } else {
                   // remote service
-                  return addressLookup(request)
+                  return Mono.fromCallable(() -> addressLookup(request))
                       .flatMapMany(
                           address -> requestBidirectional(messages, responseType, address));
                 }
@@ -437,14 +391,11 @@ public class ServiceCall {
             });
   }
 
-  private Mono<Address> addressLookup(ServiceMessage request) {
-    Callable<Address> callable =
-        () ->
-            router
-                .route(serviceRegistry, request)
-                .map(ServiceReference::address)
-                .orElseThrow(() -> noReachableMemberException(request));
-    return Mono.fromCallable(callable).doOnError(th -> applyRequestReleaser(request));
+  private Address addressLookup(ServiceMessage request) {
+    return router
+        .route(serviceRegistry, request)
+        .map(ServiceReference::address)
+        .orElseThrow(() -> noReachableMemberException(request));
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
@@ -516,11 +467,5 @@ public class ServiceCall {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
     return message;
-  }
-
-  private void applyRequestReleaser(ServiceMessage request) {
-    if (request.data() != null) {
-      requestReleaser.accept(request.data());
-    }
   }
 }

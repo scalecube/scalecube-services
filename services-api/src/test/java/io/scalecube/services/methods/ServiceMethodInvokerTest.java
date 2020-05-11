@@ -60,7 +60,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeOne(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
 
   @Test
@@ -94,7 +94,7 @@ class ServiceMethodInvokerTest {
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeMany(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message)).verifyComplete();
   }
 
   @Test
@@ -129,7 +129,7 @@ class ServiceMethodInvokerTest {
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     StepVerifier.create(
-            serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser))
+            serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
         .verifyComplete();
   }
 
@@ -165,7 +165,7 @@ class ServiceMethodInvokerTest {
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, requestReleaser);
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -202,7 +202,7 @@ class ServiceMethodInvokerTest {
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeMany(message, requestReleaser);
+        serviceMethodInvoker.invokeMany(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -240,7 +240,7 @@ class ServiceMethodInvokerTest {
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser);
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message));
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
