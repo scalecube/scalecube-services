@@ -40,9 +40,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   }
 
   @Override
-  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
-    LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);
-    return Mono.just(new AbstractRSocket0());
+  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
+    return Mono.<RSocket>deferWithContext(
+            context -> {
+              LOGGER.debug("Accepted rsocket: {}, connectionSetup: {}", rsocket, setup);
+              return Mono.just(new AbstractRSocket0());
+            })
+        .subscriberContext(context -> context);
   }
 
   private class AbstractRSocket0 extends AbstractRSocket {

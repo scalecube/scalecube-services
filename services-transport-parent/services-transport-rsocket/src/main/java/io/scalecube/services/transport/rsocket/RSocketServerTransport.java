@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.rsocket.RSocketFactory;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
@@ -56,8 +55,6 @@ public class RSocketServerTransport implements ServerTransport {
           return RSocketServer.create()
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
               .payloadDecoder(PayloadDecoder.DEFAULT)
-              .errorConsumer(
-                  th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
               .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)
               .thenReturn(this);
