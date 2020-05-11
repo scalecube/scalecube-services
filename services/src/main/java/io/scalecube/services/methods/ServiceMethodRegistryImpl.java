@@ -63,11 +63,6 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
   }
 
   @Override
-  public boolean containsInvoker(String qualifier) {
-    return methodInvokers.containsKey(qualifier);
-  }
-
-  @Override
   public ServiceMethodInvoker getInvoker(String qualifier) {
     return methodInvokers.get(qualifier);
   }
