@@ -242,11 +242,9 @@ public final class Microservices {
    * @return new {@code ServiceCall} instance.
    */
   public ServiceCall call() {
-    return new ServiceCall()
-        .transport(transportBootstrap.clientTransport)
-        .serviceRegistry(serviceRegistry)
-        .methodRegistry(methodRegistry)
+    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry)
         .contentType(contentType)
+        .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
