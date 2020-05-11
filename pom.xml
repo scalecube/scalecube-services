@@ -29,7 +29,6 @@
     <scalecube-config.version>0.4.3</scalecube-config.version>
     <reactor.version>Dysprosium-SR7</reactor.version>
     <rsocket.version>1.0.0-RC7</rsocket.version>
-    <metrics.version>3.1.2</metrics.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.48.Final</netty.version>
     <slf4j.version>1.7.30</slf4j.version>
@@ -175,13 +174,6 @@
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-benchmarks-log4j2</artifactId>
         <version>${scalecube-benchmarks.version}</version>
-      </dependency>
-
-      <!-- Codahale -->
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${metrics.version}</version>
       </dependency>
 
       <!-- JCTools -->

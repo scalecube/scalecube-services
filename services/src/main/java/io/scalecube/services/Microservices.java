@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -13,7 +12,6 @@ import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
-import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -116,7 +114,6 @@ public final class Microservices {
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final String id = generateId();
-  private final Metrics metrics;
   private final Map<String, String> tags;
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
@@ -132,7 +129,6 @@ public final class Microservices {
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
   private Microservices(Builder builder) {
-    this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
@@ -233,11 +229,7 @@ public final class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(ServiceCall call) {
-    return gatewayBootstrap.start(this, new GatewayOptions().call(call).metrics(metrics));
-  }
-
-  public Metrics metrics() {
-    return this.metrics;
+    return gatewayBootstrap.start(this, new GatewayOptions().call(call));
   }
 
   public Address serviceAddress() {
@@ -311,7 +303,6 @@ public final class Microservices {
 
   public static final class Builder {
 
-    private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
@@ -385,11 +376,6 @@ public final class Microservices {
 
     public Builder transport(Supplier<ServiceTransport> supplier) {
       this.transportBootstrap = new ServiceTransportBootstrap(supplier);
-      return this;
-    }
-
-    public Builder metrics(MetricRegistry metrics) {
-      this.metrics = new Metrics(metrics);
       return this;
     }
 
