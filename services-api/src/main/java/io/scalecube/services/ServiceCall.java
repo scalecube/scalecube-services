@@ -8,6 +8,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
+import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
@@ -20,6 +21,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
@@ -166,13 +168,13 @@ public class ServiceCall {
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
-          String qualifier = request.qualifier();
+          Objects.requireNonNull(request.qualifier(), "qualifier");
+
+          ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
-              && methodRegistry.containsInvoker(qualifier)) { // local service
-            return methodRegistry
-                .getInvoker(request.qualifier())
-                .invokeOne(request)
-                .map(this::throwIfError);
+              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+            // local service
+            return methodInvoker.invokeOne(request).map(this::throwIfError);
           } else {
             // remote service
             return Mono.fromCallable(() -> addressLookup(request))
@@ -222,18 +224,17 @@ public class ServiceCall {
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
-          String qualifier = request.qualifier();
+          Objects.requireNonNull(request.qualifier(), "qualifier");
+
+          ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
-              && methodRegistry.containsInvoker(qualifier)) { // local service
-            return methodRegistry
-                .getInvoker(request.qualifier())
-                .invokeMany(request)
-                .map(this::throwIfError);
+              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+            // local service
+            return methodInvoker.invokeMany(request).map(this::throwIfError);
           } else {
             // remote service
             return Mono.fromCallable(() -> addressLookup(request))
-                .flatMapMany(
-                    address -> requestMany(request, responseType, address));
+                .flatMapMany(address -> requestMany(request, responseType, address));
           }
         });
   }
@@ -284,13 +285,13 @@ public class ServiceCall {
             (first, messages) -> {
               if (first.hasValue()) {
                 ServiceMessage request = first.get();
-                String qualifier = request.qualifier();
+                Objects.requireNonNull(request.qualifier(), "qualifier");
+
+                ServiceMethodInvoker methodInvoker;
                 if (methodRegistry != null
-                    && methodRegistry.containsInvoker(qualifier)) { // local service
-                  return methodRegistry
-                      .getInvoker(qualifier)
-                      .invokeBidirectional(messages)
-                      .map(this::throwIfError);
+                    && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+                  // local service
+                  return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
                   // remote service
                   return Mono.fromCallable(() -> addressLookup(request))
@@ -298,7 +299,6 @@ public class ServiceCall {
                           address -> requestBidirectional(messages, responseType, address));
                 }
               }
-
               return messages;
             });
   }
