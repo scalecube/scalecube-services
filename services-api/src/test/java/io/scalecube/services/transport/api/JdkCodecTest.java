@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -22,7 +24,7 @@ class JdkCodecTest {
   }
 
   static Stream<Object> provider() {
-    return Stream.of("hello", Arrays.<Object>asList(1,2,3));
+    return Stream.of("hello", Arrays.<Object>asList(1, 2, 3), new Greeting("joe"));
   }
 
   private Object writeAndRead(Object body) throws IOException {
@@ -34,4 +36,35 @@ class JdkCodecTest {
       }
     }
   }
+
+  static class Greeting implements Serializable {
+
+    private final String name;
+
+    Greeting(String name) {
+      this.name = name;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      Greeting greeting = (Greeting) o;
+      return Objects.equals(name, greeting.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name);
+    }
+  }
+
 }
