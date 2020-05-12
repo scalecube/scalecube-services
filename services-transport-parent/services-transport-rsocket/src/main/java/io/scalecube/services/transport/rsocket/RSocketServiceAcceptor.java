@@ -66,6 +66,14 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
     return authenticateIfNeeded(setup, rsocket)
+        .doOnSubscribe(
+            s -> {
+              LOGGER.debug("Accepted rsocket: {}", rsocket);
+              rsocket
+                  .onClose()
+                  .doFinally(sig -> LOGGER.debug("Closed rsocket: {}", rsocket))
+                  .subscribe();
+            })
         .onErrorResume(th -> Mono.empty())
         .flatMap(
             authData ->
@@ -82,13 +90,21 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           if (credentials.isEmpty()) {
             return Mono.just(Collections.emptyMap());
           }
+
           return authenticator
               .authenticate(credentials)
               .doOnError(
                   th -> {
-                    LOGGER.error("[authenticate] Exception occurred, cause: {}", th.toString());
+                    LOGGER.error(
+                        "[authenticate] Exception occurred, cause: {}, rsocket: {}",
+                        th.toString(),
+                        rsocket);
                     rsocket.dispose();
-                  });
+                  })
+              .doOnSuccess(
+                  s ->
+                      LOGGER.debug(
+                          "[authenticate] authenticated successfully, rsocket: {}", rsocket));
         });
   }
 

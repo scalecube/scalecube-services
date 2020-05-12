@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -10,14 +11,14 @@ import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
+import io.scalecube.services.sut.security.UserProfile;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -40,17 +41,20 @@ final class ServiceAuthRemoteTest extends BaseTest {
         String password = headers.get("password");
 
         if ("Alice".equals(username) && "qwerty".equals(password)) {
-          return Mono.just(Collections.singletonMap("Alice", "ADMIN"));
+          HashMap<String, String> authData = new HashMap<>();
+          authData.put("name", "Alice");
+          authData.put("role", "ADMIN");
+          return Mono.just(authData);
         }
 
         return Mono.error(new UnauthorizedException("Authentication failed"));
       };
 
-  private static Microservices caller;
-  private static Microservices service;
+  private Microservices caller;
+  private Microservices service;
 
-  @BeforeAll
-  static void beforeAll() {
+  @BeforeEach
+  void beforeEach() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
 
     caller =
@@ -59,17 +63,26 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
+    PrincipalMapper<UserProfile> principalMapper =
+        authContext -> {
+          Map<String, String> authData = authContext.authData();
+          return new UserProfile(authData.get("name"), authData.get("role"));
+        };
+
     service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery(this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .authenticator(authenticator)
-            .services(new SecuredServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
   }
 
-  @AfterAll
-  static void afterAll() {
+  @AfterEach
+  void afterEach() {
     if (caller != null) {
       caller.shutdown().block(TIMEOUT);
     }
@@ -103,7 +116,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void failedAuthenticationWhenAuthenticatorNotProvided() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery(this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new SecuredServiceImpl())
             .startAwait();
@@ -161,7 +174,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void successfulAuthenticationOnPartiallySecuredService() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery(this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .authenticator(authenticator)
             .services(new PartiallySecuredServiceImpl())
@@ -182,7 +195,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void successfulCallOfPublicMethodWithoutAuthentication() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery(this::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new PartiallySecuredServiceImpl())
             .startAwait();
@@ -196,7 +209,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     service.shutdown().block(TIMEOUT);
   }
 
-  private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
+  private ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
     return new ScalecubeServiceDiscovery(endpoint)
         .membership(cfg -> cfg.seedMembers(caller.discovery().address()));
   }

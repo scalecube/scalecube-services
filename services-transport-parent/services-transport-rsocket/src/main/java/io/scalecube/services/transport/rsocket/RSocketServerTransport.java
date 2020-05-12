@@ -50,9 +50,9 @@ public class RSocketServerTransport implements ServerTransport {
           TcpServer tcpServer =
               this.tcpServer.doOnConnection(
                   connection -> {
-                    LOGGER.info("Accepted connection on {}", connection.channel());
+                    LOGGER.debug("Accepted connection on {}", connection.channel());
                     connection.onDispose(
-                        () -> LOGGER.info("Connection closed on {}", connection.channel()));
+                        () -> LOGGER.debug("Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry, authenticator))

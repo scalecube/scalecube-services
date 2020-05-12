@@ -406,8 +406,9 @@ public final class Microservices {
       return this;
     }
 
-    public Builder principalMapper(PrincipalMapper<Object> principalMapper) {
-      this.principalMapper = principalMapper;
+    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
+      //noinspection unchecked
+      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
       return this;
     }
   }

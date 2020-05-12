@@ -178,9 +178,9 @@ public final class ServiceMethodInvoker {
         PrincipalContext.class,
         new PrincipalContext() {
           @Override
-          public <T> T get() {
+          public <T> Mono<T> get() {
             //noinspection unchecked
-            return (T) principalMapper.toPrincipal(context.get(AuthContext.class));
+            return Mono.just((T) principalMapper.toPrincipal(context.get(AuthContext.class)));
           }
         });
   }

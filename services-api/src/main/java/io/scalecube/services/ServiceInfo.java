@@ -112,8 +112,9 @@ public class ServiceInfo {
       return this;
     }
 
-    public Builder principalMapper(PrincipalMapper<Object> principalMapper) {
-      this.principalMapper = principalMapper;
+    @SuppressWarnings("unchecked")
+    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
       return this;
     }
 
