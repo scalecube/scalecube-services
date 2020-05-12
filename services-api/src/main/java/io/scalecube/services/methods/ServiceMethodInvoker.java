@@ -69,10 +69,7 @@ public final class ServiceMethodInvoker {
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return Mono.defer(() -> authenticate(message))
-        .flatMap(
-            authData ->
-                Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
-                    .subscriberContext(context -> newPrincipalContext(authData)))
+        .flatMap(authData -> deferWithContextOne(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
@@ -85,10 +82,7 @@ public final class ServiceMethodInvoker {
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
     return Mono.defer(() -> authenticate(message))
-        .flatMapMany(
-            authData ->
-                Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
-                    .subscriberContext(context -> newPrincipalContext(authData)))
+        .flatMapMany(authData -> deferWithContextMany(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
@@ -104,14 +98,25 @@ public final class ServiceMethodInvoker {
         .switchOnFirst(
             (first, messages) ->
                 Mono.defer(() -> authenticate(first.get()))
-                    .flatMapMany(
-                        authData ->
-                            Flux.deferWithContext(
-                                    context ->
-                                        messages.map(this::toRequest).transform(this::invoke))
-                                .subscriberContext(context -> newPrincipalContext(authData)))
+                    .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
                     .map(response -> toResponse(response, first.get().dataFormat())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
+  }
+
+  private Mono<?> deferWithContextOne(ServiceMessage message, Map<String, String> authData) {
+    return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
+        .subscriberContext(context -> newPrincipalContext(authData));
+  }
+
+  private Flux<?> deferWithContextMany(ServiceMessage message, Map<String, String> authData) {
+    return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
+        .subscriberContext(context -> newPrincipalContext(authData));
+  }
+
+  private Flux<?> deferWithContextBidirectional(
+      Flux<ServiceMessage> messages, Map<String, String> authData) {
+    return Flux.deferWithContext(context -> messages.map(this::toRequest).transform(this::invoke))
+        .subscriberContext(context -> newPrincipalContext(authData));
   }
 
   private Publisher<?> invoke(Object request) {
