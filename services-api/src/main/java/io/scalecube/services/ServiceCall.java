@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
@@ -18,8 +19,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,39 +37,64 @@ public class ServiceCall {
   private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.error(503, 503, "Unexpected empty response");
 
-  private final ClientTransport transport;
-  private final ServiceMethodRegistry methodRegistry;
-  private final ServiceRegistry serviceRegistry;
-
+  private ClientTransport transport;
+  private ServiceMethodRegistry methodRegistry;
+  private ServiceRegistry serviceRegistry;
   private Router router;
-  private ServiceClientErrorMapper errorMapper;
-  private Map<String, String> credentials = Collections.emptyMap();
+  private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private String contentType;
 
-  ServiceCall(
-      ClientTransport transport,
-      ServiceMethodRegistry methodRegistry,
-      ServiceRegistry serviceRegistry) {
-    this.transport = transport;
-    this.methodRegistry = methodRegistry;
-    this.serviceRegistry = serviceRegistry;
-  }
+  public ServiceCall() {}
 
   private ServiceCall(ServiceCall other) {
     this.transport = other.transport;
     this.methodRegistry = other.methodRegistry;
     this.serviceRegistry = other.serviceRegistry;
-    // Set resettable fields
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
-    this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given router.
+   * Setter for {@code clientTransport}.
    *
-   * @param routerType given class of the router.
+   * @param clientTransport client transport.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall transport(ClientTransport clientTransport) {
+    ServiceCall target = new ServiceCall(this);
+    target.transport = clientTransport;
+    return target;
+  }
+
+  /**
+   * Setter for {@code serviceRegistry}.
+   *
+   * @param serviceRegistry service registry.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall serviceRegistry(ServiceRegistry serviceRegistry) {
+    ServiceCall target = new ServiceCall(this);
+    target.serviceRegistry = serviceRegistry;
+    return target;
+  }
+
+  /**
+   * Setter for {@code methodRegistry}.
+   *
+   * @param methodRegistry method registry.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall methodRegistry(ServiceMethodRegistry methodRegistry) {
+    ServiceCall target = new ServiceCall(this);
+    target.methodRegistry = methodRegistry;
+    return target;
+  }
+
+  /**
+   * Setter for {@code routerType}.
+   *
+   * @param routerType method registry.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall router(Class<? extends Router> routerType) {
@@ -80,9 +104,9 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given router.
+   * Setter for {@code router}.
    *
-   * @param router given.
+   * @param router router.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall router(Router router) {
@@ -92,9 +116,9 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given error mapper.
+   * Setter for {@code errorMapper}.
    *
-   * @param errorMapper given.
+   * @param errorMapper error mapper.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall errorMapper(ServiceClientErrorMapper errorMapper) {
@@ -104,19 +128,7 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given credentials.
-   *
-   * @param credentials given.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall credentials(Map<String, String> credentials) {
-    ServiceCall target = new ServiceCall(this);
-    target.credentials = Collections.unmodifiableMap(new HashMap<>(credentials));
-    return target;
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given content type.
+   * Setter for {@code contentType}.
    *
    * @param contentType content type.
    * @return new {@link ServiceCall} instance.
