@@ -1,15 +1,17 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.AuthContext;
-import io.scalecube.services.auth.PrincipalContext;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
@@ -28,6 +30,7 @@ public final class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final Authenticator authenticator;
   private final PrincipalMapper<Object> principalMapper;
 
   /**
@@ -38,6 +41,7 @@ public final class ServiceMethodInvoker {
    * @param methodInfo method information
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
+   * @param authenticator authenticator
    * @param principalMapper principal mapper
    */
   public ServiceMethodInvoker(
@@ -46,12 +50,14 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
+      Authenticator authenticator,
       PrincipalMapper<Object> principalMapper) {
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
     this.errorMapper = errorMapper;
     this.dataDecoder = dataDecoder;
+    this.authenticator = authenticator;
     this.principalMapper = principalMapper;
   }
 
@@ -62,12 +68,13 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.deferWithContext(context -> Mono.fromRunnable(() -> validateAuthContext(context)))
-        .then(
-            Mono.from(invoke(toRequest(message)))
-                .map(response -> toResponse(response, message.dataFormat())))
-        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)))
-        .subscriberContext(this::newPrincipalContext);
+    return Mono.defer(() -> authenticate(message))
+        .flatMap(
+            authData ->
+                Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
+                    .subscriberContext(context -> newPrincipalContext(authData)))
+        .map(response -> toResponse(response, message.dataFormat()))
+        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
   /**
@@ -77,12 +84,13 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Flux.deferWithContext(context -> Mono.fromRunnable(() -> validateAuthContext(context)))
-        .thenMany(
-            Flux.from(invoke(toRequest(message)))
-                .map(response -> toResponse(response, message.dataFormat())))
-        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)))
-        .subscriberContext(this::newPrincipalContext);
+    return Mono.defer(() -> authenticate(message))
+        .flatMapMany(
+            authData ->
+                Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
+                    .subscriberContext(context -> newPrincipalContext(authData)))
+        .map(response -> toResponse(response, message.dataFormat()))
+        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
   /**
@@ -92,17 +100,18 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
-    return Flux.deferWithContext(context -> Mono.fromRunnable(() -> validateAuthContext(context)))
-        .thenMany(
-            Flux.from(publisher)
-                .switchOnFirst(
-                    (first, messages) ->
-                        messages
-                            .map(this::toRequest)
-                            .transform(this::invoke)
-                            .map(response -> toResponse(response, first.get().dataFormat()))))
-        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)))
-        .subscriberContext(this::newPrincipalContext);
+    return Flux.from(publisher)
+        .switchOnFirst(
+            (first, messages) ->
+                Mono.defer(() -> authenticate(first.get()))
+                    .flatMapMany(
+                        authData ->
+                            Flux.deferWithContext(
+                                    context ->
+                                        messages.map(this::toRequest).transform(this::invoke))
+                                .subscriberContext(context -> newPrincipalContext(authData)))
+                    .map(response -> toResponse(response, first.get().dataFormat())))
+        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -134,9 +143,24 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private void validateAuthContext(Context context) {
-    if (methodInfo.isAuth() && !context.hasKey(AuthContext.class)) {
-      throw new UnauthorizedException("Authentication failed");
+  private Mono<Map<String, String>> authenticate(ServiceMessage message) {
+    if (!methodInfo.isAuth()) {
+      return Mono.just(Collections.emptyMap());
+    }
+
+    if (authenticator == null) {
+      throw new UnauthorizedException("Authenticator not found");
+    }
+
+    return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
+  }
+
+  private UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException) {
+      ServiceException e = (ServiceException) th;
+      return new UnauthorizedException(e.errorCode(), e.getMessage());
+    } else {
+      return new UnauthorizedException(th);
     }
   }
 
@@ -173,16 +197,9 @@ public final class ServiceMethodInvoker {
         .build();
   }
 
-  private Context newPrincipalContext(Context context) {
-    return context.put(
-        PrincipalContext.class,
-        new PrincipalContext() {
-          @Override
-          public <T> Mono<T> get() {
-            //noinspection unchecked
-            return Mono.just((T) principalMapper.map(context.get(AuthContext.class)));
-          }
-        });
+  private Context newPrincipalContext(Map<String, String> authData) {
+    Object value = principalMapper.map(authData);
+    return Context.of(value.getClass(), value);
   }
 
   public Object service() {
@@ -201,6 +218,7 @@ public final class ServiceMethodInvoker {
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
+        .add("authenticator=" + authenticator)
         .toString();
   }
 }

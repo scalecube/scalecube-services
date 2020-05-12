@@ -19,6 +19,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,6 +44,7 @@ public class ServiceCall {
   private ServiceRegistry serviceRegistry;
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+  private Map<String, String> credentials = Collections.emptyMap();
   private String contentType;
 
   public ServiceCall() {}
@@ -53,6 +56,7 @@ public class ServiceCall {
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
+    this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
   /**
@@ -124,6 +128,18 @@ public class ServiceCall {
   public ServiceCall errorMapper(ServiceClientErrorMapper errorMapper) {
     ServiceCall target = new ServiceCall(this);
     target.errorMapper = errorMapper;
+    return target;
+  }
+
+  /**
+   * Setter for {@code credentials}.
+   *
+   * @param credentials credentials.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall credentials(Map<String, String> credentials) {
+    ServiceCall target = new ServiceCall(this);
+    target.credentials = Collections.unmodifiableMap(new HashMap<>(credentials));
     return target;
   }
 
@@ -210,7 +226,7 @@ public class ServiceCall {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address, credentials)
+              .create(address)
               .requestResponse(request, responseType)
               .map(this::throwIfError);
         });
@@ -267,7 +283,7 @@ public class ServiceCall {
           requireNonNull(address, "requestMany address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address, credentials)
+              .create(address)
               .requestStream(request, responseType)
               .map(this::throwIfError);
         });
@@ -332,7 +348,7 @@ public class ServiceCall {
               address, "requestBidirectional address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address, credentials)
+              .create(address)
               .requestChannel(publisher, responseType)
               .map(this::throwIfError);
         });

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
@@ -14,6 +15,7 @@ public class ServiceInfo {
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final Authenticator authenticator;
   private final PrincipalMapper<Object> principalMapper;
 
   private ServiceInfo(Builder builder) {
@@ -21,6 +23,7 @@ public class ServiceInfo {
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
+    this.authenticator = builder.authenticator;
     this.principalMapper = builder.principalMapper;
   }
 
@@ -48,6 +51,10 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
+  public Authenticator authenticator() {
+    return authenticator;
+  }
+
   public PrincipalMapper<Object> principalMapper() {
     return principalMapper;
   }
@@ -56,9 +63,10 @@ public class ServiceInfo {
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
         .add("serviceInstance=" + serviceInstance)
-        .add("tags=" + tags)
+        .add("tags(" + tags.size() + ")")
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
+        .add("authenticator=" + authenticator)
         .add("principalMapper=" + principalMapper)
         .toString();
   }
@@ -69,6 +77,7 @@ public class ServiceInfo {
     private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
+    private Authenticator authenticator;
     private PrincipalMapper<Object> principalMapper;
 
     private Builder(ServiceInfo serviceInfo) {
@@ -76,6 +85,7 @@ public class ServiceInfo {
       this.tags.putAll(new HashMap<>(serviceInfo.tags));
       this.errorMapper = serviceInfo.errorMapper;
       this.dataDecoder = serviceInfo.dataDecoder;
+      this.authenticator = serviceInfo.authenticator;
       this.principalMapper = serviceInfo.principalMapper;
     }
 
@@ -93,15 +103,26 @@ public class ServiceInfo {
       return this;
     }
 
+    public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
+      this.dataDecoder = dataDecoder;
+      return this;
+    }
+
+    public Builder authenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
+      return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
+      return this;
+    }
+
     Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
       if (this.errorMapper == null) {
         this.errorMapper = errorMapper;
       }
-      return this;
-    }
-
-    public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.dataDecoder = dataDecoder;
       return this;
     }
 
@@ -112,9 +133,10 @@ public class ServiceInfo {
       return this;
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
-      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
+    Builder authenticatorIfAbsent(Authenticator authenticator) {
+      if (this.authenticator == null) {
+        this.authenticator = authenticator;
+      }
       return this;
     }
 

@@ -1,12 +1,15 @@
 package io.scalecube.services.auth;
 
+import java.util.Map;
+
 @FunctionalInterface
 public interface PrincipalMapper<O> {
 
   /**
-   * Turns {@code authData} of the {@link AuthContext} to principal.
+   * Turns {@code authData} to concrete principal object.
    *
-   * @return converted principle from {@link AuthContext}
+   * @param authData auth data
+   * @return converted principle object
    */
-  O map(AuthContext authContext);
+  O map(Map<String, String> authData);
 }

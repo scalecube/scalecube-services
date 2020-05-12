@@ -56,6 +56,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
+                                  serviceInfo.authenticator(),
                                   serviceInfo.principalMapper());
 
                           methodInvokers.put(methodInfo.qualifier(), methodInvoker);

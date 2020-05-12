@@ -5,7 +5,6 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.net.Address;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
@@ -21,7 +20,6 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final Authenticator authenticator;
   private final ServiceMessageCodec messageCodec;
   private final TcpServer tcpServer;
 
@@ -30,13 +28,10 @@ public class RSocketServerTransport implements ServerTransport {
   /**
    * Constructor for this server transport.
    *
-   * @param authenticator authenticator
    * @param messageCodec message codec
    * @param tcpServer tcp server
    */
-  public RSocketServerTransport(
-      Authenticator authenticator, ServiceMessageCodec messageCodec, TcpServer tcpServer) {
-    this.authenticator = authenticator;
+  public RSocketServerTransport(ServiceMessageCodec messageCodec, TcpServer tcpServer) {
     this.messageCodec = messageCodec;
     this.tcpServer = tcpServer;
   }
@@ -59,7 +54,7 @@ public class RSocketServerTransport implements ServerTransport {
                         () -> LOGGER.debug("Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
-              .acceptor(new RSocketServiceAcceptor(authenticator, messageCodec, methodRegistry))
+              .acceptor(new RSocketServiceAcceptor(messageCodec, methodRegistry))
               .payloadDecoder(PayloadDecoder.DEFAULT)
               .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)
@@ -85,7 +80,6 @@ public class RSocketServerTransport implements ServerTransport {
   public String toString() {
     return new StringJoiner(", ", RSocketServerTransport.class.getSimpleName() + "[", "]")
         .add("messageCodec=" + messageCodec)
-        .add("authenticator=" + authenticator)
         .add("tcpServer=" + tcpServer)
         .add("serverChannel=" + serverChannel)
         .toString();

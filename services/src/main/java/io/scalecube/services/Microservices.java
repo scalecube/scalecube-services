@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -118,6 +119,7 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
+  private final Authenticator authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
@@ -133,6 +135,7 @@ public final class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
+    this.authenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
@@ -224,6 +227,7 @@ public final class Microservices {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(errorMapper)
             .dataDecoderIfAbsent(dataDecoder)
+            .authenticatorIfAbsent(authenticator)
             .principalMapperIfAbsent(principalMapper)
             .build());
   }
@@ -242,7 +246,10 @@ public final class Microservices {
    * @return new {@code ServiceCall} instance.
    */
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry)
+    return new ServiceCall()
+        .transport(transportBootstrap.clientTransport)
+        .serviceRegistry(serviceRegistry)
+        .methodRegistry(methodRegistry)
         .contentType(contentType)
         .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
@@ -305,6 +312,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
+    private Authenticator authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -359,6 +367,19 @@ public final class Microservices {
 
     public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
       this.methodRegistry = methodRegistry;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code authenticator}. Deprecated. Use {@link
+     * #defaultAuthenticator(Authenticator)}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    @Deprecated
+    public Builder authenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
       return this;
     }
 
@@ -424,6 +445,17 @@ public final class Microservices {
      */
     public Builder defaultContentType(String contentType) {
       this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code authenticator}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    public Builder defaultAuthenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
       return this;
     }
 
