@@ -2,11 +2,10 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
-import java.util.function.Consumer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -16,18 +15,14 @@ import reactor.test.StepVerifier;
 class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
+
   private static final boolean AUTH = false;
-  private static final Authenticator dummyAuthenticator = credentials -> null;
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
+  private final PrincipalMapper<Object> principalMapper = context -> context;
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
-
-  private Consumer<Object> requestReleaser =
-      obj -> {
-        // no-op
-      };
 
   @Test
   @DisplayName("invokeOne should return empty response when service returns null")
@@ -55,7 +50,7 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -89,7 +84,7 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -123,13 +118,12 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(
-            serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
+    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
         .verifyComplete();
   }
 
@@ -159,7 +153,7 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -196,13 +190,12 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeMany(message);
+    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -233,7 +226,7 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();

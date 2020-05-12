@@ -1,23 +1,33 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.Unpooled;
+import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.DefaultHeadersCodec;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
+
+  private static final DefaultHeadersCodec DEFAULT_HEADERS_CODEC = new DefaultHeadersCodec();
 
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
@@ -37,18 +47,19 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public ClientChannel create(Address address) {
+  public ClientChannel create(Address address, Map<String, String> credentials) {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
     Mono<RSocket> rsocket =
-        monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
+        monoMap.computeIfAbsent(address, address1 -> connect(address1, credentials, monoMap));
     return new RSocketClientChannel(rsocket, codec);
   }
 
-  private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
+  private Mono<RSocket> connect(
+      Address address, Map<String, String> credentials, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .errorConsumer(th1 -> LOGGER.warn("Exception occurred at rsocket client transport: " + th1))
+        .setupPayload(createSetupPayload(credentials))
         .connect(() -> TcpClientTransport.create(tcpClient))
         .doOnSuccess(
             rsocket -> {
@@ -70,6 +81,21 @@ public class RSocketClientTransport implements ClientTransport {
               monoMap.remove(address);
             })
         .cache();
+  }
+
+  private Payload createSetupPayload(Map<String, String> credentials) {
+    if (credentials == null || credentials.isEmpty()) {
+      return ByteBufPayload.create(new byte[0]);
+    }
+    ByteBuf byteBuf = Unpooled.buffer();
+    ByteBufOutputStream stream = new ByteBufOutputStream(byteBuf);
+    try {
+      DEFAULT_HEADERS_CODEC.encode(stream, credentials);
+    } catch (IOException e) {
+      byteBuf.release();
+      throw Exceptions.propagate(e);
+    }
+    return ByteBufPayload.create(byteBuf);
   }
 
   @Override

@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -118,13 +119,14 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<?> authenticator;
+  private final Authenticator authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final String contentType;
+  private final PrincipalMapper<Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -140,6 +142,7 @@ public final class Microservices {
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
+    this.principalMapper = builder.principalMapper;
 
     // Setup cleanup
     shutdown
@@ -222,9 +225,9 @@ public final class Microservices {
   private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
         ServiceInfo.from(serviceInfo)
-            .errorMapper(Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper))
-            .dataDecoder(Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder))
-            .authenticator(Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator))
+            .errorMapperIfAbsent(errorMapper)
+            .dataDecoderIfAbsent(dataDecoder)
+            .principalMapperIfAbsent(principalMapper)
             .build());
   }
 
@@ -305,7 +308,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<?> authenticator = null;
+    private Authenticator authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -314,6 +317,7 @@ public final class Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String contentType = "application/json";
+    private PrincipalMapper<Object> principalMapper;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -362,7 +366,7 @@ public final class Microservices {
       return this;
     }
 
-    public Builder authenticator(Authenticator<?> authenticator) {
+    public Builder authenticator(Authenticator authenticator) {
       this.authenticator = authenticator;
       return this;
     }
@@ -399,6 +403,11 @@ public final class Microservices {
 
     public Builder contentType(String contentType) {
       this.contentType = contentType;
+      return this;
+    }
+
+    public Builder principalMapper(PrincipalMapper<Object> principalMapper) {
+      this.principalMapper = principalMapper;
       return this;
     }
   }
@@ -568,7 +577,10 @@ public final class Microservices {
           .start()
           .doOnSuccess(transport -> serviceTransport = transport)
           .flatMap(
-              transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
+              transport ->
+                  serviceTransport
+                      .serverTransport()
+                      .bind(microservices.methodRegistry, microservices.authenticator))
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
@@ -689,7 +701,6 @@ public final class Microservices {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
-          .add("authenticator=" + serviceInfo.authenticator())
           .toString();
     }
   }

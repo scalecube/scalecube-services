@@ -11,15 +11,23 @@ public class SecuredServiceImpl implements SecuredService {
   }
 
   @Override
-  public Mono<String> helloWithPrincipal(UserProfile user) {
-    checkPrincipal(user);
-    return Mono.just("Hello, " + user.name());
+  public Mono<String> helloWithPrincipal() {
+    return Mono.deferWithContext(
+        context -> {
+          UserProfile user = context.get("user");
+          checkPrincipal(user);
+          return Mono.just("Hello, " + user.name());
+        });
   }
 
   @Override
-  public Mono<String> helloWithRequestAndPrincipal(String name, UserProfile user) {
-    checkPrincipal(user);
-    return Mono.just("Hello, " + name + " and " + user.name());
+  public Mono<String> helloWithRequestAndPrincipal(String name) {
+    return Mono.deferWithContext(
+        context -> {
+          UserProfile user = context.get("user");
+          checkPrincipal(user);
+          return Mono.just("Hello, " + name + " and " + user.name());
+        });
   }
 
   private void checkPrincipal(UserProfile user) {

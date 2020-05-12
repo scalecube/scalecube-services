@@ -111,7 +111,7 @@ public class ServiceCall {
    */
   public ServiceCall credentials(Map<String, String> credentials) {
     ServiceCall target = new ServiceCall(this);
-    target.credentials = credentials;
+    target.credentials = Collections.unmodifiableMap(new HashMap<>(credentials));
     return target;
   }
 
@@ -198,7 +198,7 @@ public class ServiceCall {
           requireNonNull(address, "requestOne address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address)
+              .create(address, credentials)
               .requestResponse(request, responseType)
               .map(this::throwIfError);
         });
@@ -255,7 +255,7 @@ public class ServiceCall {
           requireNonNull(address, "requestMany address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address)
+              .create(address, credentials)
               .requestStream(request, responseType)
               .map(this::throwIfError);
         });
@@ -320,7 +320,7 @@ public class ServiceCall {
               address, "requestBidirectional address parameter is required and must not be null");
           requireNonNull(transport, "transport is required and must not be null");
           return transport
-              .create(address)
+              .create(address, credentials)
               .requestChannel(publisher, responseType)
               .map(this::throwIfError);
         });

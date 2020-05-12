@@ -8,8 +8,8 @@ import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
-import io.scalecube.services.sut.security.UserProfile;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -24,22 +24,20 @@ final class ServiceAuthLocalTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
-  private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
-        {
-          put("username", "Alice");
-          put("password", "qwerty");
-        }
-      };
+  private static final Map<String, String> CREDENTIALS = new HashMap<>();
 
-  private static final Authenticator<UserProfile> authenticator =
-      message -> {
-        Map<String, String> headers = message.headers();
+  static {
+    CREDENTIALS.put("username", "Alice");
+    CREDENTIALS.put("password", "qwerty");
+  }
+
+  private static final Authenticator authenticator =
+      headers -> {
         String username = headers.get("username");
         String password = headers.get("password");
 
         if ("Alice".equals(username) && "qwerty".equals(password)) {
-          return Mono.just(new UserProfile("Alice", "ADMIN"));
+          return Mono.just(Collections.singletonMap("Alice", "ADMIN"));
         }
 
         return Mono.error(new UnauthorizedException("Authentication failed"));
@@ -75,11 +73,11 @@ final class ServiceAuthLocalTest extends BaseTest {
         .assertNext(response -> assertEquals("Hello, Bob", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .assertNext(response -> assertEquals("Hello, Alice", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob and Alice", response))
         .verifyComplete();
   }
@@ -102,11 +100,11 @@ final class ServiceAuthLocalTest extends BaseTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
   }
@@ -132,11 +130,11 @@ final class ServiceAuthLocalTest extends BaseTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
   }

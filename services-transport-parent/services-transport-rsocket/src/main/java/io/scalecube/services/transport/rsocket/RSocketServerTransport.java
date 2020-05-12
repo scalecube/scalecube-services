@@ -5,6 +5,7 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
@@ -42,7 +43,8 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport> bind(
+      ServiceMethodRegistry methodRegistry, Authenticator authenticator) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
@@ -53,7 +55,7 @@ public class RSocketServerTransport implements ServerTransport {
                         () -> LOGGER.info("Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
-              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry, authenticator))
               .payloadDecoder(PayloadDecoder.DEFAULT)
               .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)

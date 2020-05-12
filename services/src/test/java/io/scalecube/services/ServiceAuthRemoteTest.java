@@ -10,9 +10,9 @@ import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
-import io.scalecube.services.sut.security.UserProfile;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -23,26 +23,24 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-final class ServiceAuthRemoteTest {
+final class ServiceAuthRemoteTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
-  private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
-        {
-          put("username", "Alice");
-          put("password", "qwerty");
-        }
-      };
+  private static final Map<String, String> CREDENTIALS = new HashMap<>();
 
-  private static final Authenticator<UserProfile> authenticator =
-      message -> {
-        Map<String, String> headers = message.headers();
+  static {
+    CREDENTIALS.put("username", "Alice");
+    CREDENTIALS.put("password", "qwerty");
+  }
+
+  private static final Authenticator authenticator =
+      headers -> {
         String username = headers.get("username");
         String password = headers.get("password");
 
         if ("Alice".equals(username) && "qwerty".equals(password)) {
-          return Mono.just(new UserProfile("Alice", "ADMIN"));
+          return Mono.just(Collections.singletonMap("Alice", "ADMIN"));
         }
 
         return Mono.error(new UnauthorizedException("Authentication failed"));
@@ -85,17 +83,17 @@ final class ServiceAuthRemoteTest {
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
     SecuredService securedService =
-        service.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .assertNext(response -> assertEquals("Hello, Alice", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob and Alice", response))
         .verifyComplete();
   }
@@ -111,7 +109,7 @@ final class ServiceAuthRemoteTest {
             .startAwait();
 
     SecuredService securedService =
-        service.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -123,11 +121,11 @@ final class ServiceAuthRemoteTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
 
@@ -137,7 +135,7 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Authentication failed with invalid or empty credentials")
   void failedAuthenticationWithInvalidOrEmptyCredentials() {
-    SecuredService securedService = service.call().api(SecuredService.class);
+    SecuredService securedService = caller.call().api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -149,11 +147,11 @@ final class ServiceAuthRemoteTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
   }
@@ -170,7 +168,7 @@ final class ServiceAuthRemoteTest {
             .startAwait();
 
     PartiallySecuredService proxy =
-        service.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.securedMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))
@@ -189,7 +187,7 @@ final class ServiceAuthRemoteTest {
             .services(new PartiallySecuredServiceImpl())
             .startAwait();
 
-    PartiallySecuredService proxy = service.call().api(PartiallySecuredService.class);
+    PartiallySecuredService proxy = caller.call().api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.publicMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))

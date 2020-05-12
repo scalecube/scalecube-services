@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.net.Address;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import reactor.core.publisher.Mono;
 
@@ -18,9 +19,10 @@ public interface ServerTransport {
    * Starts a server transport.
    *
    * @param methodRegistry service method registry
+   * @param authenticator authenticator
    * @return bound server address
    */
-  Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry);
+  Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry, Authenticator authenticator);
 
   /**
    * Stops server transport.
