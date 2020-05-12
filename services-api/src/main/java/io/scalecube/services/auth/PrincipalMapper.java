@@ -8,5 +8,5 @@ public interface PrincipalMapper<O> {
    *
    * @return converted principle from {@link AuthContext}
    */
-  O toPrincipal(AuthContext authContext);
+  O map(AuthContext authContext);
 }

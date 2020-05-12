@@ -391,22 +391,59 @@ public final class Microservices {
       return this;
     }
 
+    /**
+     * Setter for {@code errorMapper}.
+     *
+     * @param errorMapper error mapper
+     * @return this builder with applied parameter
+     */
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
       return this;
     }
 
+    /**
+     * Setter for {@code dataDecoder}.
+     *
+     * @param dataDecoder data decoder
+     * @return this builder with applied parameter
+     */
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
       return this;
     }
 
+    /**
+     * Setter for default {@code contentType}. Deprecated. Use {@link #defaultContentType(String)}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    @Deprecated
     public Builder contentType(String contentType) {
       this.contentType = contentType;
       return this;
     }
 
-    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
+    /**
+     * Setter for default {@code contentType}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    public Builder defaultContentType(String contentType) {
+      this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code principalMapper}.
+     *
+     * @param principalMapper principalMapper
+     * @param <T> principal type
+     * @return this builder with applied parameter
+     */
+    public <T> Builder defaultPrincipalMapper(PrincipalMapper<? extends T> principalMapper) {
       //noinspection unchecked
       this.principalMapper = (PrincipalMapper<Object>) principalMapper;
       return this;

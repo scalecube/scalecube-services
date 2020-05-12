@@ -180,7 +180,7 @@ public final class ServiceMethodInvoker {
           @Override
           public <T> Mono<T> get() {
             //noinspection unchecked
-            return Mono.just((T) principalMapper.toPrincipal(context.get(AuthContext.class)));
+            return Mono.just((T) principalMapper.map(context.get(AuthContext.class)));
           }
         });
   }

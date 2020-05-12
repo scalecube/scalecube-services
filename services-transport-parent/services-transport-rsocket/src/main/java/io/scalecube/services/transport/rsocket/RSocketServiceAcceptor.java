@@ -65,7 +65,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
-    return authenticateIfNeeded(setup, rsocket)
+    return authenticate(setup, rsocket)
         .doOnSubscribe(
             s -> {
               LOGGER.debug("Accepted rsocket: {}", rsocket);
@@ -81,8 +81,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .subscriberContext(context -> newConnectionContext(authData, context)));
   }
 
-  private Mono<Map<String, String>> authenticateIfNeeded(
-      ConnectionSetupPayload setup, RSocket rsocket) {
+  private Mono<Map<String, String>> authenticate(ConnectionSetupPayload setup, RSocket rsocket) {
     return Mono.defer(
         () -> {
           Map<String, String> credentials = getCredentials(setup);
