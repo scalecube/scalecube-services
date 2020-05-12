@@ -10,6 +10,7 @@ import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
+import java.util.StringJoiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -20,7 +21,8 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final ServiceMessageCodec codec;
+  private final Authenticator authenticator;
+  private final ServiceMessageCodec messageCodec;
   private final TcpServer tcpServer;
 
   private CloseableChannel serverChannel; // calculated
@@ -28,11 +30,14 @@ public class RSocketServerTransport implements ServerTransport {
   /**
    * Constructor for this server transport.
    *
-   * @param codec message codec
+   * @param authenticator authenticator
+   * @param messageCodec message codec
    * @param tcpServer tcp server
    */
-  public RSocketServerTransport(ServiceMessageCodec codec, TcpServer tcpServer) {
-    this.codec = codec;
+  public RSocketServerTransport(
+      Authenticator authenticator, ServiceMessageCodec messageCodec, TcpServer tcpServer) {
+    this.authenticator = authenticator;
+    this.messageCodec = messageCodec;
     this.tcpServer = tcpServer;
   }
 
@@ -43,8 +48,7 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(
-      ServiceMethodRegistry methodRegistry, Authenticator authenticator) {
+  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
@@ -55,7 +59,7 @@ public class RSocketServerTransport implements ServerTransport {
                         () -> LOGGER.debug("Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
-              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry, authenticator))
+              .acceptor(new RSocketServiceAcceptor(authenticator, messageCodec, methodRegistry))
               .payloadDecoder(PayloadDecoder.DEFAULT)
               .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)
@@ -79,13 +83,11 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public String toString() {
-    return "RSocketServerTransport{"
-        + "codec="
-        + codec
-        + ", tcpServer="
-        + tcpServer
-        + ", serverChannel="
-        + serverChannel
-        + '}';
+    return new StringJoiner(", ", RSocketServerTransport.class.getSimpleName() + "[", "]")
+        .add("messageCodec=" + messageCodec)
+        .add("authenticator=" + authenticator)
+        .add("tcpServer=" + tcpServer)
+        .add("serverChannel=" + serverChannel)
+        .toString();
   }
 }

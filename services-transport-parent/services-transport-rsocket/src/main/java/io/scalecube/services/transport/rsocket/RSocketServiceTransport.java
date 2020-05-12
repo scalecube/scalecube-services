@@ -7,6 +7,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -36,6 +37,7 @@ public class RSocketServiceTransport implements ServiceTransport {
                 obj instanceof ServiceMessage ? ((ServiceMessage) obj).data() : obj));
   }
 
+  private Authenticator authenticator;
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs;
@@ -56,6 +58,7 @@ public class RSocketServiceTransport implements ServiceTransport {
    * @param other other instance
    */
   private RSocketServiceTransport(RSocketServiceTransport other) {
+    this.authenticator = other.authenticator;
     this.numOfWorkers = other.numOfWorkers;
     this.headersCodec = other.headersCodec;
     this.dataCodecs = other.dataCodecs;
@@ -64,6 +67,18 @@ public class RSocketServiceTransport implements ServiceTransport {
     this.serverLoopResources = other.serverLoopResources;
     this.tcpServerProvider = other.tcpServerProvider;
     this.tcpClientProvider = other.tcpClientProvider;
+  }
+
+  /**
+   * Setter for {@code authenticator}.
+   *
+   * @param authenticator authenticator
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport authenticator(Authenticator authenticator) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.authenticator = authenticator;
+    return rst;
   }
 
   /**
@@ -146,6 +161,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   @Override
   public ServerTransport serverTransport() {
     return new RSocketServerTransport(
+        authenticator,
         new ServiceMessageCodec(headersCodec, dataCodecs),
         tcpServerProvider.apply(serverLoopResources));
   }
@@ -185,9 +201,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private Function<LoopResources, TcpServer> defaultTcpServerProvider() {
     return (LoopResources serverLoopResources) ->
-        TcpServer.create()
-            .runOn(serverLoopResources)
-            .addressSupplier(() -> new InetSocketAddress(0));
+        TcpServer.create().runOn(serverLoopResources).bindAddress(() -> new InetSocketAddress(0));
   }
 
   private Function<LoopResources, TcpClient> defaultTcpClientProvider() {

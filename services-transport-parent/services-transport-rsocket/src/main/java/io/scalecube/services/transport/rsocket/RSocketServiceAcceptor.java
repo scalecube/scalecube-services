@@ -43,24 +43,24 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final DefaultHeadersCodec DEFAULT_HEADERS_CODEC = new DefaultHeadersCodec();
 
+  private final Authenticator authenticator;
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator authenticator;
 
   /**
    * Constructor.
    *
-   * @param codec codec
+   * @param authenticator authenticator
+   * @param messageCodec message codec
    * @param methodRegistry method registry
-   * @param authenticator authhenticator
    */
   public RSocketServiceAcceptor(
-      ServiceMessageCodec codec,
-      ServiceMethodRegistry methodRegistry,
-      Authenticator authenticator) {
-    this.messageCodec = codec;
-    this.methodRegistry = methodRegistry;
+      Authenticator authenticator,
+      ServiceMessageCodec messageCodec,
+      ServiceMethodRegistry methodRegistry) {
     this.authenticator = authenticator;
+    this.messageCodec = messageCodec;
+    this.methodRegistry = methodRegistry;
   }
 
   @Override
@@ -84,8 +84,11 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   private Mono<Map<String, String>> authenticate(ConnectionSetupPayload setup, RSocket rsocket) {
     return Mono.defer(
         () -> {
-          Map<String, String> credentials = getCredentials(setup);
+          if (authenticator == null) {
+            return Mono.just(Collections.emptyMap());
+          }
 
+          Map<String, String> credentials = getCredentials(setup);
           if (credentials.isEmpty()) {
             return Mono.just(Collections.emptyMap());
           }

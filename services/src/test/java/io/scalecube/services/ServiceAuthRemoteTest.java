@@ -72,8 +72,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     service =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .authenticator(authenticator)
+            .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
             .services(
                 ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
                     .principalMapper(principalMapper)
@@ -175,8 +174,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     Microservices service =
         Microservices.builder()
             .discovery(this::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .authenticator(authenticator)
+            .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
             .services(new PartiallySecuredServiceImpl())
             .startAwait();
 

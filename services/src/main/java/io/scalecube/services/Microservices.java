@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -119,7 +118,6 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
@@ -135,7 +133,6 @@ public final class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
-    this.authenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
     this.transportBootstrap = builder.transportBootstrap;
@@ -179,9 +176,9 @@ public final class Microservices {
         .start(this)
         .publishOn(scheduler)
         .flatMap(
-            input -> {
+            transportBootstrap -> {
               final ServiceCall call = call();
-              final Address serviceAddress = input.address;
+              final Address serviceAddress = transportBootstrap.transportAddress;
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
@@ -236,7 +233,7 @@ public final class Microservices {
   }
 
   public Address serviceAddress() {
-    return transportBootstrap.address;
+    return transportBootstrap.transportAddress;
   }
 
   /**
@@ -308,7 +305,6 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -363,11 +359,6 @@ public final class Microservices {
 
     public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
       this.methodRegistry = methodRegistry;
-      return this;
-    }
-
-    public Builder authenticator(Authenticator authenticator) {
-      this.authenticator = authenticator;
       return this;
     }
 
@@ -588,41 +579,39 @@ public final class Microservices {
 
     public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
     public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
-    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", -1);
+    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", 0);
 
-    private final Supplier<ServiceTransport> supplier;
+    private final Supplier<ServiceTransport> transportSupplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address address = NULL_ADDRESS;
+    private Address transportAddress = NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
       this(NULL_SUPPLIER);
     }
 
-    public ServiceTransportBootstrap(Supplier<ServiceTransport> supplier) {
-      this.supplier = supplier;
+    public ServiceTransportBootstrap(Supplier<ServiceTransport> transportSupplier) {
+      this.transportSupplier = transportSupplier;
     }
 
     private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
-      if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
+      if (transportSupplier == NULL_SUPPLIER
+          || (serviceTransport = transportSupplier.get()) == null) {
         LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
       }
 
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport)
+          .doOnSuccess(transport -> serviceTransport = transport) // reset self
           .flatMap(
-              transport ->
-                  serviceTransport
-                      .serverTransport()
-                      .bind(microservices.methodRegistry, microservices.authenticator))
+              transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
-                this.address =
+                this.transportAddress =
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
@@ -636,7 +625,7 @@ public final class Microservices {
                   LOGGER.info(
                       "[{}][serviceTransport][start] Started, address: {}",
                       microservices.id(),
-                      this.address))
+                      this.transportAddress))
           .doOnError(
               ex ->
                   LOGGER.error(
