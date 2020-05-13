@@ -12,6 +12,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
@@ -52,11 +53,11 @@ public final class ServiceMethodInvoker {
       ServiceMessageDataDecoder dataDecoder,
       Authenticator authenticator,
       PrincipalMapper<Object> principalMapper) {
-    this.method = method;
-    this.service = service;
-    this.methodInfo = methodInfo;
-    this.errorMapper = errorMapper;
-    this.dataDecoder = dataDecoder;
+    this.method = Objects.requireNonNull(method, "method");
+    this.service = Objects.requireNonNull(service, "service");
+    this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
+    this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
+    this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
     this.authenticator = authenticator;
     this.principalMapper = principalMapper;
   }
@@ -105,18 +106,18 @@ public final class ServiceMethodInvoker {
 
   private Mono<?> deferWithContextOne(ServiceMessage message, Map<String, String> authData) {
     return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
-        .subscriberContext(context -> newPrincipalContext(authData));
+        .subscriberContext(context -> newPrincipalContext(authData, context));
   }
 
   private Flux<?> deferWithContextMany(ServiceMessage message, Map<String, String> authData) {
     return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
-        .subscriberContext(context -> newPrincipalContext(authData));
+        .subscriberContext(context -> newPrincipalContext(authData, context));
   }
 
   private Flux<?> deferWithContextBidirectional(
       Flux<ServiceMessage> messages, Map<String, String> authData) {
     return Flux.deferWithContext(context -> messages.map(this::toRequest).transform(this::invoke))
-        .subscriberContext(context -> newPrincipalContext(authData));
+        .subscriberContext(context -> newPrincipalContext(authData, context));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -152,11 +153,9 @@ public final class ServiceMethodInvoker {
     if (!methodInfo.isAuth()) {
       return Mono.just(Collections.emptyMap());
     }
-
     if (authenticator == null) {
       throw new UnauthorizedException("Authenticator not found");
     }
-
     return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
   }
 
@@ -202,7 +201,10 @@ public final class ServiceMethodInvoker {
         .build();
   }
 
-  private Context newPrincipalContext(Map<String, String> authData) {
+  private Context newPrincipalContext(Map<String, String> authData, Context context) {
+    if (principalMapper == null) {
+      return context;
+    }
     Object value = principalMapper.map(authData);
     return Context.of(value.getClass(), value);
   }
