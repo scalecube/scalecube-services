@@ -285,8 +285,9 @@ public class Reflect {
     validateResponseType(method);
     validateRequestType(method);
 
-    if (method.getParameterCount() > 2) {
-      throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    if (method.getParameterCount() > 1) {
+      throw new UnsupportedOperationException(
+          "Service method can accept at maximum single parameter");
     }
   }
 
