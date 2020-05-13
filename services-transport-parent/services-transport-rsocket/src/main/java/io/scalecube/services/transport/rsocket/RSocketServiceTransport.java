@@ -185,9 +185,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private Function<LoopResources, TcpServer> defaultTcpServerProvider() {
     return (LoopResources serverLoopResources) ->
-        TcpServer.create()
-            .runOn(serverLoopResources)
-            .addressSupplier(() -> new InetSocketAddress(0));
+        TcpServer.create().runOn(serverLoopResources).bindAddress(() -> new InetSocketAddress(0));
   }
 
   private Function<LoopResources, TcpClient> defaultTcpClientProvider() {

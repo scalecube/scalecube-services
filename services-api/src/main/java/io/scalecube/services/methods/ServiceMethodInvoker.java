@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -9,11 +10,15 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 /**
  * Invoker of service method. Prepares service message request before call as well as doing some
@@ -21,14 +26,13 @@ import reactor.core.publisher.Mono;
  */
 public final class ServiceMethodInvoker {
 
-  private static final Object NO_PRINCIPAL = new Object();
-
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator<Object> authenticator;
+  private final Authenticator authenticator;
+  private final PrincipalMapper<Object> principalMapper;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -38,21 +42,24 @@ public final class ServiceMethodInvoker {
    * @param methodInfo method information
    * @param errorMapper error mapper
    * @param dataDecoder data decoder
+   * @param authenticator authenticator
+   * @param principalMapper principal mapper
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
   public ServiceMethodInvoker(
       Method method,
       Object service,
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator) {
-    this.method = method;
-    this.service = service;
-    this.methodInfo = methodInfo;
-    this.errorMapper = errorMapper;
-    this.dataDecoder = dataDecoder;
+      Authenticator authenticator,
+      PrincipalMapper<Object> principalMapper) {
+    this.method = Objects.requireNonNull(method, "method");
+    this.service = Objects.requireNonNull(service, "service");
+    this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
+    this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
+    this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
     this.authenticator = authenticator;
+    this.principalMapper = principalMapper;
   }
 
   /**
@@ -62,8 +69,8 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return authenticate(message)
-        .flatMap(principal -> Mono.from(invoke(toRequest(message), principal)))
+    return Mono.defer(() -> authenticate(message))
+        .flatMap(authData -> deferWithContextOne(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
@@ -75,8 +82,8 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return authenticate(message)
-        .flatMapMany(principal -> Flux.from(invoke(toRequest(message), principal)))
+    return Mono.defer(() -> authenticate(message))
+        .flatMapMany(authData -> deferWithContextMany(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
@@ -91,24 +98,36 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                authenticate(first.get())
-                    .flatMapMany(
-                        principal ->
-                            messages
-                                .map(this::toRequest)
-                                .transform(request -> invoke(request, principal)))
+                Mono.defer(() -> authenticate(first.get()))
+                    .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
                     .map(response -> toResponse(response, first.get().dataFormat())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
-  private Publisher<?> invoke(Object request, Object principal) {
+  private Mono<?> deferWithContextOne(ServiceMessage message, Map<String, String> authData) {
+    return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
+        .subscriberContext(context -> newPrincipalContext(authData, context));
+  }
+
+  private Flux<?> deferWithContextMany(ServiceMessage message, Map<String, String> authData) {
+    return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
+        .subscriberContext(context -> newPrincipalContext(authData, context));
+  }
+
+  private Flux<?> deferWithContextBidirectional(
+      Flux<ServiceMessage> messages, Map<String, String> authData) {
+    return Flux.deferWithContext(context -> messages.map(this::toRequest).transform(this::invoke))
+        .subscriberContext(context -> newPrincipalContext(authData, context));
+  }
+
+  private Publisher<?> invoke(Object request) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
       if (methodInfo.parameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
-        Object[] arguments = prepareArguments(request, principal);
+        Object[] arguments = prepareArguments(request);
         result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
@@ -122,34 +141,22 @@ public final class ServiceMethodInvoker {
     return throwable != null ? Mono.error(throwable) : result;
   }
 
-  private Object[] prepareArguments(Object request, Object principal) {
+  private Object[] prepareArguments(Object request) {
     Object[] arguments = new Object[methodInfo.parameterCount()];
-    Object principalArg = principal.equals(NO_PRINCIPAL) ? null : principal;
-
     if (methodInfo.requestType() != Void.TYPE) {
       arguments[0] = request;
-    } else {
-      arguments[0] = principalArg;
-    }
-
-    if (methodInfo.parameterCount() > 1) {
-      arguments[1] = principalArg;
     }
     return arguments;
   }
 
-  private Mono<Object> authenticate(ServiceMessage message) {
-    return Mono.defer(() -> authenticate0(message)).defaultIfEmpty(NO_PRINCIPAL);
-  }
-
-  private Mono<Object> authenticate0(ServiceMessage message) {
+  private Mono<Map<String, String>> authenticate(ServiceMessage message) {
     if (!methodInfo.isAuth()) {
-      return Mono.empty();
+      return Mono.just(Collections.emptyMap());
     }
     if (authenticator == null) {
       throw new UnauthorizedException("Authenticator not found");
     }
-    return authenticator.authenticate(message).onErrorMap(this::toUnauthorizedException);
+    return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -192,6 +199,14 @@ public final class ServiceMethodInvoker {
         .data(response)
         .dataFormatIfAbsent(dataFormat)
         .build();
+  }
+
+  private Context newPrincipalContext(Map<String, String> authData, Context context) {
+    if (principalMapper == null) {
+      return context;
+    }
+    Object value = principalMapper.map(authData);
+    return Context.of(value.getClass(), value);
   }
 
   public Object service() {

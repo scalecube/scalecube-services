@@ -9,6 +9,7 @@ import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +23,17 @@ public class RSocketClientTransport implements ClientTransport {
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
-  private final ServiceMessageCodec codec;
+  private final ServiceMessageCodec messageCodec;
   private final TcpClient tcpClient;
 
   /**
    * Constructor for this transport.
    *
-   * @param codec message codec
+   * @param messageCodec message codec
    * @param tcpClient tcp client
    */
-  public RSocketClientTransport(ServiceMessageCodec codec, TcpClient tcpClient) {
-    this.codec = codec;
+  public RSocketClientTransport(ServiceMessageCodec messageCodec, TcpClient tcpClient) {
+    this.messageCodec = messageCodec;
     this.tcpClient = tcpClient;
   }
 
@@ -41,14 +42,13 @@ public class RSocketClientTransport implements ClientTransport {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
     Mono<RSocket> rsocket =
         monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
-    return new RSocketClientChannel(rsocket, codec);
+    return new RSocketClientChannel(rsocket, messageCodec);
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .errorConsumer(th1 -> LOGGER.warn("Exception occurred at rsocket client transport: " + th1))
         .connect(() -> TcpClientTransport.create(tcpClient))
         .doOnSuccess(
             rsocket -> {
@@ -74,6 +74,9 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public String toString() {
-    return "RSocketClientTransport{" + "codec=" + codec + ", tcpClient=" + tcpClient + '}';
+    return new StringJoiner(", ", RSocketClientTransport.class.getSimpleName() + "[", "]")
+        .add("messageCodec=" + messageCodec)
+        .add("tcpClient=" + tcpClient)
+        .toString();
   }
 }

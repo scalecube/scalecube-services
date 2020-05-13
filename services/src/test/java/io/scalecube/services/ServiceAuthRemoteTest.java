@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -23,26 +24,27 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-final class ServiceAuthRemoteTest {
+final class ServiceAuthRemoteTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
-  private static final Map<String, String> CREDENTIALS =
-      new HashMap<String, String>() {
-        {
-          put("username", "Alice");
-          put("password", "qwerty");
-        }
-      };
+  private static final Map<String, String> CREDENTIALS = new HashMap<>();
 
-  private static final Authenticator<UserProfile> authenticator =
-      message -> {
-        Map<String, String> headers = message.headers();
+  static {
+    CREDENTIALS.put("username", "Alice");
+    CREDENTIALS.put("password", "qwerty");
+  }
+
+  private static final Authenticator authenticator =
+      headers -> {
         String username = headers.get("username");
         String password = headers.get("password");
 
         if ("Alice".equals(username) && "qwerty".equals(password)) {
-          return Mono.just(new UserProfile("Alice", "ADMIN"));
+          HashMap<String, String> authData = new HashMap<>();
+          authData.put("name", "Alice");
+          authData.put("role", "ADMIN");
+          return Mono.just(authData);
         }
 
         return Mono.error(new UnauthorizedException("Authentication failed"));
@@ -50,6 +52,7 @@ final class ServiceAuthRemoteTest {
 
   private static Microservices caller;
   private static Microservices service;
+  public static PrincipalMapper<UserProfile> principalMapper;
 
   @BeforeAll
   static void beforeAll() {
@@ -61,12 +64,17 @@ final class ServiceAuthRemoteTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
+    principalMapper = authData -> new UserProfile(authData.get("name"), authData.get("role"));
+
     service =
         Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .authenticator(authenticator)
-            .services(new SecuredServiceImpl())
+            .defaultAuthenticator(authenticator)
+            .services(
+                ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
   }
 
@@ -85,17 +93,17 @@ final class ServiceAuthRemoteTest {
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
     SecuredService securedService =
-        service.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .assertNext(response -> assertEquals("Hello, Alice", response))
         .verifyComplete();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob and Alice", response))
         .verifyComplete();
   }
@@ -107,11 +115,14 @@ final class ServiceAuthRemoteTest {
         Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(new SecuredServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
 
     SecuredService securedService =
-        service.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -123,11 +134,11 @@ final class ServiceAuthRemoteTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
 
@@ -137,7 +148,7 @@ final class ServiceAuthRemoteTest {
   @Test
   @DisplayName("Authentication failed with invalid or empty credentials")
   void failedAuthenticationWithInvalidOrEmptyCredentials() {
-    SecuredService securedService = service.call().api(SecuredService.class);
+    SecuredService securedService = caller.call().api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -149,11 +160,11 @@ final class ServiceAuthRemoteTest {
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithPrincipal(null))
+    StepVerifier.create(securedService.helloWithPrincipal())
         .expectErrorSatisfies(verifyError)
         .verify();
 
-    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob", null))
+    StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
         .expectErrorSatisfies(verifyError)
         .verify();
   }
@@ -165,12 +176,15 @@ final class ServiceAuthRemoteTest {
         Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .authenticator(authenticator)
-            .services(new PartiallySecuredServiceImpl())
+            .defaultAuthenticator(authenticator)
+            .services(
+                ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
 
     PartiallySecuredService proxy =
-        service.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
+        caller.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.securedMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))
@@ -186,10 +200,13 @@ final class ServiceAuthRemoteTest {
         Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(new PartiallySecuredServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
 
-    PartiallySecuredService proxy = service.call().api(PartiallySecuredService.class);
+    PartiallySecuredService proxy = caller.call().api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.publicMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))
