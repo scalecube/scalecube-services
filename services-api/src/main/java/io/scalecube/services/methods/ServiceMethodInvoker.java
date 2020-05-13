@@ -25,6 +25,8 @@ import reactor.util.context.Context;
  */
 public final class ServiceMethodInvoker {
 
+  private static final String AUTH_DATA_KEY = "auth.data";
+
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
@@ -68,7 +70,7 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.defer(() -> authenticate(message))
+    return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMap(authData -> deferWithContextOne(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
@@ -81,7 +83,7 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Mono.defer(() -> authenticate(message))
+    return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMapMany(authData -> deferWithContextMany(message, authData))
         .map(response -> toResponse(response, message.dataFormat()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
@@ -97,7 +99,7 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                Mono.defer(() -> authenticate(first.get()))
+                Mono.deferWithContext(context -> authenticate(first.get(), context))
                     .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
                     .map(response -> toResponse(response, first.get().dataFormat())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
@@ -147,9 +149,12 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Mono<Object> authenticate(ServiceMessage message) {
+  private Mono<Object> authenticate(ServiceMessage message, Context context) {
     if (!methodInfo.isAuth()) {
       return Mono.just(Collections.emptyMap());
+    }
+    if (context.hasKey(AUTH_DATA_KEY)) {
+      return Mono.just(context.get(AUTH_DATA_KEY));
     }
     if (authenticator == null) {
       throw new UnauthorizedException("Authenticator not found");
