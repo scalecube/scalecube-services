@@ -25,8 +25,6 @@ import reactor.util.context.Context;
  */
 public final class ServiceMethodInvoker {
 
-  private static final String AUTH_DATA_KEY = "auth.data";
-
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
@@ -153,8 +151,8 @@ public final class ServiceMethodInvoker {
     if (!methodInfo.isAuth()) {
       return Mono.just(Collections.emptyMap());
     }
-    if (context.hasKey(AUTH_DATA_KEY)) {
-      return Mono.just(context.get(AUTH_DATA_KEY));
+    if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
+      return Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY));
     }
     if (authenticator == null) {
       throw new UnauthorizedException("Authenticator not found");
@@ -209,7 +207,7 @@ public final class ServiceMethodInvoker {
       return context;
     }
     Object value = principalMapper.map(authData);
-    return Context.of(value.getClass(), value);
+    return Context.of(Authenticator.AUTH_CONTEXT_KEY, value);
   }
 
   public Object service() {

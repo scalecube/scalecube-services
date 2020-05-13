@@ -7,6 +7,12 @@ import reactor.core.publisher.Mono;
 public interface Authenticator<A> {
 
   /**
+   * Key in {@link reactor.util.context.Context} to represent authentication result after call to
+   * {@link #authenticate(Map)}.
+   */
+  String AUTH_CONTEXT_KEY = "auth.context";
+
+  /**
    * Returns {@code authData} by given credentials.
    *
    * @param credentials credentials

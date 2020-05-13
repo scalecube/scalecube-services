@@ -11,6 +11,8 @@ import java.util.Collections;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -255,7 +257,7 @@ class ServiceMethodInvokerTest {
   @Test
   @DisplayName(
       "invocation of auth method should return error "
-          + "if there're no auth.data and no authenticator")
+          + "if there're no auth.context and no authenticator")
   void testAuthMethodWhenNoContextAndNoAuthenticator() throws Exception {
     final String methodName = "throwException";
     final Class<? extends StubService> serviceClass = stubService.getClass();
@@ -295,9 +297,9 @@ class ServiceMethodInvokerTest {
   @Test
   @DisplayName(
       "invocation of auth method should return empty response "
-          + "if auth.data exists and no authenticator")
+          + "if auth.context exists and no authenticator")
   void testAuthMethodWhenThereIsContextAndNoAuthenticator() throws Exception {
-    final String methodName = "returnNull";
+    final String methodName = "helloAuthContext";
     final Class<? extends StubService> serviceClass = stubService.getClass();
     final Method method = serviceClass.getMethod(methodName);
 
@@ -328,7 +330,54 @@ class ServiceMethodInvokerTest {
 
     StepVerifier.create(
             Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
-                .subscriberContext(context -> context.put("auth.data", AUTH_DATA)))
+                .subscriberContext(
+                    context -> context.put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)))
+        .verifyComplete();
+  }
+
+  @Test
+  @DisplayName(
+      "invocation of auth method should return empty response "
+          + "if there're no auth.context but authenticator exists")
+  void testAuthMethodWhenNoContextButThereIsAuthenticator() throws Exception {
+    final String methodName = "helloAuthContext";
+    final Class<? extends StubService> serviceClass = stubService.getClass();
+    final Method method = serviceClass.getMethod(methodName);
+
+    final MethodInfo methodInfo =
+        new MethodInfo(
+            serviceClass.getName(),
+            methodName,
+            method.getReturnType(),
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
+            CommunicationMode.REQUEST_RESPONSE,
+            method.getParameterCount(),
+            Void.TYPE,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
+            true /*auth*/);
+
+    //noinspection unchecked
+    Authenticator<Object> mockedAuthenticator = Mockito.mock(Authenticator.class);
+    Mockito.when(mockedAuthenticator.authenticate(ArgumentMatchers.anyMap()))
+        .thenReturn(Mono.just(AUTH_DATA));
+
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            mockedAuthenticator,
+            principalMapper);
+
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+
+    StepVerifier.create(
+            Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
+                .subscriberContext(
+                    context -> context.put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)))
         .verifyComplete();
   }
 }
