@@ -15,8 +15,8 @@ public class ServiceInfo {
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator authenticator;
-  private final PrincipalMapper<Object> principalMapper;
+  private final Authenticator<Object> authenticator;
+  private final PrincipalMapper<Object, Object> principalMapper;
 
   private ServiceInfo(Builder builder) {
     this.serviceInstance = builder.serviceInstance;
@@ -51,11 +51,11 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
-  public Authenticator authenticator() {
+  public Authenticator<Object> authenticator() {
     return authenticator;
   }
 
-  public PrincipalMapper<Object> principalMapper() {
+  public PrincipalMapper<Object, Object> principalMapper() {
     return principalMapper;
   }
 
@@ -77,8 +77,8 @@ public class ServiceInfo {
     private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
-    private Authenticator authenticator;
-    private PrincipalMapper<Object> principalMapper;
+    private Authenticator<Object> authenticator;
+    private PrincipalMapper<Object, Object> principalMapper;
 
     private Builder(ServiceInfo serviceInfo) {
       this.serviceInstance = serviceInfo.serviceInstance;
@@ -108,14 +108,16 @@ public class ServiceInfo {
       return this;
     }
 
-    public Builder authenticator(Authenticator authenticator) {
-      this.authenticator = authenticator;
+    @SuppressWarnings("unchecked")
+    public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
     @SuppressWarnings("unchecked")
-    public <T> Builder principalMapper(PrincipalMapper<? extends T> principalMapper) {
-      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
+    public <A, T> Builder principalMapper(
+        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
 
@@ -133,14 +135,14 @@ public class ServiceInfo {
       return this;
     }
 
-    Builder authenticatorIfAbsent(Authenticator authenticator) {
+    Builder authenticatorIfAbsent(Authenticator<Object> authenticator) {
       if (this.authenticator == null) {
         this.authenticator = authenticator;
       }
       return this;
     }
 
-    Builder principalMapperIfAbsent(PrincipalMapper<Object> principalMapper) {
+    Builder principalMapperIfAbsent(PrincipalMapper<Object, Object> principalMapper) {
       if (this.principalMapper == null) {
         this.principalMapper = principalMapper;
       }

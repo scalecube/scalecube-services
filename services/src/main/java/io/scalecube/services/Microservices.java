@@ -119,14 +119,14 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator authenticator;
+  private final Authenticator<Object> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final String contentType;
-  private final PrincipalMapper<Object> principalMapper;
+  private final PrincipalMapper<Object, Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -312,7 +312,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator authenticator = null;
+    private Authenticator<Object> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -321,7 +321,7 @@ public final class Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String contentType = "application/json";
-    private PrincipalMapper<Object> principalMapper;
+    private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -377,9 +377,10 @@ public final class Microservices {
      * @param authenticator authenticator
      * @return this builder with applied parameter
      */
+    @SuppressWarnings("unchecked")
     @Deprecated
-    public Builder authenticator(Authenticator authenticator) {
-      this.authenticator = authenticator;
+    public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
@@ -454,8 +455,9 @@ public final class Microservices {
      * @param authenticator authenticator
      * @return this builder with applied parameter
      */
-    public Builder defaultAuthenticator(Authenticator authenticator) {
-      this.authenticator = authenticator;
+    @SuppressWarnings("unchecked")
+    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
@@ -463,12 +465,14 @@ public final class Microservices {
      * Setter for default {@code principalMapper}.
      *
      * @param principalMapper principalMapper
+     * @param <A> auth data type
      * @param <T> principal type
      * @return this builder with applied parameter
      */
-    public <T> Builder defaultPrincipalMapper(PrincipalMapper<? extends T> principalMapper) {
-      //noinspection unchecked
-      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
+    @SuppressWarnings("unchecked")
+    public <A, T> Builder defaultPrincipalMapper(
+        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
   }
