@@ -61,7 +61,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeOne(message)
-                    .doOnNext(response -> releaseRequestError(message, response));
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -76,7 +76,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeMany(message)
-                    .doOnNext(response -> releaseRequestError(message, response));
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -94,7 +94,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                       methodRegistry.getInvoker(message.qualifier());
                   return methodInvoker
                       .invokeBidirectional(messages)
-                      .doOnNext(response -> releaseRequestError(message, response));
+                      .doOnNext(response -> releaseRequestOnError(message, response));
                 }
                 return messages;
               })
@@ -133,7 +133,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       ReferenceCountUtil.safestRelease(request.data());
     }
 
-    private void releaseRequestError(ServiceMessage request, ServiceMessage response) {
+    private void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
       if (response.isError()) {
         releaseRequest(request);
       }
