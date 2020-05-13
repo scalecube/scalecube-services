@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -118,13 +119,14 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<?> authenticator;
+  private final Authenticator authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
   private final String contentType;
+  private final PrincipalMapper<Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -140,6 +142,7 @@ public final class Microservices {
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
+    this.principalMapper = builder.principalMapper;
 
     // Setup cleanup
     shutdown
@@ -176,9 +179,9 @@ public final class Microservices {
         .start(this)
         .publishOn(scheduler)
         .flatMap(
-            input -> {
+            transportBootstrap -> {
               final ServiceCall call = call();
-              final Address serviceAddress = input.address;
+              final Address serviceAddress = transportBootstrap.transportAddress;
 
               final ServiceEndpoint.Builder serviceEndpointBuilder =
                   ServiceEndpoint.builder()
@@ -222,9 +225,10 @@ public final class Microservices {
   private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
         ServiceInfo.from(serviceInfo)
-            .errorMapper(Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper))
-            .dataDecoder(Optional.ofNullable(serviceInfo.dataDecoder()).orElse(dataDecoder))
-            .authenticator(Optional.ofNullable(serviceInfo.authenticator()).orElse(authenticator))
+            .errorMapperIfAbsent(errorMapper)
+            .dataDecoderIfAbsent(dataDecoder)
+            .authenticatorIfAbsent(authenticator)
+            .principalMapperIfAbsent(principalMapper)
             .build());
   }
 
@@ -233,7 +237,7 @@ public final class Microservices {
   }
 
   public Address serviceAddress() {
-    return transportBootstrap.address;
+    return transportBootstrap.transportAddress;
   }
 
   /**
@@ -242,7 +246,10 @@ public final class Microservices {
    * @return new {@code ServiceCall} instance.
    */
   public ServiceCall call() {
-    return new ServiceCall(transportBootstrap.clientTransport, methodRegistry, serviceRegistry)
+    return new ServiceCall()
+        .transport(transportBootstrap.clientTransport)
+        .serviceRegistry(serviceRegistry)
+        .methodRegistry(methodRegistry)
         .contentType(contentType)
         .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
@@ -305,7 +312,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<?> authenticator = null;
+    private Authenticator authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -314,6 +321,7 @@ public final class Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String contentType = "application/json";
+    private PrincipalMapper<Object> principalMapper;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -362,7 +370,15 @@ public final class Microservices {
       return this;
     }
 
-    public Builder authenticator(Authenticator<?> authenticator) {
+    /**
+     * Setter for default {@code authenticator}. Deprecated. Use {@link
+     * #defaultAuthenticator(Authenticator)}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    @Deprecated
+    public Builder authenticator(Authenticator authenticator) {
       this.authenticator = authenticator;
       return this;
     }
@@ -387,18 +403,72 @@ public final class Microservices {
       return this;
     }
 
+    /**
+     * Setter for {@code errorMapper}.
+     *
+     * @param errorMapper error mapper
+     * @return this builder with applied parameter
+     */
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
       return this;
     }
 
+    /**
+     * Setter for {@code dataDecoder}.
+     *
+     * @param dataDecoder data decoder
+     * @return this builder with applied parameter
+     */
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
       return this;
     }
 
+    /**
+     * Setter for default {@code contentType}. Deprecated. Use {@link #defaultContentType(String)}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    @Deprecated
     public Builder contentType(String contentType) {
       this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code contentType}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    public Builder defaultContentType(String contentType) {
+      this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code authenticator}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    public Builder defaultAuthenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code principalMapper}.
+     *
+     * @param principalMapper principalMapper
+     * @param <T> principal type
+     * @return this builder with applied parameter
+     */
+    public <T> Builder defaultPrincipalMapper(PrincipalMapper<? extends T> principalMapper) {
+      //noinspection unchecked
+      this.principalMapper = (PrincipalMapper<Object>) principalMapper;
       return this;
     }
   }
@@ -541,38 +611,39 @@ public final class Microservices {
 
     public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
     public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
-    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", -1);
+    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", 0);
 
-    private final Supplier<ServiceTransport> supplier;
+    private final Supplier<ServiceTransport> transportSupplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address address = NULL_ADDRESS;
+    private Address transportAddress = NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
       this(NULL_SUPPLIER);
     }
 
-    public ServiceTransportBootstrap(Supplier<ServiceTransport> supplier) {
-      this.supplier = supplier;
+    public ServiceTransportBootstrap(Supplier<ServiceTransport> transportSupplier) {
+      this.transportSupplier = transportSupplier;
     }
 
     private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
-      if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
+      if (transportSupplier == NULL_SUPPLIER
+          || (serviceTransport = transportSupplier.get()) == null) {
         LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
       }
 
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport)
+          .doOnSuccess(transport -> serviceTransport = transport) // reset self
           .flatMap(
               transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
-                this.address =
+                this.transportAddress =
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
@@ -586,7 +657,7 @@ public final class Microservices {
                   LOGGER.info(
                       "[{}][serviceTransport][start] Started, address: {}",
                       microservices.id(),
-                      this.address))
+                      this.transportAddress))
           .doOnError(
               ex ->
                   LOGGER.error(
@@ -689,7 +760,6 @@ public final class Microservices {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
-          .add("authenticator=" + serviceInfo.authenticator())
           .toString();
     }
   }

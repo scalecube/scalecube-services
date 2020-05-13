@@ -1,20 +1,16 @@
 package io.scalecube.services.auth;
 
-import io.scalecube.services.api.ServiceMessage;
+import java.util.Map;
 import reactor.core.publisher.Mono;
 
-/**
- * Authenticator.
- *
- * @param <P> principal type
- */
-public interface Authenticator<P> {
+@FunctionalInterface
+public interface Authenticator {
 
   /**
-   * Returns principal by given credentials.
+   * Returns {@code authData} by given credentials.
    *
-   * @param message service message
-   * @return async result with obtained principal
+   * @param credentials credentials
+   * @return async result with obtained {@code authData}
    */
-  Mono<P> authenticate(ServiceMessage message);
+  Mono<Map<String, String>> authenticate(Map<String, String> credentials);
 }

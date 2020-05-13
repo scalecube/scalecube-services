@@ -49,16 +49,17 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                     "MethodInvoker for api '%s' already exists", qualifier));
                           }
 
-                          ServiceMethodInvoker invoker =
+                          ServiceMethodInvoker methodInvoker =
                               new ServiceMethodInvoker(
                                   method,
                                   serviceInfo.serviceInstance(),
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
-                                  serviceInfo.authenticator());
+                                  serviceInfo.authenticator(),
+                                  serviceInfo.principalMapper());
 
-                          methodInvokers.put(methodInfo.qualifier(), invoker);
+                          methodInvokers.put(methodInfo.qualifier(), methodInvoker);
                         }));
   }
 

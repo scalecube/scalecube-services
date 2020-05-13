@@ -14,7 +14,6 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +28,18 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
 
-  private final Consumer<Object> requestReleaser = ReferenceCountUtil::safestRelease;
-
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
 
-  public RSocketServiceAcceptor(ServiceMessageCodec codec, ServiceMethodRegistry methodRegistry) {
-    this.messageCodec = codec;
+  /**
+   * Constructor.
+   *
+   * @param messageCodec message codec
+   * @param methodRegistry method registry
+   */
+  public RSocketServiceAcceptor(
+      ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
+    this.messageCodec = messageCodec;
     this.methodRegistry = methodRegistry;
   }
 
@@ -55,7 +59,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
                 validateMethodInvoker(methodInvoker, message);
-                return methodInvoker.invokeOne(message);
+                return methodInvoker
+                    .invokeOne(message)
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -68,7 +74,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
                 validateMethodInvoker(methodInvoker, message);
-                return methodInvoker.invokeMany(message);
+                return methodInvoker
+                    .invokeMany(message)
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -84,8 +92,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
                       methodRegistry.getInvoker(message.qualifier());
-                  validateMethodInvoker(methodInvoker, message);
-                  return methodInvoker.invokeBidirectional(messages);
+                  return methodInvoker
+                      .invokeBidirectional(messages)
+                      .doOnNext(response -> releaseRequestOnError(message, response));
                 }
                 return messages;
               })
@@ -106,7 +115,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     private void validateRequest(ServiceMessage message) throws ServiceException {
       if (message.qualifier() == null) {
-        applyRequestReleaser(message);
+        releaseRequest(message);
         LOGGER.error("[qualifier is null] Invocation failed for {}", message);
         throw new BadRequestException("Qualifier is null");
       }
@@ -114,15 +123,19 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     private void validateMethodInvoker(ServiceMethodInvoker methodInvoker, ServiceMessage message) {
       if (methodInvoker == null) {
-        applyRequestReleaser(message);
+        releaseRequest(message);
         LOGGER.error("[no service invoker found] Invocation failed for {}", message);
         throw new ServiceUnavailableException("No service invoker found");
       }
     }
 
-    private void applyRequestReleaser(ServiceMessage request) {
-      if (request.data() != null) {
-        requestReleaser.accept(request.data());
+    private void releaseRequest(ServiceMessage request) {
+      ReferenceCountUtil.safestRelease(request.data());
+    }
+
+    private void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
+      if (response.isError()) {
+        releaseRequest(request);
       }
     }
   }
