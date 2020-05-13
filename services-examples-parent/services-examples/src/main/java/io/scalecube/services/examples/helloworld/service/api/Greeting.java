@@ -1,6 +1,8 @@
 package io.scalecube.services.examples.helloworld.service.api;
 
-public class Greeting {
+import java.io.Serializable;
+
+public class Greeting implements Serializable {
 
   String message;
 
