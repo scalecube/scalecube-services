@@ -321,7 +321,7 @@ public final class Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String contentType = "application/json";
-    private PrincipalMapper<Object, Object> principalMapper;
+    private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
