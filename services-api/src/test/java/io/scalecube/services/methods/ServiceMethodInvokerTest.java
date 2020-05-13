@@ -20,8 +20,8 @@ class ServiceMethodInvokerTest {
   private static final boolean AUTH = false;
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
-  private final PrincipalMapper<Object> principalMapper = authData -> authData;
-  private final Authenticator authenticator = Mono::just;
+  private final PrincipalMapper<Object, Object> principalMapper = authData -> authData;
+  private final Authenticator<Object> authenticator = Mono::just;
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;

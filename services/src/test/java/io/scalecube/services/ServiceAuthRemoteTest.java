@@ -35,7 +35,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     CREDENTIALS.put("password", "qwerty");
   }
 
-  private static final Authenticator authenticator =
+  private static final Authenticator<Map<String, String>> authenticator =
       headers -> {
         String username = headers.get("username");
         String password = headers.get("password");
@@ -52,7 +52,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
   private static Microservices caller;
   private static Microservices service;
-  public static PrincipalMapper<UserProfile> principalMapper;
+  public static PrincipalMapper<Map<String, String>, UserProfile> principalMapper;
 
   @BeforeAll
   static void beforeAll() {
