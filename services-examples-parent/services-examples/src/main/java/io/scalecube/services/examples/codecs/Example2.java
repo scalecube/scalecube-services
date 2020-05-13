@@ -22,7 +22,7 @@ public class Example2 {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .contentType(CONTENT_TYPE) // need to send with non-default data format
+            .defaultContentType(CONTENT_TYPE) // need to send with non-default data format
             .startAwait();
 
     final Address seedAddress = seed.discovery().address();
