@@ -39,6 +39,8 @@ public class StubServiceImpl implements StubService {
   @Override
   public Mono<Void> helloAuthContext() {
     return Mono.deferWithContext(
-        context -> Mono.fromRunnable(() -> context.get(Authenticator.AUTH_CONTEXT_KEY)));
+        context ->
+            Mono.fromRunnable(() -> context.get(Authenticator.AUTH_CONTEXT_KEY))
+                .then(Mono.fromRunnable(() -> context.get("NON_AUTH_CONTEXT"))));
   }
 }

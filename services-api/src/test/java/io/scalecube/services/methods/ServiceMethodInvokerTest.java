@@ -331,7 +331,10 @@ class ServiceMethodInvokerTest {
     StepVerifier.create(
             Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
                 .subscriberContext(
-                    context -> context.put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)))
+                    context ->
+                        context
+                            .put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)
+                            .put("NON_AUTH_CONTEXT", "test")))
         .verifyComplete();
   }
 
@@ -377,7 +380,10 @@ class ServiceMethodInvokerTest {
     StepVerifier.create(
             Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
                 .subscriberContext(
-                    context -> context.put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)))
+                    context ->
+                        context
+                            .put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)
+                            .put("NON_AUTH_CONTEXT", "test")))
         .verifyComplete();
   }
 }

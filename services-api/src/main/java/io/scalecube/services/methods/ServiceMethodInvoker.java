@@ -207,7 +207,7 @@ public final class ServiceMethodInvoker {
       return context;
     }
     Object value = principalMapper.map(authData);
-    return Context.of(Authenticator.AUTH_CONTEXT_KEY, value);
+    return context.put(Authenticator.AUTH_CONTEXT_KEY, value);
   }
 
   public Object service() {
