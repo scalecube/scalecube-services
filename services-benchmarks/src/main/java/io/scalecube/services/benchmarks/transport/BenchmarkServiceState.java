@@ -3,7 +3,7 @@ package io.scalecube.services.benchmarks.transport;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.net.Address;
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -20,8 +20,8 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
   private final Object[] services;
 
-  private Scalecube seed;
-  private Scalecube node;
+  private Microservices seed;
+  private Microservices node;
 
   public BenchmarkServiceState(BenchmarkSettings settings, Object... services) {
     super(settings);
@@ -31,7 +31,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
   @Override
   public void beforeAll() {
     seed =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -39,7 +39,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
     final Address seedAddress = seed.discovery().address();
 
     node =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -64,7 +64,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
     }
   }
 
-  public Scalecube seed() {
+  public Microservices seed() {
     return seed;
   }
 

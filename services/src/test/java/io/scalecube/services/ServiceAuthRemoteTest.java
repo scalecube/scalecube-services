@@ -50,8 +50,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
         return Mono.error(new UnauthorizedException("Authentication failed"));
       };
 
-  private static Scalecube caller;
-  private static Scalecube service;
+  private static Microservices caller;
+  private static Microservices service;
   public static PrincipalMapper<Map<String, String>, UserProfile> principalMapper;
 
   @BeforeAll
@@ -59,7 +59,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     StepVerifier.setDefaultTimeout(TIMEOUT);
 
     caller =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -67,11 +67,14 @@ final class ServiceAuthRemoteTest extends BaseTest {
     principalMapper = authData -> new UserProfile(authData.get("name"), authData.get("role"));
 
     service =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .defaultAuthenticator(authenticator)
-            .services(new SecuredServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
+                    .principalMapper(principalMapper)
+                    .build())
             .startAwait();
   }
 
@@ -108,8 +111,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @Test
   @DisplayName("Authentication failed if authenticator not provided")
   void failedAuthenticationWhenAuthenticatorNotProvided() {
-    Scalecube service =
-        Scalecube.builder()
+    Microservices service =
+        Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(
@@ -169,8 +172,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @Test
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
-    Scalecube service =
-        Scalecube.builder()
+    Microservices service =
+        Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .defaultAuthenticator(authenticator)
@@ -193,8 +196,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @Test
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
-    Scalecube service =
-        Scalecube.builder()
+    Microservices service =
+        Microservices.builder()
             .discovery(ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(

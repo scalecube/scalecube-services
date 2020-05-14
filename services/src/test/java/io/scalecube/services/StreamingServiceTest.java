@@ -21,20 +21,20 @@ import reactor.core.Disposable;
 
 public class StreamingServiceTest extends BaseTest {
 
-  private static Scalecube gateway;
-  private static Scalecube node;
+  private static Microservices gateway;
+  private static Microservices node;
 
   @BeforeAll
   public static void setup() {
     gateway =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
     node =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

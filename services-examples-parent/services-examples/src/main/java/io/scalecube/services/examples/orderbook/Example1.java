@@ -1,7 +1,7 @@
 package io.scalecube.services.examples.orderbook;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
@@ -32,16 +32,16 @@ public class Example1 {
    */
   public static void main(String[] args) throws InterruptedException {
 
-    Scalecube gateway =
-        Scalecube.builder()
+    Microservices gateway =
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     final Address gatewayAddress = gateway.discovery().address();
 
-    Scalecube ms =
-        Scalecube.builder()
+    Microservices ms =
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

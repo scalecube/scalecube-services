@@ -1,7 +1,7 @@
 package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -16,8 +16,8 @@ public class ExceptionMapperExample {
    * @throws InterruptedException exception.
    */
   public static void main(String[] args) throws InterruptedException {
-    Scalecube ms1 =
-        Scalecube.builder()
+    Microservices ms1 =
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
@@ -31,8 +31,8 @@ public class ExceptionMapperExample {
 
     final Address address1 = ms1.discovery().address();
 
-    Scalecube ms2 =
-        Scalecube.builder()
+    Microservices ms2 =
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

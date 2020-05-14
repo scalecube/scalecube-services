@@ -160,12 +160,6 @@ public class ServiceInfo {
       return this;
     }
 
-    /**
-     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
-     *
-     * @param errorMapper error mapper.
-     * @return current builder's state.
-     */
     Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
       if (this.dataDecoder == null) {
         this.dataDecoder = dataDecoder;
@@ -173,6 +167,12 @@ public class ServiceInfo {
       return this;
     }
 
+    /**
+     * Set up {@link Authenticator} if it hasn't been set up before.
+     *
+     * @param authenticator authenticator.
+     * @return current builder's state.
+     */
     Builder authenticatorIfAbsent(Authenticator<Object> authenticator) {
       if (this.authenticator == null) {
         this.authenticator = authenticator;
@@ -185,16 +185,6 @@ public class ServiceInfo {
         this.principalMapper = principalMapper;
       }
       return this;
-    }
-
-    /**
-     * Set up {@link Authenticator} if it hasn't been set up before.
-     *
-     * @param authenticator authenticator.
-     * @return current builder's state.
-     */
-    public Builder authenticatorIfAbsent(Authenticator authenticator) {
-      return Objects.isNull(this.authenticator) ? this.authenticator(authenticator) : this;
     }
 
     /**

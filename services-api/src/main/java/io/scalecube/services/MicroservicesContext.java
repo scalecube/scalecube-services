@@ -3,7 +3,7 @@ package io.scalecube.services;
 import io.scalecube.net.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 
-public interface Microservices {
+public interface MicroservicesContext {
 
   String id();
 
@@ -12,4 +12,5 @@ public interface Microservices {
   Address serviceAddress();
 
   ServiceDiscovery discovery();
+
 }

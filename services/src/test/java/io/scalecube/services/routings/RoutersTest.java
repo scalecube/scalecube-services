@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Reflect;
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
@@ -47,16 +47,16 @@ public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 10;
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
-  private static Scalecube gateway;
+  private static Microservices gateway;
   private static Address gatewayAddress;
-  private static Scalecube provider1;
-  private static Scalecube provider2;
-  private static Scalecube provider3;
+  private static Microservices provider1;
+  private static Microservices provider2;
+  private static Microservices provider3;
 
   @BeforeAll
   public static void setup() {
     gateway =
-        Scalecube.builder() //
+        Microservices.builder() //
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -65,7 +65,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider1 =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -83,7 +83,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider2 =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
@@ -101,7 +101,7 @@ public class RoutersTest extends BaseTest {
 
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

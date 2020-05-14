@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -32,19 +32,19 @@ public class RSocketServiceTransportTest extends BaseTest {
   private static final ServiceMessage ONLY_ONE_AND_THEN_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "onlyOneAndThenNever").build();
 
-  private Scalecube gateway;
-  private Scalecube serviceNode;
+  private Microservices gateway;
+  private Microservices serviceNode;
 
   @BeforeEach
   public void setUp() {
     gateway =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     serviceNode =
-        Scalecube.builder()
+        Microservices.builder()
             .discovery(
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
@@ -58,8 +58,8 @@ public class RSocketServiceTransportTest extends BaseTest {
   public void cleanUp() {
     try {
       Mono.whenDelayError(
-              Optional.ofNullable(gateway).map(Scalecube::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(serviceNode).map(Scalecube::shutdown).orElse(Mono.empty()))
+              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
+              Optional.ofNullable(serviceNode).map(Microservices::shutdown).orElse(Mono.empty()))
           .block();
     } catch (Throwable ignore) {
       // no-op

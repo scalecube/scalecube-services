@@ -1,6 +1,7 @@
 package io.scalecube.services.sut;
 
-import io.scalecube.services.Scalecube;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -12,7 +13,8 @@ import reactor.core.scheduler.Schedulers;
 
 public final class GreetingServiceImpl implements GreetingService {
 
-  @Inject Scalecube ms;
+  @Inject
+  MicroservicesContext ms;
 
   private int instanceId;
 

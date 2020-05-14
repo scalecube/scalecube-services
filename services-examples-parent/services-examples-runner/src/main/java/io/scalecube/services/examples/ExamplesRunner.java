@@ -9,7 +9,6 @@ import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.net.Address;
 import io.scalecube.runners.Runners;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -53,7 +52,7 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    Scalecube microservices = Scalecube.builder()
+    Microservices microservices = Microservices.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
             () ->

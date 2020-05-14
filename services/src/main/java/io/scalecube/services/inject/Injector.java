@@ -1,8 +1,8 @@
 package io.scalecube.services.inject;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Reflect;
-import io.scalecube.services.Scalecube;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.AfterConstruct;
@@ -30,15 +30,15 @@ public final class Injector {
    * @param service service
    * @return service instance
    */
-  public static ServiceInfo inject(Microservices microservices, ServiceInfo service) {
+  public static ServiceInfo inject(MicroservicesContext microservices, ServiceInfo service) {
     Object serviceInstance = service.serviceInstance();
     Arrays.stream(serviceInstance.getClass().getDeclaredFields())
         .forEach(field -> injectField(microservices, field, serviceInstance));
     return service;
   }
 
-  private static void injectField(Microservices microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Scalecube.class)) {
+  private static void injectField(MicroservicesContext microservices, Field field, Object service) {
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(MicroservicesContext.class)) {
       setField(field, service, microservices);
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
@@ -69,17 +69,18 @@ public final class Injector {
    * @return service info with modified service's instance.
    */
   public static ServiceInfo processAfterConstruct(
-      Microservices microservices, ServiceInfo serviceInfo) {
+      MicroservicesContext microservices, ServiceInfo serviceInfo) {
     processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), AfterConstruct.class);
     return serviceInfo;
   }
 
-  public static void processBeforeDestroy(Microservices microservices, ServiceInfo serviceInfo) {
+  public static void processBeforeDestroy(
+      MicroservicesContext microservices, ServiceInfo serviceInfo) {
     processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), BeforeDestroy.class);
   }
 
   private static <A extends Annotation> void processMethodWithAnnotation(
-      Microservices microservices, Object targetInstance, Class<A> annotation) {
+      MicroservicesContext microservices, Object targetInstance, Class<A> annotation) {
     Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
     Arrays.stream(declaredMethods)
         .filter(method -> method.isAnnotationPresent(annotation))
@@ -91,7 +92,7 @@ public final class Injector {
                     Arrays.stream(targetMethod.getParameters())
                         .map(
                             mapper -> {
-                              if (mapper.getType().equals(Scalecube.class)) {
+                              if (mapper.getType().equals(MicroservicesContext.class)) {
                                 return microservices;
                               } else if (Reflect.isService(mapper.getType())) {
                                 return microservices.call().api(mapper.getType());

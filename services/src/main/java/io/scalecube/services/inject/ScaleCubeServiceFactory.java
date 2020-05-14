@@ -1,6 +1,7 @@
 package io.scalecube.services.inject;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
@@ -13,7 +14,7 @@ import reactor.core.publisher.Mono;
 
 public class ScaleCubeServiceFactory implements ServiceFactory {
 
-  private final Function<Microservices, Collection<ServiceInfo>> serviceFactory;
+  private final Function<MicroservicesContext, Collection<ServiceInfo>> serviceFactory;
 
   // lazy init
   private AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
@@ -54,7 +55,7 @@ public class ScaleCubeServiceFactory implements ServiceFactory {
    */
   @Override
   public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-      Microservices microservices) {
+      MicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
             this.services(microservices).stream()
@@ -72,7 +73,8 @@ public class ScaleCubeServiceFactory implements ServiceFactory {
    * instance.
    */
   @Override
-  public Mono<? extends Collection<ServiceInfo>> initializeServices(Microservices microservices) {
+  public Mono<? extends Collection<ServiceInfo>> initializeServices(
+      MicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
             this.services(microservices).stream()
@@ -85,19 +87,21 @@ public class ScaleCubeServiceFactory implements ServiceFactory {
    *
    * <p>Use {@link io.scalecube.services.annotations.BeforeDestroy} for finilization service's
    * instance.
+   *
+   * @return
    */
   @Override
-  public Mono<Microservices> shutdownServices(Microservices microservices) {
-    return Mono.fromRunnable(() -> shutdown0(microservices)).thenReturn(microservices);
+  public Mono<Void> shutdownServices(MicroservicesContext microservices) {
+    return Mono.fromRunnable(() -> shutdown0(microservices));
   }
 
-  private void shutdown0(Microservices microservices) {
+  private void shutdown0(MicroservicesContext microservices) {
     if (this.services.get() != null) {
       this.services.get().forEach(service -> Injector.processBeforeDestroy(microservices, service));
     }
   }
 
-  private Collection<ServiceInfo> services(Microservices microservices) {
+  private Collection<ServiceInfo> services(MicroservicesContext microservices) {
     return this.services.updateAndGet(
         currentValue ->
             currentValue == null ? this.serviceFactory.apply(microservices) : currentValue);

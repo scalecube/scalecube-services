@@ -23,11 +23,11 @@ public class ServiceLocalTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private Scalecube microservices;
+  private Microservices microservices;
 
   @BeforeEach
   public void setUp() {
-    microservices = Scalecube.builder().services(new GreetingServiceImpl()).startAwait();
+    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
   @AfterEach
@@ -304,7 +304,7 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
   }
 
-  private GreetingService createProxy(Scalecube gateway) {
+  private GreetingService createProxy(Microservices gateway) {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 }
