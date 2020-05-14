@@ -32,7 +32,6 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
   public void beforeAll() {
     seed =
         Scalecube.builder()
-            .metrics(registry())
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -41,7 +40,6 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
     node =
         Scalecube.builder()
-            .metrics(registry())
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)

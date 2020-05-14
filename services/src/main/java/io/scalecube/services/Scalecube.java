@@ -1,8 +1,8 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -14,7 +14,6 @@ import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
-import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -120,23 +119,22 @@ public final class Scalecube implements Microservices {
   public static final Logger LOGGER = LoggerFactory.getLogger(Scalecube.class);
 
   private final String id = generateId();
-  private final Metrics metrics;
   private final Map<String, String> tags;
   private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<?> defaultAuthenticator;
+  private final Authenticator<Object> defaultAuthenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscoveryBootstrap discoveryBootstrap;
   private final ServiceProviderErrorMapper defaultErrorMapper;
   private final ServiceMessageDataDecoder defaultDataDecoder;
   private final String contentType;
+  private final PrincipalMapper<Object, Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
   private Scalecube(Builder builder) {
-    this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
 
     this.serviceFactory = builder.serviceFactory;
@@ -150,6 +148,7 @@ public final class Scalecube implements Microservices {
     this.defaultErrorMapper = builder.errorMapper;
     this.defaultDataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
+    this.principalMapper = builder.principalMapper;
 
     // Setup cleanup
     shutdown
@@ -234,6 +233,7 @@ public final class Scalecube implements Microservices {
                     .errorMapperIfAbsent(this.defaultErrorMapper)
                     .dataDecoderIfAbsent(this.defaultDataDecoder)
                     .authenticatorIfAbsent(this.defaultAuthenticator)
+                    .principalMapperIfAbsent(this.principalMapper)
                     .build())
         .forEach(methodRegistry::registerService);
   }
@@ -248,7 +248,7 @@ public final class Scalecube implements Microservices {
 
   @Override
   public Address serviceAddress() {
-    return transportBootstrap.address;
+    return transportBootstrap.transportAddress;
   }
 
   /**
@@ -263,6 +263,7 @@ public final class Scalecube implements Microservices {
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
         .contentType(contentType)
+        .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -316,14 +317,13 @@ public final class Scalecube implements Microservices {
 
   public static final class Builder {
 
-    private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
     private List<ServiceInfo> services = new ArrayList<>();
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceFactory serviceFactory;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<?> authenticator = null;
+    private Authenticator<Object> authenticator = null;
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -332,6 +332,7 @@ public final class Scalecube implements Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String contentType = "application/json";
+    private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
 
     private void build() {
       ServiceProvider serviceProvider =
@@ -430,8 +431,17 @@ public final class Scalecube implements Microservices {
       return this;
     }
 
-    public Builder authenticator(Authenticator<?> authenticator) {
-      this.authenticator = authenticator;
+    /**
+     * Setter for default {@code authenticator}. Deprecated. Use {@link
+     * #defaultAuthenticator(Authenticator)}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    @SuppressWarnings("unchecked")
+    @Deprecated
+    public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
@@ -445,11 +455,6 @@ public final class Scalecube implements Microservices {
       return this;
     }
 
-    public Builder metrics(MetricRegistry metrics) {
-      this.metrics = new Metrics(metrics);
-      return this;
-    }
-
     public Builder tags(Map<String, String> tags) {
       this.tags = tags;
       return this;
@@ -460,18 +465,75 @@ public final class Scalecube implements Microservices {
       return this;
     }
 
+    /**
+     * Setter for {@code errorMapper}.
+     *
+     * @param errorMapper error mapper
+     * @return this builder with applied parameter
+     */
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
       return this;
     }
 
+    /**
+     * Setter for {@code dataDecoder}.
+     *
+     * @param dataDecoder data decoder
+     * @return this builder with applied parameter
+     */
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = dataDecoder;
       return this;
     }
 
+    /**
+     * Setter for default {@code contentType}. Deprecated. Use {@link #defaultContentType(String)}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    @Deprecated
     public Builder contentType(String contentType) {
       this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code contentType}.
+     *
+     * @param contentType contentType
+     * @return this builder with applied parameter
+     */
+    public Builder defaultContentType(String contentType) {
+      this.contentType = contentType;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code authenticator}.
+     *
+     * @param authenticator authenticator
+     * @return this builder with applied parameter
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code principalMapper}.
+     *
+     * @param principalMapper principalMapper
+     * @param <A> auth data type
+     * @param <T> principal type
+     * @return this builder with applied parameter
+     */
+    @SuppressWarnings("unchecked")
+    public <A, T> Builder defaultPrincipalMapper(
+        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
   }
@@ -614,38 +676,39 @@ public final class Scalecube implements Microservices {
 
     public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
     public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
-    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", -1);
+    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", 0);
 
-    private final Supplier<ServiceTransport> supplier;
+    private final Supplier<ServiceTransport> transportSupplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address address = NULL_ADDRESS;
+    private Address transportAddress = NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
       this(NULL_SUPPLIER);
     }
 
-    public ServiceTransportBootstrap(Supplier<ServiceTransport> supplier) {
-      this.supplier = supplier;
+    public ServiceTransportBootstrap(Supplier<ServiceTransport> transportSupplier) {
+      this.transportSupplier = transportSupplier;
     }
 
     private Mono<ServiceTransportBootstrap> start(Scalecube microservices) {
-      if (supplier == NULL_SUPPLIER || (serviceTransport = supplier.get()) == null) {
+      if (transportSupplier == NULL_SUPPLIER
+          || (serviceTransport = transportSupplier.get()) == null) {
         LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
       }
 
       return serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport)
+          .doOnSuccess(transport -> serviceTransport = transport) // reset self
           .flatMap(
               transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
-                this.address =
+                this.transportAddress =
                     Address.create(
                         Address.getLocalIpAddress().getHostAddress(),
                         serverTransport.address().port());
@@ -659,7 +722,7 @@ public final class Scalecube implements Microservices {
                   LOGGER.info(
                       "[{}][serviceTransport][start] Started, address: {}",
                       microservices.id(),
-                      this.address))
+                      this.transportAddress))
           .doOnError(
               ex ->
                   LOGGER.error(
@@ -766,7 +829,6 @@ public final class Scalecube implements Microservices {
       return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
-          .add("authenticator=" + serviceInfo.authenticator())
           .toString();
     }
   }

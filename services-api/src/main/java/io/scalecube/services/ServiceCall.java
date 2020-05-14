@@ -9,6 +9,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
+import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
@@ -21,9 +22,8 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -44,14 +44,9 @@ public class ServiceCall {
   private ServiceRegistry serviceRegistry;
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-  private Consumer<Object> requestReleaser =
-      req -> {
-        // no-op
-      };
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType;
 
-  /** Default constructor. */
   public ServiceCall() {}
 
   private ServiceCall(ServiceCall other) {
@@ -61,12 +56,11 @@ public class ServiceCall {
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
-    this.requestReleaser = other.requestReleaser;
-    this.credentials = new HashMap<>(other.credentials);
+    this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given client transport.
+   * Setter for {@code clientTransport}.
    *
    * @param clientTransport client transport.
    * @return new {@link ServiceCall} instance.
@@ -78,7 +72,7 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given service registry.
+   * Setter for {@code serviceRegistry}.
    *
    * @param serviceRegistry service registry.
    * @return new {@link ServiceCall} instance.
@@ -90,7 +84,7 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given method registry.
+   * Setter for {@code methodRegistry}.
    *
    * @param methodRegistry method registry.
    * @return new {@link ServiceCall} instance.
@@ -102,9 +96,9 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given router.
+   * Setter for {@code routerType}.
    *
-   * @param routerType given class of the router.
+   * @param routerType method registry.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall router(Class<? extends Router> routerType) {
@@ -114,9 +108,9 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given router.
+   * Setter for {@code router}.
    *
-   * @param router given.
+   * @param router router.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall router(Router router) {
@@ -126,9 +120,9 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given error mapper.
+   * Setter for {@code errorMapper}.
    *
-   * @param errorMapper given.
+   * @param errorMapper error mapper.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall errorMapper(ServiceClientErrorMapper errorMapper) {
@@ -138,31 +132,19 @@ public class ServiceCall {
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given requestReleaser.
+   * Setter for {@code credentials}.
    *
-   * @param requestReleaser given.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall requestReleaser(Consumer<Object> requestReleaser) {
-    ServiceCall target = new ServiceCall(this);
-    target.requestReleaser = requestReleaser;
-    return target;
-  }
-
-  /**
-   * Creates new {@link ServiceCall}'s definition with a given credentials.
-   *
-   * @param credentials given.
+   * @param credentials credentials.
    * @return new {@link ServiceCall} instance.
    */
   public ServiceCall credentials(Map<String, String> credentials) {
     ServiceCall target = new ServiceCall(this);
-    target.credentials = credentials;
+    target.credentials = Collections.unmodifiableMap(new HashMap<>(credentials));
     return target;
   }
 
   /**
-   * Creates new {@link ServiceCall}'s definition with a given content type.
+   * Setter for {@code contentType}.
    *
    * @param contentType content type.
    * @return new {@link ServiceCall} instance.
@@ -214,16 +196,17 @@ public class ServiceCall {
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
-          String qualifier = request.qualifier();
+          Objects.requireNonNull(request.qualifier(), "qualifier");
+
+          ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
-              && methodRegistry.containsInvoker(qualifier)) { // local service
-            return methodRegistry
-                .getInvoker(request.qualifier())
-                .invokeOne(request, requestReleaser)
-                .map(this::throwIfError);
+              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+            // local service
+            return methodInvoker.invokeOne(request).map(this::throwIfError);
           } else {
-            return addressLookup(request)
-                .flatMap(address -> requestOne(request, responseType, address)); // remote service
+            // remote service
+            return Mono.fromCallable(() -> addressLookup(request))
+                .flatMap(address -> requestOne(request, responseType, address));
           }
         });
   }
@@ -269,17 +252,17 @@ public class ServiceCall {
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
-          String qualifier = request.qualifier();
+          Objects.requireNonNull(request.qualifier(), "qualifier");
+
+          ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
-              && methodRegistry.containsInvoker(qualifier)) { // local service
-            return methodRegistry
-                .getInvoker(request.qualifier())
-                .invokeMany(request, requestReleaser)
-                .map(this::throwIfError);
+              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+            // local service
+            return methodInvoker.invokeMany(request).map(this::throwIfError);
           } else {
-            return addressLookup(request)
-                .flatMapMany(
-                    address -> requestMany(request, responseType, address)); // remote service
+            // remote service
+            return Mono.fromCallable(() -> addressLookup(request))
+                .flatMapMany(address -> requestMany(request, responseType, address));
           }
         });
   }
@@ -330,21 +313,20 @@ public class ServiceCall {
             (first, messages) -> {
               if (first.hasValue()) {
                 ServiceMessage request = first.get();
-                String qualifier = request.qualifier();
+                Objects.requireNonNull(request.qualifier(), "qualifier");
+
+                ServiceMethodInvoker methodInvoker;
                 if (methodRegistry != null
-                    && methodRegistry.containsInvoker(qualifier)) { // local service
-                  return methodRegistry
-                      .getInvoker(qualifier)
-                      .invokeBidirectional(messages, requestReleaser)
-                      .map(this::throwIfError);
+                    && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+                  // local service
+                  return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
                   // remote service
-                  return addressLookup(request)
+                  return Mono.fromCallable(() -> addressLookup(request))
                       .flatMapMany(
                           address -> requestBidirectional(messages, responseType, address));
                 }
               }
-
               return messages;
             });
   }
@@ -437,14 +419,11 @@ public class ServiceCall {
             });
   }
 
-  private Mono<Address> addressLookup(ServiceMessage request) {
-    Callable<Address> callable =
-        () ->
-            router
-                .route(serviceRegistry, request)
-                .map(ServiceReference::address)
-                .orElseThrow(() -> noReachableMemberException(request));
-    return Mono.fromCallable(callable).doOnError(th -> applyRequestReleaser(request));
+  private Address addressLookup(ServiceMessage request) {
+    return router
+        .route(serviceRegistry, request)
+        .map(ServiceReference::address)
+        .orElseThrow(() -> noReachableMemberException(request));
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
@@ -516,11 +495,5 @@ public class ServiceCall {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
     return message;
-  }
-
-  private void applyRequestReleaser(ServiceMessage request) {
-    if (request.data() != null) {
-      requestReleaser.accept(request.data());
-    }
   }
 }

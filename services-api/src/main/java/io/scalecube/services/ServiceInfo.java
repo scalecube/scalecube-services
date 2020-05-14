@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
@@ -9,14 +10,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
 
-@SuppressWarnings("rawtypes")
 public class ServiceInfo {
 
   private final Object serviceInstance;
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator authenticator;
+  private final Authenticator<Object> authenticator;
+  private final PrincipalMapper<Object, Object> principalMapper;
 
   private ServiceInfo(Builder builder) {
     this.serviceInstance = builder.serviceInstance;
@@ -24,6 +25,7 @@ public class ServiceInfo {
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
     this.authenticator = builder.authenticator;
+    this.principalMapper = builder.principalMapper;
   }
 
   public static Builder from(ServiceInfo serviceInfo) {
@@ -50,29 +52,34 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
-  public Authenticator authenticator() {
+  public Authenticator<Object> authenticator() {
     return authenticator;
+  }
+
+  public PrincipalMapper<Object, Object> principalMapper() {
+    return principalMapper;
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
         .add("serviceInstance=" + serviceInstance)
-        .add("tags=" + tags)
+        .add("tags(" + tags.size() + ")")
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
         .add("authenticator=" + authenticator)
+        .add("principalMapper=" + principalMapper)
         .toString();
   }
 
-  @SuppressWarnings("rawtypes")
   public static class Builder {
 
     private final Object serviceInstance;
     private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
-    private Authenticator authenticator;
+    private Authenticator<Object> authenticator;
+    private PrincipalMapper<Object, Object> principalMapper;
 
     private Builder(ServiceInfo serviceInfo) {
       this.serviceInstance = serviceInfo.serviceInstance;
@@ -80,6 +87,7 @@ public class ServiceInfo {
       this.errorMapper = serviceInfo.errorMapper;
       this.dataDecoder = serviceInfo.dataDecoder;
       this.authenticator = serviceInfo.authenticator;
+      this.principalMapper = serviceInfo.principalMapper;
     }
 
     private Builder(Object serviceInstance) {
@@ -121,33 +129,61 @@ public class ServiceInfo {
     }
 
     /**
-     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
-     *
-     * @param errorMapper error mapper.
-     * @return current builder's state.
-     */
-    public Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
-      return Objects.isNull(this.errorMapper) ? this.errorMapper(errorMapper) : this;
-    }
-
-    /**
-     * Set up {@link ServiceMessageDataDecoder} if it hasn't been set up before.
-     *
-     * @param dataDecoder data decoder.
-     * @return current builder's state.
-     */
-    public Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
-      return Objects.isNull(this.dataDecoder) ? this.dataDecoder(dataDecoder) : this;
-    }
-
-    /**
      * Set up {@link Authenticator}.
      *
      * @param authenticator authenticator.
      * @return current builder's state.
      */
-    public Builder authenticator(Authenticator authenticator) {
-      this.authenticator = authenticator;
+    @SuppressWarnings("unchecked")
+    public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
+      this.authenticator = (Authenticator<Object>) authenticator;
+      return this;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <A, T> Builder principalMapper(
+        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
+      return this;
+    }
+
+    /**
+     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
+     *
+     * @param errorMapper error mapper.
+     * @return current builder's state.
+     */
+    Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
+      if (this.errorMapper == null) {
+        this.errorMapper = errorMapper;
+      }
+      return this;
+    }
+
+    /**
+     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
+     *
+     * @param errorMapper error mapper.
+     * @return current builder's state.
+     */
+    Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
+      if (this.dataDecoder == null) {
+        this.dataDecoder = dataDecoder;
+      }
+      return this;
+    }
+
+    Builder authenticatorIfAbsent(Authenticator<Object> authenticator) {
+      if (this.authenticator == null) {
+        this.authenticator = authenticator;
+      }
+      return this;
+    }
+
+    Builder principalMapperIfAbsent(PrincipalMapper<Object, Object> principalMapper) {
+      if (this.principalMapper == null) {
+        this.principalMapper = principalMapper;
+      }
       return this;
     }
 

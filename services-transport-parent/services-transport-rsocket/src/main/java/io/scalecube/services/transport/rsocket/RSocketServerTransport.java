@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.rsocket.RSocketFactory;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
@@ -10,6 +9,7 @@ import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
+import java.util.StringJoiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -20,7 +20,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final ServiceMessageCodec codec;
+  private final ServiceMessageCodec messageCodec;
   private final TcpServer tcpServer;
 
   private CloseableChannel serverChannel; // calculated
@@ -28,11 +28,11 @@ public class RSocketServerTransport implements ServerTransport {
   /**
    * Constructor for this server transport.
    *
-   * @param codec message codec
+   * @param messageCodec message codec
    * @param tcpServer tcp server
    */
-  public RSocketServerTransport(ServiceMessageCodec codec, TcpServer tcpServer) {
-    this.codec = codec;
+  public RSocketServerTransport(ServiceMessageCodec messageCodec, TcpServer tcpServer) {
+    this.messageCodec = messageCodec;
     this.tcpServer = tcpServer;
   }
 
@@ -49,15 +49,13 @@ public class RSocketServerTransport implements ServerTransport {
           TcpServer tcpServer =
               this.tcpServer.doOnConnection(
                   connection -> {
-                    LOGGER.info("Accepted connection on {}", connection.channel());
+                    LOGGER.debug("Accepted connection on {}", connection.channel());
                     connection.onDispose(
-                        () -> LOGGER.info("Connection closed on {}", connection.channel()));
+                        () -> LOGGER.debug("Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
-              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+              .acceptor(new RSocketServiceAcceptor(messageCodec, methodRegistry))
               .payloadDecoder(PayloadDecoder.DEFAULT)
-              .errorConsumer(
-                  th -> LOGGER.warn("Exception occurred at rsocket server transport: " + th))
               .bind(TcpServerTransport.create(tcpServer))
               .doOnSuccess(channel -> serverChannel = channel)
               .thenReturn(this);
@@ -80,13 +78,10 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public String toString() {
-    return "RSocketServerTransport{"
-        + "codec="
-        + codec
-        + ", tcpServer="
-        + tcpServer
-        + ", serverChannel="
-        + serverChannel
-        + '}';
+    return new StringJoiner(", ", RSocketServerTransport.class.getSimpleName() + "[", "]")
+        .add("messageCodec=" + messageCodec)
+        .add("tcpServer=" + tcpServer)
+        .add("serverChannel=" + serverChannel)
+        .toString();
   }
 }

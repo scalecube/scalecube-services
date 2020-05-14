@@ -1,20 +1,22 @@
 package io.scalecube.services.auth;
 
-import io.scalecube.services.api.ServiceMessage;
+import java.util.Map;
 import reactor.core.publisher.Mono;
 
-/**
- * Authenticator.
- *
- * @param <P> principal type
- */
-public interface Authenticator<P> {
+@FunctionalInterface
+public interface Authenticator<A> {
 
   /**
-   * Returns principal by given credentials.
-   *
-   * @param message service message
-   * @return async result with obtained principal
+   * Key in {@link reactor.util.context.Context} to represent authentication result after call to
+   * {@link #authenticate(Map)}.
    */
-  Mono<P> authenticate(ServiceMessage message);
+  String AUTH_CONTEXT_KEY = "auth.context";
+
+  /**
+   * Returns {@code authData} by given credentials.
+   *
+   * @param credentials credentials
+   * @return async result with obtained {@code authData}
+   */
+  Mono<A> authenticate(Map<String, String> credentials);
 }

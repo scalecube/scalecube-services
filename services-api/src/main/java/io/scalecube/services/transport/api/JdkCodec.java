@@ -4,20 +4,42 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-/** Simple binary codec for headers service message. */
-public final class DefaultHeadersCodec implements HeadersCodec {
+/** Simple headers and data codec based on JDK only. */
+public class JdkCodec implements DataCodec, HeadersCodec {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String contentType() {
     return "application/octet-stream";
   }
 
+  /**
+   * Uses Jdk Object Serialization.
+   *
+   * <p>{@inheritDoc}
+   */
+  @Override
+  public void encode(OutputStream stream, Object value) throws IOException {
+    try (ObjectOutputStream oos = new ObjectOutputStream(stream)) {
+      oos.writeObject(value);
+      oos.flush();
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
     if (headers.isEmpty()) {
@@ -34,6 +56,23 @@ public final class DefaultHeadersCodec implements HeadersCodec {
     }
   }
 
+  /**
+   * Uses Jdk Object Serialization.
+   *
+   * <p>{@inheritDoc}
+   */
+  @Override
+  public Object decode(InputStream stream, Type type) throws IOException {
+    try (ObjectInputStream is = new ObjectInputStream(stream)) {
+      return is.readObject();
+    } catch (ClassNotFoundException e) {
+      throw new IOException(e.getMessage(), e);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
     if (stream.available() < 1) {

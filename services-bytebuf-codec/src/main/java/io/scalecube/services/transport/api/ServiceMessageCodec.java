@@ -26,8 +26,11 @@ public final class ServiceMessageCodec {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
 
+  private static final HeadersCodec DEFAULT_HEADERS_CODEC = new JdkCodec();
+
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
+
 
   /** Message codec with default Headers/Data Codecs. */
   public ServiceMessageCodec() {
@@ -44,12 +47,12 @@ public final class ServiceMessageCodec {
    * <p>Default HeadersCodec is DefaultHeadersCodec. This is lightweight binary codec written on
    * vanilla java.
    *
-   * @param headersCodec codec for message headers. Default, {@link DefaultHeadersCodec}
+   * @param headersCodec codec for message headers. Default, {@link JdkCodec}
    * @param dataCodecs codecs for message body. Codec will select by Message Content Type.
    */
   public ServiceMessageCodec(
       @Nullable HeadersCodec headersCodec, @Nullable Collection<DataCodec> dataCodecs) {
-    this.headersCodec = headersCodec == null ? new DefaultHeadersCodec() : headersCodec;
+    this.headersCodec = headersCodec == null ? DEFAULT_HEADERS_CODEC : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
       this.dataCodecs = defaultCodecs;
