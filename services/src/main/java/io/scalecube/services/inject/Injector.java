@@ -38,7 +38,8 @@ public final class Injector {
   }
 
   private static void injectField(MicroservicesContext microservices, Field field, Object service) {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(MicroservicesContext.class)) {
+    if (field.isAnnotationPresent(Inject.class)
+        && field.getType().equals(MicroservicesContext.class)) {
       setField(field, service, microservices);
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
