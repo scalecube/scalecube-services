@@ -244,17 +244,17 @@ public final class ServiceMessage {
      * @return headers
      */
     private Map<String, String> headers() {
-      return this.headers;
+      return headers;
     }
 
     /**
      * Setter for {@code headers}.
      *
-     * @param headers headers
+     * @param headers headers; not null
      * @return this builder
      */
     public Builder headers(Map<String, String> headers) {
-      headers.forEach(this::header);
+      Objects.requireNonNull(headers, "headers").forEach(this::header);
       return this;
     }
 
