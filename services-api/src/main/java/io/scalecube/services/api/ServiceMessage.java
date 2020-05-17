@@ -163,7 +163,7 @@ public final class ServiceMessage {
    */
   public boolean isError() {
     String qualifier = qualifier();
-    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
+    return qualifier != null && qualifier.startsWith(Qualifier.ERROR_NAMESPACE);
   }
 
   /**

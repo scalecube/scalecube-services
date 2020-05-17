@@ -45,7 +45,11 @@ public class ServiceReference {
   }
 
   public String qualifier() {
-    return this.qualifier;
+    return qualifier;
+  }
+
+  public String oldQualifier() {
+    return Qualifier.DELIMITER + qualifier();
   }
 
   public String endpointId() {

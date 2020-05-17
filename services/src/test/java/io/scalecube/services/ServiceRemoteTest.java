@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -228,7 +229,9 @@ public class ServiceRemoteTest extends BaseTest {
 
     StepVerifier.create(
             serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage").build(),
+                ServiceMessage.from(request)
+                    .qualifier(Qualifier.asString("greetings", "greetingMessage"))
+                    .build(),
                 GreetingResponse.class))
         .assertNext(
             message -> {
@@ -244,7 +247,9 @@ public class ServiceRemoteTest extends BaseTest {
 
     StepVerifier.create(
             serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage2").build(),
+                ServiceMessage.from(request)
+                    .qualifier(Qualifier.asString("greetings", "greetingMessage2"))
+                    .build(),
                 GreetingResponse.class))
         .assertNext(
             message -> {

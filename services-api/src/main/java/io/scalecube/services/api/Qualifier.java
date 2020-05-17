@@ -25,7 +25,7 @@ public final class Qualifier {
    * @return constructed qualifier.
    */
   public static String asString(String namespace, String action) {
-    return DELIMITER + namespace + DELIMITER + action;
+    return namespace + DELIMITER + action;
   }
 
   /**
@@ -35,11 +35,14 @@ public final class Qualifier {
    * @return qualifier namespace.
    */
   public static String getQualifierNamespace(String qualifierAsString) {
-    int pos = qualifierAsString.indexOf(DELIMITER, 1);
+    // If qualifier starts with DELIMITER it's old format, if not then it's new format without
+    // DELIMITER in the beginning
+    int namespacePos = qualifierAsString.startsWith(DELIMITER) ? 1 : 0;
+    int pos = qualifierAsString.indexOf(DELIMITER, namespacePos);
     if (pos == -1) {
       throw new IllegalArgumentException("Wrong qualifier format: '" + qualifierAsString + "'");
     }
-    return qualifierAsString.substring(1, pos);
+    return qualifierAsString.substring(namespacePos, pos);
   }
 
   /**
