@@ -427,19 +427,26 @@ public class ServiceCall {
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
+    final ServiceMessage.Builder builder;
+    final Object data;
+    final String dataFormat;
+
     if (request instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) request)
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .headers(credentials)
-          .dataFormatIfAbsent(contentType)
-          .build();
+      ServiceMessage message = (ServiceMessage) request;
+      builder = ServiceMessage.from(message);
+      data = message.data();
+      dataFormat = message.dataFormat(); // data format from message
+    } else {
+      builder = ServiceMessage.builder();
+      data = request;
+      dataFormat = contentType; // data format from service call
     }
 
-    return ServiceMessage.builder()
+    return builder
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .headers(credentials)
-        .data(request)
-        .dataFormatIfAbsent(contentType)
+        .data(data)
+        .dataFormat(dataFormat)
         .build();
   }
 

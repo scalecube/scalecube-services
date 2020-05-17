@@ -9,7 +9,9 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 
 public class Example1 {
 
-  public static final String CONTENT_TYPE = "application/protostuff";
+  public static final String JSON = "application/json";
+  public static final String PROTOSTUFF = "application/protostuff";
+  public static final String OCTET_STREAM = "application/octet-stream";
 
   /**
    * Start the example.
@@ -22,7 +24,7 @@ public class Example1 {
         Microservices.builder()
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
-            .contentType(CONTENT_TYPE) // need to send with non-default data format
+            .defaultContentType(PROTOSTUFF) // set explicit default data format
             .startAwait();
 
     final Address seedAddress = seed.discovery().address();
@@ -38,11 +40,22 @@ public class Example1 {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    // Create service proxy
-    GreetingsService service = seed.call().api(GreetingsService.class);
+    seed.call()
+        .api(GreetingsService.class)
+        .sayHello("joe (on default dataFormat PROTOSTUFF")
+        .subscribe(consumer -> System.out.println(consumer.message()));
 
-    // Execute the services and subscribe to service events
-    service.sayHello("joe").subscribe(consumer -> System.out.println(consumer.message()));
+    seed.call()
+        .contentType(JSON)
+        .api(GreetingsService.class)
+        .sayHello("alice (on JSON dataFormat)")
+        .subscribe(consumer -> System.out.println(consumer.message()));
+
+    seed.call()
+        .contentType(OCTET_STREAM)
+        .api(GreetingsService.class)
+        .sayHello("bob on java native (Serializable/Externalizable) dataFormat")
+        .subscribe(consumer -> System.out.println(consumer.message()));
 
     seed.onShutdown().block();
     ms.onShutdown().block();

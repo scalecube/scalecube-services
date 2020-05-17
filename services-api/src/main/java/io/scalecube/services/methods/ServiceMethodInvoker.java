@@ -191,18 +191,19 @@ public final class ServiceMethodInvoker {
   }
 
   private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+    final ServiceMessage.Builder builder;
+    final Object data;
+
     if (response instanceof ServiceMessage) {
       ServiceMessage message = (ServiceMessage) response;
-      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
-        return ServiceMessage.from(message).qualifier(qualifier).dataFormat(dataFormat).build();
-      }
-      return ServiceMessage.from(message).qualifier(qualifier).build();
+      builder = ServiceMessage.from(message);
+      data = message.data();
+    } else {
+      builder = ServiceMessage.builder();
+      data = response;
     }
-    return ServiceMessage.builder()
-        .qualifier(qualifier)
-        .data(response)
-        .dataFormatIfAbsent(dataFormat)
-        .build();
+
+    return builder.qualifier(qualifier).data(data).dataFormat(dataFormat).build();
   }
 
   private Context newPrincipalContext(Object authData, Context context) {
