@@ -197,8 +197,9 @@ public final class ServiceMethodInvoker {
     final Object data;
 
     if (response instanceof ServiceMessage) {
-      builder = ServiceMessage.from((ServiceMessage) response);
-      data = ((ServiceMessage) response).data();
+      ServiceMessage message = (ServiceMessage) response;
+      builder = ServiceMessage.from(message);
+      data = message.data();
     } else {
       builder = ServiceMessage.builder();
       data = response;

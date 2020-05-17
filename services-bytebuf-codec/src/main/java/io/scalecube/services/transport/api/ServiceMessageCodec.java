@@ -17,10 +17,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.util.annotation.Nullable;
 
 public final class ServiceMessageCodec {
 
@@ -37,20 +37,19 @@ public final class ServiceMessageCodec {
   }
 
   /**
-   * Create instance from headersCodec and set of DataCodec.
+   * Constructor. Creates instance out of {@link HeadersCodec} instance and {@link DataCodec}
+   * collection.
    *
-   * <p>If codecs are not specified by the user ({@code dataCodecs == null}), DataCodecs obtained
-   * through the SPI mechanism are used. If the user sets several DataCodecs for one Content Type,
-   * then the last one specified is used. User's DataCodec always override DataCodecs from SPI.
+   * <p><b>NOTE:</b> If client set several data codecs for one content type (see what's content type
+   * here: {@link HeadersCodec#contentType()}, {@link DataCodec#contentType()}), then the last one
+   * specified will be used. Client's collection of data codes override data codecs from SPI.
    *
-   * <p>Default HeadersCodec is DefaultHeadersCodec. This is lightweight binary codec written on
-   * vanilla java.
-   *
-   * @param headersCodec codec for message headers. Default, {@link JdkCodec}
-   * @param dataCodecs codecs for message body. Codec will select by Message Content Type.
+   * @param headersCodec codec for service message headers; optional, if not set then {@link
+   *     JdkCodec} will be used.
+   * @param dataCodecs codecs for service message data; optional, if not set then {@link
+   *     DataCodec#INSTANCES} will be used.
    */
-  public ServiceMessageCodec(
-      @Nullable HeadersCodec headersCodec, @Nullable Collection<DataCodec> dataCodecs) {
+  public ServiceMessageCodec(HeadersCodec headersCodec, Collection<DataCodec> dataCodecs) {
     this.headersCodec = headersCodec == null ? DEFAULT_HEADERS_CODEC : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
@@ -93,9 +92,9 @@ public final class ServiceMessageCodec {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer);
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex.toString());
-        throw new MessageCodecException(
-            "Failed to encode data on message q=" + message.qualifier(), ex);
+        LOGGER.error(
+            "Failed to encode service message data on: {}, cause: {}", message, ex.toString());
+        throw new MessageCodecException("Failed to encode service message data", ex);
       }
     }
 
@@ -106,8 +105,9 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(headersBuffer);
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
-        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex.toString());
-        throw new MessageCodecException("Failed to encode headers message q=[" + message + "]", ex);
+        LOGGER.error(
+            "Failed to encode service message headers on: {}, cause: {}", message, ex.toString());
+        throw new MessageCodecException("Failed to encode service message headers", ex);
       }
     }
 
@@ -134,7 +134,7 @@ public final class ServiceMessageCodec {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
-        throw new MessageCodecException("Failed to decode message headers", ex);
+        throw new MessageCodecException("Failed to decode service message headers", ex);
       }
     }
 
@@ -166,27 +166,15 @@ public final class ServiceMessageCodec {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
-      throw new MessageCodecException(
-          "Failed to decode data on message q=" + message.qualifier(), ex);
+      throw new MessageCodecException("Failed to decode service message data", ex);
     }
 
     return ServiceMessage.from(message).data(data).build();
   }
 
-  /**
-   * Get a DataCodec for a content type.
-   *
-   * @param contentType the content type.
-   * @return a DataCodec for the content type or IllegalArgumentException is thrown if non exist
-   */
   private DataCodec getDataCodec(String contentType) {
-    if (contentType == null) {
-      throw new IllegalArgumentException("contentType not specified");
-    }
+    Objects.requireNonNull(contentType, "contentType");
     DataCodec dataCodec = dataCodecs.get(contentType);
-    if (dataCodec == null) {
-      throw new IllegalArgumentException("DataCodec for '" + contentType + "' not configured");
-    }
-    return dataCodec;
+    return Objects.requireNonNull(dataCodec, "dataCodec");
   }
 }
