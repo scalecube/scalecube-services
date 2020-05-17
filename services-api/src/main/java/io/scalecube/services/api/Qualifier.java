@@ -40,7 +40,7 @@ public final class Qualifier {
     int namespacePos = qualifierAsString.startsWith(DELIMITER) ? 1 : 0;
     int pos = qualifierAsString.indexOf(DELIMITER, namespacePos);
     if (pos == -1) {
-      throw new IllegalArgumentException("Wrong qualifier format: '" + qualifierAsString + "'");
+      throw new IllegalArgumentException("Wrong qualifier: '" + qualifierAsString + "'");
     }
     return qualifierAsString.substring(namespacePos, pos);
   }

@@ -756,6 +756,7 @@ public final class Microservices {
     private static String asString(MethodInfo methodInfo) {
       return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
           .add("qualifier=" + methodInfo.qualifier())
+          .add("oldQualifier=" + methodInfo.oldQualifier())
           .add("auth=" + methodInfo.isAuth())
           .toString();
     }

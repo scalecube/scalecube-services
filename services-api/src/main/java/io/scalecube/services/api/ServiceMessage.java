@@ -163,7 +163,10 @@ public final class ServiceMessage {
    */
   public boolean isError() {
     String qualifier = qualifier();
-    return qualifier != null && qualifier.startsWith(Qualifier.ERROR_NAMESPACE);
+    if (qualifier == null) {
+      throw new IllegalStateException("Message doesn't have qualifier");
+    }
+    return Qualifier.getQualifierNamespace(qualifier).equals(Qualifier.ERROR_NAMESPACE);
   }
 
   /**
