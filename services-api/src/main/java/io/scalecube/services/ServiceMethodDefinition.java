@@ -21,7 +21,7 @@ public class ServiceMethodDefinition implements Externalizable {
 
   private String action;
   private Map<String, String> tags;
-  private boolean auth;
+  private boolean isSecured;
 
   /**
    * Constructor for SerDe.
@@ -44,12 +44,12 @@ public class ServiceMethodDefinition implements Externalizable {
    *
    * @param action method name
    * @param tags tags of this method
-   * @param auth is method protected by authentication
+   * @param isSecured is method protected by authentication
    */
-  public ServiceMethodDefinition(String action, Map<String, String> tags, boolean auth) {
+  public ServiceMethodDefinition(String action, Map<String, String> tags, boolean isSecured) {
     this.action = Objects.requireNonNull(action, "ServiceMethodDefinition.action is required");
     this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
-    this.auth = auth;
+    this.isSecured = isSecured;
   }
 
   public String action() {
@@ -60,8 +60,8 @@ public class ServiceMethodDefinition implements Externalizable {
     return tags;
   }
 
-  public boolean isAuth() {
-    return auth;
+  public boolean isSecured() {
+    return isSecured;
   }
 
   @Override
@@ -69,7 +69,7 @@ public class ServiceMethodDefinition implements Externalizable {
     return new StringJoiner(", ", ServiceMethodDefinition.class.getSimpleName() + "[", "]")
         .add("action=" + action)
         .add("tags=" + tags)
-        .add("auth=" + auth)
+        .add("isSecured=" + isSecured)
         .toString();
   }
 
@@ -86,7 +86,7 @@ public class ServiceMethodDefinition implements Externalizable {
     }
 
     // auth
-    out.writeBoolean(auth);
+    out.writeBoolean(isSecured);
   }
 
   @Override
@@ -105,6 +105,6 @@ public class ServiceMethodDefinition implements Externalizable {
     this.tags = Collections.unmodifiableMap(tags);
 
     // auth
-    this.auth = in.readBoolean();
+    this.isSecured = in.readBoolean();
   }
 }
