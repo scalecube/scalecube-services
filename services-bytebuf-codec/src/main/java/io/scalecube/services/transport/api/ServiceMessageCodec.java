@@ -31,7 +31,6 @@ public final class ServiceMessageCodec {
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
-
   /** Message codec with default Headers/Data Codecs. */
   public ServiceMessageCodec() {
     this(null, null);
@@ -108,8 +107,7 @@ public final class ServiceMessageCodec {
         ReferenceCountUtil.safestRelease(headersBuffer);
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex.toString());
-        throw new MessageCodecException(
-            "Failed to encode headers on message q=" + message.qualifier(), ex);
+        throw new MessageCodecException("Failed to encode headers message q=[" + message + "]", ex);
       }
     }
 

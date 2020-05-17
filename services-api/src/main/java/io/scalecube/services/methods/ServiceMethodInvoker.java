@@ -70,7 +70,7 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMap(authData -> deferWithContextOne(message, authData))
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormatOrDefault()))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
@@ -83,7 +83,7 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMapMany(authData -> deferWithContextMany(message, authData))
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormatOrDefault()))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -102,7 +102,9 @@ public final class ServiceMethodInvoker {
                     .map(
                         response ->
                             toResponse(
-                                response, first.get().qualifier(), first.get().dataFormat())))
+                                response,
+                                first.get().qualifier(),
+                                first.get().dataFormatOrDefault())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -195,9 +197,8 @@ public final class ServiceMethodInvoker {
     final Object data;
 
     if (response instanceof ServiceMessage) {
-      ServiceMessage message = (ServiceMessage) response;
-      builder = ServiceMessage.from(message);
-      data = message.data();
+      builder = ServiceMessage.from((ServiceMessage) response);
+      data = ((ServiceMessage) response).data();
     } else {
       builder = ServiceMessage.builder();
       data = response;

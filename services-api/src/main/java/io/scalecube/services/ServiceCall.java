@@ -435,11 +435,11 @@ public class ServiceCall {
       ServiceMessage message = (ServiceMessage) request;
       builder = ServiceMessage.from(message);
       data = message.data();
-      dataFormat = message.dataFormat(); // data format from message
+      dataFormat = Optional.ofNullable(message.dataFormat()).orElse(contentType);
     } else {
       builder = ServiceMessage.builder();
       data = request;
-      dataFormat = contentType; // data format from service call
+      dataFormat = contentType;
     }
 
     return builder
