@@ -148,7 +148,7 @@ public final class ServiceMethodInvoker {
   }
 
   private Mono<Object> authenticate(ServiceMessage message, Context context) {
-    if (!methodInfo.isAuth()) {
+    if (!methodInfo.isSecured()) {
       return Mono.just(Collections.emptyMap());
     }
     if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
