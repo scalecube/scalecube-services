@@ -42,7 +42,7 @@ public class Example1 {
 
     seed.call()
         .api(GreetingsService.class)
-        .sayHello("joe (on default dataFormat PROTOSTUFF")
+        .sayHello("joe (on default dataFormat PROTOSTUFF)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
     seed.call()
@@ -54,7 +54,7 @@ public class Example1 {
     seed.call()
         .contentType(OCTET_STREAM)
         .api(GreetingsService.class)
-        .sayHello("bob on java native (Serializable/Externalizable) dataFormat")
+        .sayHello("bob (on java native Serializable/Externalizable dataFormat)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
     seed.onShutdown().block();
