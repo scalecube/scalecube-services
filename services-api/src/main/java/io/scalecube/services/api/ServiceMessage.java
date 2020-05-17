@@ -93,7 +93,7 @@ public final class ServiceMessage {
    * @return the message header by given header name
    */
   public String header(String name) {
-    Objects.requireNonNull(name);
+    Objects.requireNonNull(name, "header name");
     return headers.get(name);
   }
 
@@ -201,79 +201,113 @@ public final class ServiceMessage {
 
     private Builder() {}
 
+    /**
+     * Setter for {@code data}.
+     *
+     * @param data data; optional
+     * @return this builder
+     */
     public Builder data(Object data) {
       this.data = data;
       return this;
     }
 
-    public Builder dataType(Class<?> data) {
-      headers.put(HEADER_DATA_TYPE, data.getName());
+    /**
+     * Setter for {@code dataType}.
+     *
+     * @deprecated in future releases will be dropped without replacement
+     * @param dataType data type; no null
+     * @return this builder
+     */
+    @Deprecated
+    public Builder dataType(Class<?> dataType) {
+      Objects.requireNonNull(dataType, "dataType");
+      headers.put(HEADER_DATA_TYPE, dataType.getName());
       return this;
     }
 
+    /**
+     * Setter for {@code dataFormat}.
+     *
+     * @param dataFormat data format; not null
+     * @return this builder
+     */
     public Builder dataFormat(String dataFormat) {
+      Objects.requireNonNull(dataFormat, "dataFormat");
       headers.put(HEADER_DATA_FORMAT, dataFormat);
       return this;
     }
 
     /**
-     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
-     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
+     * Returns {@code headers}.
      *
-     * @param dataFormat data format, optional
-     * @return self
+     * @return headers
      */
-    public Builder dataFormatIfAbsent(String dataFormat) {
-      if (dataFormat == null) {
-        return this;
-      }
-      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
-      return this;
-    }
-
     private Map<String, String> headers() {
-      return this.headers;
+      return headers;
     }
 
+    /**
+     * Setter for {@code headers}.
+     *
+     * @param headers headers; not null
+     * @return this builder
+     */
     public Builder headers(Map<String, String> headers) {
-      headers.forEach(this::header);
+      Objects.requireNonNull(headers, "headers").forEach(this::header);
       return this;
     }
 
     /**
-     * Sets a header key value pair.
+     * Setter for header key-value pair.
      *
-     * @param key key; not null
-     * @param value value; not null
-     * @return self
+     * @param key header name; not null
+     * @param value header value; not null
+     * @return this builder
      */
     public Builder header(String key, String value) {
-      Objects.requireNonNull(key);
-      Objects.requireNonNull(value);
+      Objects.requireNonNull(key, "header name");
+      Objects.requireNonNull(value, "header value");
       headers.put(key, value);
       return this;
     }
 
     /**
-     * Sets a header key value pair.
+     * Setter for header key-value pair.
      *
-     * @param key key; not null
-     * @param value value; not null
-     * @return self
+     * @param key header name; not null
+     * @param value header value; not null
+     * @return this builder
      */
     public Builder header(String key, Object value) {
-      Objects.requireNonNull(key);
-      Objects.requireNonNull(value);
+      Objects.requireNonNull(key, "header name");
+      Objects.requireNonNull(value, "header value");
       headers.put(key, value.toString());
       return this;
     }
 
+    /**
+     * Setter for {@code qualifier}.
+     *
+     * @param qualifier qualifier; not null
+     * @return this builder
+     */
     public Builder qualifier(String qualifier) {
-      return header(HEADER_QUALIFIER, qualifier);
+      return header(HEADER_QUALIFIER, Objects.requireNonNull(qualifier, "qualifier"));
     }
 
-    public Builder qualifier(String serviceName, String methodName) {
-      return qualifier(Qualifier.asString(serviceName, methodName));
+    /**
+     * Setter for {@code qualifier}.
+     *
+     * @param namespace namespace; not null
+     * @param action action; not null
+     * @return this builder
+     */
+    public Builder qualifier(String namespace, String action) {
+      return qualifier(
+          Qualifier.asString(
+              Objects.requireNonNull(namespace, "namespace"),
+              Objects.requireNonNull(action, "action")));
     }
 
     public ServiceMessage build() {
