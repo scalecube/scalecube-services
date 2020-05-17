@@ -49,9 +49,12 @@ public class RSocketServerTransport implements ServerTransport {
           TcpServer tcpServer =
               this.tcpServer.doOnConnection(
                   connection -> {
-                    LOGGER.debug("Accepted connection on {}", connection.channel());
+                    LOGGER.debug(
+                        "[rsocket][server] Accepted connection on {}", connection.channel());
                     connection.onDispose(
-                        () -> LOGGER.debug("Connection closed on {}", connection.channel()));
+                        () ->
+                            LOGGER.debug(
+                                "[rsocket][server] Connection closed on {}", connection.channel()));
                   });
           return RSocketServer.create()
               .acceptor(new RSocketServiceAcceptor(messageCodec, methodRegistry))
@@ -66,13 +69,18 @@ public class RSocketServerTransport implements ServerTransport {
   public Mono<Void> stop() {
     return Mono.defer(
         () -> {
-          if (serverChannel == null) {
+          if (serverChannel == null || serverChannel.isDisposed()) {
             return Mono.empty();
           }
-          serverChannel.dispose();
-          return serverChannel
-              .onClose()
-              .doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+          return Mono.fromRunnable(() -> serverChannel.dispose())
+              .then(
+                  serverChannel
+                      .onClose()
+                      .doOnError(
+                          e ->
+                              LOGGER.warn(
+                                  "[rsocket][server][onClose] Exception occurred: {}",
+                                  e.toString())));
         });
   }
 

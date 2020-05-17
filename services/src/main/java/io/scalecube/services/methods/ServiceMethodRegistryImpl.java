@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodRegistry.class);
 
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -41,13 +45,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isSecured(method));
 
-                          String qualifier = methodInfo.qualifier();
-
-                          if (methodInvokers.containsKey(qualifier)) {
-                            throw new IllegalStateException(
-                                String.format(
-                                    "MethodInvoker for api '%s' already exists", qualifier));
-                          }
+                          checkMethodInvokerDoesntExist(methodInfo);
 
                           ServiceMethodInvoker methodInvoker =
                               new ServiceMethodInvoker(
@@ -60,7 +58,16 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   serviceInfo.principalMapper());
 
                           methodInvokers.put(methodInfo.qualifier(), methodInvoker);
+                          methodInvokers.put(methodInfo.oldQualifier(), methodInvoker);
                         }));
+  }
+
+  private void checkMethodInvokerDoesntExist(MethodInfo methodInfo) {
+    if (methodInvokers.containsKey(methodInfo.qualifier())
+        || methodInvokers.containsKey(methodInfo.oldQualifier())) {
+      LOGGER.error("MethodInvoker already exists, methodInfo: {}", methodInfo);
+      throw new IllegalStateException("MethodInvoker already exists");
+    }
   }
 
   @Override

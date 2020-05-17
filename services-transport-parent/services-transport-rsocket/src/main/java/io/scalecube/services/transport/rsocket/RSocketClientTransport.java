@@ -52,21 +52,25 @@ public class RSocketClientTransport implements ClientTransport {
         .connect(() -> TcpClientTransport.create(tcpClient))
         .doOnSuccess(
             rsocket -> {
-              LOGGER.info("Connected successfully on {}", address);
+              LOGGER.debug("[rsocket][client] Connected successfully on {}", address);
               // setup shutdown hook
               rsocket
                   .onClose()
-                  .doOnTerminate(
-                      () -> {
+                  .doFinally(
+                      s -> {
                         monoMap.remove(address);
-                        LOGGER.info("Connection closed on {}", address);
+                        LOGGER.debug("[rsocket][client] Connection closed on {}", address);
                       })
-                  .subscribe(
-                      null, th -> LOGGER.warn("Exception on closing rsocket: {}", th.toString()));
+                  .doOnError(
+                      th ->
+                          LOGGER.warn(
+                              "[rsocket][client][onClose] Exception occurred: {}", th.toString()))
+                  .subscribe();
             })
         .doOnError(
             th -> {
-              LOGGER.warn("Connect failed on {}, cause: {}", address, th.toString());
+              LOGGER.warn(
+                  "[rsocket][client] Failed to connect on {}, cause: {}", address, th.toString());
               monoMap.remove(address);
             })
         .cache();
