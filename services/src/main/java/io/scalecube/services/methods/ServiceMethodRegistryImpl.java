@@ -39,7 +39,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   method.getParameterCount(),
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
-                                  Reflect.isAuth(method));
+                                  Reflect.isSecured(method));
 
                           String qualifier = methodInfo.qualifier();
 

@@ -161,7 +161,7 @@ public class Reflect {
                             method.getParameterCount(),
                             requestType(method),
                             isRequestTypeServiceMessage(method),
-                            isAuth(method)))));
+                            isSecured(method)))));
   }
 
   /**
@@ -360,7 +360,7 @@ public class Reflect {
     return type.isAnnotationPresent(Service.class);
   }
 
-  public static boolean isAuth(Method method) {
+  public static boolean isSecured(Method method) {
     return method.isAnnotationPresent(Secured.class)
         || method.getDeclaringClass().isAnnotationPresent(Secured.class);
   }
