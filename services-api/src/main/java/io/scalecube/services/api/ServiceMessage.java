@@ -223,12 +223,26 @@ public final class ServiceMessage {
     /**
      * Setter for {@code dataFormat}.
      *
-     * @param dataFormat data format; not null
+     * @param dataFormat data format
      * @return this builder
      */
     public Builder dataFormat(String dataFormat) {
-      Objects.requireNonNull(dataFormat, "dataFormat");
       headers.put(HEADER_DATA_FORMAT, dataFormat);
+      return this;
+    }
+
+    /**
+     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
+     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
+     *
+     * @param dataFormat data format, optional
+     * @return self
+     */
+    public Builder dataFormatIfAbsent(String dataFormat) {
+      if (dataFormat == null) {
+        return this;
+      }
+      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
       return this;
     }
 
