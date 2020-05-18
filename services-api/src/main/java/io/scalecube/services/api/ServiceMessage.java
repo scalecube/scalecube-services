@@ -9,26 +9,20 @@ import java.util.StringJoiner;
 
 public final class ServiceMessage {
 
-  /** Default message data content type. */
-  static final String DEFAULT_DATA_FORMAT = "application/json";
+  /** Default data format. */
+  public static final String DEFAULT_DATA_FORMAT = "application/json";
 
-  /**
-   * This header is supposed to be used by application in case if same data type can be reused for
-   * several messages so it will allow to qualify the specific message type.
-   */
-  static final String HEADER_QUALIFIER = "q";
+  /** Qualifier header. */
+  public static final String HEADER_QUALIFIER = "q";
 
   /**
    * This is a system header which used by transport for serialization and deserialization purpose.
    * It is not supposed to be used by application directly and it is subject to changes in future
    * releases.
    */
-  static final String HEADER_DATA_TYPE = "_type";
+  public static final String HEADER_DATA_TYPE = "_type";
 
-  /**
-   * Data format header. Json, Protostuff and etc. Note that default data format is defined at
-   * {@link #DEFAULT_DATA_FORMAT}.
-   */
+  /** Data format header. */
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = new HashMap<>(1);
@@ -229,12 +223,26 @@ public final class ServiceMessage {
     /**
      * Setter for {@code dataFormat}.
      *
-     * @param dataFormat data format; not null
+     * @param dataFormat data format
      * @return this builder
      */
     public Builder dataFormat(String dataFormat) {
-      Objects.requireNonNull(dataFormat, "dataFormat");
       headers.put(HEADER_DATA_FORMAT, dataFormat);
+      return this;
+    }
+
+    /**
+     * Setter for header {@link #HEADER_DATA_FORMAT}. Does nothing if input {@code dataFormat} is
+     * null or {@code headers} already contains value for {@link #HEADER_DATA_FORMAT}.
+     *
+     * @param dataFormat data format, optional
+     * @return self
+     */
+    public Builder dataFormatIfAbsent(String dataFormat) {
+      if (dataFormat == null) {
+        return this;
+      }
+      headers.putIfAbsent(HEADER_DATA_FORMAT, dataFormat);
       return this;
     }
 
