@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.net.Address;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -28,6 +29,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.UUID;
@@ -320,7 +322,7 @@ public final class Microservices {
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
-    private String contentType = "application/json";
+    private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
 
     public Mono<Microservices> start() {
@@ -377,11 +379,9 @@ public final class Microservices {
      * @param authenticator authenticator
      * @return this builder with applied parameter
      */
-    @SuppressWarnings("unchecked")
     @Deprecated
     public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
-      this.authenticator = (Authenticator<Object>) authenticator;
-      return this;
+      return defaultAuthenticator(authenticator);
     }
 
     public Builder discovery(Function<ServiceEndpoint, ServiceDiscovery> factory) {
@@ -405,7 +405,7 @@ public final class Microservices {
     }
 
     /**
-     * Setter for {@code errorMapper}.
+     * Setter for default {@code errorMapper}.
      *
      * @param errorMapper error mapper
      * @return this builder with applied parameter
@@ -416,7 +416,7 @@ public final class Microservices {
     }
 
     /**
-     * Setter for {@code dataDecoder}.
+     * Setter for default {@code dataDecoder}.
      *
      * @param dataDecoder data decoder
      * @return this builder with applied parameter
@@ -429,23 +429,22 @@ public final class Microservices {
     /**
      * Setter for default {@code contentType}. Deprecated. Use {@link #defaultContentType(String)}.
      *
-     * @param contentType contentType
+     * @param contentType contentType; not null
      * @return this builder with applied parameter
      */
     @Deprecated
     public Builder contentType(String contentType) {
-      this.contentType = contentType;
-      return this;
+      return defaultContentType(contentType);
     }
 
     /**
      * Setter for default {@code contentType}.
      *
-     * @param contentType contentType
+     * @param contentType contentType; not null
      * @return this builder with applied parameter
      */
     public Builder defaultContentType(String contentType) {
-      this.contentType = contentType;
+      this.contentType = Objects.requireNonNull(contentType, "default contentType");
       return this;
     }
 

@@ -45,7 +45,7 @@ public class ServiceCall {
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
-  private String contentType;
+  private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
 
   public ServiceCall() {}
 
@@ -429,24 +429,21 @@ public class ServiceCall {
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
     final ServiceMessage.Builder builder;
     final Object data;
-    final String dataFormat;
 
     if (request instanceof ServiceMessage) {
       ServiceMessage message = (ServiceMessage) request;
       builder = ServiceMessage.from(message);
       data = message.data();
-      dataFormat = Optional.ofNullable(message.dataFormat()).orElse(contentType);
     } else {
       builder = ServiceMessage.builder();
       data = request;
-      dataFormat = contentType;
     }
 
     return builder
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .headers(credentials)
         .data(data)
-        .dataFormat(dataFormat)
+        .dataFormat(contentType)
         .build();
   }
 
@@ -486,15 +483,15 @@ public class ServiceCall {
   }
 
   private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
-    return flux -> isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+    return flux -> isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(toResponse());
   }
 
   private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
-    return mono -> isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
+    return mono -> isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(toResponse());
   }
 
-  private Function<ServiceMessage, Object> msgToResp() {
-    return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
+  private Function<ServiceMessage, Object> toResponse() {
+    return message -> message.hasData() ? message.data() : UNEXPECTED_EMPTY_RESPONSE;
   }
 
   private ServiceMessage throwIfError(ServiceMessage message) {

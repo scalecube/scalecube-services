@@ -70,7 +70,7 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMap(authData -> deferWithContextOne(message, authData))
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormatOrDefault()))
+        .map(response -> toResponse(response, message))
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
@@ -83,7 +83,7 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMapMany(authData -> deferWithContextMany(message, authData))
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormatOrDefault()))
+        .map(response -> toResponse(response, message))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -99,12 +99,7 @@ public final class ServiceMethodInvoker {
             (first, messages) ->
                 Mono.deferWithContext(context -> authenticate(first.get(), context))
                     .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
-                    .map(
-                        response ->
-                            toResponse(
-                                response,
-                                first.get().qualifier(),
-                                first.get().dataFormatOrDefault())))
+                    .map(response -> toResponse(response, first.get())))
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -192,7 +187,7 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+  private ServiceMessage toResponse(Object response, ServiceMessage request) {
     final ServiceMessage.Builder builder;
     final Object data;
 
@@ -205,7 +200,11 @@ public final class ServiceMethodInvoker {
       data = response;
     }
 
-    return builder.qualifier(qualifier).data(data).dataFormat(dataFormat).build();
+    return builder
+        .qualifier(request.qualifier())
+        .data(data)
+        .dataFormat(request.dataFormatOrDefault())
+        .build();
   }
 
   private Context newPrincipalContext(Object authData, Context context) {

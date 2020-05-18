@@ -9,26 +9,20 @@ import java.util.StringJoiner;
 
 public final class ServiceMessage {
 
-  /** Default message data content type. */
-  static final String DEFAULT_DATA_FORMAT = "application/json";
+  /** Default data format. */
+  public static final String DEFAULT_DATA_FORMAT = "application/json";
 
-  /**
-   * This header is supposed to be used by application in case if same data type can be reused for
-   * several messages so it will allow to qualify the specific message type.
-   */
-  static final String HEADER_QUALIFIER = "q";
+  /** Qualifier header. */
+  public static final String HEADER_QUALIFIER = "q";
 
   /**
    * This is a system header which used by transport for serialization and deserialization purpose.
    * It is not supposed to be used by application directly and it is subject to changes in future
    * releases.
    */
-  static final String HEADER_DATA_TYPE = "_type";
+  public static final String HEADER_DATA_TYPE = "_type";
 
-  /**
-   * Data format header. Json, Protostuff and etc. Note that default data format is defined at
-   * {@link #DEFAULT_DATA_FORMAT}.
-   */
+  /** Data format header. */
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = new HashMap<>(1);
