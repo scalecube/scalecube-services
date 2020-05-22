@@ -47,7 +47,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
           return Mono.just(authData);
         }
 
-        return Mono.error(new UnauthorizedException("Authentication failed"));
+        return Mono.error(
+            new UnauthorizedException("Authentication failed (username or password incorrect)"));
       };
 
   private static Microservices caller;
