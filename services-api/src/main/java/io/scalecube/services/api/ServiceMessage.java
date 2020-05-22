@@ -171,9 +171,9 @@ public final class ServiceMessage {
    * @return error type.
    */
   public int errorType() {
-    final String errorType = headers.get(ERROR_TYPE);
+    String errorType = headers.get(ERROR_TYPE);
     if (errorType == null) {
-      throw new IllegalStateException("Message is not an error");
+      return -1;
     }
     try {
       return Integer.parseInt(errorType);
