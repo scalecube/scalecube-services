@@ -36,9 +36,6 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
-  private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
-      ServiceMessage.error(503, 503, "Unexpected empty response");
-
   private ClientTransport transport;
   private ServiceMethodRegistry methodRegistry;
   private ServiceRegistry serviceRegistry;
@@ -487,7 +484,10 @@ public class ServiceCall {
   }
 
   private Function<ServiceMessage, Object> toResponse() {
-    return message -> message.hasData() ? message.data() : UNEXPECTED_EMPTY_RESPONSE;
+    return message ->
+        message.hasData()
+            ? message.data()
+            : ServiceMessage.error(message.qualifier(), 503, 503, "Unexpected empty response");
   }
 
   private ServiceMessage throwIfError(ServiceMessage message) {

@@ -25,6 +25,9 @@ public final class ServiceMessage {
   /** Data format header. */
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
+  /** Error type header. */
+  public static final String ERROR_TYPE = "_error_type";
+
   private Map<String, String> headers = new HashMap<>(1);
   private Object data;
 
@@ -50,14 +53,17 @@ public final class ServiceMessage {
    * Instantiates new message with error qualifier for given error type and specified error code and
    * message.
    *
+   * @param qualifier origin qualifier.
    * @param errorType the error type to be used in message qualifier.
    * @param errorCode the error code.
    * @param errorMessage the error message.
    * @return builder.
    */
-  public static ServiceMessage error(int errorType, int errorCode, String errorMessage) {
+  public static ServiceMessage error(
+      String qualifier, int errorType, int errorCode, String errorMessage) {
     return ServiceMessage.builder()
-        .qualifier(Qualifier.asError(errorType))
+        .qualifier(qualifier)
+        .header(ERROR_TYPE, String.valueOf(errorType))
         .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
@@ -156,11 +162,7 @@ public final class ServiceMessage {
    * @return <code>true</code> if error, otherwise <code>false</code>.
    */
   public boolean isError() {
-    String qualifier = qualifier();
-    if (qualifier == null) {
-      throw new IllegalStateException("Message doesn't have qualifier");
-    }
-    return Qualifier.getQualifierNamespace(qualifier).equals(Qualifier.ERROR_NAMESPACE);
+    return headers.containsKey(ERROR_TYPE);
   }
 
   /**
@@ -169,12 +171,12 @@ public final class ServiceMessage {
    * @return error type.
    */
   public int errorType() {
-    if (!isError()) {
+    final String errorType = headers.get(ERROR_TYPE);
+    if (errorType == null) {
       throw new IllegalStateException("Message is not an error");
     }
-
     try {
-      return Integer.parseInt(Qualifier.getQualifierAction(qualifier()));
+      return Integer.parseInt(errorType);
     } catch (NumberFormatException e) {
       throw new IllegalStateException("Error type must be a number");
     }
