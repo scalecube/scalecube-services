@@ -476,18 +476,13 @@ public class ServiceCall {
   }
 
   private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
-    return flux -> isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(toResponse());
+    return flux ->
+        isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(ServiceMessage::data);
   }
 
   private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
-    return mono -> isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(toResponse());
-  }
-
-  private Function<ServiceMessage, Object> toResponse() {
-    return message ->
-        message.hasData()
-            ? message.data()
-            : ServiceMessage.error(message.qualifier(), 503, 503, "Unexpected empty response");
+    return mono ->
+        isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(ServiceMessage::data);
   }
 
   private ServiceMessage throwIfError(ServiceMessage message) {
