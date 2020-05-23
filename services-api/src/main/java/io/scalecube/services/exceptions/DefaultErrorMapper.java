@@ -41,7 +41,7 @@ public final class DefaultErrorMapper
   }
 
   @Override
-  public ServiceMessage toMessage(Throwable throwable) {
+  public ServiceMessage toMessage(String qualifier, Throwable throwable) {
     int errorCode = DEFAULT_ERROR_CODE;
     int errorType = DEFAULT_ERROR_CODE;
 
@@ -63,6 +63,6 @@ public final class DefaultErrorMapper
     String errorMessage =
         Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
 
-    return ServiceMessage.error(errorType, errorCode, errorMessage);
+    return ServiceMessage.error(qualifier, errorType, errorCode, errorMessage);
   }
 }
