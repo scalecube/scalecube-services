@@ -5,18 +5,6 @@ public final class Qualifier {
 
   public static final String DELIMITER = "/";
 
-  public static final String ERROR_NAMESPACE = "io.scalecube.services.error";
-
-  /**
-   * Builds error qualifier.
-   *
-   * @param action qualifier action.
-   * @return constructed qualifier string.
-   */
-  public static String asError(int action) {
-    return asString(ERROR_NAMESPACE, Integer.toString(action));
-  }
-
   /**
    * Builds qualifier string out of given namespace and action.
    *
