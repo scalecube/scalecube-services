@@ -47,7 +47,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
           return Mono.just(authData);
         }
 
-        return Mono.error(new UnauthorizedException("Authentication failed"));
+        return Mono.error(
+            new UnauthorizedException("Authentication failed (username or password incorrect)"));
       };
 
   private static Microservices caller;
@@ -127,7 +128,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     Consumer<Throwable> verifyError =
         th -> {
           assertEquals(UnauthorizedException.class, th.getClass());
-          assertEquals("Authenticator not found", th.getMessage());
+          assertEquals("Authentication failed (auth context not found)", th.getMessage());
         };
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -153,7 +154,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
     Consumer<Throwable> verifyError =
         th -> {
           assertEquals(UnauthorizedException.class, th.getClass());
-          assertEquals("Authentication failed", th.getMessage());
+          assertEquals("Authentication failed (username or password incorrect)", th.getMessage());
         };
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))

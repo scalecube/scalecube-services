@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.DelegatingAuthenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -314,7 +315,7 @@ public final class Microservices {
     private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<Object> authenticator = null;
+    private Authenticator<Object> authenticator = new DelegatingAuthenticator();
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -405,24 +406,27 @@ public final class Microservices {
     }
 
     /**
-     * Setter for default {@code errorMapper}.
+     * Setter for default {@code errorMapper}. By default, default {@code errorMapper} is set to
+     * {@link DefaultErrorMapper#INSTANCE}.
      *
-     * @param errorMapper error mapper
+     * @param errorMapper error mapper; not null
      * @return this builder with applied parameter
      */
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.errorMapper = errorMapper;
+      this.errorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
       return this;
     }
 
     /**
-     * Setter for default {@code dataDecoder}.
+     * Setter for default {@code dataDecoder}. By default, default {@code dataDecoder} is set to
+     * {@link ServiceMessageDataDecoder#INSTANCE} if it exists, otherswise to a function {@code
+     * (message, dataType) -> message}
      *
-     * @param dataDecoder data decoder
+     * @param dataDecoder data decoder; not null
      * @return this builder with applied parameter
      */
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.dataDecoder = dataDecoder;
+      this.dataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
       return this;
     }
 
@@ -438,7 +442,8 @@ public final class Microservices {
     }
 
     /**
-     * Setter for default {@code contentType}.
+     * Setter for default {@code contentType}. By default, default {@code contentType} is set to
+     * {@link ServiceMessage#DEFAULT_DATA_FORMAT}.
      *
      * @param contentType contentType; not null
      * @return this builder with applied parameter
@@ -449,21 +454,24 @@ public final class Microservices {
     }
 
     /**
-     * Setter for default {@code authenticator}.
+     * Setter for default {@code authenticator}. By default, default {@code authenticator} is set to
+     * {@link DelegatingAuthenticator}.
      *
-     * @param authenticator authenticator
+     * @param authenticator authenticator; not null
      * @return this builder with applied parameter
      */
     @SuppressWarnings("unchecked")
     public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+      Objects.requireNonNull(authenticator, "default authenticator");
       this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
     /**
-     * Setter for default {@code principalMapper}.
+     * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
+     * set to unary function {@code authData -> authData}.
      *
-     * @param principalMapper principalMapper
+     * @param principalMapper principalMapper; not null
      * @param <A> auth data type
      * @param <T> principal type
      * @return this builder with applied parameter
@@ -471,6 +479,7 @@ public final class Microservices {
     @SuppressWarnings("unchecked")
     public <A, T> Builder defaultPrincipalMapper(
         PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      Objects.requireNonNull(principalMapper, "default principalMapper");
       this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }

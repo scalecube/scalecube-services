@@ -7,6 +7,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 public class ServiceInfo {
@@ -93,30 +94,69 @@ public class ServiceInfo {
       this.serviceInstance = serviceInstance;
     }
 
+    /**
+     * Setter for {@code tags}. Merges this {@code tags} with {@code Microservices.tags}. If keys
+     * are clashing this {@code tags} shall override {@code Microservices.tags}.
+     *
+     * @param key tag key; not null
+     * @param value tag value; not null
+     * @return this builder
+     */
     public Builder tag(String key, String value) {
+      Objects.requireNonNull(key, "tag key");
+      Objects.requireNonNull(value, "tag value");
       tags.put(key, value);
       return this;
     }
 
+    /**
+     * Setter for {@code errorMapper}. Overrides default {@code Microservices.errorMapper}.
+     *
+     * @param errorMapper error mapper; not null
+     * @return this buidler
+     */
     public Builder errorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.errorMapper = errorMapper;
+      this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
       return this;
     }
 
+    /**
+     * Setter for {@code dataDecoder}. Overrides default {@code Microservices.dataDecoder}.
+     *
+     * @param dataDecoder data decoder; not null
+     * @return this builder
+     */
     public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.dataDecoder = dataDecoder;
+      this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
       return this;
     }
 
+    /**
+     * Setter for {@code authenticator}. Overrides default {@code Microservices.authenticator}.
+     *
+     * @param authenticator authenticator
+     * @param <T> type of auth data returned by authenticator
+     * @return this builder
+     */
     @SuppressWarnings("unchecked")
     public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
+      Objects.requireNonNull(authenticator, "authenticator");
       this.authenticator = (Authenticator<Object>) authenticator;
       return this;
     }
 
+    /**
+     * Setter for {@code principalMapper}. Overrides default {@code Microservices.principalMapper}.
+     *
+     * @param principalMapper principalMapper
+     * @param <A> type of auth data returned by authenticator
+     * @param <T> type of principal after mapping auth data to principal
+     * @return this builder
+     */
     @SuppressWarnings("unchecked")
     public <A, T> Builder principalMapper(
         PrincipalMapper<? extends A, ? extends T> principalMapper) {
+      Objects.requireNonNull(principalMapper, "principalMapper");
       this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }

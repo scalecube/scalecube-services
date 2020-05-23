@@ -160,9 +160,6 @@ public final class ServiceMethodInvoker {
     if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
       return Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY));
     }
-    if (authenticator == null) {
-      throw new UnauthorizedException("Authenticator not found");
-    }
     return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
   }
 
