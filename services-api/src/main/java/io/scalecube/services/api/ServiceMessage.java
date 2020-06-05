@@ -28,11 +28,13 @@ public final class ServiceMessage {
   /** Error type header. */
   public static final String HEADER_ERROR_TYPE = "errorType";
 
-  private Map<String, String> headers = new HashMap<>(1);
+  private final Map<String, String> headers;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
-  ServiceMessage() {}
+  ServiceMessage() {
+    headers = new HashMap<>(2);
+  }
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
@@ -192,7 +194,7 @@ public final class ServiceMessage {
 
   public static class Builder {
 
-    private Map<String, String> headers = new HashMap<>();
+    private final Map<String, String> headers = new HashMap<>(2);
     private Object data;
 
     private Builder() {}
