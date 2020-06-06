@@ -28,6 +28,9 @@ public final class ServiceMessage {
   /** Error type header. */
   public static final String HEADER_ERROR_TYPE = "errorType";
 
+  /** Null value for error type. */
+  public static final int NULL_ERROR_TYPE = -1;
+
   private final Map<String, String> headers;
   private Object data;
 
@@ -170,12 +173,12 @@ public final class ServiceMessage {
   /**
    * Returns error type. Error type is an identifier of a group of errors.
    *
-   * @return error type.
+   * @return error type if set otherwise {@value NULL_ERROR_TYPE}.
    */
   public int errorType() {
     String errorType = headers.get(HEADER_ERROR_TYPE);
     if (errorType == null) {
-      return -1;
+      return NULL_ERROR_TYPE;
     }
     try {
       return Integer.parseInt(errorType);
