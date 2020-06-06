@@ -20,19 +20,24 @@ public final class ServiceMessage {
    * It is not supposed to be used by application directly and it is subject to changes in future
    * releases.
    */
-  public static final String HEADER_DATA_TYPE = "_type";
+  public static final String HEADER_DATA_TYPE = "type";
 
   /** Data format header. */
-  public static final String HEADER_DATA_FORMAT = "_data_format";
+  public static final String HEADER_DATA_FORMAT = "dataFormat";
 
   /** Error type header. */
-  public static final String ERROR_TYPE = "_error_type";
+  public static final String HEADER_ERROR_TYPE = "errorType";
 
-  private Map<String, String> headers = new HashMap<>(1);
+  /** Null value for error type. */
+  public static final int NULL_ERROR_TYPE = -1;
+
+  private final Map<String, String> headers;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
-  ServiceMessage() {}
+  ServiceMessage() {
+    headers = new HashMap<>(2);
+  }
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
@@ -63,7 +68,7 @@ public final class ServiceMessage {
       String qualifier, int errorType, int errorCode, String errorMessage) {
     return ServiceMessage.builder()
         .qualifier(qualifier)
-        .header(ERROR_TYPE, String.valueOf(errorType))
+        .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
         .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
@@ -162,18 +167,18 @@ public final class ServiceMessage {
    * @return <code>true</code> if error, otherwise <code>false</code>.
    */
   public boolean isError() {
-    return headers.containsKey(ERROR_TYPE);
+    return headers.containsKey(HEADER_ERROR_TYPE);
   }
 
   /**
    * Returns error type. Error type is an identifier of a group of errors.
    *
-   * @return error type.
+   * @return error type if set otherwise {@value NULL_ERROR_TYPE}.
    */
   public int errorType() {
-    String errorType = headers.get(ERROR_TYPE);
+    String errorType = headers.get(HEADER_ERROR_TYPE);
     if (errorType == null) {
-      return -1;
+      return NULL_ERROR_TYPE;
     }
     try {
       return Integer.parseInt(errorType);
@@ -192,7 +197,7 @@ public final class ServiceMessage {
 
   public static class Builder {
 
-    private Map<String, String> headers = new HashMap<>();
+    private final Map<String, String> headers = new HashMap<>(2);
     private Object data;
 
     private Builder() {}
