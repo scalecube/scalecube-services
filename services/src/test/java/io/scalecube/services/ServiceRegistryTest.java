@@ -13,6 +13,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
@@ -59,14 +60,14 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
             .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
             .startAwait();
 
     StepVerifier.create(events)
@@ -93,7 +94,7 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new AnnotationServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.from(new AnnotationServiceImpl()))
             .startAwait();
     cluster.add(seed);
 
@@ -108,7 +109,7 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms1);
             })
@@ -119,7 +120,7 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })
@@ -160,7 +161,7 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
             .startAwait();
     cluster.add(seed);
 
@@ -175,7 +176,9 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
+                      .serviceFactory(
+                          ScalecubeServiceFactory.from(
+                              new GreetingServiceImpl(), new AnnotationServiceImpl()))
                       .startAwait();
               cluster.add(ms1);
             })
@@ -186,7 +189,7 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })

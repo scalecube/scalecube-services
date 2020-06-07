@@ -2,7 +2,9 @@ package io.scalecube.services.examples.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -23,6 +25,8 @@ public class Example1 {
 
     final Address gatewayAddress = gateway.discovery().address();
 
+    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.from(new Service2Impl());
+
     Microservices service2Node =
         Microservices.builder()
             .discovery(
@@ -30,8 +34,10 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new Service2Impl())
+            .serviceFactory(serviceFactory2)
             .startAwait();
+
+    ServiceFactory serviceFactory1 = ScalecubeServiceFactory.from(new Service1Impl());
 
     Microservices service1Node =
         Microservices.builder()
@@ -40,7 +46,7 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new Service1Impl())
+            .serviceFactory(serviceFactory1)
             .startAwait();
 
     gateway

@@ -2,10 +2,19 @@ package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+
+import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
+
+import reactor.core.publisher.Mono;
 
 public class ExceptionMapperExample {
 
@@ -31,6 +40,27 @@ public class ExceptionMapperExample {
 
     final Address address1 = ms1.discovery().address();
 
+    ServiceFactory serviceFactory =
+        new ServiceFactory() {
+          @Override
+          public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
+              MicroservicesContext microservices) {
+            ServiceDefinition serviceA = new ServiceDefinition(ServiceA.class);
+            ServiceDefinition serviceB = new ServiceDefinition(ServiceB.class);
+            return Mono.just(List.of(serviceA, serviceB));
+          }
+
+          @Override
+          public Mono<? extends Collection<ServiceInfo>> initializeServices(
+              MicroservicesContext microservices) {
+            ServiceCall call = microservices.call();
+            ServiceA serviceA =
+                call.errorMapper(new ServiceAClientErrorMapper()).api(ServiceA.class);
+            ServiceB serviceB = new ServiceBImpl(serviceA);
+            ServiceInfo serviceInfoB = ServiceInfo.fromServiceInstance(serviceB).build();
+            return Mono.just(Collections.singletonList(serviceInfoB));
+          }
+        };
     Microservices ms2 =
         Microservices.builder()
             .discovery(
@@ -38,17 +68,7 @@ public class ExceptionMapperExample {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(address1)))
             .transport(RSocketServiceTransport::new)
-            .services(
-                call -> {
-                  ServiceA serviceA =
-                      call.errorMapper(
-                              new ServiceAClientErrorMapper()) // service client error mapper
-                          .api(ServiceA.class);
-
-                  ServiceB serviceB = new ServiceBImpl(serviceA);
-
-                  return Collections.singleton(ServiceInfo.fromServiceInstance(serviceB).build());
-                })
+            .serviceFactory(serviceFactory)
             .startAwait();
 
     System.err.println("ms2 started: " + ms2.serviceAddress());

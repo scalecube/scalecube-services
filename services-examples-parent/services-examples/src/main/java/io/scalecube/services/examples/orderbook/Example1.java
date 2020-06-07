@@ -2,6 +2,7 @@ package io.scalecube.services.examples.orderbook;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
@@ -10,6 +11,7 @@ import io.scalecube.services.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.services.examples.orderbook.service.engine.Order;
 import io.scalecube.services.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.services.examples.orderbook.service.engine.events.Side;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.Collections;
 import java.util.Random;
@@ -40,6 +42,8 @@ public class Example1 {
 
     final Address gatewayAddress = gateway.discovery().address();
 
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(new DefaultMarketDataService());
+
     Microservices ms =
         Microservices.builder()
             .discovery(
@@ -47,7 +51,7 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new DefaultMarketDataService())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
     MarketDataService marketService = ms.call().api(MarketDataService.class);

@@ -10,6 +10,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -50,7 +51,7 @@ public class RSocketServiceTransportTest extends BaseTest {
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .services(new SimpleQuoteService())
+            .serviceFactory(ScalecubeServiceFactory.from(new SimpleQuoteService()))
             .startAwait();
   }
 

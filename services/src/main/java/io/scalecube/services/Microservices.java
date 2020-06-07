@@ -9,7 +9,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.inject.ScaleCubeServiceFactory;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -367,7 +367,7 @@ public final class Microservices {
       List<ServiceProvider> serviceProviders = Collections.unmodifiableList(this.serviceProviders);
       this.serviceFactory =
           this.serviceFactory == null
-              ? ScaleCubeServiceFactory.create(serviceProviders)
+              ? ScalecubeServiceFactory.create(serviceProviders)
               : this.serviceFactory;
     }
 
@@ -389,7 +389,7 @@ public final class Microservices {
      *
      * @param services service info instance.
      * @return builder
-     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
      */
     @Deprecated
     public Builder services(ServiceInfo... services) {
@@ -406,7 +406,7 @@ public final class Microservices {
      *
      * @param services service instance.
      * @return builder
-     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
      */
     @Deprecated
     public Builder services(Object... services) {
@@ -425,7 +425,7 @@ public final class Microservices {
      *
      * @param serviceProvider - old service provider
      * @return this
-     * @deprecated use {@link this#serviceProvider(ServiceFactory)}
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
      */
     @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
@@ -433,8 +433,8 @@ public final class Microservices {
       return this;
     }
 
-    public Builder serviceProvider(ServiceFactory serviceProvider) {
-      this.serviceFactory = serviceProvider;
+    public Builder serviceFactory(ServiceFactory serviceFactory) {
+      this.serviceFactory = serviceFactory;
       return this;
     }
 

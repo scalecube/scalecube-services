@@ -10,8 +10,10 @@ import io.scalecube.net.Address;
 import io.scalecube.runners.Runners;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.nio.file.Path;
 import java.util.List;
@@ -52,6 +54,8 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
+    ServiceFactory serviceFactory =
+        ScalecubeServiceFactory.from(new BenchmarkServiceImpl(), new GreetingServiceImpl());
     Microservices microservices = Microservices.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(
@@ -71,7 +75,7 @@ public class ExamplesRunner {
                                 .port(config.servicePort())
                                 .runOn(loopResources)
                                 .noSSL()))
-        .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
+        .serviceFactory(serviceFactory)
         .startAwait();
 
     Runners.onShutdown(() -> microservices.shutdown().subscribe());

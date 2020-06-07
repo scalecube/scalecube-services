@@ -11,6 +11,8 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,9 +40,10 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .services(new Facade())
+            .serviceFactory(ScalecubeServiceFactory.from(new Facade()))
             .startAwait();
 
+    PingService pingService = () -> Mono.just(Thread.currentThread().getName());
     this.ping =
         Microservices.builder()
             .discovery(
@@ -48,9 +51,10 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
+            .serviceFactory(ScalecubeServiceFactory.from(pingService))
             .startAwait();
 
+    PongService pongService = () -> Mono.just(Thread.currentThread().getName());
     this.pong =
         Microservices.builder()
             .discovery(
@@ -58,7 +62,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
+            .serviceFactory(ScalecubeServiceFactory.from(pongService))
             .startAwait();
   }
 

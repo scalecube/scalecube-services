@@ -10,6 +10,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -35,7 +36,7 @@ public class ErrorFlowTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .transport(cfg -> cfg.port(port.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
             .startAwait();
 
     final Address seedAddress = provider.discovery().address();

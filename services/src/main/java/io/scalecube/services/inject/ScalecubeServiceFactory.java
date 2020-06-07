@@ -7,29 +7,54 @@ import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceProvider;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import reactor.core.publisher.Mono;
 
-public class ScaleCubeServiceFactory implements ServiceFactory {
+public class ScalecubeServiceFactory implements ServiceFactory {
 
   private final Function<MicroservicesContext, Collection<ServiceInfo>> serviceFactory;
 
   // lazy init
-  private AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
+  private final AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
 
   /**
    * Create the instance from {@link ServiceProvider}.
    *
    * @param serviceProviders old service providers.
-   * @return default services provider.
+   * @return default services factory.
+   * @deprecated use {@link this#from(Object...)}
    */
   public static ServiceFactory create(Collection<ServiceProvider> serviceProviders) {
-    return new ScaleCubeServiceFactory(serviceProviders);
+    return new ScalecubeServiceFactory(serviceProviders);
   }
 
-  private ScaleCubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
+  /**
+   * Create the instance {@link ServiceFactory} with pre-installed services.
+   *
+   * @param services user's services
+   * @return service factory
+   */
+  public static ServiceFactory from(Object... services) {
+    ServiceProvider provider = call -> Stream.of(services)
+            .map(service -> {
+              ServiceInfo.Builder builder;
+              if (service instanceof  ServiceInfo) {
+                builder = ServiceInfo.from((ServiceInfo) service);
+              } else {
+                builder = ServiceInfo.fromServiceInstance(service);
+              }
+              return builder.build();
+            })
+            .collect(Collectors.toList());
+    return new ScalecubeServiceFactory(Collections.singleton(provider));
+  }
+
+  private ScalecubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
     this.serviceFactory =
         microservices ->
             serviceProviders.stream()
@@ -43,7 +68,7 @@ public class ScaleCubeServiceFactory implements ServiceFactory {
    * Since the service instance factory ({@link ServiceProvider}) we have to leave behind does not
    * provide us with information about the types of services produced, there is nothing left for us
    * to do but start creating all the services and then retrieve the type of service, previously
-   * saving it as a {@link ScaleCubeServiceFactory} state.
+   * saving it as a {@link ScalecubeServiceFactory} state.
    *
    * <p>{@inheritDoc}
    *

@@ -5,12 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
+
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +30,10 @@ public class ServiceLocalTest extends BaseTest {
 
   @BeforeEach
   public void setUp() {
-    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
+    microservices =
+        Microservices.builder()
+            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
+            .startAwait();
   }
 
   @AfterEach
@@ -212,9 +218,9 @@ public class ServiceLocalTest extends BaseTest {
     ServiceCall serviceCall = microservices.call();
 
     StepVerifier.create(
-            serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage").build(),
-                GreetingResponse.class))
+        serviceCall.requestOne(
+            ServiceMessage.from(request).qualifier("/greetings/greetingMessage").build(),
+            GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());
@@ -228,9 +234,9 @@ public class ServiceLocalTest extends BaseTest {
         .verify(timeout);
 
     StepVerifier.create(
-            serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage2").build(),
-                GreetingResponse.class))
+        serviceCall.requestOne(
+            ServiceMessage.from(request).qualifier("/greetings/greetingMessage2").build(),
+            GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());

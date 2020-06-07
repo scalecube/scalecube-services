@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
@@ -71,7 +72,7 @@ public class ServiceCallRemoteTest extends BaseTest {
                 new ScalecubeServiceDiscovery(endpoint)
                     .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
         .transport(RSocketServiceTransport::new)
-        .services(service)
+        .serviceFactory(ScalecubeServiceFactory.from(service))
         .startAwait();
   }
 

@@ -3,10 +3,12 @@ package io.scalecube.services.examples.helloworld;
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -41,6 +43,9 @@ public class Example2 {
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     final Address seedAddress = seed.discovery().address();
 
+    // Create service factory for Greeting Service
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(new GreetingServiceImpl());
+
     Microservices ms =
         Microservices.builder()
             .discovery(
@@ -48,7 +53,7 @@ public class Example2 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
     // Create a proxy to the seed service node

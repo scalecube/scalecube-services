@@ -30,5 +30,7 @@ public interface ServiceFactory {
    * @param microservices scale cube instance.
    * @return completed Mono if finalization was successful for all services.
    */
-  Mono<Void> shutdownServices(MicroservicesContext microservices);
+  default Mono<Void> shutdownServices(MicroservicesContext microservices) {
+    return Mono.defer(Mono::empty);
+  }
 }

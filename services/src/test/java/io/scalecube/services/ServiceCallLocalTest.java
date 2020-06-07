@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
@@ -67,7 +68,7 @@ public class ServiceCallLocalTest extends BaseTest {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
-        .services(new GreetingServiceImpl())
+        .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
         .startAwait();
   }
 

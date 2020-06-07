@@ -2,9 +2,11 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
+import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 
 /**
@@ -32,6 +34,9 @@ public class Example1 {
 
     final Address seedAddress = seed.discovery().address();
 
+    // Create service factory for Greeting Service
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(new GreetingServiceImpl());
+
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
         Microservices.builder()
@@ -40,7 +45,7 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
     // Create service proxy
