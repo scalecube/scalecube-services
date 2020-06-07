@@ -53,7 +53,7 @@ public class ExceptionMapperExample {
           @Override
           public Mono<? extends Collection<ServiceInfo>> initializeServices(
               MicroservicesContext microservices) {
-            ServiceCall call = microservices.call();
+            ServiceCall call = microservices.serviceCall();
             ServiceA serviceA =
                 call.errorMapper(new ServiceAClientErrorMapper()).api(ServiceA.class);
             ServiceB serviceB = new ServiceBImpl(serviceA);
