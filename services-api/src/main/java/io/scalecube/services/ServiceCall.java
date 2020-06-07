@@ -36,16 +36,13 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
-  private static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
-      ServiceMessage.error(503, 503, "Unexpected empty response");
-
   private ClientTransport transport;
   private ServiceMethodRegistry methodRegistry;
   private ServiceRegistry serviceRegistry;
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
-  private String contentType;
+  private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
 
   public ServiceCall() {}
 
@@ -479,15 +476,13 @@ public class ServiceCall {
   }
 
   private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
-    return flux -> isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+    return flux ->
+        isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(ServiceMessage::data);
   }
 
   private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
-    return mono -> isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
-  }
-
-  private Function<ServiceMessage, Object> msgToResp() {
-    return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
+    return mono ->
+        isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(ServiceMessage::data);
   }
 
   private ServiceMessage throwIfError(ServiceMessage message) {

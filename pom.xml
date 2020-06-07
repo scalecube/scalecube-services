@@ -23,12 +23,12 @@
 
   <properties>
     <jackson.version>2.11.0</jackson.version>
-    <scalecube-cluster.version>2.4.11</scalecube-cluster.version>
+    <scalecube-cluster.version>2.5.0-RC2</scalecube-cluster.version>
     <scalecube-commons.version>1.0.2</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.4.3</scalecube-config.version>
     <reactor.version>Dysprosium-SR7</reactor.version>
-    <rsocket.version>1.0.0-RC7</rsocket.version>
+    <rsocket.version>1.0.0</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.48.Final</netty.version>
     <slf4j.version>1.7.30</slf4j.version>

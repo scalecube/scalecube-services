@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.EmitterProcessor;
@@ -459,7 +460,7 @@ public class ServiceRemoteTest extends BaseTest {
         .verify(TIMEOUT);
   }
 
-  @Test
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
     GreetingService service = gateway.call().api(GreetingService.class);
 

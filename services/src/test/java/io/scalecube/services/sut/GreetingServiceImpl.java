@@ -4,7 +4,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.stream.LongStream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -43,7 +43,7 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<GreetingResponse> greetingNotAuthorized(GreetingRequest name) {
-    return Mono.error(new UnauthorizedException(500, "Not authorized"));
+    return Mono.error(new ForbiddenException("Not authorized"));
   }
 
   @Override
@@ -82,7 +82,7 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Flux<GreetingResponse> bidiGreetingNotAuthorized(Flux<GreetingRequest> request) {
-    return Flux.error(new UnauthorizedException(500, "Not authorized"));
+    return Flux.error(new ForbiddenException("Not authorized"));
   }
 
   @Override

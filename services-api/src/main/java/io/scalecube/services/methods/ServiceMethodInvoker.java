@@ -70,8 +70,9 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMap(authData -> deferWithContextOne(message, authData))
-        .map(response -> toResponse(response, message.dataFormat()))
-        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .onErrorResume(
+            throwable -> Mono.just(errorMapper.toMessage(message.qualifier(), throwable)));
   }
 
   /**
@@ -83,8 +84,9 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
     return Mono.deferWithContext(context -> authenticate(message, context))
         .flatMapMany(authData -> deferWithContextMany(message, authData))
-        .map(response -> toResponse(response, message.dataFormat()))
-        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .onErrorResume(
+            throwable -> Flux.just(errorMapper.toMessage(message.qualifier(), throwable)));
   }
 
   /**
@@ -99,8 +101,12 @@ public final class ServiceMethodInvoker {
             (first, messages) ->
                 Mono.deferWithContext(context -> authenticate(first.get(), context))
                     .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
-                    .map(response -> toResponse(response, first.get().dataFormat())))
-        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
+                    .map(
+                        response ->
+                            toResponse(response, first.get().qualifier(), first.get().dataFormat()))
+                    .onErrorResume(
+                        throwable ->
+                            Flux.just(errorMapper.toMessage(first.get().qualifier(), throwable))));
   }
 
   private Mono<?> deferWithContextOne(ServiceMessage message, Object authData) {
@@ -148,14 +154,11 @@ public final class ServiceMethodInvoker {
   }
 
   private Mono<Object> authenticate(ServiceMessage message, Context context) {
-    if (!methodInfo.isAuth()) {
+    if (!methodInfo.isSecured()) {
       return Mono.just(Collections.emptyMap());
     }
     if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
       return Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY));
-    }
-    if (authenticator == null) {
-      throw new UnauthorizedException("Authenticator not found");
     }
     return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
   }
@@ -187,16 +190,16 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response, String dataFormat) {
+  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
     if (response instanceof ServiceMessage) {
       ServiceMessage message = (ServiceMessage) response;
       if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
-        return ServiceMessage.from(message).dataFormat(dataFormat).build();
+        return ServiceMessage.from(message).qualifier(qualifier).dataFormat(dataFormat).build();
       }
-      return message;
+      return ServiceMessage.from(message).qualifier(qualifier).build();
     }
     return ServiceMessage.builder()
-        .qualifier(methodInfo.qualifier())
+        .qualifier(qualifier)
         .data(response)
         .dataFormatIfAbsent(dataFormat)
         .build();

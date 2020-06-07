@@ -7,6 +7,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -73,7 +74,7 @@ public class ErrorFlowTest extends BaseTest {
         consumer
             .call()
             .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
-    assertThrows(UnauthorizedException.class, () -> from(req).block());
+    assertThrows(ForbiddenException.class, () -> from(req).block());
   }
 
   @Test

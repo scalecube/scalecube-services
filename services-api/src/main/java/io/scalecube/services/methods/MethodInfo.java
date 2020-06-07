@@ -16,7 +16,7 @@ public final class MethodInfo {
   private final int parameterCount;
   private final Class<?> requestType;
   private final boolean isRequestTypeServiceMessage;
-  private final boolean auth;
+  private final boolean isSecured;
 
   /**
    * Create a new service info.
@@ -29,7 +29,7 @@ public final class MethodInfo {
    * @param parameterCount amount of parameters
    * @param requestType the type of the request
    * @param isRequestTypeServiceMessage is request service message
-   * @param auth is method protected by authentication
+   * @param isSecured is method protected by authentication
    */
   public MethodInfo(
       String serviceName,
@@ -40,18 +40,17 @@ public final class MethodInfo {
       int parameterCount,
       Class<?> requestType,
       boolean isRequestTypeServiceMessage,
-      boolean auth) {
-
+      boolean isSecured) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
     this.serviceName = serviceName;
     this.methodName = methodName;
-    this.auth = auth;
     this.qualifier = Qualifier.asString(serviceName, methodName);
     this.parameterCount = parameterCount;
     this.requestType = requestType;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
+    this.isSecured = isSecured;
   }
 
   public String serviceName() {
@@ -64,6 +63,10 @@ public final class MethodInfo {
 
   public String qualifier() {
     return qualifier;
+  }
+
+  public String oldQualifier() {
+    return Qualifier.DELIMITER + qualifier();
   }
 
   public Type parameterizedReturnType() {
@@ -94,8 +97,8 @@ public final class MethodInfo {
     return requestType;
   }
 
-  public boolean isAuth() {
-    return auth;
+  public boolean isSecured() {
+    return isSecured;
   }
 
   @Override
@@ -110,7 +113,7 @@ public final class MethodInfo {
         .add("parameterCount=" + parameterCount)
         .add("requestType=" + requestType)
         .add("isRequestTypeServiceMessage=" + isRequestTypeServiceMessage)
-        .add("auth=" + auth)
+        .add("isSecured=" + isSecured)
         .toString();
   }
 }

@@ -45,7 +45,7 @@ public class ServiceScanner {
                               new ServiceMethodDefinition(
                                   Reflect.methodName(method),
                                   Reflect.serviceMethodTags(method),
-                                  Reflect.isAuth(method)))
+                                  Reflect.isSecured(method)))
                       .collect(Collectors.toList());
               return new ServiceRegistration(namespace, serviceTags, actions);
             })

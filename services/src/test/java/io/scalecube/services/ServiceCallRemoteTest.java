@@ -30,6 +30,7 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -238,7 +239,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
-  @Test
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
     ServiceCall call = gateway.call();
 

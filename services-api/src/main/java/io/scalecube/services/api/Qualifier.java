@@ -5,18 +5,6 @@ public final class Qualifier {
 
   public static final String DELIMITER = "/";
 
-  public static final String ERROR_NAMESPACE = "io.scalecube.services.error";
-
-  /**
-   * Builds error qualifier.
-   *
-   * @param action qualifier action.
-   * @return constructed qualifier string.
-   */
-  public static String asError(int action) {
-    return asString(ERROR_NAMESPACE, Integer.toString(action));
-  }
-
   /**
    * Builds qualifier string out of given namespace and action.
    *
@@ -25,7 +13,7 @@ public final class Qualifier {
    * @return constructed qualifier.
    */
   public static String asString(String namespace, String action) {
-    return DELIMITER + namespace + DELIMITER + action;
+    return namespace + DELIMITER + action;
   }
 
   /**
@@ -35,11 +23,14 @@ public final class Qualifier {
    * @return qualifier namespace.
    */
   public static String getQualifierNamespace(String qualifierAsString) {
-    int pos = qualifierAsString.indexOf(DELIMITER, 1);
+    // If qualifier starts with DELIMITER it's old format, if not then it's new format without
+    // DELIMITER in the beginning
+    int namespacePos = qualifierAsString.startsWith(DELIMITER) ? 1 : 0;
+    int pos = qualifierAsString.indexOf(DELIMITER, namespacePos);
     if (pos == -1) {
-      throw new IllegalArgumentException("Wrong qualifier format: '" + qualifierAsString + "'");
+      throw new IllegalArgumentException("Wrong qualifier: '" + qualifierAsString + "'");
     }
-    return qualifierAsString.substring(1, pos);
+    return qualifierAsString.substring(namespacePos, pos);
   }
 
   /**

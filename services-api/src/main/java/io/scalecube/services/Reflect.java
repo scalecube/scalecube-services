@@ -12,7 +12,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Auth;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -161,7 +161,7 @@ public class Reflect {
                             method.getParameterCount(),
                             requestType(method),
                             isRequestTypeServiceMessage(method),
-                            isAuth(method)))));
+                            isSecured(method)))));
   }
 
   /**
@@ -369,8 +369,8 @@ public class Reflect {
     return type.isAnnotationPresent(Service.class);
   }
 
-  public static boolean isAuth(Method method) {
-    return method.isAnnotationPresent(Auth.class)
-        || method.getDeclaringClass().isAnnotationPresent(Auth.class);
+  public static boolean isSecured(Method method) {
+    return method.isAnnotationPresent(Secured.class)
+        || method.getDeclaringClass().isAnnotationPresent(Secured.class);
   }
 }

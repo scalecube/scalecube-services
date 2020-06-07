@@ -15,4 +15,4 @@ import java.lang.annotation.Target;
 @Documented
 @Target({METHOD, TYPE})
 @Retention(RUNTIME)
-public @interface Auth {}
+public @interface Secured {}
