@@ -367,7 +367,7 @@ public class ServiceCall {
     return (T)
         Proxy.newProxyInstance(
             getClass().getClassLoader(),
-            new Class[] {serviceInterface},
+            new Class[] {serviceInterface, RemoteService.class},
             new InvocationHandler() {
               @Override
               public Object invoke(Object proxy, Method method, Object[] params) {

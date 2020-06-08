@@ -320,7 +320,7 @@ public final class Microservices {
     }
 
     @Override
-    public ServiceCall call() {
+    public ServiceCall serviceCall() {
       return Microservices.this.call();
     }
 
@@ -330,7 +330,7 @@ public final class Microservices {
     }
 
     @Override
-    public ServiceDiscovery discovery() {
+    public ServiceDiscovery serviceDiscovery() {
       return Microservices.this.discovery();
     }
   }

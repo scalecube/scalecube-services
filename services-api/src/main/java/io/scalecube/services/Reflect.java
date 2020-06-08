@@ -257,6 +257,9 @@ public class Reflect {
    * @return service interface class.
    */
   public static Stream<Class<?>> serviceInterfaces(Class<?> serviceType) {
+    if (serviceType.isInterface() && serviceType.isAnnotationPresent(Service.class)) {
+      return Stream.of(serviceType);
+    }
     Class<?>[] interfaces = serviceType.getInterfaces();
     return Arrays.stream(interfaces)
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));

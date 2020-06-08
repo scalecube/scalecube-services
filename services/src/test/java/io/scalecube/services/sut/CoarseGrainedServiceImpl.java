@@ -1,6 +1,5 @@
 package io.scalecube.services.sut;
 
-import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
@@ -33,7 +32,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   @Override
   public Mono<String> callGreetingWithDispatcher(String request) {
     return microservices
-        .call()
+        .serviceCall()
         .requestOne(
             ServiceMessage.builder()
                 .qualifier(GreetingService.SERVICE_NAME, "greeting")

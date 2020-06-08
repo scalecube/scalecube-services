@@ -1,6 +1,5 @@
 package io.scalecube.services.inject;
 
-import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
@@ -44,7 +43,7 @@ public final class Injector {
     } else if (field.isAnnotationPresent(Inject.class) && Reflect.isService(field.getType())) {
       Inject injection = field.getAnnotation(Inject.class);
       Class<? extends Router> routerClass = injection.router();
-      final ServiceCall call = microservices.call();
+      final ServiceCall call = microservices.serviceCall();
       if (!routerClass.isInterface()) {
         call.router(routerClass);
       }
@@ -96,7 +95,7 @@ public final class Injector {
                               if (mapper.getType().equals(MicroservicesContext.class)) {
                                 return microservices;
                               } else if (Reflect.isService(mapper.getType())) {
-                                return microservices.call().api(mapper.getType());
+                                return microservices.serviceCall().api(mapper.getType());
                               } else {
                                 return null;
                               }

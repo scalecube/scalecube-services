@@ -58,7 +58,7 @@ public class ScalecubeServiceFactory implements ServiceFactory {
     this.serviceFactory =
         microservices ->
             serviceProviders.stream()
-                .map(serviceProvider -> serviceProvider.provide(microservices.call()))
+                .map(serviceProvider -> serviceProvider.provide(microservices.serviceCall()))
                 .flatMap(Collection::stream)
                 .map(service -> Injector.inject(microservices, service))
                 .collect(Collectors.toList());
