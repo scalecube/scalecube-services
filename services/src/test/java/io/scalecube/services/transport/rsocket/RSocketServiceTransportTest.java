@@ -51,7 +51,7 @@ public class RSocketServiceTransportTest extends BaseTest {
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(new SimpleQuoteService()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new SimpleQuoteService()))
             .startAwait();
   }
 

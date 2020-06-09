@@ -32,7 +32,7 @@ public class ServiceLocalTest extends BaseTest {
   public void setUp() {
     microservices =
         Microservices.builder()
-            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
   }
 

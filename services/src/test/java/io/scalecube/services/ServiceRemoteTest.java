@@ -74,7 +74,7 @@ public class ServiceRemoteTest extends BaseTest {
     return Microservices.builder()
         .discovery(ServiceRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
-        .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
+        .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
         .startAwait();
   }
 
@@ -270,7 +270,7 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(new CoarseGrainedServiceImpl())) // add service a and b
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new CoarseGrainedServiceImpl())) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
@@ -293,7 +293,7 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(another))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another))
             .startAwait();
 
     // Get a proxy to the service api.
@@ -313,7 +313,7 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(another)) // add service a and b
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
@@ -338,7 +338,7 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(another)) // add service a and b
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
@@ -423,7 +423,7 @@ public class ServiceRemoteTest extends BaseTest {
             .discovery(ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .tags(tags)
-            .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
     assertTrue(ms.discovery().serviceEndpoint().tags().containsKey("HOSTNAME"));

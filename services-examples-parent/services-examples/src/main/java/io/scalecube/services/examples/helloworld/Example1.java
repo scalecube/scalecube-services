@@ -35,7 +35,7 @@ public class Example1 {
     final Address seedAddress = seed.discovery().address();
 
     // Create service factory for Greeting Service
-    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(new GreetingServiceImpl());
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =

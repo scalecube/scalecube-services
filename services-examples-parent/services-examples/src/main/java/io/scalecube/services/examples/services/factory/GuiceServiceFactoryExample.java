@@ -41,7 +41,7 @@ public class GuiceServiceFactoryExample {
    * @param args - program arguments
    */
   public static void main(String[] args) {
-    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.from(new GreetingServiceImpl());
+    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
 
     Microservices service2Node =
         Microservices.builder()

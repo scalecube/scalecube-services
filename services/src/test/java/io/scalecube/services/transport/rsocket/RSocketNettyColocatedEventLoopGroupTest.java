@@ -40,7 +40,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(new Facade()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new Facade()))
             .startAwait();
 
     PingService pingService = () -> Mono.just(Thread.currentThread().getName());
@@ -51,7 +51,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(pingService))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(pingService))
             .startAwait();
 
     PongService pongService = () -> Mono.just(Thread.currentThread().getName());
@@ -62,7 +62,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
             .transport(RSocketServiceTransport::new)
-            .serviceFactory(ScalecubeServiceFactory.from(pongService))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(pongService))
             .startAwait();
   }
 

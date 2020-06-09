@@ -40,7 +40,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
     final Address seedAddress = seed.discovery().address();
 
-    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(services);
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(services);
 
     node =
         Microservices.builder()

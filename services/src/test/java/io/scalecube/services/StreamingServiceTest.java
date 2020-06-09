@@ -42,7 +42,7 @@ public class StreamingServiceTest extends BaseTest {
                         .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
             .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
-            .serviceFactory(ScalecubeServiceFactory.from(new SimpleQuoteService()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new SimpleQuoteService()))
             .startAwait();
   }
 

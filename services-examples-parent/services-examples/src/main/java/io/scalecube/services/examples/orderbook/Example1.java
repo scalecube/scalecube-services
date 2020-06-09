@@ -42,7 +42,7 @@ public class Example1 {
 
     final Address gatewayAddress = gateway.discovery().address();
 
-    ServiceFactory serviceFactory = ScalecubeServiceFactory.from(new DefaultMarketDataService());
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new DefaultMarketDataService());
 
     Microservices ms =
         Microservices.builder()
