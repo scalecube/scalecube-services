@@ -213,7 +213,7 @@ public class ServiceLocalTest extends BaseTest {
 
     StepVerifier.create(
             serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage").build(),
+                ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage").build(),
                 GreetingResponse.class))
         .assertNext(
             message -> {
@@ -229,7 +229,7 @@ public class ServiceLocalTest extends BaseTest {
 
     StepVerifier.create(
             serviceCall.requestOne(
-                ServiceMessage.from(request).qualifier("/greetings/greetingMessage2").build(),
+                ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage2").build(),
                 GreetingResponse.class))
         .assertNext(
             message -> {
