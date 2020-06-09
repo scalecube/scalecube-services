@@ -27,10 +27,10 @@
     <scalecube-commons.version>1.0.2</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.4.3</scalecube-config.version>
-    <reactor.version>Dysprosium-SR7</reactor.version>
-    <rsocket.version>1.0.0</rsocket.version>
+    <reactor.version>Dysprosium-SR8</reactor.version>
+    <rsocket.version>1.0.1</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.48.Final</netty.version>
+    <netty.version>4.1.50.Final</netty.version>
     <slf4j.version>1.7.30</slf4j.version>
     <log4j.version>2.13.2</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
