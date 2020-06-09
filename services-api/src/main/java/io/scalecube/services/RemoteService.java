@@ -1,4 +1,4 @@
 package io.scalecube.services;
 
-public interface RemoteService {
-}
+/** Interface-marker for Proxy of remote services. */
+public interface RemoteService {}

@@ -2,6 +2,7 @@ package io.scalecube.services.examples.services.factory;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.Reflect;
 import io.scalecube.services.RemoteService;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
@@ -16,14 +17,23 @@ import io.scalecube.services.examples.services.factory.service.api.BidiGreetingS
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
 import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
+import java.util.stream.Stream;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.ResolvableType;
+import org.springframework.core.annotation.AliasFor;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 public class SpringServiceFactoryExample {
@@ -77,10 +87,48 @@ public class SpringServiceFactoryExample {
       return serviceCall.api(GreetingsService.class);
     }
 
-    @Bean
+    @ScalecubeBean
     public BidiGreetingService bidiGreetingService(GreetingsService greetingsService) {
       return new BidiGreetingImpl(greetingsService);
     }
+  }
+
+  @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
+  @Retention(RetentionPolicy.RUNTIME)
+  @Bean
+  @interface ScalecubeBean {
+
+    /**
+     * {@link Bean#value()}.
+     *
+     * @return name
+     */
+    @AliasFor(annotation = Bean.class, attribute = "name")
+    String[] value() default {};
+
+    /**
+     * {@link Bean#name()}.
+     *
+     * @return name
+     */
+    @AliasFor(annotation = Bean.class, attribute = "value")
+    String[] name() default {};
+
+    /**
+     * {@link Bean#initMethod()} ()}.
+     *
+     * @return init method
+     */
+    @AliasFor(annotation = Bean.class, attribute = "initMethod")
+    String initMethod() default "";
+
+    /**
+     * {@link Bean#destroyMethod()} ()}.
+     *
+     * @return destroy method
+     */
+    @AliasFor(annotation = Bean.class, attribute = "destroyMethod")
+    String destroyMethod() default AbstractBeanDefinition.INFER_METHOD;
   }
 
   private static class AnnotatedSpringServiceFactory implements ServiceFactory {
@@ -104,12 +152,15 @@ public class SpringServiceFactoryExample {
           () -> {
             this.context.registerBean(MicroservicesContext.class, () -> microservices);
             this.context.registerBean(ServiceCall.class, microservices::serviceCall);
-            this.context.registerBean(ServiceDiscovery.class, microservices::serviceDiscovery);
             this.context.register(this.configuration);
             this.context.refresh();
-            return this.context.getBeansWithAnnotation(Service.class).values().stream()
-                .map(Object::getClass)
-                .filter(Predicate.not(RemoteService.class::isAssignableFrom))
+            String[] beanNames = this.context.getBeanNamesForAnnotation(ScalecubeBean.class);
+            return Stream.of(beanNames)
+                .map(this.context::getBeanDefinition)
+                .map(BeanDefinition::getResolvableType)
+                .map(ResolvableType::resolve)
+                .filter(Objects::nonNull)
+                .filter(Reflect::isService)
                 .map(ServiceDefinition::new)
                 .collect(Collectors.toList());
           });
@@ -131,12 +182,7 @@ public class SpringServiceFactoryExample {
 
     @Override
     public Mono<Void> shutdownServices(MicroservicesContext microservices) {
-      return Mono.fromCallable(
-          () -> {
-            this.context.stop();
-            return this.context;
-          })
-          .then();
+      return Mono.fromRunnable(this.context::stop).then();
     }
   }
 }
