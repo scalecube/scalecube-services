@@ -55,28 +55,30 @@ public class ExamplesRunner {
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     ServiceFactory serviceFactory =
-        ScalecubeServiceFactory.fromInstances(new BenchmarkServiceImpl(), new GreetingServiceImpl());
-    Microservices microservices = Microservices.builder()
-        .discovery(endpoint -> serviceDiscovery(endpoint, config))
-        .transport(
-            () ->
-                new RSocketServiceTransport()
-                    .tcpClient(
-                        loopResources ->
-                            TcpClient.newConnection()
-                                .runOn(loopResources)
-                                .wiretap(false)
-                                .noProxy()
-                                .noSSL())
-                    .tcpServer(
-                        loopResources ->
-                            TcpServer.create()
-                                .wiretap(false)
-                                .port(config.servicePort())
-                                .runOn(loopResources)
-                                .noSSL()))
-        .serviceFactory(serviceFactory)
-        .startAwait();
+        ScalecubeServiceFactory.fromInstances(
+            new BenchmarkServiceImpl(), new GreetingServiceImpl());
+    Microservices microservices =
+        Microservices.builder()
+            .discovery(endpoint -> serviceDiscovery(endpoint, config))
+            .transport(
+                () ->
+                    new RSocketServiceTransport()
+                        .tcpClient(
+                            loopResources ->
+                                TcpClient.newConnection()
+                                    .runOn(loopResources)
+                                    .wiretap(false)
+                                    .noProxy()
+                                    .noSSL())
+                        .tcpServer(
+                            loopResources ->
+                                TcpServer.create()
+                                    .wiretap(false)
+                                    .port(config.servicePort())
+                                    .runOn(loopResources)
+                                    .noSSL()))
+            .serviceFactory(serviceFactory)
+            .startAwait();
 
     Runners.onShutdown(() -> microservices.shutdown().subscribe());
 
