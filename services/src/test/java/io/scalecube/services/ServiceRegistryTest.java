@@ -120,16 +120,17 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })
         .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
-        .then(() -> cluster.remove(2).shutdown().block())
+        .then(() -> cluster.remove(2).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
         .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
-        .then(() -> cluster.remove(1).shutdown().block())
+        .then(() -> cluster.remove(1).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
         .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
