@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 @Service(GreetingService.SERVICE_NAME)
 public interface GreetingService {
 
-  String SERVICE_NAME = "greetings";
+  String SERVICE_NAME = "v1/greetings";
 
   @ServiceMethod
   void notifyGreeting();
