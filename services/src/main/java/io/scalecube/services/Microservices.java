@@ -172,7 +172,9 @@ public final class Microservices {
   }
 
   private static String generateId() {
-    return Long.toHexString(UUID.randomUUID().getMostSignificantBits() & Long.MAX_VALUE);
+    UUID uuid = UUID.randomUUID();
+    return Long.toHexString(uuid.getMostSignificantBits())
+        + Long.toHexString(uuid.getLeastSignificantBits());
   }
 
   @Override
@@ -338,15 +340,15 @@ public final class Microservices {
   public static final class Builder {
 
     private Map<String, String> tags = new HashMap<>();
-    private List<ServiceInfo> services = new ArrayList<>();
-    private List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private final List<ServiceInfo> services = new ArrayList<>();
+    private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceFactory serviceFactory;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<Object> authenticator = new DelegatingAuthenticator();
     private ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
-    private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
+    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private ServiceMessageDataDecoder dataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
@@ -565,15 +567,13 @@ public final class Microservices {
 
   public static class ServiceDiscoveryBootstrap {
 
-    public static final Function<ServiceEndpoint, ServiceDiscovery> NULL_FACTORY = i -> null;
-
     private final Function<ServiceEndpoint, ServiceDiscovery> factory;
 
     private ServiceDiscovery discovery;
     private Disposable disposable;
 
     private ServiceDiscoveryBootstrap() {
-      this(NULL_FACTORY);
+      this(NullServiceDiscovery::new);
     }
 
     private ServiceDiscoveryBootstrap(Function<ServiceEndpoint, ServiceDiscovery> factory) {
@@ -581,17 +581,14 @@ public final class Microservices {
     }
 
     private Mono<ServiceDiscovery> createInstance(ServiceEndpoint serviceEndpoint) {
-      return factory == NULL_FACTORY
-          ? Mono.empty()
-          : Mono.defer(() -> Mono.just(discovery = factory.apply(serviceEndpoint)));
+      return Mono.fromCallable(() -> discovery = factory.apply(serviceEndpoint));
     }
 
     private Mono<ServiceDiscovery> startListen(Microservices microservices) {
       return Mono.defer(
           () -> {
-            if (this.discovery == null) {
-              LOGGER.info("[{}] ServiceDiscovery not set", microservices.id());
-              return Mono.empty();
+            if (discovery instanceof NullServiceDiscovery) {
+              return Mono.just(discovery);
             }
 
             this.disposable =
@@ -636,6 +633,40 @@ public final class Microservices {
             }
             return discovery != null ? discovery.shutdown() : Mono.empty();
           });
+    }
+  }
+
+  private static class NullServiceDiscovery implements ServiceDiscovery {
+
+    private final ServiceEndpoint serviceEndpoint;
+
+    private NullServiceDiscovery(ServiceEndpoint serviceEndpoint) {
+      this.serviceEndpoint = serviceEndpoint;
+    }
+
+    @Override
+    public Address address() {
+      return Address.NULL_ADDRESS;
+    }
+
+    @Override
+    public ServiceEndpoint serviceEndpoint() {
+      return serviceEndpoint;
+    }
+
+    @Override
+    public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+      return Flux.never();
+    }
+
+    @Override
+    public Mono<ServiceDiscovery> start() {
+      return Mono.just(this);
+    }
+
+    @Override
+    public Mono<Void> shutdown() {
+      return Mono.empty();
     }
   }
 
@@ -701,14 +732,13 @@ public final class Microservices {
 
     public static final Supplier<ServiceTransport> NULL_SUPPLIER = () -> null;
     public static final ServiceTransportBootstrap NULL_INSTANCE = new ServiceTransportBootstrap();
-    public static final Address NULL_ADDRESS = Address.create("0.0.0.0", 0);
 
     private final Supplier<ServiceTransport> transportSupplier;
 
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
-    private Address transportAddress = NULL_ADDRESS;
+    private Address transportAddress = Address.NULL_ADDRESS;
 
     public ServiceTransportBootstrap() {
       this(NULL_SUPPLIER);
@@ -721,7 +751,6 @@ public final class Microservices {
     private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
       if (transportSupplier == NULL_SUPPLIER
           || (serviceTransport = transportSupplier.get()) == null) {
-        LOGGER.info("[{}] ServiceTransport not set", microservices.id());
         return Mono.just(NULL_INSTANCE);
       }
 
