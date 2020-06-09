@@ -73,7 +73,7 @@ public class ServiceCallRemoteTest extends BaseTest {
                 new ScalecubeServiceDiscovery(endpoint)
                     .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
         .transport(RSocketServiceTransport::new)
-        .serviceFactory(ScalecubeServiceFactory.from(service))
+        .serviceFactory(ScalecubeServiceFactory.fromInstances(service))
         .startAwait();
   }
 

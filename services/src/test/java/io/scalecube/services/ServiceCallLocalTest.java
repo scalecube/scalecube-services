@@ -68,7 +68,7 @@ public class ServiceCallLocalTest extends BaseTest {
     return Microservices.builder()
         .discovery(ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
-        .serviceFactory(ScalecubeServiceFactory.from(new GreetingServiceImpl()))
+        .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
         .startAwait();
   }
 

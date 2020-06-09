@@ -55,7 +55,7 @@ public class ExamplesRunner {
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
     ServiceFactory serviceFactory =
-        ScalecubeServiceFactory.from(new BenchmarkServiceImpl(), new GreetingServiceImpl());
+        ScalecubeServiceFactory.fromInstances(new BenchmarkServiceImpl(), new GreetingServiceImpl());
     Microservices microservices = Microservices.builder()
         .discovery(endpoint -> serviceDiscovery(endpoint, config))
         .transport(

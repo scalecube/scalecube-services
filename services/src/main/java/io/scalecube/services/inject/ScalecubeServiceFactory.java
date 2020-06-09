@@ -27,7 +27,7 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    *
    * @param serviceProviders old service providers.
    * @return default services factory.
-   * @deprecated use {@link this#from(Object...)}
+   * @deprecated use {@link this#fromInstances(Object...)}
    */
   public static ServiceFactory create(Collection<ServiceProvider> serviceProviders) {
     return new ScalecubeServiceFactory(serviceProviders);
@@ -39,7 +39,7 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * @param services user's services
    * @return service factory
    */
-  public static ServiceFactory from(Object... services) {
+  public static ServiceFactory fromInstances(Object... services) {
     ServiceProvider provider = call -> Stream.of(services)
             .map(service -> {
               ServiceInfo.Builder builder;

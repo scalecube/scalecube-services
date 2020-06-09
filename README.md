@@ -65,7 +65,7 @@ The example provisions 2 cluster nodes and making a remote interaction.
     Microservices seed = Microservices.builder().startAwait();
 
     //2. Create ServiceFactory 
-    ServiceFactory serviceFactory = ScaleCubeServiceFactory.from(new GreetingServiceImpl());
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
 
     //3. Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =

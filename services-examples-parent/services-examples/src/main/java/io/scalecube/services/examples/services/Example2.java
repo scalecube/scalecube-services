@@ -25,7 +25,7 @@ public class Example2 {
 
     final Address gatewayAddress = gateway.discovery().address();
 
-    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.from(new Service2Impl());
+    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.fromInstances(new Service2Impl());
 
     Microservices service2Node =
         Microservices.builder()
@@ -37,7 +37,7 @@ public class Example2 {
             .serviceFactory(serviceFactory2)
             .startAwait();
 
-    ServiceFactory serviceFactory1 = ScalecubeServiceFactory.from(new Service1Impl());
+    ServiceFactory serviceFactory1 = ScalecubeServiceFactory.fromInstances(new Service1Impl());
 
     Microservices service1Node =
         Microservices.builder()

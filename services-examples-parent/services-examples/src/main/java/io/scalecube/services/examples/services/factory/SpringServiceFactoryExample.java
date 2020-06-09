@@ -10,7 +10,6 @@ import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
@@ -33,7 +32,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ResolvableType;
 import org.springframework.core.annotation.AliasFor;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 public class SpringServiceFactoryExample {
@@ -44,7 +42,8 @@ public class SpringServiceFactoryExample {
    * @param args - program arguments
    */
   public static void main(String[] args) {
-    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.from(new GreetingServiceImpl());
+    ServiceFactory serviceFactory2 =
+        ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
 
     Microservices service2Node =
         Microservices.builder()
