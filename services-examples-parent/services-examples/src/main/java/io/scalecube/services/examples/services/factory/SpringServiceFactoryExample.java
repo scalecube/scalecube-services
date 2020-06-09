@@ -3,12 +3,10 @@ package io.scalecube.services.examples.services.factory;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Reflect;
-import io.scalecube.services.RemoteService;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.annotations.Service;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
@@ -22,10 +20,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.Collection;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -171,9 +170,7 @@ public class SpringServiceFactoryExample {
       return Mono.fromCallable(
           () -> {
             this.context.start();
-            return this.context.getBeansWithAnnotation(Service.class).values().stream()
-                .filter(
-                    Predicate.not(bean -> RemoteService.class.isAssignableFrom(bean.getClass())))
+            return this.context.getBeansWithAnnotation(ScalecubeBean.class).values().stream()
                 .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
                 .collect(Collectors.toList());
           });

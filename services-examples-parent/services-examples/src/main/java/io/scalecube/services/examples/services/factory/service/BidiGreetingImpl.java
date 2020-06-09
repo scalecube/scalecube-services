@@ -1,8 +1,12 @@
 package io.scalecube.services.examples.services.factory.service;
 
+import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
 import io.scalecube.services.examples.services.factory.service.api.Greeting;
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Mono;
 
 /**
@@ -28,4 +32,5 @@ public class BidiGreetingImpl implements BidiGreetingService {
   public Mono<String> greeting() {
     return this.greetingsService.sayHello("Jack").map(Greeting::message);
   }
+
 }
