@@ -37,7 +37,7 @@ public class ServiceEndpoint implements Externalizable {
 
   private ServiceEndpoint(Builder builder) {
     this.id = Objects.requireNonNull(builder.id, "ServiceEndpoint.id is required");
-    this.address = builder.address;
+    this.address = Objects.requireNonNull(builder.address, "ServiceEndpoint.address is required");
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.serviceRegistrations =
@@ -96,11 +96,7 @@ public class ServiceEndpoint implements Externalizable {
     out.writeUTF(id);
 
     // address
-    boolean addressExists = address != null;
-    out.writeBoolean(addressExists);
-    if (addressExists) {
-      out.writeUTF(address.toString());
-    }
+    out.writeUTF(address.toString());
 
     // contentTypes
     out.writeInt(contentTypes.size());
@@ -128,10 +124,7 @@ public class ServiceEndpoint implements Externalizable {
     id = in.readUTF();
 
     // address
-    boolean addressExists = in.readBoolean();
-    if (addressExists) {
-      address = Address.from(in.readUTF());
-    }
+    address = Address.from(in.readUTF());
 
     // contentTypes
     int contentTypesSize = in.readInt();
@@ -163,7 +156,7 @@ public class ServiceEndpoint implements Externalizable {
   public static class Builder {
 
     private String id;
-    private Address address;
+    private Address address = Address.NULL_ADDRESS;
     private Set<String> contentTypes = Collections.emptySet();
     private Map<String, String> tags = Collections.emptyMap();
     private Collection<ServiceRegistration> serviceRegistrations = new ArrayList<>();
@@ -171,33 +164,35 @@ public class ServiceEndpoint implements Externalizable {
     private Builder() {}
 
     public Builder id(String id) {
-      this.id = id;
+      this.id = Objects.requireNonNull(id, "id");
       return this;
     }
 
     public Builder address(Address address) {
-      this.address = address;
+      this.address = Objects.requireNonNull(address, "address");
       return this;
     }
 
     public Builder contentTypes(Set<String> contentTypes) {
-      this.contentTypes = contentTypes;
+      this.contentTypes = Objects.requireNonNull(contentTypes, "contentTypes");
       return this;
     }
 
     public Builder tags(Map<String, String> tags) {
-      this.tags = tags;
+      this.tags = Objects.requireNonNull(tags, "tags");
       return this;
     }
 
     public Builder appendServiceRegistrations(
         Collection<ServiceRegistration> serviceRegistrations) {
-      this.serviceRegistrations.addAll(serviceRegistrations);
+      this.serviceRegistrations.addAll(
+          Objects.requireNonNull(serviceRegistrations, "serviceRegistrations"));
       return this;
     }
 
     public Builder serviceRegistrations(Collection<ServiceRegistration> serviceRegistrations) {
-      this.serviceRegistrations = serviceRegistrations;
+      this.serviceRegistrations =
+          Objects.requireNonNull(serviceRegistrations, "serviceRegistrations");
       return this;
     }
 

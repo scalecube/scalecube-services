@@ -1,5 +1,9 @@
 package io.scalecube.services.discovery;
 
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointAdded;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointLeaving;
+import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointRemoved;
+
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterImpl;
@@ -16,6 +20,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
@@ -35,7 +40,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private ServiceEndpoint serviceEndpoint;
+  private final ServiceEndpoint serviceEndpoint;
+
   private ClusterConfig clusterConfig;
   private Cluster cluster;
 
@@ -48,8 +54,11 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    * @param serviceEndpoint service endpoint
    */
   public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint) {
-    this.serviceEndpoint = serviceEndpoint;
-    this.clusterConfig = ClusterConfig.defaultLanConfig().metadata(serviceEndpoint);
+    this.serviceEndpoint = Objects.requireNonNull(serviceEndpoint, "serviceEndpoint");
+    this.clusterConfig =
+        ClusterConfig.defaultLanConfig()
+            .memberIdGenerator(serviceEndpoint::id)
+            .metadata(serviceEndpoint);
   }
 
   /**
@@ -177,7 +186,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
     if (discoveryEvent == null) {
       LOGGER.warn(
-          "Not publishing discoveryEvent, discoveryEvent is null, membershipEvent: {}",
+          "DiscoveryEvent is null, cannot publish it (corresponding membershipEvent: {})",
           membershipEvent);
       return;
     }
@@ -192,18 +201,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     ServiceDiscoveryEvent discoveryEvent = null;
 
     if (membershipEvent.isAdded() && membershipEvent.newMetadata() != null) {
-      discoveryEvent =
-          ServiceDiscoveryEvent.newEndpointAdded(decodeMetadata(membershipEvent.newMetadata()));
+      discoveryEvent = newEndpointAdded(decodeMetadata(membershipEvent.newMetadata()));
     }
-
     if (membershipEvent.isRemoved() && membershipEvent.oldMetadata() != null) {
-      discoveryEvent =
-          ServiceDiscoveryEvent.newEndpointRemoved(decodeMetadata(membershipEvent.oldMetadata()));
+      discoveryEvent = newEndpointRemoved(decodeMetadata(membershipEvent.oldMetadata()));
     }
-
     if (membershipEvent.isLeaving() && membershipEvent.newMetadata() != null) {
-      discoveryEvent =
-          ServiceDiscoveryEvent.newEndpointLeaving(decodeMetadata(membershipEvent.newMetadata()));
+      discoveryEvent = newEndpointLeaving(decodeMetadata(membershipEvent.newMetadata()));
     }
 
     return discoveryEvent;
