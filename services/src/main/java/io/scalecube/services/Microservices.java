@@ -123,7 +123,7 @@ public final class Microservices {
 
   private final String id = generateId();
   private final Map<String, String> tags;
-  private final MicroservicesContext context;
+  private final ExtendedMicroservicesContext context;
   private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
@@ -314,7 +314,7 @@ public final class Microservices {
     return serviceFactory.shutdownServices(this.context).then();
   }
 
-  public final class Context implements MicroservicesContext {
+  public final class Context implements ExtendedMicroservicesContext {
 
     @Override
     public String id() {

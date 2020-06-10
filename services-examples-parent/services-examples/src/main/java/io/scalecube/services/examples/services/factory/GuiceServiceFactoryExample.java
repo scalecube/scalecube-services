@@ -11,6 +11,7 @@ import com.google.inject.Module;
 import com.google.inject.Provider;
 import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
+import io.scalecube.services.ExtendedMicroservicesContext;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.ServiceCall;
@@ -165,7 +166,7 @@ public class GuiceServiceFactoryExample {
 
     @Override
     public Mono<? extends Collection<ServiceInfo>> initializeServices(
-        MicroservicesContext microservices) {
+        ExtendedMicroservicesContext microservices) {
       return Mono.fromCallable(
           () ->
               this.injector.getAllBindings().values().stream()

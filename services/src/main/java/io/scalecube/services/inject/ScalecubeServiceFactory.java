@@ -1,5 +1,6 @@
 package io.scalecube.services.inject;
 
+import io.scalecube.services.ExtendedMicroservicesContext;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.ServiceDefinition;
@@ -96,10 +97,12 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    *
    * <p>Use {@link io.scalecube.services.annotations.AfterConstruct} for initialization service's
    * instance.
+   *
+   * @param microservices
    */
   @Override
   public Mono<? extends Collection<ServiceInfo>> initializeServices(
-      MicroservicesContext microservices) {
+      ExtendedMicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
             this.services(microservices).stream()
@@ -116,7 +119,7 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * @return
    */
   @Override
-  public Mono<Void> shutdownServices(MicroservicesContext microservices) {
+  public Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {
     return Mono.fromRunnable(() -> shutdown0(microservices));
   }
 
