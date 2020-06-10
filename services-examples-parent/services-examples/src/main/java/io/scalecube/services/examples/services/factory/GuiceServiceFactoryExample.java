@@ -19,7 +19,6 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
@@ -146,7 +145,6 @@ public class GuiceServiceFactoryExample {
                   protected void configure() {
                     bind(MicroservicesContext.class).toInstance(microservices);
                     bind(ServiceCall.class).toProvider(microservices::serviceCall);
-                    bind(ServiceDiscovery.class).toProvider(microservices::serviceDiscovery);
                   }
                 };
             List<Module> modules = new ArrayList<>();

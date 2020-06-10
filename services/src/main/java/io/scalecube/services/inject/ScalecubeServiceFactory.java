@@ -3,10 +3,12 @@ package io.scalecube.services.inject;
 import io.scalecube.services.ExtendedMicroservicesContext;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceProvider;
+import io.scalecube.services.annotations.Inject;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +20,7 @@ import reactor.core.publisher.Mono;
 
 public class ScalecubeServiceFactory implements ServiceFactory {
 
-  private final Function<MicroservicesContext, Collection<ServiceInfo>> serviceFactory;
+  private final Function<ServiceCall, Collection<ServiceInfo>> serviceFactory;
 
   // lazy init
   private final AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
@@ -60,11 +62,10 @@ public class ScalecubeServiceFactory implements ServiceFactory {
 
   private ScalecubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
     this.serviceFactory =
-        microservices ->
+        serviceCall ->
             serviceProviders.stream()
-                .map(serviceProvider -> serviceProvider.provide(microservices.serviceCall()))
+                .map(serviceProvider -> serviceProvider.provide(serviceCall))
                 .flatMap(Collection::stream)
-                .map(service -> Injector.inject(microservices, service))
                 .collect(Collectors.toList());
   }
 
@@ -87,7 +88,8 @@ public class ScalecubeServiceFactory implements ServiceFactory {
       MicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
-            this.services(microservices).stream()
+            this.services(microservices.serviceCall())
+                .stream()
                 .map(
                     serviceInfo ->
                         new ServiceDefinition(
@@ -108,7 +110,8 @@ public class ScalecubeServiceFactory implements ServiceFactory {
       ExtendedMicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
-            this.services(microservices).stream()
+            this.services(microservices.serviceCall()).stream()
+                .map(service -> Injector.inject(microservices, service))
                 .map(service -> Injector.processAfterConstruct(microservices, service))
                 .collect(Collectors.toList()));
   }
@@ -126,15 +129,15 @@ public class ScalecubeServiceFactory implements ServiceFactory {
     return Mono.fromRunnable(() -> shutdown0(microservices));
   }
 
-  private void shutdown0(MicroservicesContext microservices) {
+  private void shutdown0(ExtendedMicroservicesContext microservices) {
     if (this.services.get() != null) {
       this.services.get().forEach(service -> Injector.processBeforeDestroy(microservices, service));
     }
   }
 
-  private Collection<ServiceInfo> services(MicroservicesContext microservices) {
+  private Collection<ServiceInfo> services(ServiceCall serviceCall) {
     return this.services.updateAndGet(
         currentValue ->
-            currentValue == null ? this.serviceFactory.apply(microservices) : currentValue);
+            currentValue == null ? this.serviceFactory.apply(serviceCall) : currentValue);
   }
 }
