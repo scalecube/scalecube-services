@@ -41,17 +41,20 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * @return service factory
    */
   public static ServiceFactory fromInstances(Object... services) {
-    ServiceProvider provider = call -> Stream.of(services)
-            .map(service -> {
-              ServiceInfo.Builder builder;
-              if (service instanceof  ServiceInfo) {
-                builder = ServiceInfo.from((ServiceInfo) service);
-              } else {
-                builder = ServiceInfo.fromServiceInstance(service);
-              }
-              return builder.build();
-            })
-            .collect(Collectors.toList());
+    ServiceProvider provider =
+        call ->
+            Stream.of(services)
+                .map(
+                    service -> {
+                      ServiceInfo.Builder builder;
+                      if (service instanceof ServiceInfo) {
+                        builder = ServiceInfo.from((ServiceInfo) service);
+                      } else {
+                        builder = ServiceInfo.fromServiceInstance(service);
+                      }
+                      return builder.build();
+                    })
+                .collect(Collectors.toList());
     return new ScalecubeServiceFactory(Collections.singleton(provider));
   }
 
