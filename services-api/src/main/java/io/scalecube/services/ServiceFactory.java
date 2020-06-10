@@ -9,7 +9,7 @@ public interface ServiceFactory {
   /**
    * Provide service definitions.
    *
-   * @param microservices scale cube instance.
+   * @param microservices microservices context
    * @return collection of service definitions - service type and tags.
    * @see ServiceDefinition
    */
@@ -19,7 +19,7 @@ public interface ServiceFactory {
   /**
    * Initialize instances of services.
    *
-   * @param microservices scale cube instance.
+   * @param microservices microservices context
    * @return Completed Mono if initialization was successful for all services.
    */
   Mono<? extends Collection<ServiceInfo>> initializeServices(
@@ -28,7 +28,7 @@ public interface ServiceFactory {
   /**
    * Finalization of service instances.
    *
-   * @param microservices scale cube instance.
+   * @param microservices microservices context
    * @return completed Mono if finalization was successful for all services.
    */
   default Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {

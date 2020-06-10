@@ -101,7 +101,7 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * <p>Use {@link io.scalecube.services.annotations.AfterConstruct} for initialization service's
    * instance.
    *
-   * @param microservices
+   * @param microservices microservices context
    */
   @Override
   public Mono<? extends Collection<ServiceInfo>> initializeServices(
