@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.11.0</jackson.version>
-    <scalecube-cluster.version>2.5.0</scalecube-cluster.version>
+    <scalecube-cluster.version>2.6.0-RC1</scalecube-cluster.version>
     <scalecube-commons.version>1.0.4</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.4.3</scalecube-config.version>
