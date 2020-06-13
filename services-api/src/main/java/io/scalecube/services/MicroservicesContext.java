@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import reactor.core.publisher.Flux;
@@ -26,14 +25,6 @@ public interface MicroservicesContext {
    * @see ServiceCall
    */
   ServiceCall serviceCall();
-
-  /**
-   * Network address of service discovery in current Scalecube node.
-   *
-   * @return address of node
-   * @see Address
-   */
-  Address discoveryAddress();
 
   /**
    * Flux of service discovery events.

@@ -345,11 +345,6 @@ public final class Microservices {
     }
 
     @Override
-    public Address discoveryAddress() {
-      return this.discoveryAddress;
-    }
-
-    @Override
     public Flux<ServiceDiscoveryEvent> listenDiscoveryEvents() {
       return this.events;
     }
