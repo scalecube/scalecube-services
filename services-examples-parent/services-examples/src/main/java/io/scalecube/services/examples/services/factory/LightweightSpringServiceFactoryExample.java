@@ -1,7 +1,8 @@
 package io.scalecube.services.examples.services.factory;
 
-import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
@@ -11,7 +12,6 @@ import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
-import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.ArrayList;
 import java.util.Collection;

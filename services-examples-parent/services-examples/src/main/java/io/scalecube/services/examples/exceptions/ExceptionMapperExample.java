@@ -1,8 +1,8 @@
 package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;

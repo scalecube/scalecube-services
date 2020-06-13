@@ -2,11 +2,11 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
-import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 
 /**
