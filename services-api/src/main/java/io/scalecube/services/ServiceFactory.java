@@ -3,7 +3,7 @@ package io.scalecube.services;
 import java.util.Collection;
 import reactor.core.publisher.Mono;
 
-/** Manages the life cycle of all services registered with Scale Cube Services. */
+/** Manages the life cycle of all services registered with Scalecube Services. */
 public interface ServiceFactory {
 
   /**
