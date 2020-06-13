@@ -15,10 +15,10 @@ import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
@@ -136,7 +136,7 @@ public class GuiceServiceFactoryExample {
               AtomicReference<MicroservicesContext> context = GuiceServiceFactory.this.lazyContext;
               bind(MicroservicesContext.class).toProvider(context::get);
               bind(ServiceCall.class).toProvider(() -> context.get().serviceCall());
-              bind(ServiceDiscovery.class).toProvider(() -> context.get().serviceDiscovery());
+              bind(ServiceEndpoint.class).toProvider(() -> context.get().serviceEndpoint());
             }
           });
     }
@@ -159,14 +159,12 @@ public class GuiceServiceFactoryExample {
       return Mono.fromCallable(
           () -> {
             this.lazyContext.set(microservices);
-            List<ServiceInfo> collect =
-                this.injector.getAllBindings().values().stream()
-                    .filter(binding -> binding.getKey().getAnnotationType() == ScalecubeBean.class)
-                    .map(Binding::getProvider)
-                    .map(Provider::get)
-                    .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
-                    .collect(Collectors.toList());
-            return collect;
+            return this.injector.getAllBindings().values().stream()
+                .filter(binding -> binding.getKey().getAnnotationType() == ScalecubeBean.class)
+                .map(Binding::getProvider)
+                .map(Provider::get)
+                .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
+                .collect(Collectors.toList());
           });
     }
   }

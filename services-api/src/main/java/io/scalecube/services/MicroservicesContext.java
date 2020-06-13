@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import reactor.core.publisher.Flux;
 
 /**
  * Context of Scalecube node. Used in {@link ServiceFactory}.
@@ -11,33 +13,34 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 public interface MicroservicesContext {
 
   /**
-   * Id of Scalecube node.
+   * Service endpoint of current Scalecube node.
    *
    * @return id
    */
-  String id();
+  ServiceEndpoint serviceEndpoint();
 
   /**
    * Used for remote service call.
    *
-   * @return service call
+   * @return new instance service call
    * @see ServiceCall
    */
   ServiceCall serviceCall();
 
   /**
-   * Network address of Scalecube node.
+   * Network address of service discovery in current Scalecube node.
    *
    * @return address of node
    * @see Address
    */
-  Address serviceAddress();
+  Address discoveryAddress();
 
   /**
-   * Service discovery for services localed in other nodes.
+   * Flux of service discovery events.
    *
    * @return service discovery
    * @see ServiceDiscovery
+   * @see ServiceDiscoveryEvent
    */
-  ServiceDiscovery serviceDiscovery();
+  Flux<ServiceDiscoveryEvent> listenDiscoveryEvents();
 }

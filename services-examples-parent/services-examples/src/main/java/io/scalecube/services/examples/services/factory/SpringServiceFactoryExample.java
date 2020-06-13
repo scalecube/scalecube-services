@@ -8,10 +8,10 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
@@ -173,8 +173,8 @@ public class SpringServiceFactoryExample {
                 microservices::serviceCall,
                 beanDefinition -> beanDefinition.setScope(SCOPE_PROTOTYPE));
             this.context.registerBean(
-                ServiceDiscovery.class,
-                microservices::serviceDiscovery,
+                ServiceEndpoint.class,
+                microservices::serviceEndpoint,
                 beanDefinition -> beanDefinition.setScope(SCOPE_PROTOTYPE));
             this.context.start();
             return this.context.getBeansWithAnnotation(ScalecubeBean.class).values().stream()

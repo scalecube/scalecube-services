@@ -121,7 +121,6 @@ public final class Microservices {
 
   private final String id = generateId();
   private final Map<String, String> tags;
-  private final MicroservicesContext context;
   private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
@@ -135,6 +134,7 @@ public final class Microservices {
   private final PrincipalMapper<Object, Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
+  private MicroservicesContext context;
 
   private Microservices(Builder builder) {
     this.tags = new HashMap<>(builder.tags);
@@ -149,7 +149,6 @@ public final class Microservices {
     this.defaultDataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
     this.principalMapper = builder.principalMapper;
-    this.context = new Context();
 
     this.serviceFactory =
         builder.serviceFactory != null
@@ -199,7 +198,9 @@ public final class Microservices {
         .flatMap(this::initializeServiceEndpoint)
         .flatMap(this.discoveryBootstrap::createInstance)
         .publishOn(scheduler)
-        .then(this.serviceFactory.initializeServices(this.context))
+        .map(serviceDiscovery -> new Context(serviceDiscovery, this::call))
+        .doOnSuccess(context -> this.context = context)
+        .flatMap(this.serviceFactory::initializeServices)
         .doOnNext(this::registerInMethodRegistry)
         .publishOn(scheduler)
         .then(startGateway())
@@ -321,24 +322,36 @@ public final class Microservices {
 
   private final class Context implements MicroservicesContext {
 
+    private final ServiceEndpoint serviceEndpoint;
+    private final Supplier<ServiceCall> serviceCallSupplier;
+    private final Address discoveryAddress;
+    private final Flux<ServiceDiscoveryEvent> events;
+
+    private Context(ServiceDiscovery serviceDiscovery, Supplier<ServiceCall> serviceCallSupplier) {
+      this.serviceEndpoint = serviceDiscovery.serviceEndpoint();
+      this.serviceCallSupplier = serviceCallSupplier;
+      this.discoveryAddress = serviceDiscovery.address();
+      this.events = serviceDiscovery.listenDiscovery();
+    }
+
     @Override
-    public String id() {
-      return Microservices.this.id();
+    public ServiceEndpoint serviceEndpoint() {
+      return this.serviceEndpoint;
     }
 
     @Override
     public ServiceCall serviceCall() {
-      return Microservices.this.call();
+      return this.serviceCallSupplier.get();
     }
 
     @Override
-    public Address serviceAddress() {
-      return Microservices.this.serviceAddress();
+    public Address discoveryAddress() {
+      return this.discoveryAddress;
     }
 
     @Override
-    public ServiceDiscovery serviceDiscovery() {
-      return Microservices.this.discovery();
+    public Flux<ServiceDiscoveryEvent> listenDiscoveryEvents() {
+      return this.events;
     }
   }
 
