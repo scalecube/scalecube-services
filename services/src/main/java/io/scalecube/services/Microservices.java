@@ -319,7 +319,7 @@ public final class Microservices {
     return serviceFactory.shutdownServices(this.context).then();
   }
 
-  public final class Context implements MicroservicesContext {
+  private final class Context implements MicroservicesContext {
 
     @Override
     public String id() {
