@@ -9,11 +9,8 @@ import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-
 import reactor.core.publisher.Mono;
 
 public class ExceptionMapperExample {
@@ -44,9 +41,8 @@ public class ExceptionMapperExample {
         new ServiceFactory() {
           @Override
           public Collection<ServiceDefinition> getServiceDefinitions() {
-            ServiceDefinition serviceA = new ServiceDefinition(ServiceA.class);
             ServiceDefinition serviceB = new ServiceDefinition(ServiceB.class);
-            return List.of(serviceA, serviceB);
+            return List.of(serviceB);
           }
 
           @Override
@@ -57,7 +53,7 @@ public class ExceptionMapperExample {
                 call.errorMapper(new ServiceAClientErrorMapper()).api(ServiceA.class);
             ServiceB serviceB = new ServiceBImpl(serviceA);
             ServiceInfo serviceInfoB = ServiceInfo.fromServiceInstance(serviceB).build();
-            return Mono.just(Collections.singletonList(serviceInfoB));
+            return Mono.just(List.of(serviceInfoB));
           }
         };
     Microservices ms2 =
