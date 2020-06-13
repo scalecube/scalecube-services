@@ -320,17 +320,15 @@ public final class Microservices {
     return serviceFactory.shutdownServices(this.context).then();
   }
 
-  private final class Context implements MicroservicesContext {
+  private static final class Context implements MicroservicesContext {
 
     private final ServiceEndpoint serviceEndpoint;
     private final Supplier<ServiceCall> serviceCallSupplier;
-    private final Address discoveryAddress;
     private final Flux<ServiceDiscoveryEvent> events;
 
     private Context(ServiceDiscovery serviceDiscovery, Supplier<ServiceCall> serviceCallSupplier) {
       this.serviceEndpoint = serviceDiscovery.serviceEndpoint();
       this.serviceCallSupplier = serviceCallSupplier;
-      this.discoveryAddress = serviceDiscovery.address();
       this.events = serviceDiscovery.listenDiscovery();
     }
 
