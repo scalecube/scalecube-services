@@ -13,7 +13,7 @@ public class AnnotationServiceImpl implements AnnotationService {
   @AfterConstruct
   void init(MicroservicesContext microservices) {
     this.serviceDiscoveryEvents = ReplayProcessor.create();
-    microservices.serviceDiscovery().listenDiscovery().subscribe(serviceDiscoveryEvents);
+    microservices.listenDiscoveryEvents().subscribe(serviceDiscoveryEvents);
   }
 
   @Override
