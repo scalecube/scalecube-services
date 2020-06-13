@@ -8,7 +8,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;

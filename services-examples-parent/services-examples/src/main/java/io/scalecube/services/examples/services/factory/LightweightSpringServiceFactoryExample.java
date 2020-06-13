@@ -1,8 +1,7 @@
 package io.scalecube.services.examples.services.factory;
 
-import io.scalecube.services.ExtendedMicroservicesContext;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
@@ -12,7 +11,7 @@ import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,32 +93,28 @@ public class LightweightSpringServiceFactoryExample {
     }
 
     @Override
-    public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-        MicroservicesContext microservices) {
-      return Mono.fromCallable(
-          () -> {
-            this.context.registerBean(ServiceCall.class, microservices::serviceCall);
-            return Stream.of(this.context.getBeanDefinitionNames())
-                .map(
-                    beanName -> {
-                      BeanDefinition bd = this.context.getBeanDefinition(beanName);
-                      bd.setAttribute("name", beanName);
-                      return bd;
-                    })
-                .filter(Customizers.IS_LOCAL)
-                .peek(bd -> this.localServiceBeanNames.add((String) bd.getAttribute("name")))
-                .map(BeanDefinition::getResolvableType)
-                .map(ResolvableType::resolve)
-                .map(ServiceDefinition::new)
-                .collect(Collectors.toList());
-          });
+    public Collection<ServiceDefinition> getServiceDefinitions() {
+      return Stream.of(this.context.getBeanDefinitionNames())
+          .map(
+              beanName -> {
+                BeanDefinition bd = this.context.getBeanDefinition(beanName);
+                bd.setAttribute("name", beanName);
+                return bd;
+              })
+          .filter(Customizers.IS_LOCAL)
+          .peek(bd -> this.localServiceBeanNames.add((String) bd.getAttribute("name")))
+          .map(BeanDefinition::getResolvableType)
+          .map(ResolvableType::resolve)
+          .map(ServiceDefinition::new)
+          .collect(Collectors.toList());
     }
 
     @Override
     public Mono<? extends Collection<ServiceInfo>> initializeServices(
-        ExtendedMicroservicesContext microservices) {
+        MicroservicesContext microservices) {
       return Mono.fromCallable(
           () -> {
+            this.context.registerBean(ServiceCall.class, microservices::serviceCall);
             this.context.refresh();
             this.context.start();
             return this.localServiceBeanNames.stream()
@@ -130,7 +125,7 @@ public class LightweightSpringServiceFactoryExample {
     }
 
     @Override
-    public Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {
+    public Mono<Void> shutdownServices(MicroservicesContext microservices) {
       return Mono.fromRunnable(this.context::stop);
     }
   }

@@ -1,6 +1,5 @@
 package io.scalecube.services.inject;
 
-import io.scalecube.services.ExtendedMicroservicesContext;
 import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
@@ -31,7 +30,7 @@ public final class Injector {
    * @return service instance
    */
   public static ServiceInfo inject(
-      ExtendedMicroservicesContext microservices, ServiceInfo service) {
+      MicroservicesContext microservices, ServiceInfo service) {
     Object serviceInstance = service.serviceInstance();
     Arrays.stream(serviceInstance.getClass().getDeclaredFields())
         .forEach(field -> injectField(microservices, field, serviceInstance));
@@ -39,7 +38,7 @@ public final class Injector {
   }
 
   private static void injectField(
-      ExtendedMicroservicesContext microservices, Field field, Object service) {
+      MicroservicesContext microservices, Field field, Object service) {
     if (field.isAnnotationPresent(Inject.class)
         && MicroservicesContext.class.isAssignableFrom(field.getType())) {
       setField(field, service, microservices);
@@ -72,18 +71,18 @@ public final class Injector {
    * @return service info with modified service's instance.
    */
   public static ServiceInfo processAfterConstruct(
-      ExtendedMicroservicesContext microservices, ServiceInfo serviceInfo) {
+      MicroservicesContext microservices, ServiceInfo serviceInfo) {
     processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), AfterConstruct.class);
     return serviceInfo;
   }
 
   public static void processBeforeDestroy(
-      ExtendedMicroservicesContext microservices, ServiceInfo serviceInfo) {
+      MicroservicesContext microservices, ServiceInfo serviceInfo) {
     processMethodWithAnnotation(microservices, serviceInfo.serviceInstance(), BeforeDestroy.class);
   }
 
   private static <A extends Annotation> void processMethodWithAnnotation(
-      ExtendedMicroservicesContext microservices, Object targetInstance, Class<A> annotation) {
+      MicroservicesContext microservices, Object targetInstance, Class<A> annotation) {
     Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
     Arrays.stream(declaredMethods)
         .filter(method -> method.isAnnotationPresent(annotation))

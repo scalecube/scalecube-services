@@ -11,7 +11,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -29,7 +28,6 @@ import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -123,7 +121,7 @@ public final class Microservices {
 
   private final String id = generateId();
   private final Map<String, String> tags;
-  private final ExtendedMicroservicesContext context;
+  private final MicroservicesContext context;
   private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
@@ -141,8 +139,6 @@ public final class Microservices {
   private Microservices(Builder builder) {
     this.tags = new HashMap<>(builder.tags);
 
-    this.serviceFactory = builder.serviceFactory;
-
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.defaultAuthenticator = builder.authenticator;
@@ -154,6 +150,15 @@ public final class Microservices {
     this.contentType = builder.contentType;
     this.principalMapper = builder.principalMapper;
     this.context = new Context();
+
+    this.serviceFactory =
+        builder.serviceFactory != null
+            ? builder.serviceFactory
+            : ScalecubeServiceFactory.create(builder.serviceProviders);
+    // for initialization services by deprecated ServiceProvider
+    if (this.serviceFactory instanceof ScalecubeServiceFactory) {
+      ((ScalecubeServiceFactory) this.serviceFactory).setServiceCall(this::call);
+    }
 
     // Setup cleanup
     shutdown
@@ -214,7 +219,7 @@ public final class Microservices {
 
   private Mono<ServiceEndpoint> initializeServiceEndpoint(Supplier<Address> serviceAddress) {
     Mono<? extends Collection<ServiceDefinition>> serviceDefinitionsMono =
-        Mono.defer(() -> this.serviceFactory.getServiceDefinitions(this.context));
+        Mono.fromCallable(this.serviceFactory::getServiceDefinitions);
     return serviceDefinitionsMono.map(
         serviceDefinitions -> {
           final ServiceEndpoint.Builder serviceEndpointBuilder =
@@ -314,7 +319,7 @@ public final class Microservices {
     return serviceFactory.shutdownServices(this.context).then();
   }
 
-  public final class Context implements ExtendedMicroservicesContext {
+  public final class Context implements MicroservicesContext {
 
     @Override
     public String id() {
@@ -369,11 +374,6 @@ public final class Microservices {
                   Collectors.collectingAndThen(
                       Collectors.toList(), services -> (ServiceProvider) call -> services));
       this.serviceProviders.add(serviceProvider);
-      List<ServiceProvider> serviceProviders = Collections.unmodifiableList(this.serviceProviders);
-      this.serviceFactory =
-          this.serviceFactory == null
-              ? ScalecubeServiceFactory.create(serviceProviders)
-              : this.serviceFactory;
     }
 
     public Mono<Microservices> start() {

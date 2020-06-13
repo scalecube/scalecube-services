@@ -1,8 +1,9 @@
 package io.scalecube.services.examples.services.factory;
 
-import io.scalecube.services.ExtendedMicroservicesContext;
-import io.scalecube.services.Microservices;
+import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_PROTOTYPE;
+
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
@@ -14,7 +15,7 @@ import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -82,6 +83,7 @@ public class SpringServiceFactoryExample {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Bean
+    @Lazy
     public GreetingsService greetingService(ServiceCall serviceCall) {
       return serviceCall.api(GreetingsService.class);
     }
@@ -96,7 +98,6 @@ public class SpringServiceFactoryExample {
   @Retention(RetentionPolicy.RUNTIME)
   @Bean
   @Lazy
-  // need for access to ServiceDiscovery
   @interface ScalecubeBean {
 
     /**
@@ -147,33 +148,34 @@ public class SpringServiceFactoryExample {
     }
 
     @Override
-    public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-        MicroservicesContext microservices) {
-      return Mono.fromCallable(
-          () -> {
-            this.context.registerBean(MicroservicesContext.class, () -> microservices);
-            this.context.registerBean(ServiceCall.class, microservices::serviceCall);
-            this.context.register(this.configuration);
-            this.context.refresh();
-            String[] beanNames = this.context.getBeanNamesForAnnotation(ScalecubeBean.class);
-            return Stream.of(beanNames)
-                .map(this.context::getBeanDefinition)
-                .map(BeanDefinition::getResolvableType)
-                .map(ResolvableType::resolve)
-                .filter(Objects::nonNull)
-                .filter(Reflect::isService)
-                .map(ServiceDefinition::new)
-                .collect(Collectors.toList());
-          });
+    public Collection<ServiceDefinition> getServiceDefinitions() {
+      this.context.register(this.configuration);
+      this.context.refresh();
+      String[] beanNames = this.context.getBeanNamesForAnnotation(ScalecubeBean.class);
+      return Stream.of(beanNames)
+          .map(this.context::getBeanDefinition)
+          .map(BeanDefinition::getResolvableType)
+          .map(ResolvableType::resolve)
+          .filter(Objects::nonNull)
+          .filter(Reflect::isService)
+          .map(ServiceDefinition::new)
+          .collect(Collectors.toList());
     }
 
     @Override
     public Mono<? extends Collection<ServiceInfo>> initializeServices(
-        ExtendedMicroservicesContext microservices) {
+        MicroservicesContext microservices) {
       return Mono.fromCallable(
           () -> {
-            this.context.registerBean(ServiceDiscovery.class, microservices::serviceDiscovery);
-            this.context.registerBean(ExtendedMicroservicesContext.class, () -> microservices);
+            this.context.registerBean(MicroservicesContext.class, () -> microservices);
+            this.context.registerBean(
+                ServiceCall.class,
+                microservices::serviceCall,
+                beanDefinition -> beanDefinition.setScope(SCOPE_PROTOTYPE));
+            this.context.registerBean(
+                ServiceDiscovery.class,
+                microservices::serviceDiscovery,
+                beanDefinition -> beanDefinition.setScope(SCOPE_PROTOTYPE));
             this.context.start();
             return this.context.getBeansWithAnnotation(ScalecubeBean.class).values().stream()
                 .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
@@ -182,7 +184,7 @@ public class SpringServiceFactoryExample {
     }
 
     @Override
-    public Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {
+    public Mono<Void> shutdownServices(MicroservicesContext microservices) {
       return Mono.fromRunnable(this.context::stop).then();
     }
   }

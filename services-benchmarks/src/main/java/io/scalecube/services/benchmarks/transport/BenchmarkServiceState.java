@@ -7,7 +7,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.slf4j.Logger;

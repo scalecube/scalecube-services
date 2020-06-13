@@ -10,7 +10,6 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;

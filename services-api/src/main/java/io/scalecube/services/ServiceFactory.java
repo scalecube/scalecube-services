@@ -9,12 +9,10 @@ public interface ServiceFactory {
   /**
    * Provide service definitions.
    *
-   * @param microservices microservices context
    * @return collection of service definitions - service type and tags.
    * @see ServiceDefinition
    */
-  Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-      MicroservicesContext microservices);
+  Collection<ServiceDefinition> getServiceDefinitions();
 
   /**
    * Initialize instances of services.
@@ -23,7 +21,7 @@ public interface ServiceFactory {
    * @return Completed Mono if initialization was successful for all services.
    */
   Mono<? extends Collection<ServiceInfo>> initializeServices(
-      ExtendedMicroservicesContext microservices);
+      MicroservicesContext microservices);
 
   /**
    * Finalization of service instances.
@@ -31,7 +29,7 @@ public interface ServiceFactory {
    * @param microservices microservices context
    * @return completed Mono if finalization was successful for all services.
    */
-  default Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {
+  default Mono<Void> shutdownServices(MicroservicesContext microservices) {
     return Mono.defer(Mono::empty);
   }
 }

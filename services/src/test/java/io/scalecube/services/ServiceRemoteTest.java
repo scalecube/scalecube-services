@@ -8,7 +8,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.EmptyGreetingRequest;

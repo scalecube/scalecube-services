@@ -9,21 +9,20 @@ import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.Provider;
-import com.google.inject.Scopes;
 import com.google.inject.TypeLiteral;
-import io.scalecube.services.ExtendedMicroservicesContext;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.services.factory.service.BidiGreetingImpl;
 import io.scalecube.services.examples.services.factory.service.api.BidiGreetingService;
 import io.scalecube.services.examples.services.factory.service.api.GreetingsService;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -34,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 
@@ -82,9 +82,7 @@ public class GuiceServiceFactoryExample {
   @Target({ElementType.TYPE, ElementType.ANNOTATION_TYPE})
   @Retention(RetentionPolicy.RUNTIME)
   @BindingAnnotation
-  @interface ScalecubeBean {
-
-  }
+  @interface ScalecubeBean {}
 
   public static class SampleModule extends AbstractModule {
 
@@ -95,20 +93,18 @@ public class GuiceServiceFactoryExample {
             .toProvider(
                 new Provider<>() {
 
-                  @Inject
-                  private ServiceCall serviceCall;
+                  @Inject private Provider<ServiceCall> serviceCall;
 
                   @Override
                   public GreetingsService get() {
-                    return serviceCall.api(GreetingsService.class);
+                    return serviceCall.get().api(GreetingsService.class);
                   }
                 });
         Constructor<BidiGreetingImpl1> constructor =
             BidiGreetingImpl1.class.getConstructor(GreetingsService.class);
         bind(BidiGreetingService.class)
             .annotatedWith(ScalecubeBean.class)
-            .toConstructor(constructor)
-            .in(Scopes.SINGLETON);
+            .toConstructor(constructor);
       } catch (Exception ex) {
         throw new RuntimeException(ex);
       }
@@ -128,51 +124,50 @@ public class GuiceServiceFactoryExample {
 
     private final List<Module> modules;
     private Injector injector;
+    private final AtomicReference<MicroservicesContext> lazyContext;
 
     private GuiceServiceFactory(Module... modules) {
-      this.modules = Arrays.asList(modules);
-    }
-
-    @Override
-    public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-        MicroservicesContext microservices) {
-      return Mono.fromCallable(
-          () -> {
-            AbstractModule baseModule =
-                new AbstractModule() {
-
-                  @Override
-                  protected void configure() {
-                    bind(MicroservicesContext.class).toInstance(microservices);
-                    bind(ServiceCall.class).toProvider(microservices::serviceCall);
-                  }
-                };
-            List<Module> modules = new ArrayList<>();
-            modules.add(baseModule);
-            modules.addAll(this.modules);
-            Injector injector = Guice.createInjector(modules);
-
-            this.injector = injector;
-            return injector.getAllBindings().keySet().stream()
-                .filter(key -> key.getAnnotationType() == ScalecubeBean.class)
-                .map(Key::getTypeLiteral)
-                .map(TypeLiteral::getRawType)
-                .map(ServiceDefinition::new)
-                .collect(Collectors.toList());
+      this.lazyContext = new AtomicReference<>();
+      this.modules = new ArrayList<>(Arrays.asList(modules));
+      this.modules.add(
+          new AbstractModule() {
+            @Override
+            protected void configure() {
+              AtomicReference<MicroservicesContext> context = GuiceServiceFactory.this.lazyContext;
+              bind(MicroservicesContext.class).toProvider(context::get);
+              bind(ServiceCall.class).toProvider(() -> context.get().serviceCall());
+              bind(ServiceDiscovery.class).toProvider(() -> context.get().serviceDiscovery());
+            }
           });
     }
 
     @Override
+    public Collection<ServiceDefinition> getServiceDefinitions() {
+      Injector injector = Guice.createInjector(this.modules);
+      this.injector = injector;
+      return injector.getAllBindings().keySet().stream()
+          .filter(key -> key.getAnnotationType() == ScalecubeBean.class)
+          .map(Key::getTypeLiteral)
+          .map(TypeLiteral::getRawType)
+          .map(ServiceDefinition::new)
+          .collect(Collectors.toList());
+    }
+
+    @Override
     public Mono<? extends Collection<ServiceInfo>> initializeServices(
-        ExtendedMicroservicesContext microservices) {
+        MicroservicesContext microservices) {
       return Mono.fromCallable(
-          () ->
-              this.injector.getAllBindings().values().stream()
-                  .filter(binding -> binding.getKey().getAnnotationType() == ScalecubeBean.class)
-                  .map(Binding::getProvider)
-                  .map(Provider::get)
-                  .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
-                  .collect(Collectors.toList()));
+          () -> {
+            this.lazyContext.set(microservices);
+            List<ServiceInfo> collect =
+                this.injector.getAllBindings().values().stream()
+                    .filter(binding -> binding.getKey().getAnnotationType() == ScalecubeBean.class)
+                    .map(Binding::getProvider)
+                    .map(Provider::get)
+                    .map(bean -> ServiceInfo.fromServiceInstance(bean).build())
+                    .collect(Collectors.toList());
+            return collect;
+          });
     }
   }
 }

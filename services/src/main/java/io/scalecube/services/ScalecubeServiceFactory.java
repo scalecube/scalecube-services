@@ -1,18 +1,10 @@
-package io.scalecube.services.inject;
+package io.scalecube.services;
 
-import io.scalecube.services.ExtendedMicroservicesContext;
-import io.scalecube.services.Microservices;
-import io.scalecube.services.MicroservicesContext;
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.ServiceDefinition;
-import io.scalecube.services.ServiceFactory;
-import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServiceProvider;
-import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.inject.Injector;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,10 +12,22 @@ import reactor.core.publisher.Mono;
 
 public class ScalecubeServiceFactory implements ServiceFactory {
 
-  private final Function<ServiceCall, Collection<ServiceInfo>> serviceFactory;
+  private final Supplier<Collection<ServiceInfo>> serviceFactory;
 
   // lazy init
   private final AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
+  private Supplier<ServiceCall> serviceCallSupplier;
+
+  private ScalecubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
+    this.serviceFactory =
+        () -> {
+          final ServiceCall serviceCall = this.serviceCallSupplier.get();
+          return serviceProviders.stream()
+              .map(serviceProvider -> serviceProvider.provide(serviceCall))
+              .flatMap(Collection::stream)
+              .collect(Collectors.toList());
+        };
+  }
 
   /**
    * Create the instance from {@link ServiceProvider}.
@@ -60,15 +64,6 @@ public class ScalecubeServiceFactory implements ServiceFactory {
     return new ScalecubeServiceFactory(Collections.singleton(provider));
   }
 
-  private ScalecubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
-    this.serviceFactory =
-        serviceCall ->
-            serviceProviders.stream()
-                .map(serviceProvider -> serviceProvider.provide(serviceCall))
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
-  }
-
   /**
    * Since the service instance factory ({@link ServiceProvider}) we have to leave behind does not
    * provide us with information about the types of services produced, there is nothing left for us
@@ -82,19 +77,15 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    *
    * @see ServiceInfo
    * @see ServiceDefinition
+   * @return
    */
   @Override
-  public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-      MicroservicesContext microservices) {
-    return Mono.fromCallable(
-        () ->
-            this.services(microservices.serviceCall())
-                .stream()
-                .map(
-                    serviceInfo ->
-                        new ServiceDefinition(
-                            serviceInfo.serviceInstance().getClass(), serviceInfo.tags()))
-                .collect(Collectors.toList()));
+  public Collection<ServiceDefinition> getServiceDefinitions() {
+    return this.services().stream()
+        .map(
+            serviceInfo ->
+                new ServiceDefinition(serviceInfo.serviceInstance().getClass(), serviceInfo.tags()))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -107,10 +98,10 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    */
   @Override
   public Mono<? extends Collection<ServiceInfo>> initializeServices(
-      ExtendedMicroservicesContext microservices) {
+      MicroservicesContext microservices) {
     return Mono.fromCallable(
         () ->
-            this.services(microservices.serviceCall()).stream()
+            this.services().stream()
                 .map(service -> Injector.inject(microservices, service))
                 .map(service -> Injector.processAfterConstruct(microservices, service))
                 .collect(Collectors.toList()));
@@ -125,19 +116,31 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * @return
    */
   @Override
-  public Mono<Void> shutdownServices(ExtendedMicroservicesContext microservices) {
+  public Mono<Void> shutdownServices(MicroservicesContext microservices) {
     return Mono.fromRunnable(() -> shutdown0(microservices));
   }
 
-  private void shutdown0(ExtendedMicroservicesContext microservices) {
+  private void shutdown0(MicroservicesContext microservices) {
     if (this.services.get() != null) {
       this.services.get().forEach(service -> Injector.processBeforeDestroy(microservices, service));
     }
   }
 
-  private Collection<ServiceInfo> services(ServiceCall serviceCall) {
+  private Collection<ServiceInfo> services() {
     return this.services.updateAndGet(
-        currentValue ->
-            currentValue == null ? this.serviceFactory.apply(serviceCall) : currentValue);
+        currentValue -> currentValue == null ? this.serviceFactory.get() : currentValue);
+  }
+
+  /**
+   * Setting serviceCall supplier.
+   *
+   * @param serviceCallSupplier lazy serviceCall initialization function
+   * @return current instance scalecube service factory
+   * @deprecated see reason in {@link ServiceProvider}
+   */
+  @Deprecated
+  ScalecubeServiceFactory setServiceCall(Supplier<ServiceCall> serviceCallSupplier) {
+    this.serviceCallSupplier = serviceCallSupplier;
+    return this;
   }
 }

@@ -1,9 +1,8 @@
 package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.net.Address;
-import io.scalecube.services.ExtendedMicroservicesContext;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceFactory;
@@ -44,16 +43,15 @@ public class ExceptionMapperExample {
     ServiceFactory serviceFactory =
         new ServiceFactory() {
           @Override
-          public Mono<? extends Collection<ServiceDefinition>> getServiceDefinitions(
-              MicroservicesContext microservices) {
+          public Collection<ServiceDefinition> getServiceDefinitions() {
             ServiceDefinition serviceA = new ServiceDefinition(ServiceA.class);
             ServiceDefinition serviceB = new ServiceDefinition(ServiceB.class);
-            return Mono.just(List.of(serviceA, serviceB));
+            return List.of(serviceA, serviceB);
           }
 
           @Override
           public Mono<? extends Collection<ServiceInfo>> initializeServices(
-              ExtendedMicroservicesContext microservices) {
+              MicroservicesContext microservices) {
             ServiceCall call = microservices.serviceCall();
             ServiceA serviceA =
                 call.errorMapper(new ServiceAClientErrorMapper()).api(ServiceA.class);

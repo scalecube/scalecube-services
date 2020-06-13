@@ -6,7 +6,7 @@ import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
 import io.scalecube.services.examples.helloworld.service.api.BidiGreetingService;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Flux;
 

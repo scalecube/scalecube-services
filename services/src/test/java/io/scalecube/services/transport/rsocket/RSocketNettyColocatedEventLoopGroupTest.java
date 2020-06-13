@@ -12,7 +12,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

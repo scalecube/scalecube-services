@@ -20,7 +20,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;

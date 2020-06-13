@@ -13,7 +13,6 @@ import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;

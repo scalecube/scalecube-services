@@ -13,7 +13,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.nio.file.Path;
 import java.util.List;

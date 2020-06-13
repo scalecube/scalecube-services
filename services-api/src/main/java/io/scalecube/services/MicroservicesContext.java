@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.net.Address;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 
 /**
  * Context of Scalecube node. Used in {@link ServiceFactory}.
@@ -31,4 +32,12 @@ public interface MicroservicesContext {
    * @see Address
    */
   Address serviceAddress();
+
+  /**
+   * Service discovery for services localed in other nodes.
+   *
+   * @return service discovery
+   * @see ServiceDiscovery
+   */
+  ServiceDiscovery serviceDiscovery();
 }

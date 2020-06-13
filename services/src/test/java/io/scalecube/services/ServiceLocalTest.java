@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.inject.ScalecubeServiceFactory;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
