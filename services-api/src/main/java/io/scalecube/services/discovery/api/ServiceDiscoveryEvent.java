@@ -4,7 +4,7 @@ import io.scalecube.services.ServiceEndpoint;
 import java.util.Objects;
 import java.util.StringJoiner;
 
-public class ServiceDiscoveryEvent {
+public final class ServiceDiscoveryEvent {
 
   public enum Type {
     ENDPOINT_ADDED, // service endpoint added

@@ -1,15 +1,16 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.ServiceCall;
+import java.util.StringJoiner;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 public class GatewayOptions {
 
-  private Executor workerPool;
-  private ServiceCall call;
   private String id;
   private int port = 0;
+  private Executor workerPool;
+  private ServiceCall call;
 
   public GatewayOptions() {}
 
@@ -61,5 +62,15 @@ public class GatewayOptions {
 
   public ServiceCall call() {
     return call;
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", GatewayOptions.class.getSimpleName() + "[", "]")
+        .add("id='" + id + "'")
+        .add("port=" + port)
+        .add("workerPool=" + workerPool)
+        .add("call=" + call)
+        .toString();
   }
 }

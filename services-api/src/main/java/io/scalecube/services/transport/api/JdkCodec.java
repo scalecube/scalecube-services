@@ -13,12 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-/** Simple headers and data codec based on JDK only. */
 public class JdkCodec implements DataCodec, HeadersCodec {
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public String contentType() {
     return "application/octet-stream";
@@ -37,9 +33,6 @@ public class JdkCodec implements DataCodec, HeadersCodec {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
     if (headers.isEmpty()) {
@@ -70,9 +63,6 @@ public class JdkCodec implements DataCodec, HeadersCodec {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
     if (stream.available() < 1) {

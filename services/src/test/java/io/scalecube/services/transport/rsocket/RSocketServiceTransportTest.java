@@ -3,6 +3,7 @@ package io.scalecube.services.transport.rsocket;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -39,16 +40,19 @@ public class RSocketServiceTransportTest extends BaseTest {
   public void setUp() {
     gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    final Address gatewayAddress = this.gateway.discovery("gateway").address();
 
     serviceNode =
         Microservices.builder()
             .discovery(
+                "serviceNode",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new SimpleQuoteService())
             .startAwait();
@@ -79,7 +83,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     gateway
         .discovery()
-        .listenDiscovery()
+        .listen()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -108,7 +112,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     gateway
         .discovery()
-        .listenDiscovery()
+        .listen()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -141,7 +145,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     gateway
         .discovery()
-        .listenDiscovery()
+        .listen()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 

@@ -54,7 +54,7 @@ public class ExamplesRunner {
 
     Microservices microservices =
         Microservices.builder()
-            .discovery(endpoint -> serviceDiscovery(endpoint, config))
+            .discovery("microservices", endpoint -> serviceDiscovery(endpoint, config))
             .transport(
                 () ->
                     new RSocketServiceTransport()

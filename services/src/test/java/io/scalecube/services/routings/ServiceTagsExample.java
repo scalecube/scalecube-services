@@ -22,15 +22,16 @@ public class ServiceTagsExample {
   public static void main(String[] args) {
     Microservices gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    Address seedAddress = gateway.discovery().address();
+    Address seedAddress = gateway.discovery("gateway").address();
 
     Microservices services1 =
         Microservices.builder()
             .discovery(
+                "services1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
@@ -44,6 +45,7 @@ public class ServiceTagsExample {
     Microservices services2 =
         Microservices.builder()
             .discovery(
+                "services2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))

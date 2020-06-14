@@ -2,6 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -27,26 +28,32 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
   public void setUp() {
     this.gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    final Address gatewayAddress = this.gateway.discovery("gateway").address();
 
     Microservices facade =
         Microservices.builder()
             .discovery(
+                "facade",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Facade())
             .startAwait();
 
+    final Address facadeAddress = facade.discovery("facade").address();
+
     this.ping =
         Microservices.builder()
             .discovery(
+                "ping",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();
@@ -54,9 +61,10 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
     this.pong =
         Microservices.builder()
             .discovery(
+                "pong",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();
