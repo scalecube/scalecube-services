@@ -127,7 +127,7 @@ public final class Microservices {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
-  private final String id = generateId();
+  private final String id = UUID.randomUUID().toString().replace("-", "");
   private final Map<String, String> tags;
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
@@ -172,12 +172,6 @@ public final class Microservices {
 
   public String id() {
     return this.id;
-  }
-
-  private static String generateId() {
-    UUID uuid = UUID.randomUUID();
-    return Long.toHexString(uuid.getMostSignificantBits())
-        + Long.toHexString(uuid.getLeastSignificantBits());
   }
 
   @Override
@@ -787,12 +781,15 @@ public final class Microservices {
 
   private static class JmxMonitorMBean implements MonitorMBean {
 
+    private static final String OBJECT_NAME_FORMAT = "io.scalecube.services:name=%s@%s";
+
     private final Microservices microservices;
 
     private static JmxMonitorMBean start(Microservices instance) throws Exception {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      ObjectName objectName = new ObjectName("io.scalecube.services:name=" + instance.toString());
+      ObjectName objectName =
+          new ObjectName(String.format(OBJECT_NAME_FORMAT, instance.id(), System.nanoTime()));
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;

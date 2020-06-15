@@ -16,7 +16,7 @@ public class CompositeDiscoveryExample {
    *
    * @param args arguments
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     Microservices seed1 =
         Microservices.builder()
             .discovery("seed1", ScalecubeServiceDiscovery::new)
@@ -60,13 +60,13 @@ public class CompositeDiscoveryExample {
                 "domain1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .options(cfg -> cfg.memberIdGenerator(() -> endpoint.id() + "/domain1"))
+                        .options(cfg -> cfg.memberIdGenerator(endpoint::id))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .discovery(
                 "domain2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .options(cfg -> cfg.memberIdGenerator(() -> endpoint.id() + "/domain2"))
+                        .options(cfg -> cfg.memberIdGenerator(endpoint::id))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -78,6 +78,8 @@ public class CompositeDiscoveryExample {
     Greeting greeting2 =
         compositeMs.call().api(GreetingsService2.class).sayHello("hello two").block();
     System.err.println("This is response from GreetingsService2: " + greeting2.message());
+
+    Thread.currentThread().join();
   }
 
   @Service

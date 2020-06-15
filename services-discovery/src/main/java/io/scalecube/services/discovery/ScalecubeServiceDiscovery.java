@@ -238,6 +238,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static class JmxMonitorMBean implements MonitorMBean {
 
+    private static final String OBJECT_NAME_FORMAT = "io.scalecube.services.discovery:name=%s@%s";
+
     public static final int RECENT_DISCOVERY_EVENTS_SIZE = 128;
 
     private final ScalecubeServiceDiscovery discovery;
@@ -251,9 +253,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       jmxMBean.init();
-      String id = instance.serviceEndpoint.id() + "/" + Integer.toHexString(instance.hashCode());
       ObjectName objectName =
-          new ObjectName("io.scalecube.services:name=ScalecubeServiceDiscovery@" + id);
+          new ObjectName(
+              String.format(OBJECT_NAME_FORMAT, instance.serviceEndpoint.id(), System.nanoTime()));
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
