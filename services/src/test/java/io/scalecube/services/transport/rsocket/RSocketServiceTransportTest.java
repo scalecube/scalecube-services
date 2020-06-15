@@ -82,8 +82,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -111,8 +110,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -144,8 +142,7 @@ public class RSocketServiceTransportTest extends BaseTest {
             .subscribe());
 
     gateway
-        .discovery()
-        .listen()
+        .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 

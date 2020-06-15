@@ -302,16 +302,12 @@ public final class Microservices {
   }
 
   /**
-   * Returns composite service discovery context.
+   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
    *
-   * @return composite service discovery context
+   * @return stream of {@code ServiceDiscoveryEvent} events
    */
-  public ServiceDiscoveryContext discovery() {
-    return ServiceDiscoveryContext.builder()
-        .id("composite-discovery")
-        .address(Address.NULL_ADDRESS)
-        .discovery(compositeDiscovery)
-        .build();
+  public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+    return compositeDiscovery.listen();
   }
 
   /**
