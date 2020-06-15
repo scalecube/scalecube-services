@@ -18,7 +18,7 @@ public class ExceptionMapperExample {
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("ms1", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
@@ -29,11 +29,12 @@ public class ExceptionMapperExample {
 
     System.err.println("ms1 started: " + ms1.serviceAddress());
 
-    final Address address1 = ms1.discovery().address();
+    final Address address1 = ms1.discovery("ms1").address();
 
     Microservices ms2 =
         Microservices.builder()
             .discovery(
+                "ms2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(address1)))

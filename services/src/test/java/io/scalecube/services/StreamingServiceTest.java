@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
@@ -28,17 +29,20 @@ public class StreamingServiceTest extends BaseTest {
   public static void setup() {
     gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
+    final Address gatewayAddress = gateway.discovery("gateway").address();
+
     node =
         Microservices.builder()
             .discovery(
+                "node",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .services(new SimpleQuoteService())
