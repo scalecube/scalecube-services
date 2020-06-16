@@ -19,17 +19,18 @@ public class Example2 {
   public static void main(String[] args) {
     Microservices gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery().address();
+    final Address gatewayAddress = gateway.discovery("gateway").address();
 
     ServiceFactory serviceFactory2 = ScalecubeServiceFactory.fromInstances(new Service2Impl());
 
     Microservices service2Node =
         Microservices.builder()
             .discovery(
+                "service2Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
@@ -42,6 +43,7 @@ public class Example2 {
     Microservices service1Node =
         Microservices.builder()
             .discovery(
+                "service1Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))

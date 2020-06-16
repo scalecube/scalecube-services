@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -52,6 +53,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
       };
 
   private static Microservices caller;
+  private static Address callerAddress;
   private static Microservices service;
   public static PrincipalMapper<Map<String, String>, UserProfile> principalMapper;
 
@@ -61,15 +63,17 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
     caller =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("caller", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    callerAddress = caller.discovery("caller").address();
 
     principalMapper = authData -> new UserProfile(authData.get("name"), authData.get("role"));
 
     service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery("service", ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .defaultAuthenticator(authenticator)
             .services(
@@ -114,7 +118,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void failedAuthenticationWhenAuthenticatorNotProvided() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery("service", ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
@@ -175,7 +179,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void successfulAuthenticationOnPartiallySecuredService() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery("service", ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .defaultAuthenticator(authenticator)
             .services(
@@ -199,7 +203,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   void successfulCallOfPublicMethodWithoutAuthentication() {
     Microservices service =
         Microservices.builder()
-            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .discovery("service", ServiceAuthRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
@@ -218,6 +222,6 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
     return new ScalecubeServiceDiscovery(endpoint)
-        .membership(cfg -> cfg.seedMembers(caller.discovery().address()));
+        .membership(cfg -> cfg.seedMembers(callerAddress));
   }
 }

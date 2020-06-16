@@ -24,12 +24,12 @@ public class Example1 {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("seed", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .defaultContentType(PROTOSTUFF) // set explicit default data format
             .startAwait();
 
-    final Address seedAddress = seed.discovery().address();
+    final Address seedAddress = seed.discovery("seed").address();
 
     // Create service factory for GreetingService
     ServiceFactory serviceFactory =
@@ -39,6 +39,7 @@ public class Example1 {
     Microservices ms =
         Microservices.builder()
             .discovery(
+                "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))

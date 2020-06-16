@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -38,12 +39,14 @@ public class ServiceRemoteTest extends BaseTest {
   public static final Duration TIMEOUT2 = Duration.ofSeconds(6);
 
   private static Microservices gateway;
+  private static Address gatewayAddress;
   private static Microservices provider;
 
   @BeforeAll
   public static void setup() {
     Hooks.onOperatorDebug();
     gateway = gateway();
+    gatewayAddress = gateway.discovery("gateway").address();
     provider = serviceProvider();
   }
 
@@ -64,14 +67,14 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices gateway() {
     return Microservices.builder()
-        .discovery(ScalecubeServiceDiscovery::new)
+        .discovery("gateway", ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .discovery(ServiceRemoteTest::serviceDiscovery)
+        .discovery("serviceProvider", ServiceRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
         .startAwait();
@@ -267,7 +270,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
+            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new CoarseGrainedServiceImpl())) // add service a and b
             .startAwait();
@@ -290,7 +293,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
+            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(another))
             .startAwait();
@@ -310,7 +313,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
+            .discovery("ms", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
@@ -335,7 +338,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
+            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
@@ -419,13 +422,13 @@ public class ServiceRemoteTest extends BaseTest {
 
     Microservices ms =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("ms", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .tags(tags)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
-    assertTrue(ms.discovery().serviceEndpoint().tags().containsKey("HOSTNAME"));
+    assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test
@@ -476,6 +479,6 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
     return new ScalecubeServiceDiscovery(endpoint)
-        .membership(cfg -> cfg.seedMembers(gateway.discovery().address()));
+        .membership(cfg -> cfg.seedMembers(gatewayAddress));
   }
 }

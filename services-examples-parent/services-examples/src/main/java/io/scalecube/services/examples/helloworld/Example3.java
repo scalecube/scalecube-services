@@ -29,11 +29,11 @@ public class Example3 {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("seed", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address seedAddress = seed.discovery().address();
+    final Address seedAddress = seed.discovery("seed").address();
 
     // Create service factory for Bid Greeting Service
     ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new BidiGreetingImpl());
@@ -42,6 +42,7 @@ public class Example3 {
     Microservices ms =
         Microservices.builder()
             .discovery(
+                "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))

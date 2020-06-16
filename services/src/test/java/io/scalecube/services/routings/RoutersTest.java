@@ -44,8 +44,7 @@ import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
 
-  public static final int TIMEOUT = 10;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
   private static Microservices gateway;
   private static Address gatewayAddress;
@@ -56,17 +55,18 @@ public class RoutersTest extends BaseTest {
   @BeforeAll
   public static void setup() {
     gateway =
-        Microservices.builder() //
-            .discovery(ScalecubeServiceDiscovery::new)
+        Microservices.builder()
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    gatewayAddress = gateway.discovery().address();
+    gatewayAddress = gateway.discovery("gateway").address();
 
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(
+                "provider1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
@@ -85,6 +85,7 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(
+                "provider2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
@@ -103,6 +104,7 @@ public class RoutersTest extends BaseTest {
     provider3 =
         Microservices.builder()
             .discovery(
+                "provider3",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
@@ -139,12 +141,12 @@ public class RoutersTest extends BaseTest {
     // call the service.
     GreetingResponse result1 =
         Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-            .timeout(timeout)
+            .timeout(TIMEOUT)
             .block()
             .data();
     GreetingResponse result2 =
         Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-            .timeout(timeout)
+            .timeout(TIMEOUT)
             .block()
             .data();
 
@@ -216,7 +218,7 @@ public class RoutersTest extends BaseTest {
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
           Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-              .timeout(timeout)
+              .timeout(TIMEOUT)
               .block()
               .data();
       assertEquals("2", result.sender());
@@ -242,9 +244,9 @@ public class RoutersTest extends BaseTest {
     // call the service.
     for (int i = 0; i < 1e2; i++) {
       GreetingResponse resultForFransin =
-          service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(timeout).data();
+          service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(TIMEOUT).data();
       GreetingResponse resultForJoe =
-          service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(timeout).data();
+          service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(TIMEOUT).data();
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
@@ -266,7 +268,7 @@ public class RoutersTest extends BaseTest {
 
     int n = (int) 1e3;
     for (int i = 0; i < n; i++) {
-      ServiceMessage message = service.requestOne(req, GreetingResponse.class).block(timeout);
+      ServiceMessage message = service.requestOne(req, GreetingResponse.class).block(TIMEOUT);
       if (message.data().toString().contains("SERVICE_B_TALKING")) {
         serviceBCount.incrementAndGet();
       }

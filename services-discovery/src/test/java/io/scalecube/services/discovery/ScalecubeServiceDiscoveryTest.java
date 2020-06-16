@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,6 +47,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   public static final GossipConfig GOSSIP_CONFIG = GossipConfig.defaultLocalConfig();
   public static final MembershipConfig MEMBERSHIP_CONFIG = MembershipConfig.defaultLocalConfig();
   public static final int CLUSTER_SIZE = 3 + 1; // r1 + r2 + r3 (plus 1 for be sure)
+  public static final Address SEED_ADDRESS = Address.from("localhost:5678");
 
   @BeforeAll
   public static void setUp() {
@@ -108,20 +110,21 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
   }
 
+  @Disabled
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void testEndpointIsAddedThenRemoved(MetadataCodec metadataCodec) {
-    Address seedAddress = startSeed(metadataCodec);
+    startSeed(metadataCodec);
 
     AtomicInteger registeredCount = new AtomicInteger();
     AtomicInteger unregisteredCount = new AtomicInteger();
 
     RecordingServiceDiscovery r1 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
     RecordingServiceDiscovery r2 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
     RecordingServiceDiscovery r3 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
 
     int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
@@ -150,20 +153,21 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         .verify();
   }
 
+  @Disabled
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void testEndpointIsRestarted(MetadataCodec metadataCodec) {
-    Address seedAddress = startSeed(metadataCodec);
+    startSeed(metadataCodec);
 
     AtomicInteger registeredCount = new AtomicInteger();
     AtomicInteger unregisteredCount = new AtomicInteger();
 
     RecordingServiceDiscovery r1 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
     RecordingServiceDiscovery r2 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
     RecordingServiceDiscovery r3 =
-        RecordingServiceDiscovery.create(() -> newServiceDiscovery(seedAddress, metadataCodec));
+        RecordingServiceDiscovery.create(() -> newServiceDiscovery(SEED_ADDRESS, metadataCodec));
 
     int expectedAddedEventsNum = 9; // (1+3)x(1+3) - (1+3)/*exclude self*/ - 3/*exclude seed*/
     int expectedRemovedEventsNum = 2; // r3 is shutdown => await by 1 event on r1 and r2
@@ -230,14 +234,14 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 .membership(cfg -> cfg.seedMembers(seedAddress)));
   }
 
-  private Address startSeed(MetadataCodec metadataCodec) {
-    return new ScalecubeServiceDiscovery(newServiceEndpoint())
+  private void startSeed(MetadataCodec metadataCodec) {
+    new ScalecubeServiceDiscovery(newServiceEndpoint())
+        .membership(opts -> opts.seedMembers(SEED_ADDRESS))
         .options(opts -> opts.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)
         .membership(cfg -> MEMBERSHIP_CONFIG)
         .start()
-        .block()
-        .address();
+        .block();
   }
 
   private static class RecordingServiceDiscovery {
@@ -281,7 +285,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     private RecordingServiceDiscovery subscribe() {
-      serviceDiscovery.listenDiscovery().subscribe(discoveryEvents);
+      serviceDiscovery.listen().subscribe(discoveryEvents);
       return this;
     }
 

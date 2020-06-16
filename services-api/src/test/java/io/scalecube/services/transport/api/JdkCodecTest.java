@@ -66,5 +66,4 @@ class JdkCodecTest {
       return Objects.hash(name);
     }
   }
-
 }

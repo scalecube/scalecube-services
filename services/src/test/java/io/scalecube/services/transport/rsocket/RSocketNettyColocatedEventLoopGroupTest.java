@@ -2,6 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -29,27 +30,33 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
   public void setUp() {
     this.gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    final Address gatewayAddress = this.gateway.discovery("gateway").address();
 
     Microservices facade =
         Microservices.builder()
             .discovery(
+                "facade",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new Facade()))
             .startAwait();
+
+    final Address facadeAddress = facade.discovery("facade").address();
 
     PingService pingService = () -> Mono.just(Thread.currentThread().getName());
     this.ping =
         Microservices.builder()
             .discovery(
+                "ping",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(pingService))
             .startAwait();
@@ -58,9 +65,10 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
     this.pong =
         Microservices.builder()
             .discovery(
+                "pong",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(facade.discovery().address())))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(pongService))
             .startAwait();

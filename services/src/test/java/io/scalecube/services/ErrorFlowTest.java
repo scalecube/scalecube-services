@@ -22,7 +22,8 @@ import reactor.test.StepVerifier;
 
 public class ErrorFlowTest extends BaseTest {
 
-  private static AtomicInteger port = new AtomicInteger(4000);
+  private static final AtomicInteger PORT = new AtomicInteger(4000);
+
   private static Microservices provider;
   private static Microservices consumer;
 
@@ -31,22 +32,24 @@ public class ErrorFlowTest extends BaseTest {
     provider =
         Microservices.builder()
             .discovery(
+                "provider",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .transport(cfg -> cfg.port(port.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
-    final Address seedAddress = provider.discovery().address();
+    final Address seedAddress = provider.discovery("provider").address();
 
     consumer =
         Microservices.builder()
             .discovery(
+                "consumer",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress))
-                        .transport(cfg -> cfg.port(port.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }

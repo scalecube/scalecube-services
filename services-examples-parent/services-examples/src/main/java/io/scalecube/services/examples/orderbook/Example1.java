@@ -36,11 +36,11 @@ public class Example1 {
 
     Microservices gateway =
         Microservices.builder()
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("gateway", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery().address();
+    final Address gatewayAddress = gateway.discovery("gateway").address();
 
     ServiceFactory serviceFactory =
         ScalecubeServiceFactory.fromInstances(new DefaultMarketDataService());
@@ -48,6 +48,7 @@ public class Example1 {
     Microservices ms =
         Microservices.builder()
             .discovery(
+                "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
