@@ -2,6 +2,7 @@ package io.scalecube.services.examples.discovery;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -40,7 +41,7 @@ public class CompositeDiscoveryExample {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl1())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl1()))
             .startAwait();
 
     Microservices ms2 =
@@ -51,7 +52,7 @@ public class CompositeDiscoveryExample {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl2())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl2()))
             .startAwait();
 
     Microservices compositeMs =
