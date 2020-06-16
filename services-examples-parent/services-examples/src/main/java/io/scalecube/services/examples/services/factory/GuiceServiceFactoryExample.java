@@ -65,13 +65,13 @@ public class GuiceServiceFactoryExample {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(
                             cfg ->
-                                cfg.seedMembers(service2Node.context().discovery("s2").address())))
+                                cfg.seedMembers(service2Node.discovery("s2").address())))
             .serviceFactory(serviceFactory1)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     service1Node
-        .call()
+        .serviceCall()
         .api(BidiGreetingService.class)
         .greeting()
         .log("receive     |")

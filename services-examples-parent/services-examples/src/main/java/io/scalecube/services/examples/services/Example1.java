@@ -52,7 +52,7 @@ public class Example1 {
             .startAwait();
 
     gateway
-        .call()
+        .serviceCall()
         .api(Service1.class)
         .manyDelay(100)
         .publishOn(Schedulers.parallel())

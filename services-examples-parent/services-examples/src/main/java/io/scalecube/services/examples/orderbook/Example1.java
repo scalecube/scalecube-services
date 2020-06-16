@@ -56,7 +56,7 @@ public class Example1 {
             .serviceFactory(serviceFactory)
             .startAwait();
 
-    MarketDataService marketService = ms.call().api(MarketDataService.class);
+    MarketDataService marketService = ms.serviceCall().api(MarketDataService.class);
 
     marketService.orderBook().subscribe(Example1::print);
 

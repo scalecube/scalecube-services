@@ -47,18 +47,18 @@ public class Example1 {
             .serviceFactory(serviceFactory)
             .startAwait();
 
-    seed.call()
+    seed.serviceCall()
         .api(GreetingsService.class)
         .sayHello("joe (on default dataFormat PROTOSTUFF)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.call()
+    seed.serviceCall()
         .contentType(JSON)
         .api(GreetingsService.class)
         .sayHello("alice (on JSON dataFormat)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.call()
+    seed.serviceCall()
         .contentType(OCTET_STREAM)
         .api(GreetingsService.class)
         .sayHello("bob (on java native Serializable/Externalizable dataFormat)")

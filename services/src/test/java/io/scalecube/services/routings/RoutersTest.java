@@ -60,7 +60,7 @@ public class RoutersTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    gatewayAddress = gateway.context().discovery("gateway").address();
+    gatewayAddress = gateway.discovery("gateway").address();
 
     // Create microservices instance cluster.
     provider1 =
@@ -136,7 +136,7 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_round_robin() {
 
-    ServiceCall service = gateway.context().serviceCall();
+    ServiceCall service = gateway.serviceCall();
 
     // call the service.
     GreetingResponse result1 =
@@ -158,7 +158,7 @@ public class RoutersTest extends BaseTest {
 
     CanaryService service =
         gateway
-            .context().serviceCall()
+            .serviceCall()
             .router(Routers.getRouter(WeightedRandomRouter.class))
             .api(CanaryService.class);
 
@@ -185,7 +185,7 @@ public class RoutersTest extends BaseTest {
   public void tesTagsFromAnnotation() {
     ServiceCall serviceCall =
         provider3
-            .context().serviceCall()
+            .serviceCall()
             .router(
                 (req, mes) -> {
                   ServiceReference tagServiceRef = req.listServiceReferences().get(0);
@@ -207,7 +207,7 @@ public class RoutersTest extends BaseTest {
 
     ServiceCall service =
         gateway
-            .context().serviceCall()
+            .serviceCall()
             .router(
                 (reg, msg) ->
                     reg.listServiceReferences().stream()
@@ -230,7 +230,7 @@ public class RoutersTest extends BaseTest {
 
     ServiceCall service =
         gateway
-            .context().serviceCall()
+            .serviceCall()
             .router(
                 (reg, msg) ->
                     reg.listServiceReferences().stream()
@@ -256,7 +256,7 @@ public class RoutersTest extends BaseTest {
   public void test_service_tags() throws Exception {
 
     TimeUnit.SECONDS.sleep(3);
-    ServiceCall service = gateway.context().serviceCall().router(WeightedRandomRouter.class);
+    ServiceCall service = gateway.serviceCall().router(WeightedRandomRouter.class);
 
     ServiceMessage req =
         ServiceMessage.builder()

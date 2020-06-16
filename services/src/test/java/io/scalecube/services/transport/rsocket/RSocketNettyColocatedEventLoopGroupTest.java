@@ -34,7 +34,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.context().discovery("gateway").address();
+    final Address gatewayAddress = this.gateway.discovery("gateway").address();
 
     Microservices facade =
         Microservices.builder()
@@ -47,7 +47,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new Facade()))
             .startAwait();
 
-    final Address facadeAddress = facade.context().discovery("facade").address();
+    final Address facadeAddress = facade.discovery("facade").address();
 
     PingService pingService = () -> Mono.just(Thread.currentThread().getName());
     this.ping =
@@ -76,7 +76,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
 
   @Test
   public void testColocatedEventLoopGroup() {
-    ServiceCall call = gateway.context().serviceCall();
+    ServiceCall call = gateway.serviceCall();
 
     FacadeService facade = call.api(FacadeService.class);
 

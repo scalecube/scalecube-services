@@ -62,13 +62,13 @@ public class LightweightSpringServiceFactoryExample {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(
                             cfg ->
-                                cfg.seedMembers(service2Node.context().discovery("s2").address())))
+                                cfg.seedMembers(service2Node.discovery("s2").address())))
             .serviceFactory(serviceFactory1)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     service1Node
-        .call()
+        .serviceCall()
         .api(BidiGreetingService.class)
         .greeting()
         .log("receive     |")
@@ -128,7 +128,7 @@ public class LightweightSpringServiceFactoryExample {
     }
 
     @Override
-    public Mono<Void> shutdownServices(MicroservicesContext microservices) {
+    public Mono<Void> shutdownServices() {
       return Mono.fromRunnable(this.context::stop);
     }
   }

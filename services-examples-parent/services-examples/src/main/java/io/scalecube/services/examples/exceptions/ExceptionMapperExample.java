@@ -69,7 +69,7 @@ public class ExceptionMapperExample {
 
     System.err.println("ms2 started: " + ms2.serviceAddress());
 
-    ms2.call()
+    ms2.serviceCall()
         .api(ServiceB.class)
         .doAnotherStuff(0)
         .subscribe(

@@ -144,8 +144,6 @@ public final class Microservices {
   private final PrincipalMapper<Object, Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
-  private MicroservicesContext microservicesContext;
-  private ServiceEndpoint serviceEndpoint;
 
   private Microservices(Builder builder) {
     this.tags = new HashMap<>(builder.tags);
@@ -167,13 +165,13 @@ public final class Microservices {
             : ScalecubeServiceFactory.create(builder.serviceProviders);
     // for initialization services by deprecated ServiceProvider
     if (this.serviceFactory instanceof ScalecubeServiceFactory) {
-      ((ScalecubeServiceFactory) this.serviceFactory).setServiceCall(this::call);
+      ((ScalecubeServiceFactory) this.serviceFactory).setServiceCall(this::serviceCall);
     }
 
     // Setup cleanup
-    shutdown
+    this.shutdown
         .then(doShutdown())
-        .doFinally(s -> onShutdown.onComplete())
+        .doFinally(s -> this.onShutdown.onComplete())
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -186,20 +184,9 @@ public final class Microservices {
    * Unique id of this Microservices node.
    *
    * @return id
-   * @deprecated use {@link MicroservicesContext#id()} by {@link Microservices#context()}
    */
-  @Deprecated
   public String id() {
     return this.id;
-  }
-
-  /**
-   * Return microservices context with all public information about Microservices.
-   *
-   * @return microservices context
-   */
-  public MicroservicesContext context() {
-    return microservicesContext;
   }
 
   @Override
@@ -212,14 +199,12 @@ public final class Microservices {
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
-    return transportBootstrap
+    return this.transportBootstrap
         .start(this)
         .map(ServiceTransportBootstrap::address)
         .flatMap(this::initializeServiceEndpoint)
-        .flatMap(
-            serviceEndpoint ->
-                createDiscovery(new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint)))
-        .map(avoid -> this.microservicesContext = new MicroservicesContextImpl())
+        .flatMap(this::createDiscovery)
+        .map(serviceDiscovery -> new MicroservicesContextImpl(serviceDiscovery, this::serviceCall))
         .flatMap(this.serviceFactory::initializeServices)
         .doOnNext(this::registerInMethodRegistry)
         .publishOn(scheduler)
@@ -235,8 +220,8 @@ public final class Microservices {
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<ServiceDiscovery> createDiscovery(ServiceDiscoveryOptions options) {
-    return this.compositeDiscovery.createInstance(options);
+  private Mono<CompositeServiceDiscovery> createDiscovery(ServiceEndpoint serviceEndpoint) {
+    return this.compositeDiscovery.createInstance(serviceEndpoint);
   }
 
   private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
@@ -254,9 +239,7 @@ public final class Microservices {
               serviceDefinition ->
                   serviceEndpointBuilder.appendServiceRegistrations(
                       ServiceScanner.scanServiceDefinition(serviceDefinition)));
-          ServiceEndpoint serviceEndpoint = serviceEndpointBuilder.build();
-          this.serviceEndpoint = serviceEndpoint;
-          return serviceEndpoint;
+          return serviceEndpointBuilder.build();
         });
   }
 
@@ -274,15 +257,13 @@ public final class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway() {
-    return this.gatewayBootstrap.start(this, new GatewayOptions().call(this.call()));
+    return this.gatewayBootstrap.start(this, new GatewayOptions().call(this.serviceCall()));
   }
 
   /**
    * Network address of this Microservices node.
    *
    * @return network address
-   * @deprecated use {@link MicroservicesContext#serviceAddress()} )} by {@link
-   * Microservices#context()}
    */
   public Address serviceAddress() {
     return transportBootstrap.transportAddress;
@@ -292,10 +273,19 @@ public final class Microservices {
    * Creates new instance {@code ServiceCall}.
    *
    * @return new {@code ServiceCall} instance.
-   * @deprecated use {@link MicroservicesContext#serviceCall()} by {@link Microservices#context()}
+   * @deprecated use {@link this#serviceCall()}
    */
   @Deprecated
   public ServiceCall call() {
+    return this.serviceCall();
+  }
+
+  /**
+   * Creates new instance {@code ServiceCall}.
+   *
+   * @return new {@code ServiceCall} instance.
+   */
+  public ServiceCall serviceCall() {
     return new ServiceCall()
         .transport(this.transportBootstrap.clientTransport)
         .serviceRegistry(this.serviceRegistry)
@@ -309,34 +299,27 @@ public final class Microservices {
    * List of all gateway registered in this Microservices node.
    *
    * @return gateways
-   * @deprecated use {@link MicroservicesContext#gateways()} by {@link Microservices#context()}
    */
-  @Deprecated
   public List<Gateway> gateways() {
-    return gatewayBootstrap.gateways();
+    return this.gatewayBootstrap.gateways();
   }
 
   /**
    * Get gateway registered in this Microservices node by id.
    *
    * @return gateway
-   * @deprecated use {@link MicroservicesContext#gateway(String)} by {@link Microservices#context()}
    */
-  @Deprecated
   public Gateway gateway(String id) {
-    return gatewayBootstrap.gateway(id);
+    return this.gatewayBootstrap.gateway(id);
   }
 
   /**
    * Service endpoint.
    *
    * @return service endpoint
-   * @deprecated use {@link MicroservicesContext#serviceEndpoint()} by {@link
-   * Microservices#context()}
    */
-  @Deprecated
   public ServiceEndpoint serviceEndpoint() {
-    return serviceEndpoint;
+    return this.compositeDiscovery.serviceEndpoint;
   }
 
   /**
@@ -344,12 +327,9 @@ public final class Microservices {
    *
    * @param id service discovery id
    * @return service discovery context
-   * @deprecated use {@link MicroservicesContext#discovery(String)} by {@link
-   * Microservices#context()}
    */
-  @Deprecated
   public ServiceDiscoveryContext discovery(String id) {
-    return Optional.ofNullable(compositeDiscovery.contextMap.get(id))
+    return Optional.ofNullable(this.compositeDiscovery.contextMap.get(id))
         .orElseThrow(() -> new NoSuchElementException("[discovery] id: " + id));
   }
 
@@ -357,12 +337,9 @@ public final class Microservices {
    * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
    *
    * @return stream of {@code ServiceDiscoveryEvent} events
-   * @deprecated use {@link MicroservicesContext#listenDiscovery()} by {@link
-   *     Microservices#context()}
    */
-  @Deprecated
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return compositeDiscovery.listen();
+    return this.compositeDiscovery.listen();
   }
 
   /**
@@ -397,7 +374,7 @@ public final class Microservices {
   }
 
   private Mono<Void> processBeforeDestroy() {
-    return serviceFactory.shutdownServices(this.microservicesContext).then();
+    return this.serviceFactory.shutdownServices().then();
   }
 
   private static class CompositeServiceDiscovery implements ServiceDiscovery {
@@ -412,38 +389,37 @@ public final class Microservices {
 
     private final Disposable.Composite disposables = Disposables.composite();
     private Scheduler scheduler;
+    private ServiceEndpoint serviceEndpoint;
 
     private CompositeServiceDiscovery addOperator(UnaryOperator<ServiceDiscoveryOptions> operator) {
       this.operatorList.add(operator);
       return this;
     }
 
-    private Mono<ServiceDiscovery> createInstance(ServiceDiscoveryOptions options) {
+    private Mono<CompositeServiceDiscovery> createInstance(ServiceEndpoint serviceEndpoint) {
+      this.serviceEndpoint = serviceEndpoint;
+      ServiceDiscoveryOptions options =
+          new ServiceDiscoveryOptions().serviceEndpoint(this.serviceEndpoint);
       for (UnaryOperator<ServiceDiscoveryOptions> operator : operatorList) {
         final ServiceDiscoveryOptions finalOptions = operator.apply(options);
-        final ServiceEndpoint serviceEndpoint = finalOptions.serviceEndpoint();
         final String id = finalOptions.id();
-        discoveryMap.put(
+        this.discoveryMap.put(
             id, finalOptions.discoveryFactory().createServiceDiscovery(serviceEndpoint));
       }
 
-      scheduler = Schedulers.newSingle("composite-discovery", true);
+      this.scheduler = Schedulers.newSingle("composite-discovery", true);
 
       return Mono.just(this);
     }
 
     private Mono<Void> startListen(Microservices microservices) {
       return Mono.deferWithContext(context -> start())
-          .doOnSubscribe(
-              s -> LOGGER.info("[{}][startListen] Starting", microservices.id))
-          .doOnSuccess(
-              discovery -> LOGGER.info("[{}][startListen] Started", microservices.id))
+          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id))
+          .doOnSuccess(discovery -> LOGGER.info("[{}][startListen] Started", microservices.id))
           .doOnError(
               ex ->
                   LOGGER.error(
-                      "[{}][startListen] Exception occurred: {}",
-                      microservices.id,
-                      ex.toString()))
+                      "[{}][startListen] Exception occurred: {}", microservices.id, ex.toString()))
           .subscriberContext(
               context -> reactor.util.context.Context.of(Microservices.class, microservices));
     }
@@ -846,9 +822,7 @@ public final class Microservices {
                 return this;
               })
           .doOnSubscribe(
-              s ->
-                  LOGGER.info(
-                      "[{}][serviceTransport][start] Starting", microservices.id))
+              s -> LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id))
           .doOnSuccess(
               transport ->
                   LOGGER.info(
@@ -892,7 +866,7 @@ public final class Microservices {
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName =
           new ObjectName(
-              String.format(OBJECT_NAME_FORMAT, instance.context().id(), System.nanoTime()));
+              String.format(OBJECT_NAME_FORMAT, instance.id(), System.nanoTime()));
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
@@ -969,51 +943,30 @@ public final class Microservices {
     String getServiceInfos();
   }
 
-  private final class MicroservicesContextImpl implements MicroservicesContext {
+  private static final class MicroservicesContextImpl implements MicroservicesContext {
+
+    private final CompositeServiceDiscovery serviceDiscovery;
+    private final Supplier<ServiceCall> serviceCallSupplier;
+
+    private MicroservicesContextImpl(
+        CompositeServiceDiscovery serviceDiscovery, Supplier<ServiceCall> serviceCallSupplier) {
+      this.serviceDiscovery = serviceDiscovery;
+      this.serviceCallSupplier = serviceCallSupplier;
+    }
 
     @Override
     public ServiceEndpoint serviceEndpoint() {
-      return Microservices.this.serviceEndpoint;
+      return this.serviceDiscovery.serviceEndpoint;
     }
 
     @Override
     public ServiceCall serviceCall() {
-      return Microservices.this.call();
+      return this.serviceCallSupplier.get();
     }
 
     @Override
     public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-      return Microservices.this.compositeDiscovery.listen();
-    }
-
-    @Override
-    public ServiceDiscoveryContext discovery(String id) {
-      Map<String, ServiceDiscoveryContext> contextMap =
-          Microservices.this.compositeDiscovery.contextMap;
-      if (contextMap.containsKey(id)) {
-        return contextMap.get(id);
-      }
-      throw new NoSuchElementException("[discovery] id " + id);
-    }
-
-    @Override
-    public List<Gateway> gateways() {
-      return Microservices.this.gatewayBootstrap.gateways();
-    }
-
-    @Override
-    public Gateway gateway(String id) {
-      return Microservices.this.gatewayBootstrap.gateway(id);
-    }
-
-    @Override
-    public Address serviceAddress() {
-      return Microservices.this.transportBootstrap.address();
-    }
-
-    @Override
-    public String id() {
-      return Microservices.this.id;
+      return this.serviceDiscovery.listen();
     }
   }
 }

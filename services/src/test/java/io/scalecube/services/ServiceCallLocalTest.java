@@ -52,8 +52,7 @@ public class ServiceCallLocalTest extends BaseTest {
   @Test
   public void test_local_async_no_params() {
 
-    ServiceCall serviceCall =
-        provider.context().serviceCall().router(RoundRobinServiceRouter.class);
+    ServiceCall serviceCall = provider.serviceCall().router(RoundRobinServiceRouter.class);
 
     // call the service.
     Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
@@ -75,20 +74,20 @@ public class ServiceCallLocalTest extends BaseTest {
   @Test
   public void test_local_void_greeting() {
     // WHEN
-    provider.context().serviceCall().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
+    provider.serviceCall().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
   }
 
   @Test
   public void test_local_failng_void_greeting() {
 
-    StepVerifier.create(provider.context().serviceCall().oneWay(GREETING_FAILING_VOID_REQ))
+    StepVerifier.create(provider.serviceCall().oneWay(GREETING_FAILING_VOID_REQ))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
   }
 
   @Test
   public void test_local_throwing_void_greeting() {
-    StepVerifier.create(provider.context().serviceCall().oneWay(GREETING_THROWING_VOID_REQ))
+    StepVerifier.create(provider.serviceCall().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
   }
@@ -99,9 +98,7 @@ public class ServiceCallLocalTest extends BaseTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () ->
-                Mono.from(provider.context().serviceCall().requestOne(GREETING_FAIL_REQ))
-                    .block(timeout));
+            () -> Mono.from(provider.serviceCall().requestOne(GREETING_FAIL_REQ)).block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
 
@@ -112,9 +109,7 @@ public class ServiceCallLocalTest extends BaseTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () ->
-                Mono.from(provider.context().serviceCall().requestOne(GREETING_ERROR_REQ))
-                    .block(timeout));
+            () -> Mono.from(provider.serviceCall().requestOne(GREETING_ERROR_REQ)).block(timeout));
   }
 
   @Test
@@ -122,7 +117,7 @@ public class ServiceCallLocalTest extends BaseTest {
 
     // When
     Publisher<ServiceMessage> resultFuture =
-        provider.context().serviceCall().requestOne(GREETING_REQUEST_REQ);
+        provider.serviceCall().requestOne(GREETING_REQUEST_REQ);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
@@ -134,7 +129,7 @@ public class ServiceCallLocalTest extends BaseTest {
   @Test
   public void test_local_greeting_request_timeout_expires() {
 
-    ServiceCall service = provider.context().serviceCall();
+    ServiceCall service = provider.serviceCall();
 
     // call the service.
     Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
@@ -147,8 +142,7 @@ public class ServiceCallLocalTest extends BaseTest {
   @Test
   public void test_local_async_greeting_return_Message() {
 
-    ServiceMessage result =
-        provider.context().serviceCall().requestOne(GREETING_REQUEST_REQ).block(timeout);
+    ServiceMessage result = provider.serviceCall().requestOne(GREETING_REQUEST_REQ).block(timeout);
 
     // print the greeting.
     GreetingResponse responseData = result.data();
@@ -161,9 +155,8 @@ public class ServiceCallLocalTest extends BaseTest {
   public void test_remote_mono_empty_request_response_greeting_messsage() {
     StepVerifier.create(
         provider
-            .context()
             .serviceCall()
-                .requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
+            .requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .expectComplete()
         .verify(timeout);
@@ -172,7 +165,7 @@ public class ServiceCallLocalTest extends BaseTest {
   @Test
   public void test_async_greeting_return_string_service_not_found_error_case() {
 
-    ServiceCall service = provider.context().serviceCall();
+    ServiceCall service = provider.serviceCall();
 
     try {
       // call the service.

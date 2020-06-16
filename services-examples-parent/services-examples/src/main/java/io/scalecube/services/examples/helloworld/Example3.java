@@ -51,7 +51,7 @@ public class Example3 {
             .startAwait();
 
     // Create service proxy
-    BidiGreetingService service = seed.call().api(BidiGreetingService.class);
+    BidiGreetingService service = seed.serviceCall().api(BidiGreetingService.class);
 
     // Execute the services and subscribe to service events
     service

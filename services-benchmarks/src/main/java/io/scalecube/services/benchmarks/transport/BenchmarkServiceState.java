@@ -78,6 +78,6 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
   }
 
   public ServiceCall call() {
-    return seed.call();
+    return seed.serviceCall();
   }
 }

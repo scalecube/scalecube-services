@@ -17,6 +17,8 @@ public class ScalecubeServiceFactory implements ServiceFactory {
   // lazy init
   private final AtomicReference<Collection<ServiceInfo>> services = new AtomicReference<>();
   private Supplier<ServiceCall> serviceCallSupplier;
+  // lazy init
+  private MicroservicesContext microserviceContext;
 
   private ScalecubeServiceFactory(Collection<ServiceProvider> serviceProviders) {
     this.serviceFactory =
@@ -100,11 +102,13 @@ public class ScalecubeServiceFactory implements ServiceFactory {
   public Mono<? extends Collection<ServiceInfo>> initializeServices(
       MicroservicesContext microservices) {
     return Mono.fromCallable(
-        () ->
-            this.services().stream()
-                .map(service -> Injector.inject(microservices, service))
-                .map(service -> Injector.processAfterConstruct(microservices, service))
-                .collect(Collectors.toList()));
+        () -> {
+          this.microserviceContext = microservices;
+          return this.services().stream()
+              .map(service -> Injector.inject(microservices, service))
+              .map(service -> Injector.processAfterConstruct(microservices, service))
+              .collect(Collectors.toList());
+        });
   }
 
   /**
@@ -116,8 +120,8 @@ public class ScalecubeServiceFactory implements ServiceFactory {
    * @return
    */
   @Override
-  public Mono<Void> shutdownServices(MicroservicesContext microservices) {
-    return Mono.fromRunnable(() -> shutdown0(microservices));
+  public Mono<Void> shutdownServices() {
+    return Mono.fromRunnable(() -> shutdown0(this.microserviceContext));
   }
 
   private void shutdown0(MicroservicesContext microservices) {

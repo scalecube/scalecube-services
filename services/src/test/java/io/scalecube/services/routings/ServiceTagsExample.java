@@ -26,7 +26,7 @@ public class ServiceTagsExample {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    Address seedAddress = gateway.context().discovery("gateway").address();
+    Address seedAddress = gateway.discovery("gateway").address();
 
     Microservices services1 =
         Microservices.builder()
@@ -57,7 +57,7 @@ public class ServiceTagsExample {
             .startAwait();
 
     CanaryService service =
-        gateway.context().serviceCall().router(WeightedRandomRouter.class).api(CanaryService.class);
+        gateway.serviceCall().router(WeightedRandomRouter.class).api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {
       Mono.from(service.greeting(new GreetingRequest("joe")))

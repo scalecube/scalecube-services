@@ -50,9 +50,9 @@ public class ServiceRegistryTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    seed.context().listenDiscovery().subscribe(events);
+    seed.listenDiscovery().subscribe(events);
 
-    Address seedAddress = seed.context().discovery("seed").address();
+    Address seedAddress = seed.discovery("seed").address();
 
     Microservices ms1 =
         Microservices.builder()
@@ -96,9 +96,9 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.context().listenDiscovery().subscribe(processor);
+    seed.listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.context().discovery("seed").address();
+    Address seedAddress = seed.discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
@@ -137,7 +137,7 @@ public class ServiceRegistryTest extends BaseTest {
         .verify(TIMEOUT);
 
     StepVerifier.create(
-        seed.context().serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
+        seed.serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_LEAVING, type))
@@ -166,9 +166,9 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.context().listenDiscovery().subscribe(processor);
+    seed.listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.context().discovery("seed").address();
+    Address seedAddress = seed.discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
@@ -200,7 +200,7 @@ public class ServiceRegistryTest extends BaseTest {
         .verify(TIMEOUT);
 
     StepVerifier.create(
-        seed.context().serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
+        seed.serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .thenCancel()

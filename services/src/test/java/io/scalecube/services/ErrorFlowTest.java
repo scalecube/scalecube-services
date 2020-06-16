@@ -40,7 +40,7 @@ public class ErrorFlowTest extends BaseTest {
             .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
-    final Address seedAddress = provider.context().discovery("provider").address();
+    final Address seedAddress = provider.discovery("provider").address();
 
     consumer =
         Microservices.builder()
@@ -64,7 +64,6 @@ public class ErrorFlowTest extends BaseTest {
   public void testCorruptedRequest() {
     Publisher<ServiceMessage> req =
         consumer
-            .context()
             .serviceCall()
             .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
     assertThrows(InternalServiceException.class, () -> from(req).block());
@@ -74,7 +73,6 @@ public class ErrorFlowTest extends BaseTest {
   public void testNotAuthorized() {
     Publisher<ServiceMessage> req =
         consumer
-            .context()
             .serviceCall()
             .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
     assertThrows(ForbiddenException.class, () -> from(req).block());
@@ -84,7 +82,6 @@ public class ErrorFlowTest extends BaseTest {
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req =
         consumer
-            .context()
             .serviceCall()
             .requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     assertThrows(BadRequestException.class, () -> from(req).block());
@@ -92,7 +89,7 @@ public class ErrorFlowTest extends BaseTest {
 
   @Test
   public void testServiceUnavailable() {
-    StepVerifier.create(consumer.context().serviceCall().requestOne(TestRequests.NOT_FOUND_REQ))
+    StepVerifier.create(consumer.serviceCall().requestOne(TestRequests.NOT_FOUND_REQ))
         .expectError(ServiceUnavailableException.class)
         .verify();
   }

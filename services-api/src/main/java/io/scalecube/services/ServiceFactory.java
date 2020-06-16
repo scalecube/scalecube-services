@@ -26,10 +26,9 @@ public interface ServiceFactory {
   /**
    * Finalization of service instances.
    *
-   * @param microservices microservices context
    * @return completed Mono if finalization was successful for all services.
    */
-  default Mono<Void> shutdownServices(MicroservicesContext microservices) {
+  default Mono<Void> shutdownServices() {
     return Mono.defer(Mono::empty);
   }
 }

@@ -59,7 +59,7 @@ public class Example2 {
             .startAwait();
 
     // Create a proxy to the seed service node
-    ServiceCall service = seed.call();
+    ServiceCall service = seed.serviceCall();
 
     // Create a ServiceMessage request with service qualifier and data
     ServiceMessage request =
