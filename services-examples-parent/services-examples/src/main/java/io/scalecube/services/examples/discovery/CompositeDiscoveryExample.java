@@ -29,8 +29,8 @@ public class CompositeDiscoveryExample {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address seed1Address = seed1.discovery("seed1").address();
-    final Address seed2Address = seed2.discovery("seed2").address();
+    final Address seed1Address = seed1.context().discovery("seed1").address();
+    final Address seed2Address = seed2.context().discovery("seed2").address();
 
     Microservices ms1 =
         Microservices.builder()
@@ -72,11 +72,21 @@ public class CompositeDiscoveryExample {
             .startAwait();
 
     Greeting greeting1 =
-        compositeMs.call().api(GreetingsService1.class).sayHello("hello one").block();
+        compositeMs
+            .context()
+            .serviceCall()
+            .api(GreetingsService1.class)
+            .sayHello("hello one")
+            .block();
     System.err.println("This is response from GreetingsService1: " + greeting1.message());
 
     Greeting greeting2 =
-        compositeMs.call().api(GreetingsService2.class).sayHello("hello two").block();
+        compositeMs
+            .context()
+            .serviceCall()
+            .api(GreetingsService2.class)
+            .sayHello("hello two")
+            .block();
     System.err.println("This is response from GreetingsService2: " + greeting2.message());
 
     Thread.currentThread().join();

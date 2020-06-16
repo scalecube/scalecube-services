@@ -63,6 +63,7 @@ The example provisions 2 cluster nodes and making a remote interaction.
 ```java
     //1. ScaleCube Node node with no members
     Microservices seed = Microservices.builder().startAwait();
+    MicroservicesContext seedContext = seed.context();
 
     //2. Create ServiceFactory 
     ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
@@ -73,13 +74,13 @@ The example provisions 2 cluster nodes and making a remote interaction.
             .discovery(
                 self ->
                     new ScalecubeServiceDiscovery(self)
-                        .options(opts -> opts.seedMembers(toAddress(seed.discovery().address()))))
+                        .options(opts -> opts.seedMembers(seedContext.discovery().address())))
             .transport(ServiceTransports::rsocketServiceTransport)
             .serviceFactory(serviceFactory)
             .startAwait();
 
     //3. Create service proxy
-    GreetingsService service = seed.call().api(GreetingsService.class);
+    GreetingsService service = seedContext.serviceCall().api(GreetingsService.class);
 
     // Execute the services and subscribe to service events
     service.sayHello("joe").subscribe(consumer -> {
