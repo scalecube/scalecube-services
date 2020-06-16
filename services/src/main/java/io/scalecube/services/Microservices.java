@@ -214,8 +214,7 @@ public final class Microservices {
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
     return transportBootstrap
         .start(this)
-        // because ServiceTransportBootstrap#address may return nullable value in local case
-        .map(transport -> (Supplier<Address>) transport::address)
+        .map(ServiceTransportBootstrap::address)
         .flatMap(this::initializeServiceEndpoint)
         .flatMap(
             serviceEndpoint ->
@@ -240,7 +239,7 @@ public final class Microservices {
     return this.compositeDiscovery.createInstance(options);
   }
 
-  private Mono<ServiceEndpoint> initializeServiceEndpoint(Supplier<Address> serviceAddress) {
+  private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
     Mono<? extends Collection<ServiceDefinition>> serviceDefinitionsMono =
         Mono.fromCallable(this.serviceFactory::getServiceDefinitions);
     return serviceDefinitionsMono.map(
@@ -248,7 +247,7 @@ public final class Microservices {
           final ServiceEndpoint.Builder serviceEndpointBuilder =
               ServiceEndpoint.builder()
                   .id(this.id)
-                  .address(serviceAddress.get())
+                  .address(serviceAddress)
                   .contentTypes(DataCodec.getAllContentTypes())
                   .tags(this.tags);
           serviceDefinitions.forEach(
