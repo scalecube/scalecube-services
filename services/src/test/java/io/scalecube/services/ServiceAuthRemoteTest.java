@@ -67,7 +67,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    callerAddress = caller.discovery("caller").address();
+    callerAddress = caller.context().discovery("caller").address();
 
     principalMapper = authData -> new UserProfile(authData.get("name"), authData.get("role"));
 
@@ -98,7 +98,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
     SecuredService securedService =
-        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.context().serviceCall().credentials(CREDENTIALS).api(SecuredService.class);
 
     StepVerifier.create(securedService.helloWithRequest("Bob"))
         .assertNext(response -> assertEquals("Hello, Bob", response))
@@ -127,7 +127,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .startAwait();
 
     SecuredService securedService =
-        caller.call().credentials(CREDENTIALS).api(SecuredService.class);
+        caller.context().serviceCall().credentials(CREDENTIALS).api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -153,7 +153,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @Test
   @DisplayName("Authentication failed with invalid or empty credentials")
   void failedAuthenticationWithInvalidOrEmptyCredentials() {
-    SecuredService securedService = caller.call().api(SecuredService.class);
+    SecuredService securedService = caller.context().serviceCall().api(SecuredService.class);
 
     Consumer<Throwable> verifyError =
         th -> {
@@ -189,7 +189,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .startAwait();
 
     PartiallySecuredService proxy =
-        caller.call().credentials(CREDENTIALS).api(PartiallySecuredService.class);
+        caller.context().serviceCall().credentials(CREDENTIALS).api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.securedMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))
@@ -211,7 +211,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
                     .build())
             .startAwait();
 
-    PartiallySecuredService proxy = caller.call().api(PartiallySecuredService.class);
+    PartiallySecuredService proxy =
+        caller.context().serviceCall().api(PartiallySecuredService.class);
 
     StepVerifier.create(proxy.publicMethod("Alice"))
         .assertNext(response -> assertEquals("Hello, Alice", response))

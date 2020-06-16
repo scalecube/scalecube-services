@@ -34,7 +34,7 @@ public class StreamingServiceTest extends BaseTest {
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery("gateway").address();
+    final Address gatewayAddress = gateway.context().discovery("gateway").address();
 
     node =
         Microservices.builder()
@@ -54,7 +54,8 @@ public class StreamingServiceTest extends BaseTest {
 
     CountDownLatch latch = new CountDownLatch(3);
     Disposable sub =
-        node.call()
+        node.context()
+            .serviceCall()
             .api(QuoteService.class)
             .quotes()
             .subscribe(
@@ -70,7 +71,7 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_local_quotes_service() {
 
-    QuoteService service = node.call().api(QuoteService.class);
+    QuoteService service = node.context().serviceCall().api(QuoteService.class);
 
     int expected = 3;
     List<String> list = service.quotes().take(Duration.ofMillis(3500)).collectList().block();
@@ -84,7 +85,7 @@ public class StreamingServiceTest extends BaseTest {
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.context().serviceCall().api(QuoteService.class);
 
     service.snapshot(3).subscribe(onNext -> latch1.countDown());
     service.snapshot(3).subscribe(onNext -> latch2.countDown());
@@ -100,7 +101,7 @@ public class StreamingServiceTest extends BaseTest {
   public void test_quotes_batch() throws InterruptedException {
     int streamBound = 1000;
 
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.context().serviceCall().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(streamBound);
 
     final Disposable sub1 = service.snapshot(streamBound).subscribe(onNext -> latch1.countDown());
@@ -115,7 +116,7 @@ public class StreamingServiceTest extends BaseTest {
   public void test_call_quotes_snapshot() {
     int batchSize = 1000;
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot").data(batchSize).build();
@@ -128,14 +129,14 @@ public class StreamingServiceTest extends BaseTest {
 
   @Test
   public void test_just_once() {
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.context().serviceCall().api(QuoteService.class);
     assertEquals("1", service.justOne().block(Duration.ofSeconds(2)));
   }
 
   @Test
   public void test_just_one_message() {
 
-    ServiceCall service = gateway.call();
+    ServiceCall service = gateway.context().serviceCall();
 
     ServiceMessage justOne =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "justOne").build();
@@ -149,7 +150,7 @@ public class StreamingServiceTest extends BaseTest {
 
   @Test
   public void test_scheduled_messages() {
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
 
     ServiceMessage scheduled =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled").data(1000).build();
@@ -164,7 +165,7 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_unknown_method() {
 
-    ServiceCall service = gateway.call();
+    ServiceCall service = gateway.context().serviceCall();
 
     ServiceMessage scheduled =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "unknonwn").build();
@@ -180,7 +181,7 @@ public class StreamingServiceTest extends BaseTest {
   public void test_snapshot_completes() {
     int batchSize = 1000;
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot").data(batchSize).build();

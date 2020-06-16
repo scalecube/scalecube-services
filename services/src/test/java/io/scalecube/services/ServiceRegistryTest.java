@@ -50,9 +50,9 @@ public class ServiceRegistryTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    seed.listenDiscovery().subscribe(events);
+    seed.context().listenDiscovery().subscribe(events);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.context().discovery("seed").address();
 
     Microservices ms1 =
         Microservices.builder()
@@ -96,9 +96,9 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.listenDiscovery().subscribe(processor);
+    seed.context().listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.context().discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
@@ -107,7 +107,8 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms1);
             })
@@ -135,7 +136,8 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+    StepVerifier.create(
+        seed.context().serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_LEAVING, type))
@@ -164,9 +166,9 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.listenDiscovery().subscribe(processor);
+    seed.context().listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.context().discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
@@ -188,7 +190,8 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })
@@ -196,7 +199,8 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+    StepVerifier.create(
+        seed.context().serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .thenCancel()

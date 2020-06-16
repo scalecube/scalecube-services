@@ -51,7 +51,7 @@ public class GuiceServiceFactoryExample {
     Microservices service2Node =
         Microservices.builder()
             .serviceFactory(serviceFactory2)
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("s2", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -60,9 +60,12 @@ public class GuiceServiceFactoryExample {
     Microservices service1Node =
         Microservices.builder()
             .discovery(
+                "s1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .membership(cfg -> cfg.seedMembers(service2Node.discovery().address())))
+                        .membership(
+                            cfg ->
+                                cfg.seedMembers(service2Node.context().discovery("s2").address())))
             .serviceFactory(serviceFactory1)
             .transport(RSocketServiceTransport::new)
             .startAwait();

@@ -44,7 +44,7 @@ public class ServiceLocalTest extends BaseTest {
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() {
-    GreetingService service = microservices.call().api(GreetingService.class);
+    GreetingService service = microservices.context().serviceCall().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -214,7 +214,7 @@ public class ServiceLocalTest extends BaseTest {
         .verify(timeout);
 
     // using serviceCall directly
-    ServiceCall serviceCall = microservices.call();
+    ServiceCall serviceCall = microservices.context().serviceCall();
 
     StepVerifier.create(
             serviceCall.requestOne(
@@ -310,6 +310,9 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+    return gateway
+        .context()
+        .serviceCall()
+        .api(GreetingService.class); // create proxy for GreetingService API
   }
 }

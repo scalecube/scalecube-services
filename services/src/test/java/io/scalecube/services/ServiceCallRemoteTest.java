@@ -70,7 +70,8 @@ public class ServiceCallRemoteTest extends BaseTest {
             "serviceProvider",
             endpoint ->
                 new ScalecubeServiceDiscovery(endpoint)
-                    .membership(cfg -> cfg.seedMembers(gateway.discovery("gateway").address())))
+                    .membership(
+                        cfg -> cfg.seedMembers(gateway.context().discovery("gateway").address())))
         .transport(RSocketServiceTransport::new)
         .serviceFactory(ScalecubeServiceFactory.fromInstances(service))
         .startAwait();
@@ -79,7 +80,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_async_greeting_no_params() {
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
 
     // call the service.
     Publisher<ServiceMessage> future =
@@ -93,13 +94,18 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_void_greeting() {
     // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ)).expectComplete().verify(TIMEOUT);
+    StepVerifier.create(gateway.context().serviceCall().oneWay(GREETING_VOID_REQ))
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
   public void test_remote_mono_empty_request_response_greeting_messsage() {
     StepVerifier.create(
-            gateway.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
+        gateway
+            .context()
+            .serviceCall()
+            .requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .expectComplete()
         .verify(TIMEOUT);
@@ -109,7 +115,8 @@ public class ServiceCallRemoteTest extends BaseTest {
   public void test_remote_failing_void_greeting() {
 
     // When
-    StepVerifier.create(gateway.call().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
+    StepVerifier.create(
+        gateway.context().serviceCall().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(TIMEOUT);
   }
@@ -117,7 +124,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_throwing_void_greeting() {
     // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_THROWING_VOID_REQ))
+    StepVerifier.create(gateway.context().serviceCall().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(TIMEOUT);
   }
@@ -129,7 +136,11 @@ public class ServiceCallRemoteTest extends BaseTest {
         assertThrows(
             ServiceException.class,
             () ->
-                Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
+                Mono.from(
+                    gateway
+                        .context()
+                        .serviceCall()
+                        .requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
                     .block(TIMEOUT));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -142,7 +153,11 @@ public class ServiceCallRemoteTest extends BaseTest {
         assertThrows(
             ServiceException.class,
             () ->
-                Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
+                Mono.from(
+                    gateway
+                        .context()
+                        .serviceCall()
+                        .requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
                     .block(TIMEOUT));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -150,7 +165,8 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_async_greeting_return_string() {
 
-    Publisher<ServiceMessage> resultFuture = gateway.call().requestOne(GREETING_REQ, String.class);
+    Publisher<ServiceMessage> resultFuture =
+        gateway.context().serviceCall().requestOne(GREETING_REQ, String.class);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(TIMEOUT);
@@ -164,7 +180,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     // When
     Publisher<ServiceMessage> result =
-        gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
+        gateway.context().serviceCall().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     // Then
     GreetingResponse greeting = Mono.from(result).block(TIMEOUT).data();
@@ -174,7 +190,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_greeting_request_timeout_expires() {
 
-    ServiceCall service = gateway.call();
+    ServiceCall service = gateway.context().serviceCall();
 
     // call the service.
     Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
@@ -186,7 +202,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   // Since here and below tests were not reviewed [sergeyr]
   @Test
   public void test_remote_async_greeting_return_Message() {
-    ServiceCall service = gateway.call();
+    ServiceCall service = gateway.context().serviceCall();
 
     // call the service.
     Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_REQ);
@@ -206,7 +222,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   public void test_remote_dispatcher_remote_greeting_request_completes_before_timeout() {
 
     Publisher<ServiceMessage> result =
-        gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
+        gateway.context().serviceCall().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     GreetingResponse greetings = Mono.from(result).block(TIMEOUT).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
@@ -218,7 +234,8 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     Flux<ServiceMessage> quotes =
         gateway
-            .call()
+            .context()
+            .serviceCall()
             .requestMany(
                 ServiceMessage.builder()
                     .qualifier(QuoteService.NAME, "onlyOneAndThenNever")
@@ -240,7 +257,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
-    ServiceCall call = gateway.call();
+    ServiceCall call = gateway.context().serviceCall();
 
     ServiceMessage request = TestRequests.GREETING_MANY_STREAM_30;
 

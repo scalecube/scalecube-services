@@ -45,7 +45,7 @@ public class RSocketServiceTransportTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.discovery("gateway").address();
+    final Address gatewayAddress = this.gateway.context().discovery("gateway").address();
 
     serviceNode =
         Microservices.builder()
@@ -79,10 +79,11 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
     sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
+        .context()
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
@@ -107,10 +108,11 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
     sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
+        .context()
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
@@ -135,7 +137,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.context().serviceCall();
     sub1.set(
         serviceCall
             .requestMany(ONLY_ONE_AND_THEN_NEVER)
@@ -143,6 +145,7 @@ public class RSocketServiceTransportTest extends BaseTest {
             .subscribe());
 
     gateway
+        .context()
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
