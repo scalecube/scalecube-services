@@ -73,7 +73,7 @@ public class ServiceRegistration implements Externalizable {
     out.writeInt(tags.size());
     for (Entry<String, String> entry : tags.entrySet()) {
       out.writeUTF(entry.getKey());
-      out.writeUTF(entry.getValue());
+      out.writeObject(entry.getValue()); // value is nullable
     }
 
     // methods
@@ -93,7 +93,7 @@ public class ServiceRegistration implements Externalizable {
     Map<String, String> tags = new HashMap<>(tagsSize);
     for (int i = 0; i < tagsSize; i++) {
       String key = in.readUTF();
-      String value = in.readUTF();
+      String value = (String) in.readObject(); // value is nullable
       tags.put(key, value);
     }
     this.tags = Collections.unmodifiableMap(tags);

@@ -82,7 +82,7 @@ public class ServiceMethodDefinition implements Externalizable {
     out.writeInt(tags.size());
     for (Entry<String, String> entry : tags.entrySet()) {
       out.writeUTF(entry.getKey());
-      out.writeUTF(entry.getValue());
+      out.writeObject(entry.getValue());
     }
 
     // auth
@@ -90,7 +90,7 @@ public class ServiceMethodDefinition implements Externalizable {
   }
 
   @Override
-  public void readExternal(ObjectInput in) throws IOException {
+  public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
     // namespace
     action = in.readUTF();
 
@@ -99,7 +99,7 @@ public class ServiceMethodDefinition implements Externalizable {
     Map<String, String> tags = new HashMap<>(tagsSize);
     for (int i = 0; i < tagsSize; i++) {
       String key = in.readUTF();
-      String value = in.readUTF();
+      String value = (String) in.readObject();
       tags.put(key, value);
     }
     this.tags = Collections.unmodifiableMap(tags);
