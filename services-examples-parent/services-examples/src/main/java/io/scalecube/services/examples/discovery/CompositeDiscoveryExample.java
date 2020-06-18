@@ -2,9 +2,11 @@ package io.scalecube.services.examples.discovery;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
@@ -16,16 +18,24 @@ public class CompositeDiscoveryExample {
    *
    * @param args arguments
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) {
     Microservices seed1 =
         Microservices.builder()
-            .discovery("seed1", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "seed1",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.memberAlias("seed1")))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     Microservices seed2 =
         Microservices.builder()
-            .discovery("seed2", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "seed2",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .options(opts -> opts.memberAlias("seed2")))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -38,6 +48,7 @@ public class CompositeDiscoveryExample {
                 "ms1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .options(opts -> opts.memberAlias("ms1"))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl1())
@@ -49,6 +60,7 @@ public class CompositeDiscoveryExample {
                 "ms2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .options(opts -> opts.memberAlias("ms2"))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl2())
@@ -60,13 +72,13 @@ public class CompositeDiscoveryExample {
                 "domain1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .options(cfg -> cfg.memberIdGenerator(endpoint::id))
+                        .options(opts -> opts.memberAlias("domain1"))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .discovery(
                 "domain2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .options(cfg -> cfg.memberIdGenerator(endpoint::id))
+                        .options(opts -> opts.memberAlias("domain2"))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -78,8 +90,6 @@ public class CompositeDiscoveryExample {
     Greeting greeting2 =
         compositeMs.call().api(GreetingsService2.class).sayHello("hello two").block();
     System.err.println("This is response from GreetingsService2: " + greeting2.message());
-
-    Thread.currentThread().join();
   }
 
   @Service
@@ -98,6 +108,16 @@ public class CompositeDiscoveryExample {
 
   public static class GreetingServiceImpl1 implements GreetingsService1 {
 
+    @AfterConstruct
+    void init(Microservices ms) {
+      ServiceDiscoveryContext discoveryContext = ms.discovery("ms1");
+      System.err.println("discovery(\"ms1\"): " + discoveryContext);
+      discoveryContext
+          .listen()
+          .subscribe(
+              discoveryEvent -> System.err.println("discovery(\"ms1\") event: " + discoveryEvent));
+    }
+
     @Override
     public Mono<Greeting> sayHello(String name) {
       return Mono.just(
@@ -109,6 +129,16 @@ public class CompositeDiscoveryExample {
   }
 
   public static class GreetingServiceImpl2 implements GreetingsService2 {
+
+    @AfterConstruct
+    void init(Microservices ms) {
+      ServiceDiscoveryContext discoveryContext = ms.discovery("ms2");
+      System.err.println("discovery(\"ms2\"): " + discoveryContext);
+      discoveryContext
+          .listen()
+          .subscribe(
+              discoveryEvent -> System.err.println("discovery(\"ms2\") event: " + discoveryEvent));
+    }
 
     @Override
     public Mono<Greeting> sayHello(String name) {
