@@ -12,6 +12,8 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import io.scalecube.services.ScalecubeServiceFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,11 +44,12 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new Facade())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new Facade()))
             .startAwait();
 
     final Address facadeAddress = facade.discovery("facade").address();
 
+    PingService pingService = () -> Mono.just(Thread.currentThread().getName());
     this.ping =
         Microservices.builder()
             .discovery(
@@ -55,9 +58,10 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
-            .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(pingService))
             .startAwait();
 
+    PongService pongService = () -> Mono.just(Thread.currentThread().getName());
     this.pong =
         Microservices.builder()
             .discovery(
@@ -66,13 +70,13 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
-            .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(pongService))
             .startAwait();
   }
 
   @Test
   public void testColocatedEventLoopGroup() {
-    ServiceCall call = gateway.call();
+    ServiceCall call = gateway.serviceCall();
 
     FacadeService facade = call.api(FacadeService.class);
 

@@ -2,6 +2,8 @@ package io.scalecube.services.examples.orderbook;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.orderbook.service.DefaultMarketDataService;
 import io.scalecube.services.examples.orderbook.service.OrderBookSnapshoot;
@@ -40,6 +42,9 @@ public class Example1 {
 
     final Address gatewayAddress = gateway.discovery("gateway").address();
 
+    ServiceFactory serviceFactory =
+        ScalecubeServiceFactory.fromInstances(new DefaultMarketDataService());
+
     Microservices ms =
         Microservices.builder()
             .discovery(
@@ -48,10 +53,10 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new DefaultMarketDataService())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
-    MarketDataService marketService = ms.call().api(MarketDataService.class);
+    MarketDataService marketService = ms.serviceCall().api(MarketDataService.class);
 
     marketService.orderBook().subscribe(Example1::print);
 

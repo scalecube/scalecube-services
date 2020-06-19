@@ -1,6 +1,6 @@
 package io.scalecube.services.sut;
 
-import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
@@ -12,7 +12,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   @Inject private GreetingService greetingService;
 
-  @Inject private Microservices microservices;
+  @Inject private MicroservicesContext microservices;
 
   @Override
   public Mono<String> callGreeting(String name) {
@@ -32,7 +32,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   @Override
   public Mono<String> callGreetingWithDispatcher(String request) {
     return microservices
-        .call()
+        .serviceCall()
         .requestOne(
             ServiceMessage.builder()
                 .qualifier(GreetingService.SERVICE_NAME, "greeting")

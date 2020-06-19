@@ -18,11 +18,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -243,14 +243,26 @@ public class Reflect {
   /**
    * Util function to get service interfaces collections from service instance.
    *
-   * @param serviceObject with extends service interface with @Service annotation.
+   * @param serviceObject object with extends service interface with @Service annotation.
    * @return service interface class.
    */
-  public static Collection<Class<?>> serviceInterfaces(Object serviceObject) {
-    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
+  public static Stream<Class<?>> serviceInterfaces(Object serviceObject) {
+    return serviceInterfaces(serviceObject.getClass());
+  }
+
+  /**
+   * Util function to get service interfaces collections from service instance.
+   *
+   * @param serviceType with extends service interface with @Service annotation.
+   * @return service interface class.
+   */
+  public static Stream<Class<?>> serviceInterfaces(Class<?> serviceType) {
+    if (serviceType.isInterface() && serviceType.isAnnotationPresent(Service.class)) {
+      return Stream.of(serviceType);
+    }
+    Class<?>[] interfaces = serviceType.getInterfaces();
     return Arrays.stream(interfaces)
-        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
-        .collect(Collectors.toList());
+        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));
   }
 
   public static String methodName(Method method) {

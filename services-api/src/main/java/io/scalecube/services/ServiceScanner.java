@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import java.util.Arrays;
 import java.util.Collections;
@@ -18,15 +17,15 @@ public class ServiceScanner {
   /**
    * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration}-s.
    *
-   * @param serviceInfo service info instance
+   * @param serviceDefinition service info instance
    * @return list of {@code ServiceRegistration}-s
    */
-  public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
-    return Arrays.stream(serviceInfo.serviceInstance().getClass().getInterfaces())
-        .filter(serviceInterface -> serviceInterface.isAnnotationPresent(Service.class))
+  public static List<ServiceRegistration> scanServiceDefinition(
+      ServiceDefinition serviceDefinition) {
+    return Reflect.serviceInterfaces(serviceDefinition.type())
         .map(
             serviceInterface -> {
-              Map<String, String> serviceInfoTags = serviceInfo.tags();
+              Map<String, String> serviceInfoTags = serviceDefinition.tags();
               Map<String, String> apiTags = Reflect.serviceTags(serviceInterface);
               Map<String, String> buffer = new HashMap<>(apiTags);
               // service tags override tags from @Service

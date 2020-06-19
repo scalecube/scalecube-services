@@ -74,7 +74,7 @@ public class ServiceInfo {
 
   public static class Builder {
 
-    private Object serviceInstance;
+    private final Object serviceInstance;
     private Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
@@ -161,6 +161,12 @@ public class ServiceInfo {
       return this;
     }
 
+    /**
+     * Set up {@link ServiceProviderErrorMapper} if it hasn't been set up before.
+     *
+     * @param errorMapper error mapper.
+     * @return current builder's state.
+     */
     Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
       if (this.errorMapper == null) {
         this.errorMapper = errorMapper;
@@ -175,6 +181,12 @@ public class ServiceInfo {
       return this;
     }
 
+    /**
+     * Set up {@link Authenticator} if it hasn't been set up before.
+     *
+     * @param authenticator authenticator.
+     * @return current builder's state.
+     */
     Builder authenticatorIfAbsent(Authenticator<Object> authenticator) {
       if (this.authenticator == null) {
         this.authenticator = authenticator;
@@ -189,6 +201,11 @@ public class ServiceInfo {
       return this;
     }
 
+    /**
+     * Build service info.
+     *
+     * @return service info.
+     */
     public ServiceInfo build() {
       return new ServiceInfo(this);
     }

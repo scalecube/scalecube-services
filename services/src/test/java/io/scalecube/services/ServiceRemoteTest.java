@@ -76,7 +76,7 @@ public class ServiceRemoteTest extends BaseTest {
     return Microservices.builder()
         .discovery("serviceProvider", ServiceRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
-        .services(new GreetingServiceImpl())
+        .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
         .startAwait();
   }
 
@@ -84,7 +84,7 @@ public class ServiceRemoteTest extends BaseTest {
   public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofSeconds(1);
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     // call the service.
     Mono<GreetingResponse> result =
@@ -95,7 +95,7 @@ public class ServiceRemoteTest extends BaseTest {
   @Test
   public void test_remote_void_greeting() throws Exception {
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
@@ -108,7 +108,7 @@ public class ServiceRemoteTest extends BaseTest {
   @Test
   public void test_remote_failing_void_greeting() {
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.
@@ -119,7 +119,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_throwing_void_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.
@@ -228,7 +228,7 @@ public class ServiceRemoteTest extends BaseTest {
         .verify(TIMEOUT);
 
     // using serviceCall directly
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.serviceCall();
 
     StepVerifier.create(
             serviceCall.requestOne(
@@ -272,11 +272,13 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(new CoarseGrainedServiceImpl()) // add service a and b
+            .serviceFactory(
+                ScalecubeServiceFactory.fromInstances(
+                    new CoarseGrainedServiceImpl())) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.serviceCall().api(CoarseGrainedService.class);
 
     Publisher<String> future = service.callGreeting("joe");
 
@@ -295,11 +297,11 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(another)
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another))
             .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.serviceCall().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
     provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
@@ -315,11 +317,11 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery("ms", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(another) // add service a and b
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.serviceCall().api(CoarseGrainedService.class);
     InternalServiceException exception =
         assertThrows(
             InternalServiceException.class,
@@ -340,11 +342,11 @@ public class ServiceRemoteTest extends BaseTest {
         Microservices.builder()
             .discovery("provider", ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(another) // add service a and b
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(another)) // add service a and b
             .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.serviceCall().api(CoarseGrainedService.class);
 
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
@@ -425,7 +427,7 @@ public class ServiceRemoteTest extends BaseTest {
             .discovery("ms", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .tags(tags)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
     assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
@@ -433,7 +435,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_mono_empty_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
@@ -443,7 +445,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_mono_empty_request_response_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.emptyGreeting(new EmptyGreetingRequest()))
@@ -454,7 +456,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_flux_empty_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingFluxEmpty(new GreetingRequest("empty")))
@@ -464,7 +466,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = gateway.serviceCall().api(GreetingService.class);
 
     for (int i = 0; i < 100; i++) {
       //noinspection ConstantConditions
@@ -474,7 +476,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private GreetingService createProxy() {
-    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.serviceCall().api(GreetingService.class); // create proxy for GreetingService API
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {

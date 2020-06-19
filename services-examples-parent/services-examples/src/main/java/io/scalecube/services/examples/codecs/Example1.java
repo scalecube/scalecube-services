@@ -2,6 +2,8 @@ package io.scalecube.services.examples.codecs;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
@@ -29,6 +31,10 @@ public class Example1 {
 
     final Address seedAddress = seed.discovery("seed").address();
 
+    // Create service factory for GreetingService
+    ServiceFactory serviceFactory =
+        ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl());
+
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
         Microservices.builder()
@@ -38,21 +44,21 @@ public class Example1 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
-    seed.call()
+    seed.serviceCall()
         .api(GreetingsService.class)
         .sayHello("joe (on default dataFormat PROTOSTUFF)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.call()
+    seed.serviceCall()
         .contentType(JSON)
         .api(GreetingsService.class)
         .sayHello("alice (on JSON dataFormat)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.call()
+    seed.serviceCall()
         .contentType(OCTET_STREAM)
         .api(GreetingsService.class)
         .sayHello("bob (on java native Serializable/Externalizable dataFormat)")

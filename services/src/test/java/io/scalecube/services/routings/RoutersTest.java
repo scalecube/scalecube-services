@@ -11,8 +11,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
+import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
@@ -136,7 +136,7 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_round_robin() {
 
-    ServiceCall service = gateway.call();
+    ServiceCall service = gateway.serviceCall();
 
     // call the service.
     GreetingResponse result1 =
@@ -158,7 +158,7 @@ public class RoutersTest extends BaseTest {
 
     CanaryService service =
         gateway
-            .call()
+            .serviceCall()
             .router(Routers.getRouter(WeightedRandomRouter.class))
             .api(CanaryService.class);
 
@@ -185,7 +185,7 @@ public class RoutersTest extends BaseTest {
   public void tesTagsFromAnnotation() {
     ServiceCall serviceCall =
         provider3
-            .call()
+            .serviceCall()
             .router(
                 (req, mes) -> {
                   ServiceReference tagServiceRef = req.listServiceReferences().get(0);
@@ -207,7 +207,7 @@ public class RoutersTest extends BaseTest {
 
     ServiceCall service =
         gateway
-            .call()
+            .serviceCall()
             .router(
                 (reg, msg) ->
                     reg.listServiceReferences().stream()
@@ -230,7 +230,7 @@ public class RoutersTest extends BaseTest {
 
     ServiceCall service =
         gateway
-            .call()
+            .serviceCall()
             .router(
                 (reg, msg) ->
                     reg.listServiceReferences().stream()
@@ -256,7 +256,7 @@ public class RoutersTest extends BaseTest {
   public void test_service_tags() throws Exception {
 
     TimeUnit.SECONDS.sleep(3);
-    ServiceCall service = gateway.call().router(WeightedRandomRouter.class);
+    ServiceCall service = gateway.serviceCall().router(WeightedRandomRouter.class);
 
     ServiceMessage req =
         ServiceMessage.builder()

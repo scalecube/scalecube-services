@@ -2,11 +2,12 @@ package io.scalecube.services.examples.discovery;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
@@ -51,7 +52,7 @@ public class CompositeDiscoveryExample {
                         .options(opts -> opts.memberAlias("ms1"))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl1())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl1()))
             .startAwait();
 
     Microservices ms2 =
@@ -63,7 +64,7 @@ public class CompositeDiscoveryExample {
                         .options(opts -> opts.memberAlias("ms2"))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl2())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl2()))
             .startAwait();
 
     Microservices compositeMs =
@@ -84,11 +85,19 @@ public class CompositeDiscoveryExample {
             .startAwait();
 
     Greeting greeting1 =
-        compositeMs.call().api(GreetingsService1.class).sayHello("hello one").block();
+        compositeMs
+            .serviceCall()
+            .api(GreetingsService1.class)
+            .sayHello("hello one")
+            .block();
     System.err.println("This is response from GreetingsService1: " + greeting1.message());
 
     Greeting greeting2 =
-        compositeMs.call().api(GreetingsService2.class).sayHello("hello two").block();
+        compositeMs
+            .serviceCall()
+            .api(GreetingsService2.class)
+            .sayHello("hello two")
+            .block();
     System.err.println("This is response from GreetingsService2: " + greeting2.message());
   }
 
@@ -109,11 +118,8 @@ public class CompositeDiscoveryExample {
   public static class GreetingServiceImpl1 implements GreetingsService1 {
 
     @AfterConstruct
-    void init(Microservices ms) {
-      ServiceDiscoveryContext discoveryContext = ms.discovery("ms1");
-      System.err.println("discovery(\"ms1\"): " + discoveryContext);
-      discoveryContext
-          .listen()
+    void init(MicroservicesContext ms) {
+      ms.listenDiscovery("ms1")
           .subscribe(
               discoveryEvent -> System.err.println("discovery(\"ms1\") event: " + discoveryEvent));
     }
@@ -131,11 +137,8 @@ public class CompositeDiscoveryExample {
   public static class GreetingServiceImpl2 implements GreetingsService2 {
 
     @AfterConstruct
-    void init(Microservices ms) {
-      ServiceDiscoveryContext discoveryContext = ms.discovery("ms2");
-      System.err.println("discovery(\"ms2\"): " + discoveryContext);
-      discoveryContext
-          .listen()
+    void init(MicroservicesContext ms) {
+      ms.listenDiscovery("ms2")
           .subscribe(
               discoveryEvent -> System.err.println("discovery(\"ms2\") event: " + discoveryEvent));
     }

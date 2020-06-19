@@ -2,6 +2,8 @@ package io.scalecube.services.examples.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
@@ -23,6 +25,8 @@ public class Example2 {
 
     final Address gatewayAddress = gateway.discovery("gateway").address();
 
+    ServiceFactory serviceFactory2 = ScalecubeServiceFactory.fromInstances(new Service2Impl());
+
     Microservices service2Node =
         Microservices.builder()
             .discovery(
@@ -31,8 +35,10 @@ public class Example2 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new Service2Impl())
+            .serviceFactory(serviceFactory2)
             .startAwait();
+
+    ServiceFactory serviceFactory1 = ScalecubeServiceFactory.fromInstances(new Service1Impl());
 
     Microservices service1Node =
         Microservices.builder()
@@ -42,11 +48,11 @@ public class Example2 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new Service1Impl())
+            .serviceFactory(serviceFactory1)
             .startAwait();
 
     gateway
-        .call()
+        .serviceCall()
         .api(Service1.class)
         .remoteCallThenManyDelay(100)
         .publishOn(Schedulers.parallel())

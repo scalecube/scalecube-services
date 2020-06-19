@@ -31,6 +31,7 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
@@ -129,39 +131,50 @@ public final class Microservices {
 
   private final String id = UUID.randomUUID().toString().replace("-", "");
   private final Map<String, String> tags;
-  private final List<ServiceProvider> serviceProviders;
+  private final ServiceFactory serviceFactory;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<Object> authenticator;
+  private final Authenticator<Object> defaultAuthenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
+  private final ServiceProviderErrorMapper defaultErrorMapper;
+  private final ServiceMessageDataDecoder defaultDataDecoder;
   private final CompositeServiceDiscovery compositeDiscovery;
-  private final ServiceProviderErrorMapper errorMapper;
-  private final ServiceMessageDataDecoder dataDecoder;
   private final String contentType;
   private final PrincipalMapper<Object, Object> principalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
+
+  // lazy
   private ServiceEndpoint serviceEndpoint;
 
   private Microservices(Builder builder) {
     this.tags = new HashMap<>(builder.tags);
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
+
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
-    this.authenticator = builder.authenticator;
+    this.defaultAuthenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.compositeDiscovery = builder.compositeDiscovery;
     this.transportBootstrap = builder.transportBootstrap;
-    this.errorMapper = builder.errorMapper;
-    this.dataDecoder = builder.dataDecoder;
+    this.defaultErrorMapper = builder.errorMapper;
+    this.defaultDataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
     this.principalMapper = builder.principalMapper;
 
+    this.serviceFactory =
+        builder.serviceFactory != null
+            ? builder.serviceFactory
+            : ScalecubeServiceFactory.create(builder.serviceProviders);
+    // for initialization services by deprecated ServiceProvider
+    if (this.serviceFactory instanceof ScalecubeServiceFactory) {
+      ((ScalecubeServiceFactory) this.serviceFactory).setServiceCall(this::serviceCall);
+    }
+
     // Setup cleanup
-    shutdown
+    this.shutdown
         .then(doShutdown())
-        .doFinally(s -> onShutdown.onComplete())
+        .doFinally(s -> this.onShutdown.onComplete())
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -170,6 +183,11 @@ public final class Microservices {
     return new Builder();
   }
 
+  /**
+   * Unique id of this Microservices node.
+   *
+   * @return id
+   */
   public String id() {
     return this.id;
   }
@@ -184,77 +202,77 @@ public final class Microservices {
 
     // Create bootstrap scheduler
     Scheduler scheduler = Schedulers.newSingle(toString(), true);
-
-    return transportBootstrap
+    return this.transportBootstrap
         .start(this)
+        .map(ServiceTransportBootstrap::address)
+        .flatMap(this::initializeServiceEndpoint)
+        .flatMap(endpoint -> createDiscovery(this))
+        .map(
+            serviceDiscovery ->
+                new MicroservicesContextImpl(
+                    serviceDiscovery, this::serviceCall, this.serviceEndpoint))
+        .flatMap(this.serviceFactory::initializeServices)
+        .doOnNext(this::registerInMethodRegistry)
         .publishOn(scheduler)
-        .flatMap(
-            transportBootstrap -> {
-              final ServiceCall call = call();
-              final Address serviceAddress = transportBootstrap.transportAddress;
-
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
-                  ServiceEndpoint.builder()
-                      .id(id)
-                      .address(serviceAddress)
-                      .contentTypes(DataCodec.getAllContentTypes())
-                      .tags(tags);
-
-              // invoke service providers and register services
-              List<Object> serviceInstances =
-                  serviceProviders.stream()
-                      .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                      .peek(this::registerInMethodRegistry)
-                      .peek(
-                          serviceInfo ->
-                              serviceEndpointBuilder.appendServiceRegistrations(
-                                  ServiceScanner.scanServiceInfo(serviceInfo)))
-                      .map(ServiceInfo::serviceInstance)
-                      .collect(Collectors.toList());
-
-              if (transportBootstrap == ServiceTransportBootstrap.NULL_INSTANCE
-                  && !serviceInstances.isEmpty()) {
-                LOGGER.warn("[{}] ServiceTransport is not set", this.id());
-              }
-
-              serviceEndpoint = serviceEndpointBuilder.build();
-
-              return createDiscovery(
-                      this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                  .publishOn(scheduler)
-                  .then(startGateway(new GatewayOptions().call(call)))
-                  .publishOn(scheduler)
-                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-                  .then(compositeDiscovery.startListen())
-                  .publishOn(scheduler)
-                  .thenReturn(this);
-            })
+        .then(startGateway())
+        .publishOn(scheduler)
+        .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
+        .then(this.compositeDiscovery.startListen())
+        .publishOn(scheduler)
+        .thenReturn(this)
         .onErrorResume(
             ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(Microservices.class))
         .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
-    return gatewayBootstrap.start(this, options);
+  private Mono<CompositeServiceDiscovery> createDiscovery(Microservices microservices) {
+    return this.compositeDiscovery.createInstance(microservices);
   }
 
-  private Mono<ServiceDiscovery> createDiscovery(
-      Microservices microservices, ServiceDiscoveryOptions options) {
-    return compositeDiscovery.createInstance(microservices, options);
+  private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
+    Mono<? extends Collection<ServiceDefinition>> serviceDefinitionsMono =
+        Mono.fromCallable(this.serviceFactory::getServiceDefinitions);
+    return serviceDefinitionsMono
+        .map(
+            serviceDefinitions -> {
+              final ServiceEndpoint.Builder serviceEndpointBuilder =
+                  ServiceEndpoint.builder()
+                      .id(this.id)
+                      .address(serviceAddress)
+                      .contentTypes(DataCodec.getAllContentTypes())
+                      .tags(this.tags);
+              serviceDefinitions.forEach(
+                  serviceDefinition ->
+                      serviceEndpointBuilder.appendServiceRegistrations(
+                          ServiceScanner.scanServiceDefinition(serviceDefinition)));
+              return serviceEndpointBuilder.build();
+            })
+        .doOnSuccess(serviceEndpoint -> this.serviceEndpoint = serviceEndpoint);
   }
 
-  private void registerInMethodRegistry(ServiceInfo serviceInfo) {
-    methodRegistry.registerService(
-        ServiceInfo.from(serviceInfo)
-            .errorMapperIfAbsent(errorMapper)
-            .dataDecoderIfAbsent(dataDecoder)
-            .authenticatorIfAbsent(authenticator)
-            .principalMapperIfAbsent(principalMapper)
-            .build());
+  private void registerInMethodRegistry(Collection<ServiceInfo> services) {
+    services.stream()
+        .map(
+            serviceInfo ->
+                ServiceInfo.from(serviceInfo)
+                    .errorMapperIfAbsent(this.defaultErrorMapper)
+                    .dataDecoderIfAbsent(this.defaultDataDecoder)
+                    .authenticatorIfAbsent(this.defaultAuthenticator)
+                    .principalMapperIfAbsent(this.principalMapper)
+                    .build())
+        .forEach(this.methodRegistry::registerService);
   }
 
+  private Mono<GatewayBootstrap> startGateway() {
+    return this.gatewayBootstrap.start(this, new GatewayOptions().call(this.serviceCall()));
+  }
+
+  /**
+   * Network address of this Microservices node.
+   *
+   * @return network address
+   */
   public Address serviceAddress() {
     return transportBootstrap.transportAddress;
   }
@@ -263,27 +281,53 @@ public final class Microservices {
    * Creates new instance {@code ServiceCall}.
    *
    * @return new {@code ServiceCall} instance.
+   * @deprecated use {@link this#serviceCall()}
    */
+  @Deprecated
   public ServiceCall call() {
+    return this.serviceCall();
+  }
+
+  /**
+   * Creates new instance {@code ServiceCall}.
+   *
+   * @return new {@code ServiceCall} instance.
+   */
+  public ServiceCall serviceCall() {
     return new ServiceCall()
-        .transport(transportBootstrap.clientTransport)
-        .serviceRegistry(serviceRegistry)
-        .methodRegistry(methodRegistry)
-        .contentType(contentType)
+        .transport(this.transportBootstrap.clientTransport)
+        .serviceRegistry(this.serviceRegistry)
+        .methodRegistry(this.methodRegistry)
+        .contentType(this.contentType)
         .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
+  /**
+   * List of all gateway registered in this Microservices node.
+   *
+   * @return gateways
+   */
   public List<Gateway> gateways() {
-    return gatewayBootstrap.gateways();
+    return this.gatewayBootstrap.gateways();
   }
 
+  /**
+   * Get gateway registered in this Microservices node by id.
+   *
+   * @return gateway
+   */
   public Gateway gateway(String id) {
-    return gatewayBootstrap.gateway(id);
+    return this.gatewayBootstrap.gateway(id);
   }
 
+  /**
+   * Service endpoint.
+   *
+   * @return service endpoint
+   */
   public ServiceEndpoint serviceEndpoint() {
-    return serviceEndpoint;
+    return this.serviceEndpoint;
   }
 
   public List<ServiceEndpoint> serviceEndpoints() {
@@ -315,7 +359,7 @@ public final class Microservices {
    * @return stream of {@code ServiceDiscoveryEvent}\s
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return compositeDiscovery.listen();
+    return this.compositeDiscovery.listen();
   }
 
   /**
@@ -324,7 +368,7 @@ public final class Microservices {
    * @return result of shutdown
    */
   public Mono<Void> shutdown() {
-    return Mono.fromRunnable(shutdown::onComplete).then(onShutdown);
+    return Mono.fromRunnable(this.shutdown::onComplete).then(this.onShutdown);
   }
 
   /**
@@ -333,7 +377,7 @@ public final class Microservices {
    * @return signal of when shutdown completed
    */
   public Mono<Void> onShutdown() {
-    return onShutdown;
+    return this.onShutdown;
   }
 
   private Mono<Void> doShutdown() {
@@ -341,26 +385,24 @@ public final class Microservices {
         () -> {
           LOGGER.info("[{}][doShutdown] Shutting down", id);
           return Mono.whenDelayError(
-                  processBeforeDestroy(),
-                  compositeDiscovery.shutdown(),
-                  gatewayBootstrap.shutdown(),
-                  transportBootstrap.shutdown())
+              processBeforeDestroy(),
+              compositeDiscovery.shutdown(),
+              gatewayBootstrap.shutdown(),
+              transportBootstrap.shutdown())
               .doOnSuccess(s -> LOGGER.info("[{}][doShutdown] Shutdown", id));
         });
   }
 
   private Mono<Void> processBeforeDestroy() {
-    return Mono.whenDelayError(
-        methodRegistry.listServices().stream()
-            .map(ServiceInfo::serviceInstance)
-            .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
-            .collect(Collectors.toList()));
+    return this.serviceFactory.shutdownServices().then();
   }
 
   public static final class Builder {
 
     private Map<String, String> tags = new HashMap<>();
+    private final List<ServiceInfo> services = new ArrayList<>();
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private ServiceFactory serviceFactory;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<Object> authenticator = new DelegatingAuthenticator();
@@ -374,7 +416,23 @@ public final class Microservices {
     private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
 
+    private void build() {
+      ServiceProvider serviceProvider =
+          this.services.stream()
+              .map(
+                  service ->
+                      ServiceInfo.from(service)
+                          .dataDecoderIfAbsent(this.dataDecoder)
+                          .errorMapperIfAbsent(this.errorMapper)
+                          .build())
+              .collect(
+                  Collectors.collectingAndThen(
+                      Collectors.toList(), services -> (ServiceProvider) call -> services));
+      this.serviceProviders.add(serviceProvider);
+    }
+
     public Mono<Microservices> start() {
+      build();
       return Mono.defer(() -> new Microservices(this).start());
     }
 
@@ -382,32 +440,61 @@ public final class Microservices {
       return start().block();
     }
 
+    /**
+     * Adds service instance to microservice.
+     *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
+     *
+     * @param services service info instance.
+     * @return builder
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
+     */
+    @Deprecated
     public Builder services(ServiceInfo... services) {
-      serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
+      this.services.addAll(Arrays.asList(services));
       return this;
     }
 
     /**
      * Adds service instance to microservice.
      *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
+     *
      * @param services service instance.
      * @return builder
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
      */
+    @Deprecated
     public Builder services(Object... services) {
-      serviceProviders.add(
-          call ->
-              Arrays.stream(services)
-                  .map(
-                      s ->
-                          s instanceof ServiceInfo
-                              ? (ServiceInfo) s
-                              : ServiceInfo.fromServiceInstance(s).build())
-                  .collect(Collectors.toList()));
+      Stream.of(services)
+          .map(service -> ServiceInfo.fromServiceInstance(service).build())
+          .forEach(this.services::add);
       return this;
     }
 
+    /**
+     * Set up service provider.
+     *
+     * <p><strong>WARNING</strong> This service will be ignored if custom {@link ServiceFactory} is
+     * installed. This method has been left for backward compatibility only and will be removed in
+     * future releases.
+     *
+     * @param serviceProvider - old service provider
+     * @return this
+     * @deprecated use {@link this#serviceFactory(ServiceFactory)}
+     */
+    @Deprecated
     public Builder services(ServiceProvider serviceProvider) {
-      serviceProviders.add(serviceProvider);
+      this.serviceProviders.add(serviceProvider);
+      return this;
+    }
+
+    public Builder serviceFactory(ServiceFactory serviceFactory) {
+      this.serviceFactory = serviceFactory;
       return this;
     }
 
@@ -553,30 +640,28 @@ public final class Microservices {
       return this;
     }
 
-    private Mono<ServiceDiscovery> createInstance(
-        Microservices microservices, ServiceDiscoveryOptions options) {
+    private Mono<CompositeServiceDiscovery> createInstance(Microservices microservices) {
 
       this.microservices = microservices;
       this.scheduler = Schedulers.newSingle("composite-discovery", true);
 
+      ServiceDiscoveryOptions discoveryOptions = new ServiceDiscoveryOptions();
       for (UnaryOperator<ServiceDiscoveryOptions> operator : this.optionOperators) {
-
-        final ServiceDiscoveryOptions finalOptions = operator.apply(options);
+        final ServiceDiscoveryOptions finalOptions = operator.apply(discoveryOptions);
         final String id = finalOptions.id();
-        final ServiceEndpoint serviceEndpoint = finalOptions.serviceEndpoint();
         final ServiceDiscovery serviceDiscovery =
-            finalOptions.discoveryFactory().createServiceDiscovery(serviceEndpoint);
+            finalOptions.discoveryFactory().createServiceDiscovery(microservices.serviceEndpoint());
 
-        discoveryInstances.put(id, serviceDiscovery);
+        this.discoveryInstances.put(id, serviceDiscovery);
 
-        discoveryContexts.put(
+        this.discoveryContexts.put(
             id,
             ServiceDiscoveryContext.builder()
                 .id(id)
                 .address(Address.NULL_ADDRESS)
                 .discovery(serviceDiscovery)
                 .serviceRegistry(microservices.serviceRegistry)
-                .scheduler(scheduler)
+                .scheduler(this.scheduler)
                 .build());
       }
 
@@ -585,28 +670,28 @@ public final class Microservices {
 
     private Mono<Void> startListen() {
       return start() // start composite discovery
-          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
-          .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
+          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", this.microservices.id()))
+          .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", this.microservices.id()))
           .doOnError(
               ex ->
                   LOGGER.error(
                       "[{}][startListen] Exception occurred: {}",
-                      microservices.id(),
+                      this.microservices.id(),
                       ex.toString()));
     }
 
     @Override
     public Flux<ServiceDiscoveryEvent> listen() {
-      return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
+      return Flux.fromStream(this.microservices.serviceRegistry.listServiceEndpoints().stream())
           .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(subject)
-          .subscribeOn(scheduler)
-          .publishOn(scheduler);
+          .concatWith(this.subject)
+          .subscribeOn(this.scheduler)
+          .publishOn(this.scheduler);
     }
 
     @Override
     public Mono<Void> start() {
-      return Flux.fromIterable(discoveryInstances.entrySet())
+      return Flux.fromIterable(this.discoveryInstances.entrySet())
           .flatMap(
               entry -> {
                 final String id = entry.getKey();
@@ -689,20 +774,20 @@ public final class Microservices {
                         s ->
                             LOGGER.info(
                                 "[{}][gateway][{}][start] Starting",
-                                microservices.id(),
+                                microservices.id,
                                 gateway.id()))
                     .doOnSuccess(
                         gateway1 ->
                             LOGGER.info(
                                 "[{}][gateway][{}][start] Started, address: {}",
-                                microservices.id(),
+                                microservices.id,
                                 gateway1.id(),
                                 gateway1.address()))
                     .doOnError(
                         ex ->
                             LOGGER.error(
                                 "[{}][gateway][{}][start] Exception occurred: {}",
-                                microservices.id(),
+                                microservices.id,
                                 gateway.id(),
                                 ex.toString()));
               })
@@ -746,14 +831,14 @@ public final class Microservices {
     }
 
     private Mono<ServiceTransportBootstrap> start(Microservices microservices) {
-      if (transportSupplier == NULL_SUPPLIER
-          || (serviceTransport = transportSupplier.get()) == null) {
+      if (this.transportSupplier == NULL_SUPPLIER
+          || (this.serviceTransport = this.transportSupplier.get()) == null) {
         return Mono.just(NULL_INSTANCE);
       }
 
-      return serviceTransport
+      return this.serviceTransport
           .start()
-          .doOnSuccess(transport -> serviceTransport = transport) // reset self
+          .doOnSuccess(transport -> this.serviceTransport = transport) // reset self
           .flatMap(
               transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
           .doOnSuccess(transport -> serverTransport = transport)
@@ -767,31 +852,35 @@ public final class Microservices {
                 return this;
               })
           .doOnSubscribe(
-              s -> LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id()))
+              s -> LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id))
           .doOnSuccess(
               transport ->
                   LOGGER.info(
                       "[{}][serviceTransport][start] Started, address: {}",
-                      microservices.id(),
+                      microservices.id,
                       this.transportAddress))
           .doOnError(
               ex ->
                   LOGGER.error(
                       "[{}][serviceTransport][start] Exception occurred: {}",
-                      microservices.id(),
+                      microservices.id,
                       ex.toString()));
+    }
+
+    public Address address() {
+      return this.transportAddress;
     }
 
     private Mono<Void> shutdown() {
       return Mono.defer(
           () ->
               Flux.concatDelayError(
-                      Optional.ofNullable(serverTransport)
-                          .map(ServerTransport::stop)
-                          .orElse(Mono.empty()),
-                      Optional.ofNullable(serviceTransport)
-                          .map(ServiceTransport::stop)
-                          .orElse(Mono.empty()))
+                  Optional.ofNullable(this.serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(this.serviceTransport)
+                      .map(ServiceTransport::stop)
+                      .orElse(Mono.empty()))
                   .then());
     }
   }
@@ -859,7 +948,7 @@ public final class Microservices {
           .add("methodInfo=" + asString(invoker.methodInfo()))
           .add(
               "serviceMethod="
-                  + invoker.service().getClass().getCanonicalName()
+                  + invoker.service()
                   + "."
                   + invoker.methodInfo().methodName()
                   + "("
@@ -880,6 +969,49 @@ public final class Microservices {
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .toString();
+    }
+  }
+
+  private static final class MicroservicesContextImpl implements MicroservicesContext {
+
+    private final CompositeServiceDiscovery serviceDiscovery;
+    private final Supplier<ServiceCall> serviceCallSupplier;
+    private final ServiceEndpoint serviceEndpoint;
+
+    private MicroservicesContextImpl(
+        CompositeServiceDiscovery serviceDiscovery,
+        Supplier<ServiceCall> serviceCallSupplier,
+        ServiceEndpoint serviceEndpoint) {
+      this.serviceDiscovery = serviceDiscovery;
+      this.serviceCallSupplier = serviceCallSupplier;
+      this.serviceEndpoint = serviceEndpoint;
+    }
+
+    @Override
+    public ServiceEndpoint serviceEndpoint() {
+      return this.serviceEndpoint;
+    }
+
+    @Override
+    public ServiceCall serviceCall() {
+      return this.serviceCallSupplier.get();
+    }
+
+    @Override
+    public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+      return this.serviceDiscovery.listen();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @see Microservices.Builder#discovery(String, ServiceDiscoveryFactory)
+     */
+    @Override
+    public Flux<ServiceDiscoveryEvent> listenDiscovery(String id) {
+      return Optional.ofNullable(this.serviceDiscovery.discoveryInstances.get(id))
+          .map(ServiceDiscovery::listen)
+          .orElseThrow(() -> new NoSuchElementException("[discovery] id: " + id));
     }
   }
 }

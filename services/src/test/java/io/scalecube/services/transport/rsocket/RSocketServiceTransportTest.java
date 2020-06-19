@@ -11,6 +11,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -54,7 +55,7 @@ public class RSocketServiceTransportTest extends BaseTest {
                     new ScalecubeServiceDiscovery(serviceEndpoint)
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new SimpleQuoteService())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new SimpleQuoteService()))
             .startAwait();
   }
 
@@ -78,7 +79,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.serviceCall();
     sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
@@ -106,7 +107,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.serviceCall();
     sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
@@ -134,7 +135,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
-    ServiceCall serviceCall = gateway.call();
+    ServiceCall serviceCall = gateway.serviceCall();
     sub1.set(
         serviceCall
             .requestMany(ONLY_ONE_AND_THEN_NEVER)

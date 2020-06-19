@@ -58,14 +58,14 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
             .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
 
     StepVerifier.create(events)
@@ -92,7 +92,7 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery("seed", defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new AnnotationServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new AnnotationServiceImpl()))
             .startAwait();
     cluster.add(seed);
 
@@ -107,7 +107,8 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms1);
             })
@@ -118,21 +119,25 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })
         .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .then(() -> cluster.remove(2).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
         .then(() -> cluster.remove(1).shutdown().block(TIMEOUT))
         .assertNext(event -> assertEquals(ENDPOINT_LEAVING, event.type()))
+        .thenAwait(TIMEOUT)
         .assertNext(event -> assertEquals(ENDPOINT_REMOVED, event.type()))
         .thenCancel()
         .verify(TIMEOUT);
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+    StepVerifier.create(
+        seed.serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_LEAVING, type))
@@ -157,7 +162,7 @@ public class ServiceRegistryTest extends BaseTest {
         Microservices.builder()
             .discovery("seed", defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
+            .serviceFactory(ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
             .startAwait();
     cluster.add(seed);
 
@@ -172,7 +177,9 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(
+                              new GreetingServiceImpl(), new AnnotationServiceImpl()))
                       .startAwait();
               cluster.add(ms1);
             })
@@ -183,7 +190,8 @@ public class ServiceRegistryTest extends BaseTest {
                   Microservices.builder()
                       .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
-                      .services(new GreetingServiceImpl())
+                      .serviceFactory(
+                          ScalecubeServiceFactory.fromInstances(new GreetingServiceImpl()))
                       .startAwait();
               cluster.add(ms2);
             })
@@ -191,7 +199,8 @@ public class ServiceRegistryTest extends BaseTest {
         .thenCancel()
         .verify(TIMEOUT);
 
-    StepVerifier.create(seed.call().api(AnnotationService.class).serviceDiscoveryEventTypes())
+    StepVerifier.create(
+        seed.serviceCall().api(AnnotationService.class).serviceDiscoveryEventTypes())
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .assertNext(type -> assertEquals(ENDPOINT_ADDED, type))
         .thenCancel()

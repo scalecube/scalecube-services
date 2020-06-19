@@ -2,6 +2,8 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ScalecubeServiceFactory;
+import io.scalecube.services.ServiceFactory;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
 import io.scalecube.services.examples.helloworld.service.api.BidiGreetingService;
@@ -33,6 +35,9 @@ public class Example3 {
 
     final Address seedAddress = seed.discovery("seed").address();
 
+    // Create service factory for Bid Greeting Service
+    ServiceFactory serviceFactory = ScalecubeServiceFactory.fromInstances(new BidiGreetingImpl());
+
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
         Microservices.builder()
@@ -42,11 +47,11 @@ public class Example3 {
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
-            .services(new BidiGreetingImpl())
+            .serviceFactory(serviceFactory)
             .startAwait();
 
     // Create service proxy
-    BidiGreetingService service = seed.call().api(BidiGreetingService.class);
+    BidiGreetingService service = seed.serviceCall().api(BidiGreetingService.class);
 
     // Execute the services and subscribe to service events
     service
