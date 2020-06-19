@@ -2,13 +2,12 @@ package io.scalecube.services.examples.discovery;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.annotations.AfterConstruct;
-import io.scalecube.services.ScalecubeServiceFactory;
 import io.scalecube.services.MicroservicesContext;
+import io.scalecube.services.ScalecubeServiceFactory;
+import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Mono;
@@ -120,10 +119,7 @@ public class CompositeDiscoveryExample {
 
     @AfterConstruct
     void init(MicroservicesContext ms) {
-      ServiceDiscoveryContext discoveryContext = ms.discovery("ms1");
-      System.err.println("discovery(\"ms1\"): " + discoveryContext);
-      discoveryContext
-          .listen()
+      ms.listenDiscovery("ms1")
           .subscribe(
               discoveryEvent -> System.err.println("discovery(\"ms1\") event: " + discoveryEvent));
     }
@@ -142,10 +138,7 @@ public class CompositeDiscoveryExample {
 
     @AfterConstruct
     void init(MicroservicesContext ms) {
-      ServiceDiscoveryContext discoveryContext = ms.discovery("ms2");
-      System.err.println("discovery(\"ms2\"): " + discoveryContext);
-      discoveryContext
-          .listen()
+      ms.listenDiscovery("ms2")
           .subscribe(
               discoveryEvent -> System.err.println("discovery(\"ms2\") event: " + discoveryEvent));
     }

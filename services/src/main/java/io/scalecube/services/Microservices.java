@@ -145,6 +145,9 @@ public final class Microservices {
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
+  // lazy
+  private ServiceEndpoint serviceEndpoint;
+
   private Microservices(Builder builder) {
     this.tags = new HashMap<>(builder.tags);
 
@@ -203,15 +206,18 @@ public final class Microservices {
         .start(this)
         .map(ServiceTransportBootstrap::address)
         .flatMap(this::initializeServiceEndpoint)
-        .flatMap(this::createDiscovery)
-        .map(serviceDiscovery -> new MicroservicesContextImpl(serviceDiscovery, this::serviceCall))
+        .flatMap(endpoint -> createDiscovery(this))
+        .map(
+            serviceDiscovery ->
+                new MicroservicesContextImpl(
+                    serviceDiscovery, this::serviceCall, this.serviceEndpoint))
         .flatMap(this.serviceFactory::initializeServices)
         .doOnNext(this::registerInMethodRegistry)
         .publishOn(scheduler)
         .then(startGateway())
         .publishOn(scheduler)
         .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
-        .then(this.compositeDiscovery.startListen(this))
+        .then(this.compositeDiscovery.startListen())
         .publishOn(scheduler)
         .thenReturn(this)
         .onErrorResume(
@@ -220,28 +226,29 @@ public final class Microservices {
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<ServiceDiscovery> createDiscovery(
-      Microservices microservices, ServiceDiscoveryOptions options) {
-    return compositeDiscovery.createInstance(microservices, options);
+  private Mono<CompositeServiceDiscovery> createDiscovery(Microservices microservices) {
+    return this.compositeDiscovery.createInstance(microservices);
   }
 
   private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
     Mono<? extends Collection<ServiceDefinition>> serviceDefinitionsMono =
         Mono.fromCallable(this.serviceFactory::getServiceDefinitions);
-    return serviceDefinitionsMono.map(
-        serviceDefinitions -> {
-          final ServiceEndpoint.Builder serviceEndpointBuilder =
-              ServiceEndpoint.builder()
-                  .id(this.id)
-                  .address(serviceAddress)
-                  .contentTypes(DataCodec.getAllContentTypes())
-                  .tags(this.tags);
-          serviceDefinitions.forEach(
-              serviceDefinition ->
-                  serviceEndpointBuilder.appendServiceRegistrations(
-                      ServiceScanner.scanServiceDefinition(serviceDefinition)));
-          return serviceEndpointBuilder.build();
-        });
+    return serviceDefinitionsMono
+        .map(
+            serviceDefinitions -> {
+              final ServiceEndpoint.Builder serviceEndpointBuilder =
+                  ServiceEndpoint.builder()
+                      .id(this.id)
+                      .address(serviceAddress)
+                      .contentTypes(DataCodec.getAllContentTypes())
+                      .tags(this.tags);
+              serviceDefinitions.forEach(
+                  serviceDefinition ->
+                      serviceEndpointBuilder.appendServiceRegistrations(
+                          ServiceScanner.scanServiceDefinition(serviceDefinition)));
+              return serviceEndpointBuilder.build();
+            })
+        .doOnSuccess(serviceEndpoint -> this.serviceEndpoint = serviceEndpoint);
   }
 
   private void registerInMethodRegistry(Collection<ServiceInfo> services) {
@@ -320,7 +327,7 @@ public final class Microservices {
    * @return service endpoint
    */
   public ServiceEndpoint serviceEndpoint() {
-    return this.compositeDiscovery.serviceEndpoint;
+    return this.serviceEndpoint;
   }
 
   public List<ServiceEndpoint> serviceEndpoints() {
@@ -633,30 +640,28 @@ public final class Microservices {
       return this;
     }
 
-    private Mono<ServiceDiscovery> createInstance(
-        Microservices microservices, ServiceDiscoveryOptions options) {
+    private Mono<CompositeServiceDiscovery> createInstance(Microservices microservices) {
 
       this.microservices = microservices;
       this.scheduler = Schedulers.newSingle("composite-discovery", true);
 
+      ServiceDiscoveryOptions discoveryOptions = new ServiceDiscoveryOptions();
       for (UnaryOperator<ServiceDiscoveryOptions> operator : this.optionOperators) {
-
-        final ServiceDiscoveryOptions finalOptions = operator.apply(options);
+        final ServiceDiscoveryOptions finalOptions = operator.apply(discoveryOptions);
         final String id = finalOptions.id();
-        final ServiceEndpoint serviceEndpoint = finalOptions.serviceEndpoint();
         final ServiceDiscovery serviceDiscovery =
-            finalOptions.discoveryFactory().createServiceDiscovery(serviceEndpoint);
+            finalOptions.discoveryFactory().createServiceDiscovery(microservices.serviceEndpoint());
 
-        discoveryInstances.put(id, serviceDiscovery);
+        this.discoveryInstances.put(id, serviceDiscovery);
 
-        discoveryContexts.put(
+        this.discoveryContexts.put(
             id,
             ServiceDiscoveryContext.builder()
                 .id(id)
                 .address(Address.NULL_ADDRESS)
                 .discovery(serviceDiscovery)
                 .serviceRegistry(microservices.serviceRegistry)
-                .scheduler(scheduler)
+                .scheduler(this.scheduler)
                 .build());
       }
 
@@ -665,28 +670,28 @@ public final class Microservices {
 
     private Mono<Void> startListen() {
       return start() // start composite discovery
-          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
-          .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
+          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", this.microservices.id()))
+          .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", this.microservices.id()))
           .doOnError(
               ex ->
                   LOGGER.error(
                       "[{}][startListen] Exception occurred: {}",
-                      microservices.id(),
+                      this.microservices.id(),
                       ex.toString()));
     }
 
     @Override
     public Flux<ServiceDiscoveryEvent> listen() {
-      return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
+      return Flux.fromStream(this.microservices.serviceRegistry.listServiceEndpoints().stream())
           .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(subject)
-          .subscribeOn(scheduler)
-          .publishOn(scheduler);
+          .concatWith(this.subject)
+          .subscribeOn(this.scheduler)
+          .publishOn(this.scheduler);
     }
 
     @Override
     public Mono<Void> start() {
-      return Flux.fromIterable(discoveryInstances.entrySet())
+      return Flux.fromIterable(this.discoveryInstances.entrySet())
           .flatMap(
               entry -> {
                 final String id = entry.getKey();
@@ -902,8 +907,7 @@ public final class Microservices {
       MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
       JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
       ObjectName objectName =
-          new ObjectName(
-              String.format(OBJECT_NAME_FORMAT, instance.id(), System.nanoTime()));
+          new ObjectName(String.format(OBJECT_NAME_FORMAT, instance.id(), System.nanoTime()));
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;
@@ -965,6 +969,49 @@ public final class Microservices {
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .toString();
+    }
+  }
+
+  private static final class MicroservicesContextImpl implements MicroservicesContext {
+
+    private final CompositeServiceDiscovery serviceDiscovery;
+    private final Supplier<ServiceCall> serviceCallSupplier;
+    private final ServiceEndpoint serviceEndpoint;
+
+    private MicroservicesContextImpl(
+        CompositeServiceDiscovery serviceDiscovery,
+        Supplier<ServiceCall> serviceCallSupplier,
+        ServiceEndpoint serviceEndpoint) {
+      this.serviceDiscovery = serviceDiscovery;
+      this.serviceCallSupplier = serviceCallSupplier;
+      this.serviceEndpoint = serviceEndpoint;
+    }
+
+    @Override
+    public ServiceEndpoint serviceEndpoint() {
+      return this.serviceEndpoint;
+    }
+
+    @Override
+    public ServiceCall serviceCall() {
+      return this.serviceCallSupplier.get();
+    }
+
+    @Override
+    public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+      return this.serviceDiscovery.listen();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * @see Microservices.Builder#discovery(String, ServiceDiscoveryFactory)
+     */
+    @Override
+    public Flux<ServiceDiscoveryEvent> listenDiscovery(String id) {
+      return Optional.ofNullable(this.serviceDiscovery.discoveryInstances.get(id))
+          .map(ServiceDiscovery::listen)
+          .orElseThrow(() -> new NoSuchElementException("[discovery] id: " + id));
     }
   }
 }

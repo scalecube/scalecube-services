@@ -34,4 +34,13 @@ public interface MicroservicesContext {
    * @return stream of {@code ServiceDiscoveryEvent} events
    */
   Flux<ServiceDiscoveryEvent> listenDiscovery();
+
+  /**
+   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events by service discovery
+   * id.
+   *
+   * @param id service discovery id
+   * @return service discovery context
+   */
+  Flux<ServiceDiscoveryEvent> listenDiscovery(String id);
 }
