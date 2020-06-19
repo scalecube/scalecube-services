@@ -8,6 +8,7 @@ import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.discovery.api.ServiceDiscoveryOptions;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -329,14 +330,21 @@ public final class Microservices {
    * @return service discovery context
    */
   public ServiceDiscoveryContext discovery(String id) {
-    return Optional.ofNullable(this.compositeDiscovery.contextMap.get(id))
+    return Optional.ofNullable(this.compositeDiscovery.discoveryContexts.get(id))
         .orElseThrow(() -> new NoSuchElementException("[discovery] id: " + id));
   }
 
   /**
-   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
+   * Function to subscribe and listen on the stream of {@code ServiceDiscoveryEvent}\s from
+   * composite service discovery instance.
    *
-   * @return stream of {@code ServiceDiscoveryEvent} events
+   * <p>Can be called before or after composite service discovery {@code .start()} method call (i.e
+   * before of after all service discovery instances will be started). If it's called before then
+   * new events will be streamed from all service discovery instances, if it's called after then
+   * {@link ServiceRegistry#listServiceEndpoints()} will be turned to service discovery events of
+   * type {@link Type#ENDPOINT_ADDED}, and concateneted with a stream of live events.
+   *
+   * @return stream of {@code ServiceDiscoveryEvent}\s
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
     return this.compositeDiscovery.listen();
@@ -381,7 +389,7 @@ public final class Microservices {
 
     private final List<UnaryOperator<ServiceDiscoveryOptions>> operatorList = new ArrayList<>();
     private final Map<String, ServiceDiscovery> discoveryMap = new HashMap<>();
-    private final Map<String, ServiceDiscoveryContext> contextMap = new ConcurrentHashMap<>();
+    private final Map<String, ServiceDiscoveryContext> discoveryContexts = new ConcurrentHashMap<>();
 
     // Subject
     private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
@@ -472,7 +480,7 @@ public final class Microservices {
           .doOnSuccess(
               avoid -> {
                 ServiceDiscoveryContext discoveryContext = builder.build();
-                contextMap.put(discoveryContext.id(), discoveryContext);
+                discoveryContexts.put(discoveryContext.id(), discoveryContext);
               });
     }
 
