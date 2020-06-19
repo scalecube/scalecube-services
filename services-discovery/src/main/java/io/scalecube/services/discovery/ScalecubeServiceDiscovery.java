@@ -59,7 +59,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     this.clusterConfig =
         ClusterConfig.defaultLanConfig()
             .metadata(serviceEndpoint)
-            .memberIdGenerator(serviceEndpoint::id)
             .transport(opts -> opts.transportFactory(new WebsocketTransportFactory()));
   }
 

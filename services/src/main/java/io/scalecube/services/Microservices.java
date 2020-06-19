@@ -61,7 +61,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.context.Context;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -221,8 +220,9 @@ public final class Microservices {
         .doOnTerminate(scheduler::dispose);
   }
 
-  private Mono<CompositeServiceDiscovery> createDiscovery(ServiceEndpoint serviceEndpoint) {
-    return this.compositeDiscovery.createInstance(serviceEndpoint);
+  private Mono<ServiceDiscovery> createDiscovery(
+      Microservices microservices, ServiceDiscoveryOptions options) {
+    return compositeDiscovery.createInstance(microservices, options);
   }
 
   private Mono<ServiceEndpoint> initializeServiceEndpoint(Address serviceAddress) {
@@ -323,14 +323,19 @@ public final class Microservices {
     return this.compositeDiscovery.serviceEndpoint;
   }
 
+  public List<ServiceEndpoint> serviceEndpoints() {
+    return serviceRegistry.listServiceEndpoints();
+  }
+
   /**
    * Returns service discovery context by id.
    *
+   * @see Microservices.Builder#discovery(String, ServiceDiscoveryFactory)
    * @param id service discovery id
    * @return service discovery context
    */
   public ServiceDiscoveryContext discovery(String id) {
-    return Optional.ofNullable(this.compositeDiscovery.discoveryContexts.get(id))
+    return Optional.ofNullable(compositeDiscovery.discoveryContexts.get(id))
         .orElseThrow(() -> new NoSuchElementException("[discovery] id: " + id));
   }
 
@@ -383,128 +388,6 @@ public final class Microservices {
 
   private Mono<Void> processBeforeDestroy() {
     return this.serviceFactory.shutdownServices().then();
-  }
-
-  private static class CompositeServiceDiscovery implements ServiceDiscovery {
-
-    private final List<UnaryOperator<ServiceDiscoveryOptions>> operatorList = new ArrayList<>();
-    private final Map<String, ServiceDiscovery> discoveryMap = new HashMap<>();
-    private final Map<String, ServiceDiscoveryContext> discoveryContexts = new ConcurrentHashMap<>();
-
-    // Subject
-    private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
-    private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
-
-    private final Disposable.Composite disposables = Disposables.composite();
-    private Scheduler scheduler;
-    private ServiceEndpoint serviceEndpoint;
-
-    private CompositeServiceDiscovery addOperator(UnaryOperator<ServiceDiscoveryOptions> operator) {
-      this.operatorList.add(operator);
-      return this;
-    }
-
-    private Mono<CompositeServiceDiscovery> createInstance(ServiceEndpoint serviceEndpoint) {
-      this.serviceEndpoint = serviceEndpoint;
-      ServiceDiscoveryOptions options =
-          new ServiceDiscoveryOptions().serviceEndpoint(this.serviceEndpoint);
-      for (UnaryOperator<ServiceDiscoveryOptions> operator : operatorList) {
-        final ServiceDiscoveryOptions finalOptions = operator.apply(options);
-        final String id = finalOptions.id();
-        this.discoveryMap.put(
-            id, finalOptions.discoveryFactory().createServiceDiscovery(serviceEndpoint));
-      }
-
-      this.scheduler = Schedulers.newSingle("composite-discovery", true);
-
-      return Mono.just(this);
-    }
-
-    private Mono<Void> startListen(Microservices microservices) {
-      return Mono.deferWithContext(context -> start())
-          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id))
-          .doOnSuccess(discovery -> LOGGER.info("[{}][startListen] Started", microservices.id))
-          .doOnError(
-              ex ->
-                  LOGGER.error(
-                      "[{}][startListen] Exception occurred: {}", microservices.id, ex.toString()))
-          .subscriberContext(
-              context -> reactor.util.context.Context.of(Microservices.class, microservices));
-    }
-
-    @Override
-    public Flux<ServiceDiscoveryEvent> listen() {
-      return subject.onBackpressureBuffer();
-    }
-
-    @Override
-    public Mono<Void> start() {
-      return Flux.fromIterable(discoveryMap.entrySet())
-          .flatMap(
-              entry -> {
-                final String id = entry.getKey();
-                final ServiceDiscovery discovery = entry.getValue();
-
-                return Mono.deferWithContext(context -> start0(discovery, context))
-                    .doOnSubscribe(s -> LOGGER.info("[discovery][{}][start] Starting", id))
-                    .doOnSuccess(avoid -> LOGGER.info("[discovery][{}][start] Started", id))
-                    .doOnError(
-                        ex ->
-                            LOGGER.error(
-                                "[discovery][{}][start] Exception occurred: {}", id, ex.toString()))
-                    .subscriberContext(
-                        context ->
-                            context.put(
-                                ServiceDiscoveryContext.Builder.class,
-                                ServiceDiscoveryContext.builder().id(id).discovery(discovery)));
-              })
-          .then();
-    }
-
-    private Mono<? extends Void> start0(
-        ServiceDiscovery discovery, Context innerMicroservicesContext) {
-      final Microservices microservices = innerMicroservicesContext.get(Microservices.class);
-      ServiceDiscoveryContext.Builder builder =
-          innerMicroservicesContext.get(ServiceDiscoveryContext.Builder.class);
-
-      disposables.add(
-          discovery
-              .listen()
-              .publishOn(scheduler)
-              .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(sink::next)
-              .subscribe());
-
-      return discovery
-          .start()
-          .doOnSuccess(
-              avoid -> {
-                ServiceDiscoveryContext discoveryContext = builder.build();
-                discoveryContexts.put(discoveryContext.id(), discoveryContext);
-              });
-    }
-
-    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
-      if (event.isEndpointAdded()) {
-        microservices.serviceRegistry.registerService(event.serviceEndpoint());
-      }
-      if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
-        microservices.serviceRegistry.unregisterService(event.serviceEndpoint().id());
-      }
-    }
-
-    @Override
-    public Mono<Void> shutdown() {
-      return Mono.defer(
-          () -> {
-            disposables.dispose();
-            return Mono.whenDelayError(
-                discoveryMap.values().stream()
-                    .map(ServiceDiscovery::shutdown)
-                    .collect(Collectors.toList()))
-                .then(Mono.fromRunnable(() -> scheduler.dispose()));
-          });
-    }
   }
 
   public static final class Builder {
@@ -730,6 +613,140 @@ public final class Microservices {
     }
   }
 
+  private static class CompositeServiceDiscovery implements ServiceDiscovery {
+
+    private final List<UnaryOperator<ServiceDiscoveryOptions>> optionOperators = new ArrayList<>();
+    private final Map<String, ServiceDiscovery> discoveryInstances = new ConcurrentHashMap<>();
+    private final Map<String, ServiceDiscoveryContext> discoveryContexts =
+        new ConcurrentHashMap<>();
+
+    // Subject
+    private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
+    private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+
+    private final Disposable.Composite disposables = Disposables.composite();
+    private Scheduler scheduler;
+    private Microservices microservices;
+
+    private CompositeServiceDiscovery addOperator(UnaryOperator<ServiceDiscoveryOptions> operator) {
+      this.optionOperators.add(operator);
+      return this;
+    }
+
+    private Mono<ServiceDiscovery> createInstance(
+        Microservices microservices, ServiceDiscoveryOptions options) {
+
+      this.microservices = microservices;
+      this.scheduler = Schedulers.newSingle("composite-discovery", true);
+
+      for (UnaryOperator<ServiceDiscoveryOptions> operator : this.optionOperators) {
+
+        final ServiceDiscoveryOptions finalOptions = operator.apply(options);
+        final String id = finalOptions.id();
+        final ServiceEndpoint serviceEndpoint = finalOptions.serviceEndpoint();
+        final ServiceDiscovery serviceDiscovery =
+            finalOptions.discoveryFactory().createServiceDiscovery(serviceEndpoint);
+
+        discoveryInstances.put(id, serviceDiscovery);
+
+        discoveryContexts.put(
+            id,
+            ServiceDiscoveryContext.builder()
+                .id(id)
+                .address(Address.NULL_ADDRESS)
+                .discovery(serviceDiscovery)
+                .serviceRegistry(microservices.serviceRegistry)
+                .scheduler(scheduler)
+                .build());
+      }
+
+      return Mono.just(this);
+    }
+
+    private Mono<Void> startListen() {
+      return start() // start composite discovery
+          .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
+          .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
+          .doOnError(
+              ex ->
+                  LOGGER.error(
+                      "[{}][startListen] Exception occurred: {}",
+                      microservices.id(),
+                      ex.toString()));
+    }
+
+    @Override
+    public Flux<ServiceDiscoveryEvent> listen() {
+      return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
+          .map(ServiceDiscoveryEvent::newEndpointAdded)
+          .concatWith(subject)
+          .subscribeOn(scheduler)
+          .publishOn(scheduler);
+    }
+
+    @Override
+    public Mono<Void> start() {
+      return Flux.fromIterable(discoveryInstances.entrySet())
+          .flatMap(
+              entry -> {
+                final String id = entry.getKey();
+                final ServiceDiscovery discovery = entry.getValue();
+
+                return start0(id, discovery)
+                    .doOnSubscribe(s -> LOGGER.info("[discovery][{}][start] Starting", id))
+                    .doOnSuccess(avoid -> LOGGER.info("[discovery][{}][start] Started", id))
+                    .doOnError(
+                        ex ->
+                            LOGGER.error(
+                                "[discovery][{}][start] Exception occurred: {}",
+                                id,
+                                ex.toString()));
+              })
+          .then();
+    }
+
+    private Mono<? extends Void> start0(String id, ServiceDiscovery discovery) {
+      final ServiceDiscoveryContext.Builder discoveryContextBuilder =
+          ServiceDiscoveryContext.from(discoveryContexts.get(id));
+
+      disposables.add(
+          discovery
+              .listen()
+              .publishOn(scheduler)
+              .doOnNext(event -> onDiscoveryEvent(microservices, event))
+              .doOnNext(sink::next)
+              .subscribe());
+
+      return Mono.deferWithContext(context -> discovery.start())
+          .doOnSuccess(avoid -> discoveryContexts.put(id, discoveryContextBuilder.build()))
+          .subscriberContext(
+              context ->
+                  context.put(ServiceDiscoveryContext.Builder.class, discoveryContextBuilder));
+    }
+
+    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
+      if (event.isEndpointAdded()) {
+        microservices.serviceRegistry.registerService(event.serviceEndpoint());
+      }
+      if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+        microservices.serviceRegistry.unregisterService(event.serviceEndpoint().id());
+      }
+    }
+
+    @Override
+    public Mono<Void> shutdown() {
+      return Mono.defer(
+          () -> {
+            disposables.dispose();
+            return Mono.whenDelayError(
+                    discoveryInstances.values().stream()
+                        .map(ServiceDiscovery::shutdown)
+                        .collect(Collectors.toList()))
+                .then(Mono.fromRunnable(() -> scheduler.dispose()));
+          });
+    }
+  }
+
   private static class GatewayBootstrap {
 
     private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
@@ -863,6 +880,18 @@ public final class Microservices {
     }
   }
 
+  @SuppressWarnings("unused")
+  public interface MonitorMBean {
+
+    String getServiceEndpoint();
+
+    String getAllServiceEndpoints();
+
+    String getServiceMethodInvokers();
+
+    String getServiceInfos();
+  }
+
   private static class JmxMonitorMBean implements MonitorMBean {
 
     private static final String OBJECT_NAME_FORMAT = "io.scalecube.services:name=%s@%s";
@@ -886,7 +915,7 @@ public final class Microservices {
 
     @Override
     public String getServiceEndpoint() {
-      return String.valueOf(this.microservices);
+      return String.valueOf(microservices.serviceEndpoint);
     }
 
     @Override
@@ -936,45 +965,6 @@ public final class Microservices {
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .toString();
-    }
-  }
-
-  @SuppressWarnings("unused")
-  public interface MonitorMBean {
-
-    String getServiceEndpoint();
-
-    String getAllServiceEndpoints();
-
-    String getServiceMethodInvokers();
-
-    String getServiceInfos();
-  }
-
-  private static final class MicroservicesContextImpl implements MicroservicesContext {
-
-    private final CompositeServiceDiscovery serviceDiscovery;
-    private final Supplier<ServiceCall> serviceCallSupplier;
-
-    private MicroservicesContextImpl(
-        CompositeServiceDiscovery serviceDiscovery, Supplier<ServiceCall> serviceCallSupplier) {
-      this.serviceDiscovery = serviceDiscovery;
-      this.serviceCallSupplier = serviceCallSupplier;
-    }
-
-    @Override
-    public ServiceEndpoint serviceEndpoint() {
-      return this.serviceDiscovery.serviceEndpoint;
-    }
-
-    @Override
-    public ServiceCall serviceCall() {
-      return this.serviceCallSupplier.get();
-    }
-
-    @Override
-    public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-      return this.serviceDiscovery.listen();
     }
   }
 }

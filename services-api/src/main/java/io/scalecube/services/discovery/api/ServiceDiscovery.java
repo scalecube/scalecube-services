@@ -6,9 +6,9 @@ import reactor.core.publisher.Mono;
 public interface ServiceDiscovery {
 
   /**
-   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
+   * Function to subscribe and listen on stream of {@code ServiceDiscoveryEvent}\s.
    *
-   * @return stream of {@code ServiceDiscoveryEvent} events
+   * @return stream of {@code ServiceDiscoveryEvent}\s
    */
   Flux<ServiceDiscoveryEvent> listen();
 
