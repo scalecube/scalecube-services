@@ -3,7 +3,6 @@ package io.scalecube.services.transport.rsocket;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.scalecube.net.Address;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -14,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
 
@@ -24,17 +22,18 @@ public class RSocketClientTransport implements ClientTransport {
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec messageCodec;
-  private final TcpClient tcpClient;
+  private final RSocketClientTransportFactory clientTransportFactory;
 
   /**
    * Constructor for this transport.
    *
-   * @param messageCodec message codec
-   * @param tcpClient tcp client
+   * @param messageCodec messageCodec
+   * @param clientTransportFactory clientTransportFactory
    */
-  public RSocketClientTransport(ServiceMessageCodec messageCodec, TcpClient tcpClient) {
+  public RSocketClientTransport(
+      ServiceMessageCodec messageCodec, RSocketClientTransportFactory clientTransportFactory) {
     this.messageCodec = messageCodec;
-    this.tcpClient = tcpClient;
+    this.clientTransportFactory = clientTransportFactory;
   }
 
   @Override
@@ -46,10 +45,9 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    TcpClient tcpClient = this.tcpClient.host(address.host()).port(address.port());
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .connect(() -> TcpClientTransport.create(tcpClient))
+        .connect(() -> clientTransportFactory.clientTransport(address))
         .doOnSuccess(
             rsocket -> {
               LOGGER.debug("[rsocket][client] Connected successfully on {}", address);
@@ -80,7 +78,6 @@ public class RSocketClientTransport implements ClientTransport {
   public String toString() {
     return new StringJoiner(", ", RSocketClientTransport.class.getSimpleName() + "[", "]")
         .add("messageCodec=" + messageCodec)
-        .add("tcpClient=" + tcpClient)
         .toString();
   }
 }

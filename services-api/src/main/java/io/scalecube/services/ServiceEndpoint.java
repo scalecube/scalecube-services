@@ -48,6 +48,10 @@ public class ServiceEndpoint implements Externalizable {
     return new Builder();
   }
 
+  public static Builder from(ServiceEndpoint serviceEndpoint) {
+    return new Builder(serviceEndpoint);
+  }
+
   public String id() {
     return id;
   }
@@ -163,6 +167,14 @@ public class ServiceEndpoint implements Externalizable {
 
     private Builder() {}
 
+    private Builder(ServiceEndpoint other) {
+      this.id = other.id;
+      this.address = other.address;
+      this.contentTypes = new HashSet<>(other.contentTypes);
+      this.tags = new HashMap<>(other.tags);
+      this.serviceRegistrations = new ArrayList<>(other.serviceRegistrations);
+    }
+
     public Builder id(String id) {
       this.id = Objects.requireNonNull(id, "id");
       return this;
@@ -174,12 +186,12 @@ public class ServiceEndpoint implements Externalizable {
     }
 
     public Builder contentTypes(Set<String> contentTypes) {
-      this.contentTypes = Objects.requireNonNull(contentTypes, "contentTypes");
+      this.contentTypes = new HashSet<>(Objects.requireNonNull(contentTypes, "contentTypes"));
       return this;
     }
 
     public Builder tags(Map<String, String> tags) {
-      this.tags = Objects.requireNonNull(tags, "tags");
+      this.tags = new HashMap<>(Objects.requireNonNull(tags, "tags"));
       return this;
     }
 
@@ -204,7 +216,7 @@ public class ServiceEndpoint implements Externalizable {
      */
     public Builder serviceRegistrations(Collection<ServiceRegistration> serviceRegistrations) {
       this.serviceRegistrations =
-          Objects.requireNonNull(serviceRegistrations, "serviceRegistrations");
+          new ArrayList<>(Objects.requireNonNull(serviceRegistrations, "serviceRegistrations"));
       return this;
     }
 
