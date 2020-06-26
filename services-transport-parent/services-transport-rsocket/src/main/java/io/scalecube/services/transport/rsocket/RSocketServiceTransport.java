@@ -6,6 +6,8 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -16,6 +18,8 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
@@ -23,14 +27,17 @@ import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 import reactor.netty.tcp.TcpServer;
 
-/** RSocket service transport. */
 public class RSocketServiceTransport implements ServiceTransport {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
 
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs;
-  private Function<LoopResources, TcpServer> tcpServerProvider = defaultTcpServerProvider();
-  private Function<LoopResources, TcpClient> tcpClientProvider = defaultTcpClientProvider();
+  private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
+      defaultServerTransportFactory();
+  private Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory =
+      defaultClientTransportFactory();
 
   // resources
   private EventLoopGroup eventLoopGroup;
@@ -52,8 +59,8 @@ public class RSocketServiceTransport implements ServiceTransport {
     this.eventLoopGroup = other.eventLoopGroup;
     this.clientLoopResources = other.clientLoopResources;
     this.serverLoopResources = other.serverLoopResources;
-    this.tcpServerProvider = other.tcpServerProvider;
-    this.tcpClientProvider = other.tcpClientProvider;
+    this.serverTransportFactory = other.serverTransportFactory;
+    this.clientTransportFactory = other.clientTransportFactory;
   }
 
   /**
@@ -93,26 +100,28 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
-   * Setter for {@code tcpServerProvider}.
+   * Setter for {@code serverTransportFactory}.
    *
-   * @param factory {@code TcpServer} provider function
+   * @param serverTransportFactory serverTransportFactory
    * @return new {@code RSocketServiceTransport} instance
    */
-  public RSocketServiceTransport tcpServer(Function<LoopResources, TcpServer> factory) {
+  public RSocketServiceTransport serverTransportFactory(
+      Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.tcpServerProvider = factory;
+    rst.serverTransportFactory = serverTransportFactory;
     return rst;
   }
 
   /**
-   * Setter for {@code tcpClientProvider}.
+   * Setter for {@code clientTransportFactory}.
    *
-   * @param factory {@code TcpClient} provider function
+   * @param clientTransportFactory clientTransportFactory
    * @return new {@code RSocketServiceTransport} instance
    */
-  public RSocketServiceTransport tcpClient(Function<LoopResources, TcpClient> factory) {
+  public RSocketServiceTransport clientTransportFactory(
+      Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.tcpClientProvider = factory;
+    rst.clientTransportFactory = clientTransportFactory;
     return rst;
   }
 
@@ -125,7 +134,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   public ClientTransport clientTransport() {
     return new RSocketClientTransport(
         new ServiceMessageCodec(headersCodec, dataCodecs),
-        tcpClientProvider.apply(clientLoopResources));
+        clientTransportFactory.apply(clientLoopResources));
   }
 
   /**
@@ -137,7 +146,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   public ServerTransport serverTransport() {
     return new RSocketServerTransport(
         new ServiceMessageCodec(headersCodec, dataCodecs),
-        tcpServerProvider.apply(serverLoopResources));
+        serverTransportFactory.apply(serverLoopResources));
   }
 
   @Override
@@ -173,14 +182,34 @@ public class RSocketServiceTransport implements ServiceTransport {
     return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
   }
 
-  private Function<LoopResources, TcpServer> defaultTcpServerProvider() {
+  private Function<LoopResources, RSocketServerTransportFactory> defaultServerTransportFactory() {
     return (LoopResources serverLoopResources) ->
-        TcpServer.create().runOn(serverLoopResources).bindAddress(() -> new InetSocketAddress(0));
+        () ->
+            TcpServerTransport.create(
+                TcpServer.create()
+                    .runOn(serverLoopResources)
+                    .bindAddress(() -> new InetSocketAddress(0))
+                    .doOnConnection(
+                        connection -> {
+                          LOGGER.debug(
+                              "[rsocket][server] Accepted connection on {}", connection.channel());
+                          connection.onDispose(
+                              () ->
+                                  LOGGER.debug(
+                                      "[rsocket][server] Connection closed on {}",
+                                      connection.channel()));
+                        }));
   }
 
-  private Function<LoopResources, TcpClient> defaultTcpClientProvider() {
-    return (LoopResources clientLoopResources) ->
-        TcpClient.newConnection().runOn(clientLoopResources);
+  private Function<LoopResources, RSocketClientTransportFactory> defaultClientTransportFactory() {
+    return (LoopResources loopResources) ->
+        (RSocketClientTransportFactory)
+            address ->
+                TcpClientTransport.create(
+                    TcpClient.newConnection()
+                        .host(address.host())
+                        .port(address.port())
+                        .runOn(loopResources));
   }
 
   @Override

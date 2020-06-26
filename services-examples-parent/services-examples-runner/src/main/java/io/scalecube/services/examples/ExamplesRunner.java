@@ -1,5 +1,7 @@
 package io.scalecube.services.examples;
 
+import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -58,20 +60,26 @@ public class ExamplesRunner {
             .transport(
                 () ->
                     new RSocketServiceTransport()
-                        .tcpClient(
+                        .clientTransportFactory(
                             loopResources ->
-                                TcpClient.newConnection()
-                                    .runOn(loopResources)
-                                    .wiretap(false)
-                                    .noProxy()
-                                    .noSSL())
-                        .tcpServer(
+                                address ->
+                                    TcpClientTransport.create(
+                                        TcpClient.newConnection()
+                                            .host(address.host())
+                                            .port(address.port())
+                                            .runOn(loopResources)
+                                            .wiretap(false)
+                                            .noProxy()
+                                            .noSSL()))
+                        .serverTransportFactory(
                             loopResources ->
-                                TcpServer.create()
-                                    .wiretap(false)
-                                    .port(config.servicePort())
-                                    .runOn(loopResources)
-                                    .noSSL()))
+                                () ->
+                                    TcpServerTransport.create(
+                                        TcpServer.create()
+                                            .wiretap(false)
+                                            .port(config.servicePort())
+                                            .runOn(loopResources)
+                                            .noSSL())))
             .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
             .startAwait();
 
