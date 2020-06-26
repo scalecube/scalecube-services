@@ -6,38 +6,29 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
-import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
-import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
-import reactor.netty.tcp.TcpClient;
-import reactor.netty.tcp.TcpServer;
 
 public class RSocketServiceTransport implements ServiceTransport {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
 
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs;
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
-      defaultServerTransportFactory();
+      RSocketServerTransportFactory.tcp();
   private Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory =
-      defaultClientTransportFactory();
+      RSocketClientTransportFactory.tcp();
 
   // resources
   private EventLoopGroup eventLoopGroup;
@@ -180,36 +171,6 @@ public class RSocketServiceTransport implements ServiceTransport {
   private Mono<Void> shutdownEventLoopGroup() {
     //noinspection unchecked,rawtypes
     return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
-  }
-
-  private Function<LoopResources, RSocketServerTransportFactory> defaultServerTransportFactory() {
-    return (LoopResources serverLoopResources) ->
-        () ->
-            TcpServerTransport.create(
-                TcpServer.create()
-                    .runOn(serverLoopResources)
-                    .bindAddress(() -> new InetSocketAddress(0))
-                    .doOnConnection(
-                        connection -> {
-                          LOGGER.debug(
-                              "[rsocket][server] Accepted connection on {}", connection.channel());
-                          connection.onDispose(
-                              () ->
-                                  LOGGER.debug(
-                                      "[rsocket][server] Connection closed on {}",
-                                      connection.channel()));
-                        }));
-  }
-
-  private Function<LoopResources, RSocketClientTransportFactory> defaultClientTransportFactory() {
-    return (LoopResources loopResources) ->
-        (RSocketClientTransportFactory)
-            address ->
-                TcpClientTransport.create(
-                    TcpClient.newConnection()
-                        .host(address.host())
-                        .port(address.port())
-                        .runOn(loopResources));
   }
 
   @Override
