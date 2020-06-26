@@ -31,6 +31,7 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,9 +144,11 @@ public final class Microservices {
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
   private ServiceEndpoint serviceEndpoint;
+  private String containerHost;
+  private Integer containerPort;
 
   private Microservices(Builder builder) {
-    this.tags = new HashMap<>(builder.tags);
+    this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
@@ -157,6 +160,8 @@ public final class Microservices {
     this.dataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
     this.principalMapper = builder.principalMapper;
+    this.containerHost = builder.containerHost;
+    this.containerPort = builder.containerPort;
 
     // Setup cleanup
     shutdown
@@ -217,7 +222,7 @@ public final class Microservices {
                 LOGGER.warn("[{}] ServiceTransport is not set", this.id());
               }
 
-              serviceEndpoint = serviceEndpointBuilder.build();
+              serviceEndpoint = newServiceEndpoint(serviceEndpointBuilder.build());
 
               return createDiscovery(
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
@@ -234,6 +239,20 @@ public final class Microservices {
             ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(Microservices.class))
         .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
         .doOnTerminate(scheduler::dispose);
+  }
+
+  private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
+    ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
+
+    int port = Optional.ofNullable(containerPort).orElse(serviceEndpoint.address().port());
+
+    // calculate local service endpoint address
+    Address newAddress =
+        Optional.ofNullable(containerHost)
+            .map(host -> Address.create(host, port))
+            .orElseGet(() -> Address.create(serviceEndpoint.address().host(), port));
+
+    return builder.address(newAddress).build();
   }
 
   private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
@@ -373,6 +392,8 @@ public final class Microservices {
             .orElse((message, dataType) -> message);
     private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
+    private String containerHost;
+    private Integer containerPort;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -408,6 +429,16 @@ public final class Microservices {
 
     public Builder services(ServiceProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
+      return this;
+    }
+
+    public Builder containerHost(String containerHost) {
+      this.containerHost = containerHost;
+      return this;
+    }
+
+    public Builder containerPort(Integer containerPort) {
+      this.containerPort = containerPort;
       return this;
     }
 
