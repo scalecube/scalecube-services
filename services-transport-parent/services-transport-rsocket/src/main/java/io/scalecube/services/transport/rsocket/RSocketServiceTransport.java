@@ -26,9 +26,9 @@ public class RSocketServiceTransport implements ServiceTransport {
   private HeadersCodec headersCodec;
   private Collection<DataCodec> dataCodecs;
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
-      RSocketServerTransportFactory.tcp();
+      RSocketServerTransportFactory.websocket();
   private Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory =
-      RSocketClientTransportFactory.tcp();
+      RSocketClientTransportFactory.websocket();
 
   // resources
   private EventLoopGroup eventLoopGroup;
