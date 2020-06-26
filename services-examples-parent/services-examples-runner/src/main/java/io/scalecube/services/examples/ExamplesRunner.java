@@ -15,6 +15,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.net.InetSocketAddress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -76,9 +77,10 @@ public class ExamplesRunner {
                                 () ->
                                     TcpServerTransport.create(
                                         TcpServer.create()
-                                            .wiretap(false)
-                                            .port(config.servicePort())
+                                            .bindAddress(
+                                                () -> new InetSocketAddress(config.servicePort()))
                                             .runOn(loopResources)
+                                            .wiretap(false)
                                             .noSSL())))
             .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
             .startAwait();

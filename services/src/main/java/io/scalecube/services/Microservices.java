@@ -29,6 +29,8 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,6 +55,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
+import reactor.core.Exceptions;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -790,10 +793,7 @@ public final class Microservices {
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
-                this.transportAddress =
-                    Address.create(
-                        Address.getLocalIpAddress().getHostAddress(),
-                        serverTransport.address().port());
+                this.transportAddress = prepareAddress(serverTransport.address());
                 this.clientTransport = serviceTransport.clientTransport();
                 return this;
               })
@@ -804,13 +804,27 @@ public final class Microservices {
                   LOGGER.info(
                       "[{}][serviceTransport][start] Started, address: {}",
                       microservices.id(),
-                      this.transportAddress))
+                      this.serverTransport.address()))
           .doOnError(
               ex ->
                   LOGGER.error(
                       "[{}][serviceTransport][start] Exception occurred: {}",
                       microservices.id(),
                       ex.toString()));
+    }
+
+    private static Address prepareAddress(Address address) {
+      final InetAddress inetAddress;
+      try {
+        inetAddress = InetAddress.getByName(address.host());
+      } catch (UnknownHostException e) {
+        throw Exceptions.propagate(e);
+      }
+      if (inetAddress.isAnyLocalAddress()) {
+        return Address.create(Address.getLocalIpAddress().getHostAddress(), address.port());
+      } else {
+        return Address.create(inetAddress.getHostAddress(), address.port());
+      }
     }
 
     private Mono<Void> shutdown() {
