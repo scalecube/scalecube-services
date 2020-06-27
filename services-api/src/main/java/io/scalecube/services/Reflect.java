@@ -12,11 +12,9 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Auth;
-import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
@@ -93,10 +91,6 @@ public class Reflect {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
       } else {
-        if (method.getParameters()[0].isAnnotationPresent(Principal.class)) {
-          return Void.TYPE;
-        }
-
         if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
           try {
             return Class.forName(parameterizedRequestType(method).getTypeName());
@@ -157,17 +151,17 @@ public class Reflect {
             .collect(
                 Collectors.toMap(
                     Function.identity(),
-                    method1 ->
+                    method ->
                         new MethodInfo(
                             serviceName(serviceInterface),
-                            methodName(method1),
-                            parameterizedReturnType(method1),
-                            isReturnTypeServiceMessage(method1),
-                            communicationMode(method1),
-                            method1.getParameterCount(),
-                            requestType(method1),
-                            isRequestTypeServiceMessage(method1),
-                            isAuth(method1)))));
+                            methodName(method),
+                            parameterizedReturnType(method),
+                            isReturnTypeServiceMessage(method),
+                            communicationMode(method),
+                            method.getParameterCount(),
+                            requestType(method),
+                            isRequestTypeServiceMessage(method),
+                            isSecured(method)))));
   }
 
   /**
@@ -290,10 +284,10 @@ public class Reflect {
 
     validateResponseType(method);
     validateRequestType(method);
-    validatePrincipalParameter(method);
 
-    if (method.getParameterCount() > 2) {
-      throw new UnsupportedOperationException("Service method can accept maximum 2 parameters");
+    if (method.getParameterCount() > 1) {
+      throw new UnsupportedOperationException(
+          "Service method can accept at maximum single parameter");
     }
   }
 
@@ -317,31 +311,6 @@ public class Reflect {
       } else if (ServiceMessage.class.equals(method.getAnnotation(RequestType.class).value())) {
         throw new UnsupportedOperationException(
             "ServiceMessage is not allowed value for @RequestType");
-      }
-    }
-  }
-
-  private static void validatePrincipalParameter(Method method) {
-    Parameter[] parameters = method.getParameters();
-
-    if (!isAuth(method)) {
-      for (Parameter parameter : parameters) {
-        if (parameter.isAnnotationPresent(Principal.class)) {
-          throw new UnsupportedOperationException(
-              "@Principal can be used only for parameter of @Auth method");
-        }
-      }
-    }
-
-    if (method.getParameterCount() == 2) {
-      if (parameters[0].isAnnotationPresent(Principal.class)) {
-        throw new UnsupportedOperationException(
-            "@Principal cannot be the first parameter on method with two parameters");
-      }
-
-      if (!parameters[1].isAnnotationPresent(Principal.class)) {
-        throw new UnsupportedOperationException(
-            "The second parameter can be only @Principal (optional)");
       }
     }
   }
@@ -391,8 +360,8 @@ public class Reflect {
     return type.isAnnotationPresent(Service.class);
   }
 
-  public static boolean isAuth(Method method) {
-    return method.isAnnotationPresent(Auth.class)
-        || method.getDeclaringClass().isAnnotationPresent(Auth.class);
+  public static boolean isSecured(Method method) {
+    return method.isAnnotationPresent(Secured.class)
+        || method.getDeclaringClass().isAnnotationPresent(Secured.class);
   }
 }

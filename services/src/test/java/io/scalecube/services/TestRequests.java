@@ -7,7 +7,7 @@ import java.time.Duration;
 
 public interface TestRequests {
 
-  String SERVICE_NAME = "greetings";
+  String SERVICE_NAME = "v1/greetings";
 
   ServiceMessage GREETING_VOID_REQ =
       ServiceMessage.builder()

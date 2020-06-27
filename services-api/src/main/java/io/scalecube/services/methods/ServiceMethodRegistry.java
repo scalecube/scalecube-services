@@ -7,8 +7,6 @@ public interface ServiceMethodRegistry {
 
   void registerService(ServiceInfo serviceInfo);
 
-  boolean containsInvoker(String qualifier);
-
   ServiceMethodInvoker getInvoker(String qualifier);
 
   List<ServiceMethodInvoker> listInvokers();

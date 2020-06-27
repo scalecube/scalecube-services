@@ -29,6 +29,7 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -37,8 +38,7 @@ import reactor.test.StepVerifier;
 
 public class ServiceCallRemoteTest extends BaseTest {
 
-  public static final int TIMEOUT = 3;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   private static Microservices gateway;
   private static Microservices provider;
@@ -67,9 +67,10 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
         .discovery(
+            "serviceProvider",
             endpoint ->
                 new ScalecubeServiceDiscovery(endpoint)
-                    .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                    .membership(cfg -> cfg.seedMembers(gateway.discovery("gateway").address())))
         .transport(RSocketServiceTransport::new)
         .services(service)
         .startAwait();
@@ -84,7 +85,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     Publisher<ServiceMessage> future =
         serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
-    ServiceMessage message = Mono.from(future).block(timeout);
+    ServiceMessage message = Mono.from(future).block(TIMEOUT);
 
     assertEquals("hello unknown", ((GreetingResponse) message.data()).getResult());
   }
@@ -92,7 +93,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_void_greeting() {
     // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ)).expectComplete().verify(timeout);
+    StepVerifier.create(gateway.call().oneWay(GREETING_VOID_REQ)).expectComplete().verify(TIMEOUT);
   }
 
   @Test
@@ -101,7 +102,7 @@ public class ServiceCallRemoteTest extends BaseTest {
             gateway.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .expectComplete()
-        .verify(timeout);
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -110,7 +111,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // When
     StepVerifier.create(gateway.call().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -118,7 +119,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // When
     StepVerifier.create(gateway.call().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -129,7 +130,7 @@ public class ServiceCallRemoteTest extends BaseTest {
             ServiceException.class,
             () ->
                 Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
-                    .block(timeout));
+                    .block(TIMEOUT));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
 
@@ -142,7 +143,7 @@ public class ServiceCallRemoteTest extends BaseTest {
             ServiceException.class,
             () ->
                 Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
-                    .block(timeout));
+                    .block(TIMEOUT));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
 
@@ -152,7 +153,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     Publisher<ServiceMessage> resultFuture = gateway.call().requestOne(GREETING_REQ, String.class);
 
     // Then
-    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
+    ServiceMessage result = Mono.from(resultFuture).block(TIMEOUT);
     assertNotNull(result);
     assertEquals(GREETING_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", result.data());
@@ -166,7 +167,7 @@ public class ServiceCallRemoteTest extends BaseTest {
         gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     // Then
-    GreetingResponse greeting = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    GreetingResponse greeting = Mono.from(result).block(TIMEOUT).data();
     assertEquals(" hello to: joe", greeting.getResult());
   }
 
@@ -207,7 +208,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     Publisher<ServiceMessage> result =
         gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
-    GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    GreetingResponse greetings = Mono.from(result).block(TIMEOUT).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
     assertEquals(" hello to: joe", greetings.getResult());
   }
@@ -228,7 +229,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // (prove address lookup occur only after subscription)
     Microservices quotesService = serviceProvider(new SimpleQuoteService());
 
-    StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(timeout);
+    StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(TIMEOUT);
 
     try {
       quotesService.shutdown();
@@ -237,7 +238,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
-  @Test
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
     ServiceCall call = gateway.call();
 
@@ -257,7 +258,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices gateway() {
     return Microservices.builder()
-        .discovery(ScalecubeServiceDiscovery::new)
+        .discovery("gateway", ScalecubeServiceDiscovery::new)
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }

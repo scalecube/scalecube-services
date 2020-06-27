@@ -9,33 +9,35 @@ import java.util.StringJoiner;
 
 public final class ServiceMessage {
 
-  /** Default message data content type. */
-  static final String DEFAULT_DATA_FORMAT = "application/json";
+  /** Default data format. */
+  public static final String DEFAULT_DATA_FORMAT = "application/json";
 
-  /**
-   * This header is supposed to be used by application in case if same data type can be reused for
-   * several messages so it will allow to qualify the specific message type.
-   */
-  static final String HEADER_QUALIFIER = "q";
+  /** Qualifier header. */
+  public static final String HEADER_QUALIFIER = "q";
 
   /**
    * This is a system header which used by transport for serialization and deserialization purpose.
    * It is not supposed to be used by application directly and it is subject to changes in future
    * releases.
    */
-  static final String HEADER_DATA_TYPE = "_type";
+  public static final String HEADER_DATA_TYPE = "type";
 
-  /**
-   * Data format header. Json, Protostuff and etc. Note that default data format is defined at
-   * {@link #DEFAULT_DATA_FORMAT}.
-   */
-  public static final String HEADER_DATA_FORMAT = "_data_format";
+  /** Data format header. */
+  public static final String HEADER_DATA_FORMAT = "dataFormat";
 
-  private Map<String, String> headers = new HashMap<>(1);
+  /** Error type header. */
+  public static final String HEADER_ERROR_TYPE = "errorType";
+
+  /** Null value for error type. */
+  public static final int NULL_ERROR_TYPE = -1;
+
+  private final Map<String, String> headers;
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
-  ServiceMessage() {}
+  ServiceMessage() {
+    headers = new HashMap<>(2);
+  }
 
   private ServiceMessage(Builder builder) {
     this.data = builder.data;
@@ -56,14 +58,17 @@ public final class ServiceMessage {
    * Instantiates new message with error qualifier for given error type and specified error code and
    * message.
    *
+   * @param qualifier origin qualifier.
    * @param errorType the error type to be used in message qualifier.
    * @param errorCode the error code.
    * @param errorMessage the error message.
    * @return builder.
    */
-  public static ServiceMessage error(int errorType, int errorCode, String errorMessage) {
+  public static ServiceMessage error(
+      String qualifier, int errorType, int errorCode, String errorMessage) {
     return ServiceMessage.builder()
-        .qualifier(Qualifier.asError(errorType))
+        .qualifier(qualifier)
+        .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
         .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
@@ -93,7 +98,7 @@ public final class ServiceMessage {
    * @return the message header by given header name
    */
   public String header(String name) {
-    Objects.requireNonNull(name);
+    Objects.requireNonNull(name, "header name");
     return headers.get(name);
   }
 
@@ -162,22 +167,21 @@ public final class ServiceMessage {
    * @return <code>true</code> if error, otherwise <code>false</code>.
    */
   public boolean isError() {
-    String qualifier = qualifier();
-    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
+    return headers.containsKey(HEADER_ERROR_TYPE);
   }
 
   /**
    * Returns error type. Error type is an identifier of a group of errors.
    *
-   * @return error type.
+   * @return error type if set otherwise {@value NULL_ERROR_TYPE}.
    */
   public int errorType() {
-    if (!isError()) {
-      throw new IllegalStateException("Message is not an error");
+    String errorType = headers.get(HEADER_ERROR_TYPE);
+    if (errorType == null) {
+      return NULL_ERROR_TYPE;
     }
-
     try {
-      return Integer.parseInt(Qualifier.getQualifierAction(qualifier()));
+      return Integer.parseInt(errorType);
     } catch (NumberFormatException e) {
       throw new IllegalStateException("Error type must be a number");
     }
@@ -193,21 +197,42 @@ public final class ServiceMessage {
 
   public static class Builder {
 
-    private Map<String, String> headers = new HashMap<>();
+    private final Map<String, String> headers = new HashMap<>(2);
     private Object data;
 
     private Builder() {}
 
+    /**
+     * Setter for {@code data}.
+     *
+     * @param data data; optional
+     * @return this builder
+     */
     public Builder data(Object data) {
       this.data = data;
       return this;
     }
 
-    public Builder dataType(Class<?> data) {
-      headers.put(HEADER_DATA_TYPE, data.getName());
+    /**
+     * Setter for {@code dataType}.
+     *
+     * @deprecated in future releases will be dropped without replacement
+     * @param dataType data type; no null
+     * @return this builder
+     */
+    @Deprecated
+    public Builder dataType(Class<?> dataType) {
+      Objects.requireNonNull(dataType, "dataType");
+      headers.put(HEADER_DATA_TYPE, dataType.getName());
       return this;
     }
 
+    /**
+     * Setter for {@code dataFormat}.
+     *
+     * @param dataFormat data format
+     * @return this builder
+     */
     public Builder dataFormat(String dataFormat) {
       headers.put(HEADER_DATA_FORMAT, dataFormat);
       return this;
@@ -228,49 +253,76 @@ public final class ServiceMessage {
       return this;
     }
 
+    /**
+     * Returns {@code headers}.
+     *
+     * @return headers
+     */
     private Map<String, String> headers() {
-      return this.headers;
+      return headers;
     }
 
+    /**
+     * Setter for {@code headers}.
+     *
+     * @param headers headers; not null
+     * @return this builder
+     */
     public Builder headers(Map<String, String> headers) {
-      headers.forEach(this::header);
+      Objects.requireNonNull(headers, "headers").forEach(this::header);
       return this;
     }
 
     /**
-     * Sets a header key value pair.
+     * Setter for header key-value pair.
      *
-     * @param key key; not null
-     * @param value value; not null
-     * @return self
+     * @param key header name; not null
+     * @param value header value; not null
+     * @return this builder
      */
     public Builder header(String key, String value) {
-      Objects.requireNonNull(key);
-      Objects.requireNonNull(value);
+      Objects.requireNonNull(key, "header name");
+      Objects.requireNonNull(value, "header value");
       headers.put(key, value);
       return this;
     }
 
     /**
-     * Sets a header key value pair.
+     * Setter for header key-value pair.
      *
-     * @param key key; not null
-     * @param value value; not null
-     * @return self
+     * @param key header name; not null
+     * @param value header value; not null
+     * @return this builder
      */
     public Builder header(String key, Object value) {
-      Objects.requireNonNull(key);
-      Objects.requireNonNull(value);
+      Objects.requireNonNull(key, "header name");
+      Objects.requireNonNull(value, "header value");
       headers.put(key, value.toString());
       return this;
     }
 
+    /**
+     * Setter for {@code qualifier}.
+     *
+     * @param qualifier qualifier; not null
+     * @return this builder
+     */
     public Builder qualifier(String qualifier) {
-      return header(HEADER_QUALIFIER, qualifier);
+      return header(HEADER_QUALIFIER, Objects.requireNonNull(qualifier, "qualifier"));
     }
 
-    public Builder qualifier(String serviceName, String methodName) {
-      return qualifier(Qualifier.asString(serviceName, methodName));
+    /**
+     * Setter for {@code qualifier}.
+     *
+     * @param namespace namespace; not null
+     * @param action action; not null
+     * @return this builder
+     */
+    public Builder qualifier(String namespace, String action) {
+      return qualifier(
+          Qualifier.asString(
+              Objects.requireNonNull(namespace, "namespace"),
+              Objects.requireNonNull(action, "action")));
     }
 
     public ServiceMessage build() {

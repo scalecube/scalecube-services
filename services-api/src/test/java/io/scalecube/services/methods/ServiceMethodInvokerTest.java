@@ -3,12 +3,16 @@ package io.scalecube.services.methods;
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
-import java.util.function.Consumer;
+import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -16,18 +20,19 @@ import reactor.test.StepVerifier;
 class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
-  private static final boolean AUTH = false;
-  private static final Authenticator dummyAuthenticator = credentials -> null;
+
+  private static final boolean AUTH = true;
+  public static final boolean IS_RETURN_TYPE_SERVICE_MESSAGE = false;
+  public static final boolean IS_REQUEST_TYPE_SERVICE_MESSAGE = false;
+  public static final Map<String, String> AUTH_DATA =
+      Collections.singletonMap("token", "asdjf9asdjf0as9fkasdf9afkds");
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
+  private final PrincipalMapper<Object, Object> principalMapper = authData -> authData;
+  private final Authenticator<Object> authenticator = Mono::just;
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
-
-  private Consumer<Object> requestReleaser =
-      obj -> {
-        // no-op
-      };
 
   @Test
   @DisplayName("invokeOne should return empty response when service returns null")
@@ -41,11 +46,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -55,12 +60,13 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeOne(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
 
   @Test
@@ -75,11 +81,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -89,12 +95,13 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(serviceMethodInvoker.invokeMany(message, requestReleaser)).verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message)).verifyComplete();
   }
 
   @Test
@@ -109,11 +116,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -123,13 +130,13 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(
-            serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser))
+    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message)))
         .verifyComplete();
   }
 
@@ -145,11 +152,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_RESPONSE,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -159,13 +166,14 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, requestReleaser);
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -182,11 +190,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_STREAM,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -196,13 +204,13 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeMany(message, requestReleaser);
+    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message);
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
   }
@@ -219,11 +227,11 @@ class ServiceMethodInvokerTest {
             serviceClass.getName(),
             methodName,
             method.getReturnType(),
-            false,
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
             CommunicationMode.REQUEST_CHANNEL,
             method.getParameterCount(),
             Void.TYPE,
-            false,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH);
 
     serviceMethodInvoker =
@@ -233,15 +241,149 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            dummyAuthenticator);
+            authenticator,
+            principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message), requestReleaser);
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message));
 
     StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
+  }
+
+  @Test
+  @DisplayName(
+      "invocation of auth method should return error "
+          + "if there're no auth.context and no authenticator")
+  void testAuthMethodWhenNoContextAndNoAuthenticator() throws Exception {
+    final String methodName = "throwException";
+    final Class<? extends StubService> serviceClass = stubService.getClass();
+    final Method method = serviceClass.getMethod(methodName);
+
+    final MethodInfo methodInfo =
+        new MethodInfo(
+            serviceClass.getName(),
+            methodName,
+            method.getReturnType(),
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
+            CommunicationMode.REQUEST_RESPONSE,
+            method.getParameterCount(),
+            Void.TYPE,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
+            true /*auth*/);
+
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            null /*authenticator*/,
+            principalMapper);
+
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+
+    // invokeOne
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
+
+    StepVerifier.create(invokeOne).assertNext(ServiceMessage::isError).verifyComplete();
+  }
+
+  @Test
+  @DisplayName(
+      "invocation of auth method should return empty response "
+          + "if auth.context exists and no authenticator")
+  void testAuthMethodWhenThereIsContextAndNoAuthenticator() throws Exception {
+    final String methodName = "helloAuthContext";
+    final Class<? extends StubService> serviceClass = stubService.getClass();
+    final Method method = serviceClass.getMethod(methodName);
+
+    final MethodInfo methodInfo =
+        new MethodInfo(
+            serviceClass.getName(),
+            methodName,
+            method.getReturnType(),
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
+            CommunicationMode.REQUEST_RESPONSE,
+            method.getParameterCount(),
+            Void.TYPE,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
+            true /*auth*/);
+
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            null /*authenticator*/,
+            principalMapper);
+
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+
+    StepVerifier.create(
+            Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
+                .subscriberContext(
+                    context ->
+                        context
+                            .put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)
+                            .put("NON_AUTH_CONTEXT", "test")))
+        .verifyComplete();
+  }
+
+  @Test
+  @DisplayName(
+      "invocation of auth method should return empty response "
+          + "if there're no auth.context but authenticator exists")
+  void testAuthMethodWhenNoContextButThereIsAuthenticator() throws Exception {
+    final String methodName = "helloAuthContext";
+    final Class<? extends StubService> serviceClass = stubService.getClass();
+    final Method method = serviceClass.getMethod(methodName);
+
+    final MethodInfo methodInfo =
+        new MethodInfo(
+            serviceClass.getName(),
+            methodName,
+            method.getReturnType(),
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
+            CommunicationMode.REQUEST_RESPONSE,
+            method.getParameterCount(),
+            Void.TYPE,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
+            true /*auth*/);
+
+    //noinspection unchecked
+    Authenticator<Object> mockedAuthenticator = Mockito.mock(Authenticator.class);
+    Mockito.when(mockedAuthenticator.authenticate(ArgumentMatchers.anyMap()))
+        .thenReturn(Mono.just(AUTH_DATA));
+
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            mockedAuthenticator,
+            principalMapper);
+
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+
+    StepVerifier.create(
+            Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
+                .subscriberContext(
+                    context ->
+                        context
+                            .put(Authenticator.AUTH_CONTEXT_KEY, AUTH_DATA)
+                            .put("NON_AUTH_CONTEXT", "test")))
+        .verifyComplete();
   }
 }

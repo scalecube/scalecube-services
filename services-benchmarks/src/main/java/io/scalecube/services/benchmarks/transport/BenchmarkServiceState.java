@@ -32,19 +32,18 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
   public void beforeAll() {
     seed =
         Microservices.builder()
-            .metrics(registry())
-            .discovery(ScalecubeServiceDiscovery::new)
+            .discovery("seed", ScalecubeServiceDiscovery::new)
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address seedAddress = seed.discovery().address();
+    final Address seedAddress = seed.discovery("seed").address();
 
     node =
         Microservices.builder()
-            .metrics(registry())
             .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                "node",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(services)
@@ -52,7 +51,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
     LOGGER.info(
         "Seed address: "
-            + seed.discovery().address()
+            + seed.discovery("seed").address()
             + ", services address: "
             + node.serviceAddress());
   }

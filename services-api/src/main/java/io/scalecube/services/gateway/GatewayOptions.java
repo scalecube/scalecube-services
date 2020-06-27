@@ -1,17 +1,16 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.metrics.Metrics;
+import java.util.StringJoiner;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
 public class GatewayOptions {
 
-  private Executor workerPool;
-  private ServiceCall call;
-  private Metrics metrics;
   private String id;
   private int port = 0;
+  private Executor workerPool;
+  private ServiceCall call;
 
   public GatewayOptions() {}
 
@@ -25,7 +24,6 @@ public class GatewayOptions {
     this.port = other.port;
     this.workerPool = other.workerPool;
     this.call = other.call;
-    this.metrics = other.metrics;
   }
 
   private GatewayOptions set(Consumer<GatewayOptions> c) {
@@ -66,11 +64,13 @@ public class GatewayOptions {
     return call;
   }
 
-  public GatewayOptions metrics(Metrics metrics) {
-    return set(o -> o.metrics = metrics);
-  }
-
-  public Metrics metrics() {
-    return metrics;
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", GatewayOptions.class.getSimpleName() + "[", "]")
+        .add("id='" + id + "'")
+        .add("port=" + port)
+        .add("workerPool=" + workerPool)
+        .add("call=" + call)
+        .toString();
   }
 }

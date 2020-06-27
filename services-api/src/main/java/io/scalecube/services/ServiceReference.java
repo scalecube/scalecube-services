@@ -21,7 +21,7 @@ public class ServiceReference {
   private final Map<String, String> tags;
   private final String action;
   private final Address address;
-  private final boolean auth;
+  private final boolean isSecured;
 
   /**
    * Constructor for service reference.
@@ -41,11 +41,15 @@ public class ServiceReference {
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
     this.address = serviceEndpoint.address();
-    this.auth = serviceMethodDefinition.isAuth();
+    this.isSecured = serviceMethodDefinition.isSecured();
   }
 
   public String qualifier() {
-    return this.qualifier;
+    return qualifier;
+  }
+
+  public String oldQualifier() {
+    return Qualifier.DELIMITER + qualifier();
   }
 
   public String endpointId() {
@@ -72,8 +76,8 @@ public class ServiceReference {
     return this.address;
   }
 
-  public boolean isAuth() {
-    return auth;
+  public boolean isSecured() {
+    return isSecured;
   }
 
   private Map<String, String> mergeTags(
@@ -95,7 +99,7 @@ public class ServiceReference {
         .add("qualifier=" + qualifier)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
-        .add("auth=" + auth)
+        .add("isSecured=" + isSecured)
         .toString();
   }
 }
