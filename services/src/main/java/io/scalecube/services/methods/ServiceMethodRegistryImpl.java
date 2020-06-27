@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodRegistry.class);
 
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -39,32 +43,31 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
                                   method.getParameterCount(),
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
-                                  Reflect.isAuth(method));
+                                  Reflect.isSecured(method));
 
-                          String qualifier = methodInfo.qualifier();
+                          checkMethodInvokerDoesntExist(methodInfo);
 
-                          if (methodInvokers.containsKey(qualifier)) {
-                            throw new IllegalStateException(
-                                String.format(
-                                    "MethodInvoker for api '%s' already exists", qualifier));
-                          }
-
-                          ServiceMethodInvoker invoker =
+                          ServiceMethodInvoker methodInvoker =
                               new ServiceMethodInvoker(
                                   method,
                                   serviceInfo.serviceInstance(),
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
-                                  serviceInfo.authenticator());
+                                  serviceInfo.authenticator(),
+                                  serviceInfo.principalMapper());
 
-                          methodInvokers.put(methodInfo.qualifier(), invoker);
+                          methodInvokers.put(methodInfo.qualifier(), methodInvoker);
+                          methodInvokers.put(methodInfo.oldQualifier(), methodInvoker);
                         }));
   }
 
-  @Override
-  public boolean containsInvoker(String qualifier) {
-    return methodInvokers.containsKey(qualifier);
+  private void checkMethodInvokerDoesntExist(MethodInfo methodInfo) {
+    if (methodInvokers.containsKey(methodInfo.qualifier())
+        || methodInvokers.containsKey(methodInfo.oldQualifier())) {
+      LOGGER.error("MethodInvoker already exists, methodInfo: {}", methodInfo);
+      throw new IllegalStateException("MethodInvoker already exists");
+    }
   }
 
   @Override

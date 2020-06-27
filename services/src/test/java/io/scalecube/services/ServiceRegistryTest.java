@@ -11,8 +11,8 @@ import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
 import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
@@ -20,7 +20,6 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -47,24 +46,24 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery(defServiceDiscovery(metadataCodec))
+            .discovery("seed", defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    seed.discovery().listenDiscovery().subscribe(events);
+    seed.listenDiscovery().subscribe(events);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discovery("seed").address();
 
     Microservices ms1 =
         Microservices.builder()
-            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+            .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+            .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -91,22 +90,22 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery(defServiceDiscovery(metadataCodec))
+            .discovery("seed", defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new AnnotationServiceImpl())
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().listenDiscovery().subscribe(processor);
+    seed.listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -117,7 +116,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -156,22 +155,22 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery(defServiceDiscovery(metadataCodec))
+            .discovery("seed", defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
     cluster.add(seed);
 
-    seed.discovery().listenDiscovery().subscribe(processor);
+    seed.listenDiscovery().subscribe(processor);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discovery("seed").address();
 
     StepVerifier.create(processor)
         .then(
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
                       .startAwait();
@@ -182,7 +181,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -202,13 +201,12 @@ public class ServiceRegistryTest extends BaseTest {
         .block(TIMEOUT);
   }
 
-  private Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
-      MetadataCodec metadataCodec) {
+  private ServiceDiscoveryFactory defServiceDiscovery(MetadataCodec metadataCodec) {
     return endpoint ->
         new ScalecubeServiceDiscovery(endpoint).options(cfg -> cfg.metadataCodec(metadataCodec));
   }
 
-  private static Function<ServiceEndpoint, ServiceDiscovery> defServiceDiscovery(
+  private static ServiceDiscoveryFactory defServiceDiscovery(
       Address address, MetadataCodec metadataCodec) {
     return endpoint ->
         new ScalecubeServiceDiscovery(endpoint)

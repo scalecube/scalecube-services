@@ -25,4 +25,7 @@ public interface StubService {
 
   @ServiceMethod
   Flux<String> throwException3(Flux<String> request);
+
+  @ServiceMethod
+  Mono<Void> helloAuthContext();
 }

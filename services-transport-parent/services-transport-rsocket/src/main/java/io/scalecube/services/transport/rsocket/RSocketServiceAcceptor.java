@@ -14,7 +14,6 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,13 +28,18 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
 
-  private final Consumer<Object> requestReleaser = ReferenceCountUtil::safestRelease;
-
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
 
-  public RSocketServiceAcceptor(ServiceMessageCodec codec, ServiceMethodRegistry methodRegistry) {
-    this.messageCodec = codec;
+  /**
+   * Constructor.
+   *
+   * @param messageCodec message codec
+   * @param methodRegistry method registry
+   */
+  public RSocketServiceAcceptor(
+      ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
+    this.messageCodec = messageCodec;
     this.methodRegistry = methodRegistry;
   }
 
@@ -54,7 +58,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMap(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeOne(message, requestReleaser);
+                validateMethodInvoker(methodInvoker, message);
+                return methodInvoker
+                    .invokeOne(message)
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -66,7 +73,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .flatMapMany(
               message -> {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                return methodInvoker.invokeMany(message, requestReleaser);
+                validateMethodInvoker(methodInvoker, message);
+                return methodInvoker
+                    .invokeMany(message)
+                    .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload);
     }
@@ -82,7 +92,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
                       methodRegistry.getInvoker(message.qualifier());
-                  return methodInvoker.invokeBidirectional(messages, requestReleaser);
+                  return methodInvoker
+                      .invokeBidirectional(messages)
+                      .doOnNext(response -> releaseRequestOnError(message, response));
                 }
                 return messages;
               })
@@ -101,36 +113,30 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
     }
 
-    /**
-     * Performs basic validation on incoming message: qualifier must be present, method invoker must
-     * be present in the method registry by incoming qualifier. May throw exception
-     *
-     * @param message incoming message
-     * @throws ServiceException in case qualfier is missing or method invoker is missing by given
-     *     qualifier
-     */
     private void validateRequest(ServiceMessage message) throws ServiceException {
       if (message.qualifier() == null) {
-        applyRequestReleaser(message);
-        LOGGER.error("Failed to invoke service with msg={}: qualifier is null", message);
-        throw new BadRequestException("Qualifier is null in service msg request: " + message);
-      }
-
-      if (!methodRegistry.containsInvoker(message.qualifier())) {
-        applyRequestReleaser(message);
-        LOGGER.error(
-            "Failed to invoke service with msg={}: no service invoker found by qualifier={}",
-            message,
-            message.qualifier());
-        throw new ServiceUnavailableException(
-            "No service invoker found by qualifier=" + message.qualifier());
+        releaseRequest(message);
+        LOGGER.error("[qualifier is null] Invocation failed for {}", message);
+        throw new BadRequestException("Qualifier is null");
       }
     }
-  }
 
-  private void applyRequestReleaser(ServiceMessage request) {
-    if (request.data() != null) {
-      requestReleaser.accept(request.data());
+    private void validateMethodInvoker(ServiceMethodInvoker methodInvoker, ServiceMessage message) {
+      if (methodInvoker == null) {
+        releaseRequest(message);
+        LOGGER.error("[no service invoker found] Invocation failed for {}", message);
+        throw new ServiceUnavailableException("No service invoker found");
+      }
+    }
+
+    private void releaseRequest(ServiceMessage request) {
+      ReferenceCountUtil.safestRelease(request.data());
+    }
+
+    private void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
+      if (response.isError()) {
+        releaseRequest(request);
+      }
     }
   }
 }

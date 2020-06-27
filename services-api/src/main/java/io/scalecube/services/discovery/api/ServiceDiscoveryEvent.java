@@ -1,10 +1,10 @@
 package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.StringJoiner;
 
-public class ServiceDiscoveryEvent {
+public final class ServiceDiscoveryEvent {
 
   public enum Type {
     ENDPOINT_ADDED, // service endpoint added
@@ -18,12 +18,13 @@ public class ServiceDiscoveryEvent {
   /**
    * Constructor.
    *
-   * @param type type
-   * @param serviceEndpoint service endpoint
+   * @param type type; not null
+   * @param serviceEndpoint service endpoint; not null
    */
   private ServiceDiscoveryEvent(Type type, ServiceEndpoint serviceEndpoint) {
-    this.type = type;
-    this.serviceEndpoint = serviceEndpoint;
+    this.type = Objects.requireNonNull(type, "ServiceDiscoveryEvent: type");
+    this.serviceEndpoint =
+        Objects.requireNonNull(serviceEndpoint, "ServiceDiscoveryEvent: serviceEndpoint");
   }
 
   public static ServiceDiscoveryEvent newEndpointAdded(ServiceEndpoint serviceEndpoint) {
@@ -62,9 +63,7 @@ public class ServiceDiscoveryEvent {
   public String toString() {
     return new StringJoiner(", ", ServiceDiscoveryEvent.class.getSimpleName() + "[", "]")
         .add("type=" + type)
-        .add(
-            "serviceEndpoint="
-                + Optional.ofNullable(serviceEndpoint).map(ServiceEndpoint::id).orElse(null))
+        .add("ServiceEndpoint.id='" + serviceEndpoint.id() + "'")
         .toString();
   }
 }

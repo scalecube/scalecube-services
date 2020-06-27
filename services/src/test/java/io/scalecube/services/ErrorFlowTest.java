@@ -7,9 +7,9 @@ import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -22,7 +22,8 @@ import reactor.test.StepVerifier;
 
 public class ErrorFlowTest extends BaseTest {
 
-  private static AtomicInteger port = new AtomicInteger(4000);
+  private static final AtomicInteger PORT = new AtomicInteger(4000);
+
   private static Microservices provider;
   private static Microservices consumer;
 
@@ -31,22 +32,24 @@ public class ErrorFlowTest extends BaseTest {
     provider =
         Microservices.builder()
             .discovery(
+                "provider",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
-                        .transport(cfg -> cfg.port(port.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    final Address seedAddress = provider.discovery().address();
+    final Address seedAddress = provider.discovery("provider").address();
 
     consumer =
         Microservices.builder()
             .discovery(
+                "consumer",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress))
-                        .transport(cfg -> cfg.port(port.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }
@@ -72,7 +75,7 @@ public class ErrorFlowTest extends BaseTest {
         consumer
             .call()
             .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
-    assertThrows(UnauthorizedException.class, () -> from(req).block());
+    assertThrows(ForbiddenException.class, () -> from(req).block());
   }
 
   @Test

@@ -2,7 +2,7 @@ package io.scalecube.services.sut.security;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.auth.Auth;
+import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
 @Service(PartiallySecuredService.SERVICE_NAME)
@@ -14,6 +14,6 @@ public interface PartiallySecuredService {
   Mono<String> publicMethod(String name);
 
   @ServiceMethod
-  @Auth
+  @Secured
   Mono<String> securedMethod(String name);
 }

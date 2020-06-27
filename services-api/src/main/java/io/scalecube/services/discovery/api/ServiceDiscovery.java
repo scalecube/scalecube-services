@@ -1,39 +1,23 @@
 package io.scalecube.services.discovery.api;
 
-import io.scalecube.net.Address;
-import io.scalecube.services.ServiceEndpoint;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ServiceDiscovery {
 
   /**
-   * Returns service discovery address.
+   * Function to subscribe and listen on stream of {@code ServiceDiscoveryEvent}\s.
    *
-   * @return discovery address
+   * @return stream of {@code ServiceDiscoveryEvent}\s
    */
-  Address address();
-
-  /**
-   * Returns service endpoint.
-   *
-   * @return service endpoint
-   */
-  ServiceEndpoint serviceEndpoint();
-
-  /**
-   * Function to subscribe and listen on {@code ServiceDiscoveryEvent} events.
-   *
-   * @return stream of {@code ServiceDiscoveryEvent} events
-   */
-  Flux<ServiceDiscoveryEvent> listenDiscovery();
+  Flux<ServiceDiscoveryEvent> listen();
 
   /**
    * Starting this {@code ServiceDiscovery} instance.
    *
    * @return started {@code ServiceDiscovery} instance
    */
-  Mono<ServiceDiscovery> start();
+  Mono<Void> start();
 
   /**
    * Shutting down this {@code ServiceDiscovery} instance.

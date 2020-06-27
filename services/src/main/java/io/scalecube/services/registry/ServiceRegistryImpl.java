@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
 import org.slf4j.Logger;
@@ -22,7 +21,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
-  private final Map<String, List<ServiceReference>> referencesByQualifier =
+  private final Map<String, List<ServiceReference>> serviceReferencesByQualifier =
       new NonBlockingHashMap<>();
 
   @Override
@@ -33,20 +32,20 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> listServiceReferences() {
-    return referencesByQualifier.values().stream()
+    return serviceReferencesByQualifier.values().stream()
         .flatMap(Collection::stream)
         .collect(Collectors.toList());
   }
 
   @Override
   public List<ServiceReference> lookupService(ServiceMessage request) {
-    List<ServiceReference> result = referencesByQualifier.get(request.qualifier());
-    if (result == null || result.isEmpty()) {
+    List<ServiceReference> list = serviceReferencesByQualifier.get(request.qualifier());
+    if (list == null || list.isEmpty()) {
       return Collections.emptyList();
     }
     String contentType = request.dataFormatOrDefault();
-    return result.stream()
-        .filter(ref -> ref.contentTypes().contains(contentType))
+    return list.stream()
+        .filter(sr -> sr.contentTypes().contains(contentType))
         .collect(Collectors.toList());
   }
 
@@ -58,10 +57,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       serviceEndpoint
           .serviceReferences()
           .forEach(
-              sr ->
-                  referencesByQualifier
-                      .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
-                      .add(sr));
+              sr -> {
+                populateServiceReferences(sr.qualifier(), sr);
+                populateServiceReferences(sr.oldQualifier(), sr);
+              });
     }
     return success;
   }
@@ -72,23 +71,36 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     if (serviceEndpoint != null) {
       LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
 
-      Map<String, ServiceReference> serviceReferencesOfEndpoint =
-          referencesByQualifier.values().stream()
+      List<ServiceReference> serviceReferencesOfEndpoint =
+          serviceReferencesByQualifier.values().stream()
               .flatMap(Collection::stream)
               .filter(sr -> sr.endpointId().equals(endpointId))
-              .collect(Collectors.toMap(ServiceReference::qualifier, Function.identity()));
+              .collect(Collectors.toList());
 
       serviceReferencesOfEndpoint.forEach(
-          (qualifier, sr) -> {
-            // do remapping
-            referencesByQualifier.compute(
-                qualifier,
-                (qualifier1, list) -> {
-                  list.remove(sr);
-                  return !list.isEmpty() ? list : null;
-                });
+          sr -> {
+            computeServiceReferences(sr.qualifier(), sr);
+            computeServiceReferences(sr.oldQualifier(), sr);
           });
     }
     return serviceEndpoint;
+  }
+
+  private void populateServiceReferences(String qualifier, ServiceReference serviceReference) {
+    serviceReferencesByQualifier
+        .computeIfAbsent(qualifier, key -> new CopyOnWriteArrayList<>())
+        .add(serviceReference);
+  }
+
+  private void computeServiceReferences(String qualifier, ServiceReference serviceReference) {
+    serviceReferencesByQualifier.compute(
+        qualifier,
+        (key, list) -> {
+          if (list == null || list.isEmpty()) {
+            return null;
+          }
+          list.remove(serviceReference);
+          return !list.isEmpty() ? list : null;
+        });
   }
 }
