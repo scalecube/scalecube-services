@@ -1,14 +1,27 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
+import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
+import io.rsocket.util.DefaultPayload;
 import io.scalecube.net.Address;
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.DataCodec;
+import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
-import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,32 +34,65 @@ public class RSocketClientTransport implements ClientTransport {
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
-  private final ServiceMessageCodec messageCodec;
+  private final ServiceEndpoint serviceEndpoint;
+  private final ConnectionSetupCodec connectionSetupCodec;
+  private final CredentialsSupplier credentialsSupplier;
+  private final HeadersCodec headersCodec;
+  private final Collection<DataCodec> dataCodecs;
   private final RSocketClientTransportFactory clientTransportFactory;
 
   /**
    * Constructor for this transport.
    *
-   * @param messageCodec messageCodec
+   * @param serviceEndpoint serviceEndpoint
+   * @param connectionSetupCodec connectionSetupCodec
+   * @param credentialsSupplier credentialsSupplier
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
    * @param clientTransportFactory clientTransportFactory
    */
   public RSocketClientTransport(
-      ServiceMessageCodec messageCodec, RSocketClientTransportFactory clientTransportFactory) {
-    this.messageCodec = messageCodec;
+      ServiceEndpoint serviceEndpoint,
+      ConnectionSetupCodec connectionSetupCodec,
+      CredentialsSupplier credentialsSupplier,
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      RSocketClientTransportFactory clientTransportFactory) {
+    this.serviceEndpoint = serviceEndpoint;
+    this.connectionSetupCodec = connectionSetupCodec;
+    this.credentialsSupplier = credentialsSupplier;
+    this.headersCodec = headersCodec;
+    this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;
   }
 
   @Override
-  public ClientChannel create(Address address) {
+  public ClientChannel create(ServiceReference serviceReference) {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
-    Mono<RSocket> rsocket =
-        monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
-    return new RSocketClientChannel(rsocket, messageCodec);
+    final Address address = serviceReference.address();
+    Mono<RSocket> mono =
+        monoMap.computeIfAbsent(
+            address,
+            address1 ->
+                getCredentials(serviceReference)
+                    .flatMap(creds -> connect(address1, creds, monoMap)));
+    return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
 
-  private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
+  private Mono<Map<String, String>> getCredentials(ServiceReference serviceReference) {
+    if (credentialsSupplier == null) {
+      return Mono.just(Collections.emptyMap());
+    }
+    return credentialsSupplier
+        .getCredentials(serviceReference)
+        .switchIfEmpty(Mono.just(Collections.emptyMap()));
+  }
+
+  private Mono<RSocket> connect(
+      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
+        .setupPayload(toSetupPayload(creds))
         .connect(() -> clientTransportFactory.clientTransport(address))
         .doOnSuccess(
             rsocket -> {
@@ -74,10 +120,24 @@ public class RSocketClientTransport implements ClientTransport {
         .cache();
   }
 
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", RSocketClientTransport.class.getSimpleName() + "[", "]")
-        .add("messageCodec=" + messageCodec)
-        .toString();
+  private Payload toSetupPayload(Map<String, String> credentials) {
+    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+    try {
+      ConnectionSetup connectionSetup =
+          ConnectionSetup.builder()
+              .id(serviceEndpoint.id())
+              .address(serviceEndpoint.address())
+              .contentTypes(serviceEndpoint.contentTypes())
+              .tags(serviceEndpoint.tags())
+              .headersContentType(headersCodec.contentType())
+              .credentials(credentials)
+              .build();
+      connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
+    } catch (Throwable ex) {
+      ReferenceCountUtil.safestRelease(byteBuf);
+      LOGGER.error("Failed to encode credentials, cause: {}", ex.toString());
+      throw new MessageCodecException("Failed to encode credentials", ex);
+    }
+    return DefaultPayload.create(byteBuf);
   }
 }

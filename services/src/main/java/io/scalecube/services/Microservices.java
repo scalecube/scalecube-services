@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.auth.DelegatingAuthenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -138,6 +139,7 @@ public final class Microservices {
   private final ServiceMethodRegistry methodRegistry;
   private final Authenticator<Object> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
+  private final CredentialsSupplier credentialsSupplier;
   private final GatewayBootstrap gatewayBootstrap;
   private final CompositeServiceDiscovery compositeDiscovery;
   private final ServiceProviderErrorMapper errorMapper;
@@ -147,8 +149,8 @@ public final class Microservices {
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
   private ServiceEndpoint serviceEndpoint;
-  private String containerHost;
-  private Integer containerPort;
+  private final String externalHost;
+  private final Integer externalPort;
 
   private Microservices(Builder builder) {
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
@@ -159,12 +161,13 @@ public final class Microservices {
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.compositeDiscovery = builder.compositeDiscovery;
     this.transportBootstrap = builder.transportBootstrap;
+    this.credentialsSupplier = builder.credentialsSupplier;
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
     this.contentType = builder.contentType;
     this.principalMapper = builder.principalMapper;
-    this.containerHost = builder.containerHost;
-    this.containerPort = builder.containerPort;
+    this.externalHost = builder.externalHost;
+    this.externalPort = builder.externalPort;
 
     // Setup cleanup
     shutdown
@@ -247,11 +250,11 @@ public final class Microservices {
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
     ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
 
-    int port = Optional.ofNullable(containerPort).orElse(serviceEndpoint.address().port());
+    int port = Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
 
     // calculate local service endpoint address
     Address newAddress =
-        Optional.ofNullable(containerHost)
+        Optional.ofNullable(externalHost)
             .map(host -> Address.create(host, port))
             .orElseGet(() -> Address.create(serviceEndpoint.address().host(), port));
 
@@ -388,6 +391,7 @@ public final class Microservices {
     private Authenticator<Object> authenticator = new DelegatingAuthenticator();
     private final CompositeServiceDiscovery compositeDiscovery = new CompositeServiceDiscovery();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
+    private CredentialsSupplier credentialsSupplier;
     private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private ServiceMessageDataDecoder dataDecoder =
@@ -395,8 +399,8 @@ public final class Microservices {
             .orElse((message, dataType) -> message);
     private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
-    private String containerHost;
-    private Integer containerPort;
+    private String externalHost;
+    private Integer externalPort;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -435,13 +439,13 @@ public final class Microservices {
       return this;
     }
 
-    public Builder containerHost(String containerHost) {
-      this.containerHost = containerHost;
+    public Builder externalHost(String externalHost) {
+      this.externalHost = externalHost;
       return this;
     }
 
-    public Builder containerPort(Integer containerPort) {
-      this.containerPort = containerPort;
+    public Builder externalPort(Integer externalPort) {
+      this.externalPort = externalPort;
       return this;
     }
 
@@ -474,6 +478,11 @@ public final class Microservices {
 
     public Builder transport(Supplier<ServiceTransport> supplier) {
       this.transportBootstrap = new ServiceTransportBootstrap(supplier);
+      return this;
+    }
+
+    public Builder credentialsSupplier(CredentialsSupplier credentialsSupplier) {
+      this.credentialsSupplier = credentialsSupplier;
       return this;
     }
 
@@ -789,12 +798,14 @@ public final class Microservices {
           .start()
           .doOnSuccess(transport -> serviceTransport = transport) // reset self
           .flatMap(
-              transport -> serviceTransport.serverTransport().bind(microservices.methodRegistry))
+              transport -> serviceTransport.serverTransport(microservices.methodRegistry).bind())
           .doOnSuccess(transport -> serverTransport = transport)
           .map(
               transport -> {
                 this.transportAddress = prepareAddress(serverTransport.address());
-                this.clientTransport = serviceTransport.clientTransport();
+                this.clientTransport =
+                    serviceTransport.clientTransport(
+                        microservices.serviceEndpoint, microservices.credentialsSupplier);
                 return this;
               })
           .doOnSubscribe(

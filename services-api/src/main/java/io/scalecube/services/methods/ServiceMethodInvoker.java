@@ -160,7 +160,10 @@ public final class ServiceMethodInvoker {
     if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
       return Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY));
     }
-    return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
+    return authenticator
+        .authenticate(message.headers())
+        .switchIfEmpty(Mono.just(Collections.emptyMap()))
+        .onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {

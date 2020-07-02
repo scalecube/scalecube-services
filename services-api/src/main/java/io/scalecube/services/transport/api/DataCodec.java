@@ -11,7 +11,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/** Data code service provider interface. */
 public interface DataCodec {
 
   Map<String, DataCodec> INSTANCES =
@@ -27,10 +26,11 @@ public interface DataCodec {
   }
 
   /**
-   * Get a DataCodec for a content type.
+   * Returns {@link DataCodec} by given {@code contentType}.
    *
-   * @param contentType the content type.
-   * @return a DataCodec for the content type or IllegalArgumentException is thrown if non exist
+   * @param contentType contentType (required)
+   * @return {@link DataCodec} by given {@code contentType} (or throws IllegalArgumentException is
+   *     thrown if not exist)
    */
   static DataCodec getInstance(String contentType) {
     if (contentType == null) {

@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -20,36 +19,37 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * RSocket service acceptor. Implementation of {@link SocketAcceptor}. See for details and supported
- * methods -- {@link AbstractRSocket0}.
- */
 public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
 
+  private final ConnectionSetupCodec connectionSetupCodec;
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
 
   /**
    * Constructor.
    *
+   * @param connectionSetupCodec connectionSetupCodec
    * @param messageCodec message codec
    * @param methodRegistry method registry
    */
   public RSocketServiceAcceptor(
-      ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
-    this.messageCodec = messageCodec;
+      ConnectionSetupCodec connectionSetupCodec,
+      ServiceMessageCodec messageCodec,
+      ServiceMethodRegistry methodRegistry) {
+    this.connectionSetupCodec = connectionSetupCodec;
     this.methodRegistry = methodRegistry;
+    this.messageCodec = messageCodec;
   }
 
   @Override
-  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
-    LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);
-    return Mono.just(new AbstractRSocket0());
+  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
+    LOGGER.info("Accepted rsocket: {}, connectionSetup: {}", rsocket, setup);
+    return Mono.just(new RSocketImpl());
   }
 
-  private class AbstractRSocket0 extends AbstractRSocket {
+  private class RSocketImpl implements RSocket {
 
     @Override
     public Mono<Payload> requestResponse(Payload payload) {

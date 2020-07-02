@@ -15,8 +15,8 @@ import reactor.core.publisher.Mono;
 
 public class RSocketClientChannel implements ClientChannel {
 
-  private Mono<RSocket> rsocket;
-  private ServiceMessageCodec messageCodec;
+  private final Mono<RSocket> rsocket;
+  private final ServiceMessageCodec messageCodec;
 
   public RSocketClientChannel(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
     this.rsocket = rsocket;

@@ -26,8 +26,6 @@ public final class ServiceMessageCodec {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
 
-  private static final HeadersCodec DEFAULT_HEADERS_CODEC = new JdkCodec();
-
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
@@ -50,7 +48,7 @@ public final class ServiceMessageCodec {
    *     DataCodec#INSTANCES} will be used.
    */
   public ServiceMessageCodec(HeadersCodec headersCodec, Collection<DataCodec> dataCodecs) {
-    this.headersCodec = headersCodec == null ? DEFAULT_HEADERS_CODEC : headersCodec;
+    this.headersCodec = headersCodec == null ? HeadersCodec.DEFAULT_INSTANCE : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
       this.dataCodecs = defaultCodecs;

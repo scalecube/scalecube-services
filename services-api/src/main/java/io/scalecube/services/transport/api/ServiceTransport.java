@@ -1,33 +1,39 @@
 package io.scalecube.services.transport.api;
 
+import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.methods.ServiceMethodRegistry;
 import reactor.core.publisher.Mono;
 
-/** Service transport interface. */
 public interface ServiceTransport {
 
   /**
-   * Provier of client transport.
+   * Provier for {@link ClientTransport}.
    *
-   * @return client transport
+   * @param serviceEndpoint local serviceEndpoint
+   * @param credentialsSupplier credentialsSupplier
+   * @return {@code ClientTransport} instance
    */
-  ClientTransport clientTransport();
+  ClientTransport clientTransport(
+      ServiceEndpoint serviceEndpoint, CredentialsSupplier credentialsSupplier);
 
   /**
-   * Provider of server transport.
+   * Provider for {@link ServerTransport}.
    *
-   * @return server transport
+   * @param methodRegistry methodRegistry
+   * @return {@code ServerTransport} instance
    */
-  ServerTransport serverTransport();
+  ServerTransport serverTransport(ServiceMethodRegistry methodRegistry);
 
   /**
-   * Starts service transport.
+   * Starts transport.
    *
    * @return mono result
    */
   Mono<? extends ServiceTransport> start();
 
   /**
-   * Shutdowns service transport.
+   * Shutdowns transport.
    *
    * @return shutdown completion signal
    */

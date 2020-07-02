@@ -4,6 +4,7 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceInfo;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -72,7 +73,7 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
   @Override
   public ServiceMethodInvoker getInvoker(String qualifier) {
-    return methodInvokers.get(qualifier);
+    return methodInvokers.get(Objects.requireNonNull(qualifier, "[getInvoker] qualifier"));
   }
 
   @Override

@@ -5,10 +5,12 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.scalecube.net.Address;
 import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.transport.api.DataCodec;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.net.InetSocketAddress;
-import java.util.StringJoiner;
+import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -17,7 +19,10 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final ServiceMessageCodec messageCodec;
+  private final ServiceMethodRegistry methodRegistry;
+  private final ConnectionSetupCodec connectionSetupCodec;
+  private final HeadersCodec headersCodec;
+  private final Collection<DataCodec> dataCodecs;
   private final RSocketServerTransportFactory serverTransportFactory;
 
   private CloseableChannel serverChannel; // calculated
@@ -25,12 +30,22 @@ public class RSocketServerTransport implements ServerTransport {
   /**
    * Constructor for this server transport.
    *
-   * @param messageCodec messageCodec
+   * @param methodRegistry methodRegistry
+   * @param connectionSetupCodec connectionSetupCodec
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
    * @param serverTransportFactory serverTransportFactory
    */
   public RSocketServerTransport(
-      ServiceMessageCodec messageCodec, RSocketServerTransportFactory serverTransportFactory) {
-    this.messageCodec = messageCodec;
+      ServiceMethodRegistry methodRegistry,
+      ConnectionSetupCodec connectionSetupCodec,
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      RSocketServerTransportFactory serverTransportFactory) {
+    this.methodRegistry = methodRegistry;
+    this.connectionSetupCodec = connectionSetupCodec;
+    this.headersCodec = headersCodec;
+    this.dataCodecs = dataCodecs;
     this.serverTransportFactory = serverTransportFactory;
   }
 
@@ -41,11 +56,15 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<ServerTransport> bind(ServiceMethodRegistry methodRegistry) {
+  public Mono<ServerTransport> bind() {
     return Mono.defer(
         () ->
             RSocketServer.create()
-                .acceptor(new RSocketServiceAcceptor(messageCodec, methodRegistry))
+                .acceptor(
+                    new RSocketServiceAcceptor(
+                        connectionSetupCodec,
+                        new ServiceMessageCodec(headersCodec, dataCodecs),
+                        methodRegistry))
                 .payloadDecoder(PayloadDecoder.DEFAULT)
                 .bind(serverTransportFactory.serverTransport())
                 .doOnSuccess(channel -> serverChannel = channel)
@@ -69,13 +88,5 @@ public class RSocketServerTransport implements ServerTransport {
                                   "[rsocket][server][onClose] Exception occurred: {}",
                                   e.toString())));
         });
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", RSocketServerTransport.class.getSimpleName() + "[", "]")
-        .add("messageCodec=" + messageCodec)
-        .add("serverChannel=" + serverChannel)
-        .toString();
   }
 }

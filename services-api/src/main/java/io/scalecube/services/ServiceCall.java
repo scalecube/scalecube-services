@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -22,7 +21,6 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
@@ -163,17 +161,6 @@ public class ServiceCall {
   }
 
   /**
-   * Issues fire-and-forget request.
-   *
-   * @param request request message to send.
-   * @param address of remote target service to invoke.
-   * @return mono publisher completing normally or with error.
-   */
-  public Mono<Void> oneWay(ServiceMessage request, Address address) {
-    return Mono.defer(() -> requestOne(request, Void.class, address).then());
-  }
-
-  /**
    * Issues request-and-reply request.
    *
    * @param request request message to send.
@@ -187,14 +174,12 @@ public class ServiceCall {
    * Issues request-and-reply request.
    *
    * @param request request message to send.
-   * @param responseType type of response.
+   * @param responseType type of response (optional).
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
-          Objects.requireNonNull(request.qualifier(), "qualifier");
-
           ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
               && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
@@ -202,30 +187,14 @@ public class ServiceCall {
             return methodInvoker.invokeOne(request).map(this::throwIfError);
           } else {
             // remote service
-            return Mono.fromCallable(() -> addressLookup(request))
-                .flatMap(address -> requestOne(request, responseType, address));
+            return Mono.fromCallable(() -> serviceLookup(request))
+                .flatMap(
+                    serviceReference ->
+                        requireNonNull(transport, "[requestOne] transport")
+                            .create(serviceReference)
+                            .requestResponse(request, responseType)
+                            .map(this::throwIfError));
           }
-        });
-  }
-
-  /**
-   * Given an address issues request-and-reply request to a remote address.
-   *
-   * @param request request message to send.
-   * @param responseType type of response.
-   * @param address of remote target service to invoke.
-   * @return mono publisher completing with single response message or with error.
-   */
-  public Mono<ServiceMessage> requestOne(
-      ServiceMessage request, Type responseType, Address address) {
-    return Mono.defer(
-        () -> {
-          requireNonNull(address, "requestOne address parameter is required and must not be null");
-          requireNonNull(transport, "transport is required and must not be null");
-          return transport
-              .create(address)
-              .requestResponse(request, responseType)
-              .map(this::throwIfError);
         });
   }
 
@@ -243,14 +212,12 @@ public class ServiceCall {
    * Issues request to service which returns stream of service messages back.
    *
    * @param request request with given headers.
-   * @param responseType type of responses.
+   * @param responseType type of responses (optional).
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
-          Objects.requireNonNull(request.qualifier(), "qualifier");
-
           ServiceMethodInvoker methodInvoker;
           if (methodRegistry != null
               && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
@@ -258,31 +225,14 @@ public class ServiceCall {
             return methodInvoker.invokeMany(request).map(this::throwIfError);
           } else {
             // remote service
-            return Mono.fromCallable(() -> addressLookup(request))
-                .flatMapMany(address -> requestMany(request, responseType, address));
+            return Mono.fromCallable(() -> serviceLookup(request))
+                .flatMapMany(
+                    serviceReference ->
+                        requireNonNull(transport, "[requestMany] transport")
+                            .create(serviceReference)
+                            .requestStream(request, responseType)
+                            .map(this::throwIfError));
           }
-        });
-  }
-
-  /**
-   * Given an address issues request to remote service which returns stream of service messages
-   * back.
-   *
-   * @param request request with given headers.
-   * @param responseType type of responses.
-   * @param address of remote target service to invoke.
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestMany(
-      ServiceMessage request, Type responseType, Address address) {
-    return Flux.defer(
-        () -> {
-          requireNonNull(address, "requestMany address parameter is required and must not be null");
-          requireNonNull(transport, "transport is required and must not be null");
-          return transport
-              .create(address)
-              .requestStream(request, responseType)
-              .map(this::throwIfError);
         });
   }
 
@@ -300,7 +250,7 @@ public class ServiceCall {
    * Issues stream of service requests to service which returns stream of service messages back.
    *
    * @param publisher of service requests.
-   * @param responseType type of responses.
+   * @param responseType type of responses (optional).
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(
@@ -310,8 +260,6 @@ public class ServiceCall {
             (first, messages) -> {
               if (first.hasValue()) {
                 ServiceMessage request = first.get();
-                Objects.requireNonNull(request.qualifier(), "qualifier");
-
                 ServiceMethodInvoker methodInvoker;
                 if (methodRegistry != null
                     && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
@@ -319,36 +267,17 @@ public class ServiceCall {
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
                   // remote service
-                  return Mono.fromCallable(() -> addressLookup(request))
+                  return Mono.fromCallable(() -> serviceLookup(request))
                       .flatMapMany(
-                          address -> requestBidirectional(messages, responseType, address));
+                          serviceReference ->
+                              requireNonNull(transport, "[requestBidirectional] transport")
+                                  .create(serviceReference)
+                                  .requestChannel(publisher, responseType)
+                                  .map(this::throwIfError));
                 }
               }
               return messages;
             });
-  }
-
-  /**
-   * Given an address issues stream of service requests to service which returns stream of service
-   * messages back.
-   *
-   * @param publisher of service requests.
-   * @param responseType type of responses.
-   * @param address of remote target service to invoke.
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestBidirectional(
-      Publisher<ServiceMessage> publisher, Type responseType, Address address) {
-    return Flux.defer(
-        () -> {
-          requireNonNull(
-              address, "requestBidirectional address parameter is required and must not be null");
-          requireNonNull(transport, "transport is required and must not be null");
-          return transport
-              .create(address)
-              .requestChannel(publisher, responseType)
-              .map(this::throwIfError);
-        });
   }
 
   /**
@@ -416,10 +345,9 @@ public class ServiceCall {
             });
   }
 
-  private Address addressLookup(ServiceMessage request) {
+  private ServiceReference serviceLookup(ServiceMessage request) {
     return router
         .route(serviceRegistry, request)
-        .map(ServiceReference::address)
         .orElseThrow(() -> noReachableMemberException(request));
   }
 
