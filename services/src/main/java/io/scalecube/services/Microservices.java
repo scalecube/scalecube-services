@@ -459,18 +459,6 @@ public final class Microservices {
       return this;
     }
 
-    /**
-     * Setter for default {@code authenticator}. Deprecated. Use {@link
-     * #defaultAuthenticator(Authenticator)}.
-     *
-     * @param authenticator authenticator
-     * @return this builder with applied parameter
-     */
-    @Deprecated
-    public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
-      return defaultAuthenticator(authenticator);
-    }
-
     public Builder discovery(String id, ServiceDiscoveryFactory discoveryFactory) {
       this.compositeDiscovery.addOperator(opts -> opts.id(id).discoveryFactory(discoveryFactory));
       return this;
@@ -519,17 +507,6 @@ public final class Microservices {
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
       return this;
-    }
-
-    /**
-     * Setter for default {@code contentType}. Deprecated. Use {@link #defaultContentType(String)}.
-     *
-     * @param contentType contentType; not null
-     * @return this builder with applied parameter
-     */
-    @Deprecated
-    public Builder contentType(String contentType) {
-      return defaultContentType(contentType);
     }
 
     /**
