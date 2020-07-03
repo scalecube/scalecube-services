@@ -29,7 +29,12 @@ public final class ServiceMessageCodec {
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
-  /** Message codec with default Headers/Data Codecs. */
+  /**
+   * Message codec with default Headers/Data Codecs.
+   *
+   * @see HeadersCodec#DEFAULT_INSTANCE
+   * @see DataCodec#getAllInstances()
+   */
   public ServiceMessageCodec() {
     this(null, null);
   }
@@ -39,8 +44,8 @@ public final class ServiceMessageCodec {
    * collection.
    *
    * <p><b>NOTE:</b> If client set several data codecs for one content type (see what's content type
-   * here: {@link HeadersCodec#contentType()}, {@link DataCodec#contentType()}), then the last one
-   * specified will be used. Client's collection of data codes override data codecs from SPI.
+   * here: {@link DataCodec#contentType()}), then the last one specified will be used. Client's
+   * collection of data codes override data codecs from SPI.
    *
    * @param headersCodec codec for service message headers; optional, if not set then {@link
    *     JdkCodec} will be used.

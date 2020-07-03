@@ -84,10 +84,10 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(
-      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
+      Address address, Map<String, String> credentials, Map<Address, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .setupPayload(toSetupPayload(creds))
+        .setupPayload(encodeConnectionSetup(new ConnectionSetup(credentials)))
         .connect(() -> clientTransportFactory.clientTransport(address))
         .doOnSuccess(
             rsocket -> {
@@ -115,8 +115,7 @@ public class RSocketClientTransport implements ClientTransport {
         .cache();
   }
 
-  private Payload toSetupPayload(Map<String, String> credentials) {
-    ConnectionSetup connectionSetup = new ConnectionSetup(credentials);
+  private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
     try {
       connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
@@ -124,7 +123,7 @@ public class RSocketClientTransport implements ClientTransport {
       ReferenceCountUtil.safestRelease(byteBuf);
       LOGGER.error(
           "Failed to encode connectionSetup: {}, cause: {}", connectionSetup, ex.toString());
-      throw new MessageCodecException("Failed to encode credentials", ex);
+      throw new MessageCodecException("Failed to encode ConnectionSetup", ex);
     }
     return DefaultPayload.create(byteBuf);
   }
