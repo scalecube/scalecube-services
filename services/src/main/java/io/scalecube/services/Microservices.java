@@ -2,8 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.auth.DelegatingAuthenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
@@ -136,14 +134,13 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
-  private final Authenticator<Object> authenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final CompositeServiceDiscovery compositeDiscovery;
-  private final ServiceProviderErrorMapper errorMapper;
-  private final ServiceMessageDataDecoder dataDecoder;
-  private final String contentType;
-  private final PrincipalMapper<Object, Object> principalMapper;
+  private final ServiceProviderErrorMapper defaultErrorMapper;
+  private final ServiceMessageDataDecoder defaultDataDecoder;
+  private final String defaultContentType;
+  private final PrincipalMapper<Object, Object> defaultPrincipalMapper;
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
   private ServiceEndpoint serviceEndpoint;
@@ -155,14 +152,13 @@ public final class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
-    this.authenticator = builder.authenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.compositeDiscovery = builder.compositeDiscovery;
     this.transportBootstrap = builder.transportBootstrap;
-    this.errorMapper = builder.errorMapper;
-    this.dataDecoder = builder.dataDecoder;
-    this.contentType = builder.contentType;
-    this.principalMapper = builder.principalMapper;
+    this.defaultErrorMapper = builder.defaultErrorMapper;
+    this.defaultDataDecoder = builder.defaultDataDecoder;
+    this.defaultContentType = builder.defaultContentType;
+    this.defaultPrincipalMapper = builder.defaultPrincipalMapper;
     this.externalHost = builder.externalHost;
     this.externalPort = builder.externalPort;
 
@@ -270,10 +266,9 @@ public final class Microservices {
   private void registerInMethodRegistry(ServiceInfo serviceInfo) {
     methodRegistry.registerService(
         ServiceInfo.from(serviceInfo)
-            .errorMapperIfAbsent(errorMapper)
-            .dataDecoderIfAbsent(dataDecoder)
-            .authenticatorIfAbsent(authenticator)
-            .principalMapperIfAbsent(principalMapper)
+            .errorMapperIfAbsent(defaultErrorMapper)
+            .dataDecoderIfAbsent(defaultDataDecoder)
+            .principalMapperIfAbsent(defaultPrincipalMapper)
             .build());
   }
 
@@ -291,7 +286,7 @@ public final class Microservices {
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
         .methodRegistry(methodRegistry)
-        .contentType(contentType)
+        .contentType(defaultContentType)
         .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
@@ -385,16 +380,15 @@ public final class Microservices {
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private Authenticator<Object> authenticator = new DelegatingAuthenticator();
     private final CompositeServiceDiscovery compositeDiscovery = new CompositeServiceDiscovery();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
-    private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-    private ServiceMessageDataDecoder dataDecoder =
+    private ServiceProviderErrorMapper defaultErrorMapper = DefaultErrorMapper.INSTANCE;
+    private ServiceMessageDataDecoder defaultDataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
-    private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
-    private PrincipalMapper<Object, Object> principalMapper = authData -> authData;
+    private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
+    private PrincipalMapper<Object, Object> defaultPrincipalMapper = obj -> obj;
     private String externalHost;
     private Integer externalPort;
 
@@ -483,7 +477,7 @@ public final class Microservices {
      * @return this builder with applied parameter
      */
     public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.errorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
+      this.defaultErrorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
       return this;
     }
 
@@ -496,7 +490,7 @@ public final class Microservices {
      * @return this builder with applied parameter
      */
     public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.dataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
+      this.defaultDataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
       return this;
     }
 
@@ -508,21 +502,7 @@ public final class Microservices {
      * @return this builder with applied parameter
      */
     public Builder defaultContentType(String contentType) {
-      this.contentType = Objects.requireNonNull(contentType, "default contentType");
-      return this;
-    }
-
-    /**
-     * Setter for default {@code authenticator}. By default, default {@code authenticator} is set to
-     * {@link DelegatingAuthenticator}.
-     *
-     * @param authenticator authenticator; not null
-     * @return this builder with applied parameter
-     */
-    @SuppressWarnings("unchecked")
-    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
-      Objects.requireNonNull(authenticator, "default authenticator");
-      this.authenticator = (Authenticator<Object>) authenticator;
+      this.defaultContentType = Objects.requireNonNull(contentType, "default contentType");
       return this;
     }
 
@@ -539,7 +519,7 @@ public final class Microservices {
     public <A, T> Builder defaultPrincipalMapper(
         PrincipalMapper<? extends A, ? extends T> principalMapper) {
       Objects.requireNonNull(principalMapper, "default principalMapper");
-      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
+      this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
   }
