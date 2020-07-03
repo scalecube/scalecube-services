@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,13 +34,10 @@ public interface DataCodec {
    *     thrown if not exist)
    */
   static DataCodec getInstance(String contentType) {
-    if (contentType == null) {
-      throw new IllegalArgumentException("contentType not specified");
-    }
+    Objects.requireNonNull(contentType, "[getInstance] contentType");
     DataCodec dataCodec = INSTANCES.get(contentType);
-    if (dataCodec == null) {
-      throw new IllegalArgumentException("DataCodec for '" + contentType + "' not configured");
-    }
+    Objects.requireNonNull(
+        dataCodec, "[getInstance] dataCodec not found for '" + contentType + "'");
     return dataCodec;
   }
 

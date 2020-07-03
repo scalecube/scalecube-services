@@ -6,13 +6,17 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.transport.api.DataCodec;
+import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.util.Collection;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,32 +28,49 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
 
   private final ConnectionSetupCodec connectionSetupCodec;
-  private final ServiceMessageCodec messageCodec;
+  private final HeadersCodec headersCodec;
+  private final Collection<DataCodec> dataCodecs;
+  private final Authenticator authenticator;
   private final ServiceMethodRegistry methodRegistry;
 
   /**
    * Constructor.
    *
    * @param connectionSetupCodec connectionSetupCodec
-   * @param messageCodec message codec
-   * @param methodRegistry method registry
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
+   * @param authenticator authenticator
+   * @param methodRegistry methodRegistry
    */
   public RSocketServiceAcceptor(
       ConnectionSetupCodec connectionSetupCodec,
-      ServiceMessageCodec messageCodec,
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      Authenticator authenticator,
       ServiceMethodRegistry methodRegistry) {
     this.connectionSetupCodec = connectionSetupCodec;
+    this.headersCodec = headersCodec;
+    this.dataCodecs = dataCodecs;
+    this.authenticator = authenticator;
     this.methodRegistry = methodRegistry;
-    this.messageCodec = messageCodec;
   }
 
   @Override
-  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
-    LOGGER.info("Accepted rsocket: {}, connectionSetup: {}", rsocket, setup);
-    return Mono.just(new RSocketImpl());
+  public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
+    LOGGER.info("Accepted rsocket: {}, setupPayload: {}", rsocket, setupPayload);
+
+    return Mono.just(new RSocketImpl(messageCodec, methodRegistry));
   }
 
-  private class RSocketImpl implements RSocket {
+  private static class RSocketImpl implements RSocket {
+
+    private final ServiceMessageCodec messageCodec;
+    private final ServiceMethodRegistry methodRegistry;
+
+    private RSocketImpl(ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
+      this.messageCodec = messageCodec;
+      this.methodRegistry = methodRegistry;
+    }
 
     @Override
     public Mono<Payload> requestResponse(Payload payload) {

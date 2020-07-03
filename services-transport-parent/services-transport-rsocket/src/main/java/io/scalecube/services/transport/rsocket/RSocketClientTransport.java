@@ -9,7 +9,6 @@ import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.util.DefaultPayload;
 import io.scalecube.net.Address;
-import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.MessageCodecException;
@@ -34,9 +33,8 @@ public class RSocketClientTransport implements ClientTransport {
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
-  private final ServiceEndpoint serviceEndpoint;
-  private final ConnectionSetupCodec connectionSetupCodec;
   private final CredentialsSupplier credentialsSupplier;
+  private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
   private final RSocketClientTransportFactory clientTransportFactory;
@@ -44,23 +42,20 @@ public class RSocketClientTransport implements ClientTransport {
   /**
    * Constructor for this transport.
    *
-   * @param serviceEndpoint serviceEndpoint
-   * @param connectionSetupCodec connectionSetupCodec
    * @param credentialsSupplier credentialsSupplier
+   * @param connectionSetupCodec connectionSetupCodec
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param clientTransportFactory clientTransportFactory
    */
   public RSocketClientTransport(
-      ServiceEndpoint serviceEndpoint,
-      ConnectionSetupCodec connectionSetupCodec,
       CredentialsSupplier credentialsSupplier,
+      ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       RSocketClientTransportFactory clientTransportFactory) {
-    this.serviceEndpoint = serviceEndpoint;
-    this.connectionSetupCodec = connectionSetupCodec;
     this.credentialsSupplier = credentialsSupplier;
+    this.connectionSetupCodec = connectionSetupCodec;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;
@@ -121,21 +116,14 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Payload toSetupPayload(Map<String, String> credentials) {
+    ConnectionSetup connectionSetup = new ConnectionSetup(credentials);
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
     try {
-      ConnectionSetup connectionSetup =
-          ConnectionSetup.builder()
-              .id(serviceEndpoint.id())
-              .address(serviceEndpoint.address())
-              .contentTypes(serviceEndpoint.contentTypes())
-              .tags(serviceEndpoint.tags())
-              .headersContentType(headersCodec.contentType())
-              .credentials(credentials)
-              .build();
       connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
     } catch (Throwable ex) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      LOGGER.error("Failed to encode credentials, cause: {}", ex.toString());
+      LOGGER.error(
+          "Failed to encode connectionSetup: {}, cause: {}", connectionSetup, ex.toString());
       throw new MessageCodecException("Failed to encode credentials", ex);
     }
     return DefaultPayload.create(byteBuf);

@@ -1,21 +1,16 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import reactor.core.publisher.Mono;
 
 public interface ServiceTransport {
 
   /**
-   * Provier for {@link ClientTransport}.
+   * Provider for {@link ClientTransport}.
    *
-   * @param serviceEndpoint local serviceEndpoint
-   * @param credentialsSupplier credentialsSupplier
    * @return {@code ClientTransport} instance
    */
-  ClientTransport clientTransport(
-      ServiceEndpoint serviceEndpoint, CredentialsSupplier credentialsSupplier);
+  ClientTransport clientTransport();
 
   /**
    * Provider for {@link ServerTransport}.
