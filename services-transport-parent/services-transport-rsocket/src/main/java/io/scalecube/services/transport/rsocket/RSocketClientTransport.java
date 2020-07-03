@@ -76,6 +76,7 @@ public class RSocketClientTransport implements ClientTransport {
             key ->
                 getCredentials(serviceReference)
                     .flatMap(creds -> connect(key, creds, monoMap))
+                    .cache()
                     .doOnError(ex -> monoMap.remove(key)));
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
@@ -134,8 +135,7 @@ public class RSocketClientTransport implements ClientTransport {
         .doOnError(
             th ->
                 LOGGER.warn(
-                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()))
-        .cache();
+                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
   }
 
   private static Map<String, String> mask(Map<String, String> creds) {
