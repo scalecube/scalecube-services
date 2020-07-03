@@ -65,23 +65,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
     LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload);
 
-    ConnectionSetup connectionSetup = decodeConnectionSetup(setupPayload.data());
-
-    return Mono.defer(
-            () -> {
-              if (authenticator == null || connectionSetup == null) {
-                return null;
-              }
-              return authenticator
-                  .authenticate(connectionSetup.credentials())
-                  .doOnError(
-                      ex ->
-                          LOGGER.error(
-                              "[rsocket][authenticate][{}] Exception occurred: {}",
-                              rsocket,
-                              ex.toString()))
-                  .onErrorMap(this::toUnauthorizedException);
-            })
+    return Mono.justOrEmpty(decodeConnectionSetup(setupPayload.data()))
+        .flatMap(connectionSetup -> authenticate(rsocket, connectionSetup))
         .switchIfEmpty(
             Mono.fromCallable(
                 () ->
@@ -109,6 +94,19 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
     }
     return null;
+  }
+
+  private Mono<Object> authenticate(RSocket rsocket, ConnectionSetup connectionSetup) {
+    if (authenticator == null || connectionSetup == null) {
+      return null;
+    }
+    return authenticator
+        .authenticate(connectionSetup.credentials())
+        .doOnError(
+            ex ->
+                LOGGER.error(
+                    "[rsocket][authenticate][{}] Exception occurred: {}", rsocket, ex.toString()))
+        .onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {

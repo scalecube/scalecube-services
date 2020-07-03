@@ -93,17 +93,18 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
-    return Flux.from(publisher)
+    return Flux.deferWithContext(context -> publisher)
         .switchOnFirst(
             (first, messages) ->
-                Flux.deferWithContext(
-                        context -> messages.map(this::toRequest).transform(this::invoke))
+                messages
+                    .map(this::toRequest)
+                    .transform(this::invoke)
                     .map(
                         response ->
                             toResponse(response, first.get().qualifier(), first.get().dataFormat()))
                     .onErrorResume(
-                        ex -> Flux.just(errorMapper.toMessage(first.get().qualifier(), ex)))
-                    .subscriberContext(this::enhanceContextWithPrincipal));
+                        ex -> Flux.just(errorMapper.toMessage(first.get().qualifier(), ex))))
+        .subscriberContext(this::enhanceContextWithPrincipal);
   }
 
   private Publisher<?> invoke(Object request) {
