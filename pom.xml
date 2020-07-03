@@ -71,11 +71,6 @@
         <artifactId>scalecube-codec-jackson</artifactId>
         <version>${scalecube-cluster.version}</version>
       </dependency>
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-codec-jackson-smile</artifactId>
-        <version>${scalecube-cluster.version}</version>
-      </dependency>
 
       <!-- Scalecube Config -->
       <dependency>
