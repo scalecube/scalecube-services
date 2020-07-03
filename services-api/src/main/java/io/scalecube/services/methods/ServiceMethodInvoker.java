@@ -29,7 +29,6 @@ public final class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator<Object> authenticator;
   private final PrincipalMapper<Object, Object> principalMapper;
 
   /**
@@ -40,7 +39,6 @@ public final class ServiceMethodInvoker {
    * @param methodInfo method information (required)
    * @param errorMapper error mapper (required)
    * @param dataDecoder data decoder (required)
-   * @param authenticator authenticator (optional)
    * @param principalMapper principal mapper (optional)
    */
   public ServiceMethodInvoker(
@@ -49,14 +47,12 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator<Object> authenticator,
       PrincipalMapper<Object, Object> principalMapper) {
     this.method = Objects.requireNonNull(method, "method");
     this.service = Objects.requireNonNull(service, "service");
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
     this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
     this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
-    this.authenticator = authenticator;
     this.principalMapper = principalMapper;
   }
 
@@ -218,7 +214,6 @@ public final class ServiceMethodInvoker {
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
-        .add("authenticator=" + authenticator)
         .add("principalMapper=" + principalMapper)
         .toString();
   }
