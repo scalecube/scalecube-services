@@ -4,11 +4,9 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Type;
-import java.nio.channels.ClosedChannelException;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -26,13 +24,7 @@ public class RSocketClientChannel implements ClientChannel {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType) {
     return rsocket
-        .flatMap(
-            rsocket ->
-                rsocket
-                    .requestResponse(toPayload(message))
-                    .onErrorMap(
-                        ClosedChannelException.class,
-                        e -> new ConnectionClosedException("Connection closed")))
+        .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
@@ -40,13 +32,7 @@ public class RSocketClientChannel implements ClientChannel {
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType) {
     return rsocket
-        .flatMapMany(
-            rsocket ->
-                rsocket
-                    .requestStream(toPayload(message))
-                    .onErrorMap(
-                        ClosedChannelException.class,
-                        e -> new ConnectionClosedException("Connection closed")))
+        .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }
@@ -55,13 +41,7 @@ public class RSocketClientChannel implements ClientChannel {
   public Flux<ServiceMessage> requestChannel(
       Publisher<ServiceMessage> publisher, Type responseType) {
     return rsocket
-        .flatMapMany(
-            rsocket ->
-                rsocket
-                    .requestChannel(Flux.from(publisher).map(this::toPayload))
-                    .onErrorMap(
-                        ClosedChannelException.class,
-                        e -> new ConnectionClosedException("Connection closed")))
+        .flatMapMany(rsocket -> rsocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
   }

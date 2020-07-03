@@ -10,9 +10,9 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -94,7 +94,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     TimeUnit.MILLISECONDS.sleep(100);
 
     assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
+    assertEquals(ClosedChannelException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
 
@@ -122,7 +122,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     TimeUnit.MILLISECONDS.sleep(100);
 
     assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
+    assertEquals(ClosedChannelException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
 
@@ -154,7 +154,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     TimeUnit.MILLISECONDS.sleep(100);
 
     assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
+    assertEquals(ClosedChannelException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
 }
