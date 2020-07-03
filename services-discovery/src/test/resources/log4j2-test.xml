@@ -12,8 +12,11 @@
   <Loggers>
     <Logger name="io.scalecube.services.BaseTest" level="info"/>
     <Logger name="io.scalecube.services.discovery.BaseTest" level="info"/>
+    <Logger name="io.scalecube.services.Microservices" level="warn"/>
     <Logger name="io.scalecube.services" level="${env:servicesLogLevel:-info}"/>
-    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-info}"/>
+    <Logger name="io.scalecube.services.transport" level="${env:servicesTransportLogLevel:-debug}"/>
+    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-warn}"/>
+    <Logger name="io.scalecube.cluster.transport" level="${env:clusterTransportLogLevel:-error}"/>
     <Logger name="reactor.util" level="${env:reactorUtilLogLevel:-warn}"/>
     <Logger name="reactor.core" level="${env:reactorCoreLogLevel:-warn}"/>
     <Logger name="reactor.netty" level="${env:reactorNettyLogLevel:-warn}"/>

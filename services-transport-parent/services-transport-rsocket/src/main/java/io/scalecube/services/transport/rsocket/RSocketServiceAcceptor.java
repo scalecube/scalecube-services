@@ -63,17 +63,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
-    LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload);
+    LOGGER.info("[rsocket][accept][{}] Setup: {}", rsocket, setupPayload);
 
     return Mono.justOrEmpty(decodeConnectionSetup(setupPayload.data()))
         .flatMap(connectionSetup -> authenticate(rsocket, connectionSetup))
-        .switchIfEmpty(
-            Mono.fromCallable(
-                () ->
-                    new RSocketImpl(
-                        null /*authData*/,
-                        new ServiceMessageCodec(headersCodec, dataCodecs),
-                        methodRegistry)))
         .flatMap(
             authData ->
                 Mono.fromCallable(
@@ -81,12 +74,20 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                         new RSocketImpl(
                             authData,
                             new ServiceMessageCodec(headersCodec, dataCodecs),
-                            methodRegistry)));
+                            methodRegistry)))
+        .switchIfEmpty(
+            Mono.fromCallable(
+                () ->
+                    new RSocketImpl(
+                        null /*authData*/,
+                        new ServiceMessageCodec(headersCodec, dataCodecs),
+                        methodRegistry)))
+        .cast(RSocket.class);
   }
 
   private ConnectionSetup decodeConnectionSetup(ByteBuf byteBuf) {
     if (byteBuf.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(byteBuf, true)) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(byteBuf, false /*releaseOnClose*/)) {
         return connectionSetupCodec.decode(stream);
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(byteBuf); // release byteBuf
@@ -97,11 +98,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   }
 
   private Mono<Object> authenticate(RSocket rsocket, ConnectionSetup connectionSetup) {
-    if (authenticator == null || connectionSetup == null) {
-      return null;
+    if (authenticator == null || connectionSetup == null || !connectionSetup.hasCredentials()) {
+      return Mono.empty();
     }
     return authenticator
         .authenticate(connectionSetup.credentials())
+        .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] Authenticated", rsocket))
         .doOnError(
             ex ->
                 LOGGER.error(

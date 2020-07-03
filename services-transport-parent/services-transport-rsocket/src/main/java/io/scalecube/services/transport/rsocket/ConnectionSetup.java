@@ -30,7 +30,7 @@ public final class ConnectionSetup implements Externalizable {
   /**
    * Constructor.
    *
-   * @param credentials (required)
+   * @param credentials credentials (not null)
    */
   public ConnectionSetup(Map<String, String> credentials) {
     this.credentials =
@@ -42,6 +42,10 @@ public final class ConnectionSetup implements Externalizable {
     return credentials;
   }
 
+  public boolean hasCredentials() {
+    return !credentials.isEmpty();
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", ConnectionSetup.class.getSimpleName() + "[", "]")
@@ -49,8 +53,8 @@ public final class ConnectionSetup implements Externalizable {
         .toString();
   }
 
-  private static Map<String, String> mask(Map<String, String> credentials) {
-    return credentials.entrySet().stream()
+  private static Map<String, String> mask(Map<String, String> creds) {
+    return creds.entrySet().stream()
         .collect(Collectors.toMap(Entry::getKey, entry -> MaskUtil.mask(entry.getValue())));
   }
 
