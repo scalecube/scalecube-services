@@ -32,7 +32,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   private ConnectionSetupCodec connectionSetupCodec = ConnectionSetupCodec.DEFAULT_INSTANCE;
 
   private CredentialsSupplier credentialsSupplier;
-  private Authenticator authenticator;
+  private Authenticator<Object> authenticator;
 
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
       RSocketServerTransportFactory.websocket();

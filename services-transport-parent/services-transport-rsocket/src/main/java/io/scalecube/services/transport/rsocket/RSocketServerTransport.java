@@ -19,7 +19,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final Authenticator authenticator;
+  private final Authenticator<Object> authenticator;
   private final ServiceMethodRegistry methodRegistry;
   private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
@@ -39,7 +39,7 @@ public class RSocketServerTransport implements ServerTransport {
    * @param serverTransportFactory serverTransportFactory
    */
   public RSocketServerTransport(
-      Authenticator authenticator,
+      Authenticator<Object> authenticator,
       ServiceMethodRegistry methodRegistry,
       ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
