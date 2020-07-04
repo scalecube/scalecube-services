@@ -65,8 +65,8 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
-        .subscriberContext(this::enhanceContextWithPrincipal);
+        .subscriberContext(this::enhanceContextWithPrincipal)
+        .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)));
   }
 
   /**
@@ -78,8 +78,8 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
     return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
-        .subscriberContext(this::enhanceContextWithPrincipal);
+        .subscriberContext(this::enhanceContextWithPrincipal)
+        .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)));
   }
 
   /**
@@ -89,18 +89,17 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
-    return Flux.deferWithContext(context -> publisher)
+    return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                messages
-                    .map(this::toRequest)
-                    .transform(this::invoke)
+                Flux.deferWithContext(
+                        context -> messages.map(this::toRequest).transform(this::invoke))
                     .map(
                         response ->
                             toResponse(response, first.get().qualifier(), first.get().dataFormat()))
+                    .subscriberContext(this::enhanceContextWithPrincipal)
                     .onErrorResume(
-                        ex -> Flux.just(errorMapper.toMessage(first.get().qualifier(), ex))))
-        .subscriberContext(this::enhanceContextWithPrincipal);
+                        ex -> Flux.just(errorMapper.toMessage(first.get().qualifier(), ex))));
   }
 
   private Publisher<?> invoke(Object request) {

@@ -150,7 +150,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       Consumer<Throwable> verifyError =
           th -> {
-            // assertEquals(UnauthorizedException.class, th.getClass());
+            assertEquals(UnauthorizedException.class, th.getClass());
             assertEquals("Authentication failed (auth context not found)", th.getMessage());
           };
 
@@ -179,7 +179,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       Consumer<Throwable> verifyError =
           th -> {
-            // assertEquals(UnauthorizedException.class, th.getClass());
+            assertEquals(UnauthorizedException.class, th.getClass());
             assertEquals("Authentication failed (auth context not found)", th.getMessage());
           };
 
@@ -208,6 +208,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       Consumer<Throwable> verifyError =
           th -> {
+            // TODO Artem V: find a way to map rsocket exception to scalecube exception
             // assertEquals(UnauthorizedException.class, th.getClass());
             assertEquals("Authentication failed (username or password incorrect)", th.getMessage());
           };
@@ -255,7 +256,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       Consumer<Throwable> verifyError =
           th -> {
-            // assertEquals(UnauthorizedException.class, th.getClass());
+            assertEquals(UnauthorizedException.class, th.getClass());
             assertEquals("Authentication failed (auth context not found)", th.getMessage());
           };
 

@@ -148,7 +148,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.warn("[requestResponse] Exception occurred: {}", ex.toString()))
+          .doOnError(ex -> LOGGER.error("[requestResponse] Exception occurred: {}", ex.toString()))
           .subscriberContext(this::enhanceContextWithAuthData);
     }
 
@@ -165,7 +165,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.warn("[requestStream] Exception occurred: {}", ex.toString()))
+          .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred: {}", ex.toString()))
           .subscriberContext(this::enhanceContextWithAuthData);
     }
 
@@ -187,7 +187,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 return messages;
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.warn("[requestChannel] Exception occurred: {}", ex.toString()))
+          .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred: {}", ex.toString()))
           .subscriberContext(this::enhanceContextWithAuthData);
     }
 
