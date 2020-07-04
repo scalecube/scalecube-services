@@ -1,22 +1,19 @@
 package io.scalecube.services.auth;
 
 import java.util.Map;
+import java.util.function.Function;
 import reactor.core.publisher.Mono;
 
+/**
+ * Returns auth data by given credentials. Client code shall store returned result under {@link
+ * Authenticator#AUTH_CONTEXT_KEY} key in {@link reactor.util.context.Context} to propagate auth
+ * data to downstream components.
+ *
+ * @see PrincipalMapper
+ * @param <R> auth data type
+ */
 @FunctionalInterface
-public interface Authenticator<R> {
+public interface Authenticator<R> extends Function<Map<String, String>, Mono<R>> {
 
-  /**
-   * Key in {@link reactor.util.context.Context} to represent authentication result after call to
-   * {@link #authenticate(Map)}.
-   */
   String AUTH_CONTEXT_KEY = "auth.context";
-
-  /**
-   * Returns {@code authData} by given credentials.
-   *
-   * @param credentials credentials
-   * @return async result with obtained {@code authData}
-   */
-  Mono<? extends R> authenticate(Map<String, String> credentials);
 }

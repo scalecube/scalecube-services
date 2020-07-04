@@ -13,8 +13,13 @@ import java.util.HashMap;
 import java.util.UUID;
 import reactor.core.publisher.Mono;
 
-public class ServiceTransportAuth {
+public class ServiceTransportAuthExample {
 
+  /**
+   * Main program.
+   *
+   * @param args arguments
+   */
   public static void main(String[] args) {
     Microservices service =
         Microservices.builder()

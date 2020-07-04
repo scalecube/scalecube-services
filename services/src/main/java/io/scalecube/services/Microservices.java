@@ -508,7 +508,7 @@ public final class Microservices {
 
     /**
      * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
-     * set to unary function {@code authData -> authData}.
+     * set to unary function {@code obj -> obj}.
      *
      * @param principalMapper principalMapper; not null
      * @param <T> auth data type

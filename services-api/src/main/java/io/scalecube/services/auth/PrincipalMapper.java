@@ -3,7 +3,7 @@ package io.scalecube.services.auth;
 import java.util.function.Function;
 
 /**
- * Turns {@code authData} to concrete principal object.
+ * Turns auth data to concrete principal object.
  *
  * @see io.scalecube.services.ServiceInfo.Builder#principalMapper(PrincipalMapper)
  * @param <T> auth data type

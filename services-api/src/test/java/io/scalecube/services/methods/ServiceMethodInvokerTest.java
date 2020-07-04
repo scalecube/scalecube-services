@@ -377,8 +377,8 @@ class ServiceMethodInvokerTest {
             AUTH);
 
     //noinspection unchecked
-    Authenticator<Object> mockedAuthenticator = Mockito.mock(Authenticator.class);
-    Mockito.when(mockedAuthenticator.authenticate(ArgumentMatchers.anyMap()))
+    Authenticator<Map> mockedAuthenticator = Mockito.mock(Authenticator.class);
+    Mockito.when(mockedAuthenticator.apply(ArgumentMatchers.anyMap()))
         .thenReturn(Mono.just(AUTH_DATA));
 
     serviceMethodInvoker =

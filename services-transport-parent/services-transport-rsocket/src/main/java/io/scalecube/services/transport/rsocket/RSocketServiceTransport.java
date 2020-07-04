@@ -132,9 +132,10 @@ public class RSocketServiceTransport implements ServiceTransport {
    * @param authenticator authenticator
    * @return new {@code RSocketServiceTransport} instance
    */
-  public RSocketServiceTransport authenticator(Authenticator authenticator) {
+  public <R> RSocketServiceTransport authenticator(Authenticator<? extends R> authenticator) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.authenticator = authenticator;
+    //noinspection unchecked
+    rst.authenticator = (Authenticator<Object>) authenticator;
     return rst;
   }
 

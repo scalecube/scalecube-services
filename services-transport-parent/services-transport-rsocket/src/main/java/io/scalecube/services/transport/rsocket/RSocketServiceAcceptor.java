@@ -102,7 +102,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       return Mono.empty();
     }
     return authenticator
-        .authenticate(connectionSetup.credentials())
+        .apply(connectionSetup.credentials())
         .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] Authenticated", rsocket))
         .doOnError(
             ex ->

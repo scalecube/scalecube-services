@@ -1,6 +1,6 @@
 package io.scalecube.services.sut.security;
 
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.MonoAuthUtil;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
@@ -13,8 +13,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithPrincipal() {
-    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
-        .cast(UserProfile.class)
+    return MonoAuthUtil.deferWithPrincipal(UserProfile.class)
         .flatMap(
             user -> {
               checkPrincipal(user);
@@ -24,8 +23,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithRequestAndPrincipal(String name) {
-    return Mono.deferWithContext(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
-        .cast(UserProfile.class)
+    return MonoAuthUtil.deferWithPrincipal(UserProfile.class)
         .flatMap(
             user -> {
               checkPrincipal(user);
