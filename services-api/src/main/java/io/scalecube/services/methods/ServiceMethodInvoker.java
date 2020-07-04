@@ -4,8 +4,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ForbiddenException;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
@@ -17,6 +15,7 @@ import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -150,19 +149,10 @@ public final class ServiceMethodInvoker {
       principal = principalMapper.apply(context.get(Authenticator.AUTH_CONTEXT_KEY));
     } catch (Exception ex) {
       LOGGER.error("[principalMapper][{}] Exception occurred: {}", principalMapper, ex.toString());
-      throw toForbiddenException(ex);
+      throw Exceptions.propagate(ex);
     }
 
     return principal != null ? context.put(Authenticator.AUTH_CONTEXT_KEY, principal) : context;
-  }
-
-  private ForbiddenException toForbiddenException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
-      return new ForbiddenException(e.errorCode(), e.getMessage());
-    } else {
-      return new ForbiddenException(th);
-    }
   }
 
   private Object toRequest(ServiceMessage message) {

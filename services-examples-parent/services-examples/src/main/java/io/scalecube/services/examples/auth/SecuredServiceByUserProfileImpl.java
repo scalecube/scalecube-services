@@ -4,19 +4,19 @@ import io.scalecube.services.auth.MonoAuthUtil;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
-public class SecuredServiceImpl implements SecuredService {
+public class SecuredServiceByUserProfileImpl implements SecuredServiceByUserProfile {
 
   @Override
-  public Mono<String> securedHello(String name) {
+  public Mono<String> hello(String name) {
     return MonoAuthUtil.deferWithPrincipal(UserProfile.class)
         .flatMap(
             user -> {
-              checkPrincipal(user);
-              return Mono.just("Hello, name=" + name + " and user.name=" + user.name());
+              checkPermissions(user);
+              return Mono.just("Hello, name=" + name + " (user=" + user + ")");
             });
   }
 
-  private void checkPrincipal(UserProfile user) {
+  private void checkPermissions(UserProfile user) {
     if (!user.role().equals("ADMIN")) {
       throw new ForbiddenException("Forbidden");
     }

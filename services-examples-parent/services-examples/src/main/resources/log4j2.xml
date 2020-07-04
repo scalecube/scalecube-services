@@ -46,10 +46,12 @@
   </Appenders>
 
   <Loggers>
+    <Logger name="io.scalecube.services.Microservices" level="warn"/>
     <Logger name="io.scalecube.seed" level="${env:seedLogLevel:-INFO}"/>
     <Logger name="io.scalecube.services" level="${env:servicesLogLevel:-INFO}"/>
-    <Logger name="io.scalecube.transport" level="${env:servicesTransportLogLevel:-DEBUG}"/>
-    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.services.transport" level="${env:servicesTransportLogLevel:-debug}"/>
+    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-warn}"/>
+    <Logger name="io.scalecube.cluster.transport" level="${env:clusterTransportLogLevel:-error}"/>
     <Logger name="io.scalecube.config" level="${env:configLogLevel:-INFO}"/>
     <Logger name="reactor.util" level="${env:reactorUtilLogLevel:-WARN}"/>
     <Logger name="reactor.core" level="${env:reactorCoreLogLevel:-WARN}"/>

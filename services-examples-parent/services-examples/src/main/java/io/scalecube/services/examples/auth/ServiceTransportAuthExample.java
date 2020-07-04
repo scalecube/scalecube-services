@@ -2,7 +2,6 @@ package io.scalecube.services.examples.auth;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -25,7 +24,7 @@ public class ServiceTransportAuthExample {
         Microservices.builder()
             .discovery("service", ScalecubeServiceDiscovery::new)
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
-            .services(ServiceInfo.fromServiceInstance(new SecuredServiceImpl()).build())
+            .services(new SecuredServiceByUserProfileImpl())
             .startAwait();
 
     Microservices caller =
@@ -34,14 +33,14 @@ public class ServiceTransportAuthExample {
             .transport(() -> new RSocketServiceTransport().credentialsSupplier(credsSupplier()))
             .startAwait();
 
-    String hello =
+    String response =
         caller
             .call()
-            .api(SecuredService.class)
-            .securedHello(UUID.randomUUID().toString())
+            .api(SecuredServiceByUserProfile.class)
+            .hello(UUID.randomUUID().toString())
             .block(Duration.ofSeconds(3));
 
-    System.err.println("### Received 'secured hello' response: " + hello);
+    System.err.println("### Received 'caller' response: " + response);
   }
 
   private static Authenticator<UserProfile> authenticator() {
