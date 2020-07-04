@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static java.util.Objects.requireNonNull;
-
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -21,6 +19,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
@@ -187,10 +186,11 @@ public class ServiceCall {
             return methodInvoker.invokeOne(request).map(this::throwIfError);
           } else {
             // remote service
+            Objects.requireNonNull(transport, "[requestOne] transport");
             return Mono.fromCallable(() -> serviceLookup(request))
                 .flatMap(
                     serviceReference ->
-                        requireNonNull(transport, "[requestOne] transport")
+                        transport
                             .create(serviceReference)
                             .requestResponse(request, responseType)
                             .map(this::throwIfError));
@@ -225,10 +225,11 @@ public class ServiceCall {
             return methodInvoker.invokeMany(request).map(this::throwIfError);
           } else {
             // remote service
+            Objects.requireNonNull(transport, "[requestMany] transport");
             return Mono.fromCallable(() -> serviceLookup(request))
                 .flatMapMany(
                     serviceReference ->
-                        requireNonNull(transport, "[requestMany] transport")
+                        transport
                             .create(serviceReference)
                             .requestStream(request, responseType)
                             .map(this::throwIfError));
@@ -267,12 +268,13 @@ public class ServiceCall {
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
                   // remote service
+                  Objects.requireNonNull(transport, "[requestBidirectional] transport");
                   return Mono.fromCallable(() -> serviceLookup(request))
                       .flatMapMany(
                           serviceReference ->
-                              requireNonNull(transport, "[requestBidirectional] transport")
+                              transport
                                   .create(serviceReference)
-                                  .requestChannel(publisher, responseType)
+                                  .requestChannel(messages, responseType)
                                   .map(this::throwIfError));
                 }
               }
