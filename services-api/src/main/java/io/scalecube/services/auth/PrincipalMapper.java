@@ -1,13 +1,13 @@
 package io.scalecube.services.auth;
 
-@FunctionalInterface
-public interface PrincipalMapper<A, P> {
+import java.util.function.Function;
 
-  /**
-   * Turns {@code authData} to concrete principal object.
-   *
-   * @param authData auth data
-   * @return converted principle object
-   */
-  P map(A authData);
-}
+/**
+ * Turns {@code authData} to concrete principal object.
+ *
+ * @see io.scalecube.services.ServiceInfo.Builder#principalMapper(PrincipalMapper)
+ * @param <T> auth data type
+ * @param <R> principal type
+ */
+@FunctionalInterface
+public interface PrincipalMapper<T, R> extends Function<T, R> {}

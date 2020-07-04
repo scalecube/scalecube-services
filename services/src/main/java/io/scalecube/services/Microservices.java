@@ -511,14 +511,14 @@ public final class Microservices {
      * set to unary function {@code authData -> authData}.
      *
      * @param principalMapper principalMapper; not null
-     * @param <A> auth data type
-     * @param <T> principal type
+     * @param <T> auth data type
+     * @param <R> principal type
      * @return this builder with applied parameter
      */
-    @SuppressWarnings("unchecked")
-    public <A, T> Builder defaultPrincipalMapper(
-        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+    public <T, R> Builder defaultPrincipalMapper(
+        PrincipalMapper<? super T, ? extends R> principalMapper) {
       Objects.requireNonNull(principalMapper, "default principalMapper");
+      //noinspection unchecked
       this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }

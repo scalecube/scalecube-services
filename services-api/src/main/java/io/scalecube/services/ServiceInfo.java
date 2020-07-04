@@ -125,13 +125,12 @@ public class ServiceInfo {
      * Setter for {@code principalMapper}. Overrides default {@code Microservices.principalMapper}.
      *
      * @param principalMapper principalMapper
-     * @param <A> type of auth data returned by authenticator
-     * @param <T> type of principal after mapping auth data to principal
+     * @param <T> auth data type
+     * @param <R> principal type
      * @return this builder
      */
     @SuppressWarnings("unchecked")
-    public <A, T> Builder principalMapper(
-        PrincipalMapper<? extends A, ? extends T> principalMapper) {
+    public <T, R> Builder principalMapper(PrincipalMapper<? super T, ? extends R> principalMapper) {
       Objects.requireNonNull(principalMapper, "principalMapper");
       this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;

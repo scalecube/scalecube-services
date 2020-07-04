@@ -4,6 +4,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -146,21 +147,21 @@ public final class ServiceMethodInvoker {
 
     Object principal;
     try {
-      principal = principalMapper.map(context.get(Authenticator.AUTH_CONTEXT_KEY));
+      principal = principalMapper.apply(context.get(Authenticator.AUTH_CONTEXT_KEY));
     } catch (Exception ex) {
       LOGGER.error("[principalMapper][{}] Exception occurred: {}", principalMapper, ex.toString());
-      throw toUnauthorizedException(ex);
+      throw toForbiddenException(ex);
     }
 
     return principal != null ? context.put(Authenticator.AUTH_CONTEXT_KEY, principal) : context;
   }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
+  private ForbiddenException toForbiddenException(Throwable th) {
     if (th instanceof ServiceException) {
       ServiceException e = (ServiceException) th;
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
+      return new ForbiddenException(e.errorCode(), e.getMessage());
     } else {
-      return new UnauthorizedException(th);
+      return new ForbiddenException(th);
     }
   }
 

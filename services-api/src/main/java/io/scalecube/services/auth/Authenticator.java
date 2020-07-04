@@ -4,7 +4,7 @@ import java.util.Map;
 import reactor.core.publisher.Mono;
 
 @FunctionalInterface
-public interface Authenticator<A> {
+public interface Authenticator<R> {
 
   /**
    * Key in {@link reactor.util.context.Context} to represent authentication result after call to
@@ -18,5 +18,5 @@ public interface Authenticator<A> {
    * @param credentials credentials
    * @return async result with obtained {@code authData}
    */
-  Mono<A> authenticate(Map<String, String> credentials);
+  Mono<? extends R> authenticate(Map<String, String> credentials);
 }
