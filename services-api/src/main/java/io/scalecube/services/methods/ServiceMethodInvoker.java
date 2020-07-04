@@ -92,8 +92,8 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                Flux.deferWithContext(
-                        context -> messages.map(this::toRequest).transform(this::invoke))
+                Flux.deferWithContext(context -> messages.map(this::toRequest))
+                    .transform(this::invoke)
                     .map(
                         response ->
                             toResponse(response, first.get().qualifier(), first.get().dataFormat()))
