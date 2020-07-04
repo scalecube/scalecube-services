@@ -88,7 +88,7 @@ public class RSocketClientTransport implements ClientTransport {
             return Mono.just(Collections.emptyMap());
           }
           return credentialsSupplier
-              .getCredentials(serviceReference)
+              .apply(serviceReference)
               .switchIfEmpty(Mono.just(Collections.emptyMap()))
               .doOnSuccess(
                   creds ->
