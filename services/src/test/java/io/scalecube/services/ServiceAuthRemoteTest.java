@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -208,8 +209,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       Consumer<Throwable> verifyError =
           th -> {
-            // TODO Artem V: find a way to map rsocket exception to scalecube exception
-            // assertEquals(UnauthorizedException.class, th.getClass());
+            assertEquals(RejectedSetupException.class, th.getClass());
             assertEquals("Authentication failed (username or password incorrect)", th.getMessage());
           };
 
