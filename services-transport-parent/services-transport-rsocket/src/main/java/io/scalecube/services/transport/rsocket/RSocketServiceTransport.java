@@ -6,13 +6,16 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Collection;
+import java.util.StringJoiner;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
 import reactor.core.publisher.Flux;
@@ -23,8 +26,14 @@ import reactor.netty.resources.LoopResources;
 public class RSocketServiceTransport implements ServiceTransport {
 
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
-  private HeadersCodec headersCodec;
-  private Collection<DataCodec> dataCodecs;
+
+  private HeadersCodec headersCodec = HeadersCodec.DEFAULT_INSTANCE;
+  private Collection<DataCodec> dataCodecs = DataCodec.getAllInstances();
+  private ConnectionSetupCodec connectionSetupCodec = ConnectionSetupCodec.DEFAULT_INSTANCE;
+
+  private CredentialsSupplier credentialsSupplier;
+  private Authenticator<Object> authenticator;
+
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
       RSocketServerTransportFactory.websocket();
   private Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory =
@@ -47,6 +56,9 @@ public class RSocketServiceTransport implements ServiceTransport {
     this.numOfWorkers = other.numOfWorkers;
     this.headersCodec = other.headersCodec;
     this.dataCodecs = other.dataCodecs;
+    this.connectionSetupCodec = other.connectionSetupCodec;
+    this.credentialsSupplier = other.credentialsSupplier;
+    this.authenticator = other.authenticator;
     this.eventLoopGroup = other.eventLoopGroup;
     this.clientLoopResources = other.clientLoopResources;
     this.serverLoopResources = other.serverLoopResources;
@@ -91,6 +103,43 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
+   * Setter for {@code connectionSetupCodec}.
+   *
+   * @param connectionSetupCodec connectionSetupCodec
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport connectionSetupCodec(ConnectionSetupCodec connectionSetupCodec) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.connectionSetupCodec = connectionSetupCodec;
+    return rst;
+  }
+
+  /**
+   * Setter for {@code credentialsSupplier}.
+   *
+   * @param credentialsSupplier credentialsSupplier
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport credentialsSupplier(CredentialsSupplier credentialsSupplier) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.credentialsSupplier = credentialsSupplier;
+    return rst;
+  }
+
+  /**
+   * Setter for {@code authenticator}.
+   *
+   * @param authenticator authenticator
+   * @return new {@code RSocketServiceTransport} instance
+   */
+  public <R> RSocketServiceTransport authenticator(Authenticator<? extends R> authenticator) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    //noinspection unchecked
+    rst.authenticator = (Authenticator<Object>) authenticator;
+    return rst;
+  }
+
+  /**
    * Setter for {@code serverTransportFactory}.
    *
    * @param serverTransportFactory serverTransportFactory
@@ -116,27 +165,24 @@ public class RSocketServiceTransport implements ServiceTransport {
     return rst;
   }
 
-  /**
-   * Fabric method for client transport.
-   *
-   * @return client transport
-   */
   @Override
   public ClientTransport clientTransport() {
     return new RSocketClientTransport(
-        new ServiceMessageCodec(headersCodec, dataCodecs),
+        credentialsSupplier,
+        connectionSetupCodec,
+        headersCodec,
+        dataCodecs,
         clientTransportFactory.apply(clientLoopResources));
   }
 
-  /**
-   * Fabric method for server transport.
-   *
-   * @return server transport
-   */
   @Override
-  public ServerTransport serverTransport() {
+  public ServerTransport serverTransport(ServiceMethodRegistry methodRegistry) {
     return new RSocketServerTransport(
-        new ServiceMessageCodec(headersCodec, dataCodecs),
+        authenticator,
+        methodRegistry,
+        connectionSetupCodec,
+        headersCodec,
+        dataCodecs,
         serverTransportFactory.apply(serverLoopResources));
   }
 
@@ -175,17 +221,13 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public String toString() {
-    return "RSocketServiceTransport{"
-        + "numOfWorkers="
-        + numOfWorkers
-        + ", headersCodec="
-        + headersCodec
-        + ", eventLoopGroup="
-        + eventLoopGroup
-        + ", clientLoopResources="
-        + clientLoopResources
-        + ", serverLoopResources="
-        + serverLoopResources
-        + '}';
+    return new StringJoiner(", ", RSocketServiceTransport.class.getSimpleName() + "[", "]")
+        .add("numOfWorkers=" + numOfWorkers)
+        .add("headersCodec=" + headersCodec)
+        .add("dataCodecs=" + dataCodecs)
+        .add("connectionSetupCodec=" + connectionSetupCodec)
+        .add("serverTransportFactory=" + serverTransportFactory)
+        .add("clientTransportFactory=" + clientTransportFactory)
+        .toString();
   }
 }

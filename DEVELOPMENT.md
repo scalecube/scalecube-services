@@ -1,7 +1,7 @@
 # Setting up development environment
 
 ## Install the necessary build tools
-You require to have latest stable [Oracle JDK 7](http://java.oracle.com/), latest stable 
+You require to have latest stable [open JDK 8](https://openjdk.java.net/install/), latest stable 
 [Apache Maven](http://maven.apache.org/) and [Git](http://git-scm.com/) installed on your machine.
 
 ## Set up IntelliJ IDEA
@@ -17,4 +17,4 @@ next modifications:
 We use [Eclipse code formatter plugin] (https://github.com/krasa/EclipseCodeFormatter#instructions).
 Download [this code style configuration](https://github.com/scalecube/scalecube/blob/master/eclipse-java-google-style.xml) 
 and [import order configuration](https://github.com/scalecube/scalecube/blob/master/style.importorder) and configure 
-your IDEA plugin with those settings. Configuration is  also available in the root project folder.
+your IDEA plugin with these settings. Configuration is  also available in the root project folder.

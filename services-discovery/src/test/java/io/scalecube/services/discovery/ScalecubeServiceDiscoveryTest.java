@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.codec.jackson.JacksonMetadataCodec;
-import io.scalecube.cluster.codec.jackson.smile.JacksonSmileMetadataCodec;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
@@ -56,9 +55,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   private static Stream<Arguments> metadataCodecSource() {
     return Stream.of(
-        Arguments.of(new JdkMetadataCodec()),
-        Arguments.of(new JacksonMetadataCodec()),
-        Arguments.of(new JacksonSmileMetadataCodec()));
+        Arguments.of(new JdkMetadataCodec()), Arguments.of(new JacksonMetadataCodec()));
   }
 
   @ParameterizedTest

@@ -7,8 +7,9 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** Headers code service provider interface. */
 public interface HeadersCodec {
+
+  HeadersCodec DEFAULT_INSTANCE = new JdkCodec();
 
   Map<String, HeadersCodec> INSTANCES = new ConcurrentHashMap<>();
 
@@ -17,15 +18,19 @@ public interface HeadersCodec {
   }
 
   /**
-   * Get a HeadersCodec for a content type.
+   * Returns {@link HeadersCodec} by given {@code contentType}.
    *
-   * @param contentType the content type.
-   * @return a Headers codec for the content type or IllegalArgumentException is thrown if non exist
+   * @param contentType contentType (required)
+   * @return {@link HeadersCodec} by given {@code contentType} (or throws IllegalArgumentException
+   *     is thrown if not exist)
    */
   static HeadersCodec loadInstance(String contentType) {
     return ServiceLoaderUtil.findFirst(
             HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
-        .orElseThrow(() -> new IllegalArgumentException("HeadersCodec not configured"));
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "HeadersCodec for '" + contentType + "' not configured"));
   }
 
   String contentType();

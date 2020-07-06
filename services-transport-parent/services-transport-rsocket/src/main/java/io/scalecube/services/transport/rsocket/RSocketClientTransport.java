@@ -1,15 +1,32 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
+import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
 import io.rsocket.frame.decoder.PayloadDecoder;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.DataCodec;
+import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import io.scalecube.utils.MaskUtil;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
-import java.util.StringJoiner;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -21,63 +38,130 @@ public class RSocketClientTransport implements ClientTransport {
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
-  private final ServiceMessageCodec messageCodec;
+  private final CredentialsSupplier credentialsSupplier;
+  private final ConnectionSetupCodec connectionSetupCodec;
+  private final HeadersCodec headersCodec;
+  private final Collection<DataCodec> dataCodecs;
   private final RSocketClientTransportFactory clientTransportFactory;
 
   /**
    * Constructor for this transport.
    *
-   * @param messageCodec messageCodec
+   * @param credentialsSupplier credentialsSupplier
+   * @param connectionSetupCodec connectionSetupCodec
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
    * @param clientTransportFactory clientTransportFactory
    */
   public RSocketClientTransport(
-      ServiceMessageCodec messageCodec, RSocketClientTransportFactory clientTransportFactory) {
-    this.messageCodec = messageCodec;
+      CredentialsSupplier credentialsSupplier,
+      ConnectionSetupCodec connectionSetupCodec,
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      RSocketClientTransportFactory clientTransportFactory) {
+    this.credentialsSupplier = credentialsSupplier;
+    this.connectionSetupCodec = connectionSetupCodec;
+    this.headersCodec = headersCodec;
+    this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;
   }
 
   @Override
-  public ClientChannel create(Address address) {
+  public ClientChannel create(ServiceReference serviceReference) {
     final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
-    Mono<RSocket> rsocket =
-        monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
-    return new RSocketClientChannel(rsocket, messageCodec);
+    final Address address = serviceReference.address();
+    Mono<RSocket> mono =
+        monoMap.computeIfAbsent(
+            address,
+            key ->
+                getCredentials(serviceReference)
+                    .flatMap(creds -> connect(key, creds, monoMap))
+                    .cache()
+                    .doOnError(ex -> monoMap.remove(key)));
+    return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
 
-  private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
+  private Mono<Map<String, String>> getCredentials(ServiceReference serviceReference) {
+    return Mono.defer(
+        () -> {
+          if (credentialsSupplier == null) {
+            return Mono.just(Collections.emptyMap());
+          }
+          return credentialsSupplier
+              .apply(serviceReference)
+              .switchIfEmpty(Mono.just(Collections.emptyMap()))
+              .doOnSuccess(
+                  creds ->
+                      LOGGER.debug(
+                          "[credentialsSupplier] Got credentials ({}) for service: {}",
+                          mask(creds),
+                          serviceReference))
+              .doOnError(
+                  ex ->
+                      LOGGER.error(
+                          "[credentialsSupplier] "
+                              + "Failed to get credentials for service: {}, cause: {}",
+                          serviceReference,
+                          ex.toString()))
+              .onErrorMap(this::toUnauthorizedException);
+        });
+  }
+
+  private Mono<RSocket> connect(
+      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
+        .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
         .connect(() -> clientTransportFactory.clientTransport(address))
         .doOnSuccess(
             rsocket -> {
-              LOGGER.debug("[rsocket][client] Connected successfully on {}", address);
+              LOGGER.debug("[rsocket][client][{}] Connected successfully", address);
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doFinally(
                       s -> {
                         monoMap.remove(address);
-                        LOGGER.debug("[rsocket][client] Connection closed on {}", address);
+                        LOGGER.debug("[rsocket][client][{}] Connection closed", address);
                       })
                   .doOnError(
                       th ->
                           LOGGER.warn(
-                              "[rsocket][client][onClose] Exception occurred: {}", th.toString()))
+                              "[rsocket][client][{}][onClose] Exception occurred: {}",
+                              address,
+                              th.toString()))
                   .subscribe();
             })
         .doOnError(
-            th -> {
-              LOGGER.warn(
-                  "[rsocket][client] Failed to connect on {}, cause: {}", address, th.toString());
-              monoMap.remove(address);
-            })
-        .cache();
+            th ->
+                LOGGER.warn(
+                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
   }
 
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", RSocketClientTransport.class.getSimpleName() + "[", "]")
-        .add("messageCodec=" + messageCodec)
-        .toString();
+  private static Map<String, String> mask(Map<String, String> creds) {
+    return creds.entrySet().stream()
+        .collect(Collectors.toMap(Entry::getKey, entry -> MaskUtil.mask(entry.getValue())));
+  }
+
+  private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
+    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+    try {
+      connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
+    } catch (Throwable ex) {
+      ReferenceCountUtil.safestRelease(byteBuf);
+      LOGGER.error(
+          "Failed to encode connectionSetup: {}, cause: {}", connectionSetup, ex.toString());
+      throw new MessageCodecException("Failed to encode ConnectionSetup", ex);
+    }
+    return ByteBufPayload.create(byteBuf);
+  }
+
+  private UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException) {
+      ServiceException e = (ServiceException) th;
+      return new UnauthorizedException(e.errorCode(), e.getMessage());
+    } else {
+      return new UnauthorizedException(th);
+    }
   }
 }

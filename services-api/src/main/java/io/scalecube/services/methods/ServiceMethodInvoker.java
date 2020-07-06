@@ -4,45 +4,42 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-/**
- * Invoker of service method. Prepares service message request before call as well as doing some
- * handling of a product of the service call.
- */
 public final class ServiceMethodInvoker {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodInvoker.class);
 
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator<Object> authenticator;
   private final PrincipalMapper<Object, Object> principalMapper;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
    *
-   * @param method service method
-   * @param service service instance
-   * @param methodInfo method information
-   * @param errorMapper error mapper
-   * @param dataDecoder data decoder
-   * @param authenticator authenticator
-   * @param principalMapper principal mapper
+   * @param method service method (required)
+   * @param service service instance (required)
+   * @param methodInfo method information (required)
+   * @param errorMapper error mapper (required)
+   * @param dataDecoder data decoder (required)
+   * @param principalMapper principal mapper (optional)
    */
   public ServiceMethodInvoker(
       Method method,
@@ -50,14 +47,12 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator<Object> authenticator,
       PrincipalMapper<Object, Object> principalMapper) {
     this.method = Objects.requireNonNull(method, "method");
     this.service = Objects.requireNonNull(service, "service");
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
     this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
     this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
-    this.authenticator = authenticator;
     this.principalMapper = principalMapper;
   }
 
@@ -68,11 +63,10 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.deferWithContext(context -> authenticate(message, context))
-        .flatMap(authData -> deferWithContextOne(message, authData))
+    return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(
-            throwable -> Mono.just(errorMapper.toMessage(message.qualifier(), throwable)));
+        .subscriberContext(this::enhanceContextWithPrincipal)
+        .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)));
   }
 
   /**
@@ -82,11 +76,10 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Mono.deferWithContext(context -> authenticate(message, context))
-        .flatMapMany(authData -> deferWithContextMany(message, authData))
+    return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(
-            throwable -> Flux.just(errorMapper.toMessage(message.qualifier(), throwable)));
+        .subscriberContext(this::enhanceContextWithPrincipal)
+        .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)));
   }
 
   /**
@@ -99,29 +92,14 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                Mono.deferWithContext(context -> authenticate(first.get(), context))
-                    .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
+                Flux.deferWithContext(context -> messages.map(this::toRequest))
+                    .transform(this::invoke)
                     .map(
                         response ->
                             toResponse(response, first.get().qualifier(), first.get().dataFormat()))
+                    .subscriberContext(this::enhanceContextWithPrincipal)
                     .onErrorResume(
-                        throwable ->
-                            Flux.just(errorMapper.toMessage(first.get().qualifier(), throwable))));
-  }
-
-  private Mono<?> deferWithContextOne(ServiceMessage message, Object authData) {
-    return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
-        .subscriberContext(context -> newPrincipalContext(authData, context));
-  }
-
-  private Flux<?> deferWithContextMany(ServiceMessage message, Object authData) {
-    return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
-        .subscriberContext(context -> newPrincipalContext(authData, context));
-  }
-
-  private Flux<?> deferWithContextBidirectional(Flux<ServiceMessage> messages, Object authData) {
-    return Flux.deferWithContext(context -> messages.map(this::toRequest).transform(this::invoke))
-        .subscriberContext(context -> newPrincipalContext(authData, context));
+                        ex -> Flux.just(errorMapper.toMessage(first.get().qualifier(), ex))));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -153,23 +131,28 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Mono<Object> authenticate(ServiceMessage message, Context context) {
+  private Context enhanceContextWithPrincipal(Context context) {
     if (!methodInfo.isSecured()) {
-      return Mono.just(Collections.emptyMap());
+      return context;
     }
-    if (context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
-      return Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY));
-    }
-    return authenticator.authenticate(message.headers()).onErrorMap(this::toUnauthorizedException);
-  }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
-    } else {
-      return new UnauthorizedException(th);
+    if (!context.hasKey(Authenticator.AUTH_CONTEXT_KEY)) {
+      throw new UnauthorizedException("Authentication failed (auth context not found)");
     }
+
+    if (principalMapper == null) {
+      return context;
+    }
+
+    Object principal;
+    try {
+      principal = principalMapper.apply(context.get(Authenticator.AUTH_CONTEXT_KEY));
+    } catch (Exception ex) {
+      LOGGER.error("[principalMapper][{}] Exception occurred: {}", principalMapper, ex.toString());
+      throw Exceptions.propagate(ex);
+    }
+
+    return principal != null ? context.put(Authenticator.AUTH_CONTEXT_KEY, principal) : context;
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -205,14 +188,6 @@ public final class ServiceMethodInvoker {
         .build();
   }
 
-  private Context newPrincipalContext(Object authData, Context context) {
-    if (principalMapper == null) {
-      return context;
-    }
-    Object value = principalMapper.map(authData);
-    return context.put(Authenticator.AUTH_CONTEXT_KEY, value);
-  }
-
   public Object service() {
     return service;
   }
@@ -229,7 +204,7 @@ public final class ServiceMethodInvoker {
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
-        .add("authenticator=" + authenticator)
+        .add("principalMapper=" + principalMapper)
         .toString();
   }
 }
