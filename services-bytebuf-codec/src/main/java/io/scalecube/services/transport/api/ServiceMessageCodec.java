@@ -26,12 +26,15 @@ public final class ServiceMessageCodec {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
 
-  private static final HeadersCodec DEFAULT_HEADERS_CODEC = new JdkCodec();
-
   private final HeadersCodec headersCodec;
   private final Map<String, DataCodec> dataCodecs;
 
-  /** Message codec with default Headers/Data Codecs. */
+  /**
+   * Message codec with default Headers/Data Codecs.
+   *
+   * @see HeadersCodec#DEFAULT_INSTANCE
+   * @see DataCodec#getAllInstances()
+   */
   public ServiceMessageCodec() {
     this(null, null);
   }
@@ -41,8 +44,8 @@ public final class ServiceMessageCodec {
    * collection.
    *
    * <p><b>NOTE:</b> If client set several data codecs for one content type (see what's content type
-   * here: {@link HeadersCodec#contentType()}, {@link DataCodec#contentType()}), then the last one
-   * specified will be used. Client's collection of data codes override data codecs from SPI.
+   * here: {@link DataCodec#contentType()}), then the last one specified will be used. Client's
+   * collection of data codes override data codecs from SPI.
    *
    * @param headersCodec codec for service message headers; optional, if not set then {@link
    *     JdkCodec} will be used.
@@ -50,7 +53,7 @@ public final class ServiceMessageCodec {
    *     DataCodec#INSTANCES} will be used.
    */
   public ServiceMessageCodec(HeadersCodec headersCodec, Collection<DataCodec> dataCodecs) {
-    this.headersCodec = headersCodec == null ? DEFAULT_HEADERS_CODEC : headersCodec;
+    this.headersCodec = headersCodec == null ? HeadersCodec.DEFAULT_INSTANCE : headersCodec;
     Map<String, DataCodec> defaultCodecs = DataCodec.INSTANCES;
     if (dataCodecs == null) {
       this.dataCodecs = defaultCodecs;

@@ -1,15 +1,14 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.ServiceReference;
 
-/** Client service transport interface. */
 public interface ClientTransport {
 
   /**
-   * Creates a client channel ready for communication with remote service node.
+   * Creates {@link ClientChannel} ready for communication with remote service endpoint.
    *
-   * @param address address to connect
-   * @return client channel instance
+   * @param serviceReference target serviceReference
+   * @return {@code ClientChannel} instance
    */
-  ClientChannel create(Address address);
+  ClientChannel create(ServiceReference serviceReference);
 }

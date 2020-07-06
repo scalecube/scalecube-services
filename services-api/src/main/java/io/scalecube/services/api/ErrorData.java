@@ -8,10 +8,11 @@ public final class ErrorData {
   private String errorMessage;
 
   /**
-   * Constructor for SerDe.
+   * Constructor for de/serialization purpose.
    *
    * @deprecated exposed only for de/serialization purpose.
    */
+  @Deprecated
   public ErrorData() {}
 
   /**

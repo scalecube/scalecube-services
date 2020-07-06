@@ -23,10 +23,11 @@ public class ServiceRegistration implements Externalizable {
   private Collection<ServiceMethodDefinition> methods;
 
   /**
-   * Constructor for SerDe.
+   * Constructor for de/serialization purpose.
    *
    * @deprecated exposed only for de/serialization purpose.
    */
+  @Deprecated
   public ServiceRegistration() {}
 
   /**

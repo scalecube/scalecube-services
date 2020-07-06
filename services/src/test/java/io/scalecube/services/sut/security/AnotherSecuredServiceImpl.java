@@ -4,7 +4,7 @@ import io.scalecube.services.auth.MonoAuthUtil;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
-public class SecuredServiceImpl implements SecuredService {
+public class AnotherSecuredServiceImpl implements AnotherSecuredService {
 
   @Override
   public Mono<String> helloWithRequest(String name) {

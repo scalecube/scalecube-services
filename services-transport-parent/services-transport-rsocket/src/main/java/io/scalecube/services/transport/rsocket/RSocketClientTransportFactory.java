@@ -19,14 +19,30 @@ public interface RSocketClientTransportFactory {
    * @return factory function for {@link RSocketClientTransportFactory}
    */
   static Function<LoopResources, RSocketClientTransportFactory> tcp() {
+    return tcp(false);
+  }
+
+  /**
+   * Returns default rsocket tcp client transport factory.
+   *
+   * @see TcpClientTransport
+   * @param isSecured is client transport secured
+   * @return factory function for {@link RSocketClientTransportFactory}
+   */
+  static Function<LoopResources, RSocketClientTransportFactory> tcp(boolean isSecured) {
     return (LoopResources loopResources) ->
         (RSocketClientTransportFactory)
-            address ->
-                TcpClientTransport.create(
-                    TcpClient.newConnection()
-                        .host(address.host())
-                        .port(address.port())
-                        .runOn(loopResources));
+            address -> {
+              TcpClient tcpClient =
+                  TcpClient.newConnection()
+                      .runOn(loopResources)
+                      .host(address.host())
+                      .port(address.port())
+                      .option(ChannelOption.TCP_NODELAY, true)
+                      .option(ChannelOption.SO_KEEPALIVE, true)
+                      .option(ChannelOption.SO_REUSEADDR, true);
+              return TcpClientTransport.create(isSecured ? tcpClient.secure() : tcpClient);
+            };
   }
 
   /**
@@ -36,20 +52,34 @@ public interface RSocketClientTransportFactory {
    * @return factory function for {@link RSocketClientTransportFactory}
    */
   static Function<LoopResources, RSocketClientTransportFactory> websocket() {
+    return websocket(false);
+  }
+
+  /**
+   * Returns default rsocket websocket client transport factory.
+   *
+   * @see WebsocketClientTransport
+   * @param isSecured is client transport secured
+   * @return factory function for {@link RSocketClientTransportFactory}
+   */
+  static Function<LoopResources, RSocketClientTransportFactory> websocket(boolean isSecured) {
     return (LoopResources loopResources) ->
         (RSocketClientTransportFactory)
             address ->
                 WebsocketClientTransport.create(
                     HttpClient.newConnection()
                         .tcpConfiguration(
-                            tcpClient ->
-                                tcpClient
-                                    .runOn(loopResources)
-                                    .host(address.host())
-                                    .port(address.port())
-                                    .option(ChannelOption.TCP_NODELAY, true)
-                                    .option(ChannelOption.SO_KEEPALIVE, true)
-                                    .option(ChannelOption.SO_REUSEADDR, true)),
+                            tcpClient -> {
+                              TcpClient tcpClient1 =
+                                  tcpClient
+                                      .runOn(loopResources)
+                                      .host(address.host())
+                                      .port(address.port())
+                                      .option(ChannelOption.TCP_NODELAY, true)
+                                      .option(ChannelOption.SO_KEEPALIVE, true)
+                                      .option(ChannelOption.SO_REUSEADDR, true);
+                              return isSecured ? tcpClient1.secure() : tcpClient1;
+                            }),
                     "/");
   }
 

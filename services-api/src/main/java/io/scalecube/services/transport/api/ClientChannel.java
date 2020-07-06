@@ -6,7 +6,6 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** Client channel interface. */
 public interface ClientChannel {
 
   Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType);
