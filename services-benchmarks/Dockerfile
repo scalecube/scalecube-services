@@ -1,7 +1,6 @@
 FROM openjdk:11
 
 ARG EXECUTABLE_JAR
-ENV YOURKIT_AGENT "-agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so=port=10001,listen=all"
 
 WORKDIR /opt/scalecube
 
@@ -22,11 +21,6 @@ ENV DEFAULT_OOM_OPTS="-XX:+HeapDumpOnOutOfMemoryError \
 -XX:HeapDumpPath=services-benchmarks-oom.hprof \
 -XX:+UseGCOverheadLimit"
 
-# yourkit profile
-RUN wget https://www.yourkit.com/download/docker/YourKit-JavaProfiler-2018.04-docker.zip -P /tmp/ && \
-  unzip /tmp/YourKit-JavaProfiler-2018.04-docker.zip -d /usr/local && \
-  rm /tmp/YourKit-JavaProfiler-2018.04-docker.zip
-
 COPY target/lib lib
 COPY target/${EXECUTABLE_JAR}.jar benchmarks.jar
 
@@ -41,6 +35,5 @@ $DEFAULT_JAVA_OPTS \
 $JAVA_OPTS \
 $DEFAULT_JMX_OPTS \
 $DEFAULT_OOM_OPTS \
-$YOURKIT_AGENT \
 -Dlog4j.configurationFile=log4j2-benchmarks.xml \
 -cp benchmarks.jar $PROGRAM_ARGS
