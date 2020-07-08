@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
@@ -134,6 +135,7 @@ public final class Microservices {
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
+  private final Authenticator<Object> defaultAuthenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final CompositeServiceDiscovery compositeDiscovery;
@@ -152,6 +154,7 @@ public final class Microservices {
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
+    this.defaultAuthenticator = builder.defaultAuthenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.compositeDiscovery = builder.compositeDiscovery;
     this.transportBootstrap = builder.transportBootstrap;
@@ -268,6 +271,7 @@ public final class Microservices {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(defaultErrorMapper)
             .dataDecoderIfAbsent(defaultDataDecoder)
+            .authenticatorIfAbsent(defaultAuthenticator)
             .principalMapperIfAbsent(defaultPrincipalMapper)
             .build());
   }
@@ -380,6 +384,7 @@ public final class Microservices {
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
+    private Authenticator<Object> defaultAuthenticator = null;
     private final CompositeServiceDiscovery compositeDiscovery = new CompositeServiceDiscovery();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
@@ -388,7 +393,7 @@ public final class Microservices {
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper = obj -> obj;
+    private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
     private String externalHost;
     private Integer externalPort;
 
@@ -507,17 +512,28 @@ public final class Microservices {
     }
 
     /**
-     * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
-     * set to unary function {@code obj -> obj}.
+     * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
      *
-     * @param principalMapper principalMapper; not null
+     * @param authenticator authenticator; optional
+     * @return this builder with applied parameter
+     */
+    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+      //noinspection unchecked
+      this.defaultAuthenticator = (Authenticator<Object>) authenticator;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
+     * null.
+     *
+     * @param principalMapper principalMapper; optional
      * @param <T> auth data type
      * @param <R> principal type
      * @return this builder with applied parameter
      */
     public <T, R> Builder defaultPrincipalMapper(
         PrincipalMapper<? super T, ? extends R> principalMapper) {
-      Objects.requireNonNull(principalMapper, "default principalMapper");
       //noinspection unchecked
       this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;

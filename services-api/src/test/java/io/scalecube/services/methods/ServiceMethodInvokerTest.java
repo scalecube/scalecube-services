@@ -31,7 +31,16 @@ class ServiceMethodInvokerTest {
       Collections.singletonMap("token", "asdjf9asdjf0as9fkasdf9afkds");
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
-  private final PrincipalMapper<Object, Object> principalMapper = authData -> authData;
+
+  private final Authenticator<Object> nullAuthenticator = null;
+  private final Authenticator<Object> authenticator = creds -> Mono.just(AUTH_DATA);
+
+  private final PrincipalMapper<Object, Object> nullPrincipalMapper = null;
+
+  @SuppressWarnings("unchecked")
+  private final PrincipalMapper<Object, Object> principalMapper =
+      authData -> new StubServicePrincipal(((Map<String, String>) authData).get("token"));
+
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
@@ -62,7 +71,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -99,7 +109,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -136,7 +147,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -174,7 +186,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -215,7 +228,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -255,7 +269,8 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -276,7 +291,7 @@ class ServiceMethodInvokerTest {
       "invocation of auth method should return error "
           + "if there're no auth.context and no authenticator")
   void testAuthMethodWhenNoContextAndNoAuthenticator() throws Exception {
-    final String methodName = "throwException";
+    final String methodName = "helloAuthContext";
     final Class<? extends StubService> serviceClass = stubService.getClass();
     final Method method = serviceClass.getMethod(methodName);
 
@@ -299,15 +314,14 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            principalMapper);
+            nullAuthenticator,
+            nullPrincipalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
-    final Mono<ServiceMessage> invokeOne =
-        Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
-            .subscriberContext(context -> context.put(AUTH_CONTEXT_KEY, AUTH_DATA));
+    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
 
     StepVerifier.create(invokeOne)
         .assertNext(serviceMessage -> Assertions.assertTrue(serviceMessage.isError()))
@@ -342,6 +356,7 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
+            nullAuthenticator,
             principalMapper);
 
     ServiceMessage message =
@@ -349,9 +364,7 @@ class ServiceMethodInvokerTest {
 
     StepVerifier.create(
             Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
-                .subscriberContext(
-                    context ->
-                        context.put(AUTH_CONTEXT_KEY, AUTH_DATA).put("NON_AUTH_CONTEXT", "test")))
+                .subscriberContext(context -> context.put(AUTH_CONTEXT_KEY, AUTH_DATA)))
         .verifyComplete();
   }
 
@@ -388,16 +401,12 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
+            authenticator,
             principalMapper);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
-    StepVerifier.create(
-            Mono.deferWithContext(context -> serviceMethodInvoker.invokeOne(message))
-                .subscriberContext(
-                    context ->
-                        context.put(AUTH_CONTEXT_KEY, AUTH_DATA).put("NON_AUTH_CONTEXT", "test")))
-        .verifyComplete();
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
 }

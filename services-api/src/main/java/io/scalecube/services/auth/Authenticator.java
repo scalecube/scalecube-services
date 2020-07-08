@@ -15,5 +15,7 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface Authenticator<R> extends Function<Map<String, String>, Mono<R>> {
 
+  Object NULL_AUTH_CONTEXT = new Object();
+
   String AUTH_CONTEXT_KEY = "auth.context";
 }
