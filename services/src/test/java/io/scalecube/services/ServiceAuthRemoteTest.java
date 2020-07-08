@@ -152,7 +152,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
       Consumer<Throwable> verifyError =
           th -> {
             assertEquals(UnauthorizedException.class, th.getClass());
-            assertEquals("Authentication failed (auth context not found)", th.getMessage());
+            assertEquals("Authentication failed", th.getMessage());
           };
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -181,7 +181,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
       Consumer<Throwable> verifyError =
           th -> {
             assertEquals(UnauthorizedException.class, th.getClass());
-            assertEquals("Authentication failed (auth context not found)", th.getMessage());
+            assertEquals("Authentication failed", th.getMessage());
           };
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -257,7 +257,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
       Consumer<Throwable> verifyError =
           th -> {
             assertEquals(UnauthorizedException.class, th.getClass());
-            assertEquals("Authentication failed (auth context not found)", th.getMessage());
+            assertEquals("Authentication failed", th.getMessage());
           };
 
       StepVerifier.create(caller.call().api(PartiallySecuredService.class).securedMethod("Alice"))
