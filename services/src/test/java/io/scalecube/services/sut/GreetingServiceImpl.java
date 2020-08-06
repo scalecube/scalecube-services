@@ -79,13 +79,32 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public Flux<ServiceMessage> bidiGreetingMessage(Publisher<ServiceMessage> requests) {
+    return Flux.from(requests).map(request -> {
+      GreetingRequest data = request.data();
+      GreetingResponse resp = new GreetingResponse(" hello to: " + data.getName(), "1");
+      return ServiceMessage.builder().data(resp).build();
+    });
+  }
+
+  @Override
   public Flux<GreetingResponse> bidiGreetingNotAuthorized(Flux<GreetingRequest> request) {
+    return Flux.error(new ForbiddenException("Not authorized"));
+  }
+
+  @Override
+  public Flux<ServiceMessage> bidiGreetingNotAuthorizedMessage(Publisher<ServiceMessage> requests) {
     return Flux.error(new ForbiddenException("Not authorized"));
   }
 
   @Override
   public Flux<GreetingResponse> bidiGreetingIllegalArgumentException(
       Publisher<GreetingRequest> request) {
+    throw new IllegalArgumentException("IllegalArgumentException");
+  }
+
+  @Override
+  public Flux<ServiceMessage> bidiGreetingIllegalArgumentExceptionMessage(Publisher<ServiceMessage> requests) {
     throw new IllegalArgumentException("IllegalArgumentException");
   }
 

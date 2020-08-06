@@ -115,9 +115,18 @@ public class Reflect {
    * @return true if the first parameter of method is ServiceMessage, otherwise false
    */
   public static boolean isRequestTypeServiceMessage(Method method) {
-    Class<?>[] parameterTypes = method.getParameterTypes();
+    Type[] parameterTypes = method.getGenericParameterTypes();
 
-    return parameterTypes.length > 0 && ServiceMessage.class.equals(parameterTypes[0]);
+    if (parameterTypes.length < 1) {
+      return false;
+    }
+
+    if (parameterTypes[0] instanceof ParameterizedType) {
+      ParameterizedType parameterizedType = (ParameterizedType) parameterTypes[0];
+      return ServiceMessage.class.equals(parameterizedType.getActualTypeArguments()[0]);
+    }
+
+    return ServiceMessage.class.equals(parameterTypes[0]);
   }
 
   /**

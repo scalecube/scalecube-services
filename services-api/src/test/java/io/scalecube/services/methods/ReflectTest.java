@@ -10,6 +10,8 @@ import io.scalecube.services.Reflect;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Stream;
+
+import io.scalecube.services.api.ServiceMessage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -26,7 +28,7 @@ public class ReflectTest {
    * @param expectedMode expected mode
    */
   @ParameterizedTest
-  @MethodSource("argsProvider")
+  @MethodSource("argsCommunicationModeProvider")
   public void testCommunicationMode(String methodName, CommunicationMode expectedMode) {
     // Given:
     Method m =
@@ -40,12 +42,47 @@ public class ReflectTest {
     Assertions.assertEquals(expectedMode, communicationMode, "Invalid communicationMode");
   }
 
-  static Stream<Arguments> argsProvider() {
+  static Stream<Arguments> argsCommunicationModeProvider() {
     return Stream.of(
         Arguments.of("fireAndForget", FIRE_AND_FORGET),
+        Arguments.of("emptyResponse", REQUEST_RESPONSE),
         Arguments.of("requestResponse", REQUEST_RESPONSE),
         Arguments.of("requestStream", REQUEST_STREAM),
-        Arguments.of("requestChannel", REQUEST_CHANNEL));
+        Arguments.of("requestChannel", REQUEST_CHANNEL),
+        Arguments.of("fireAndForgetMessage", FIRE_AND_FORGET),
+        Arguments.of("emptyResponseMessage", REQUEST_RESPONSE),
+        Arguments.of("requestResponseMessage", REQUEST_RESPONSE),
+        Arguments.of("requestStreamMessage", REQUEST_STREAM),
+        Arguments.of("requestChannelMessage", REQUEST_CHANNEL));
+  }
+
+  @ParameterizedTest
+  @MethodSource("argsIsRequestTypeServiceMessage")
+  public void testIsRequestTypeServiceMessage(String methodName, boolean expect) {
+    // Given:
+    Method method = Arrays.stream(ReflectTest.TestService.class.getMethods())
+            .filter(meth -> meth.getName().equals(methodName))
+            .findFirst()
+            .get();
+    // When:
+    boolean actual = Reflect.isRequestTypeServiceMessage(method);
+    // Then:
+    Assertions.assertEquals(expect, actual,
+            String.format("isRequestTypeServiceMessage(%s) should be %b", methodName, expect));
+  }
+
+  static Stream<Arguments> argsIsRequestTypeServiceMessage() {
+    return Stream.of(
+            Arguments.of("fireAndForget", false),
+            Arguments.of("emptyResponse", false),
+            Arguments.of("requestResponse", false),
+            Arguments.of("requestStream", false),
+            Arguments.of("requestChannel", false),
+            Arguments.of("fireAndForgetMessage", true),
+            Arguments.of("emptyResponseMessage", true),
+            Arguments.of("requestResponseMessage", true),
+            Arguments.of("requestStreamMessage", true),
+            Arguments.of("requestChannelMessage", true));
   }
 
   private interface TestService {
@@ -58,5 +95,16 @@ public class ReflectTest {
     Flux<Integer> requestStream(Integer i);
 
     Flux<Integer> requestChannel(Flux<Integer> i);
+
+    void fireAndForgetMessage(ServiceMessage sm);
+
+    Mono<Void> emptyResponseMessage(ServiceMessage sm);
+
+    Mono<ServiceMessage> requestResponseMessage(ServiceMessage sm);
+
+    Flux<ServiceMessage> requestStreamMessage(ServiceMessage sm);
+
+    Flux<ServiceMessage> requestChannelMessage(Flux<ServiceMessage> sm);
+
   }
 }
