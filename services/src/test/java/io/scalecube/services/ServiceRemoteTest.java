@@ -27,10 +27,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Hooks;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.*;
 import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
@@ -370,6 +367,25 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   @Test
+  public void test_remote_bidi_greeting_message_expect_IllegalArgumentException() {
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy();
+
+    // call the service. bidiThrowingGreeting
+    Flux<GreetingResponse> responses =
+            service.bidiGreetingIllegalArgumentExceptionMessage(
+                    Mono.just(ServiceMessage.builder()
+                            .data(new GreetingRequest("IllegalArgumentException")).build()))
+            .map(ServiceMessage::data);
+
+    // call the service.
+    StepVerifier.create(responses)
+            .expectErrorMessage("IllegalArgumentException")
+            .verify(Duration.ofSeconds(3));
+  }
+
+  @Test
   public void test_remote_bidi_greeting_expect_NotAuthorized() {
 
     // get a proxy to the service api.
@@ -387,6 +403,25 @@ public class ServiceRemoteTest extends BaseTest {
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
         .verify(Duration.ofSeconds(3));
+  }
+
+  @Test
+  public void test_remote_bidi_greeting_message_expect_NotAuthorized() {
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy();
+
+    DirectProcessor<GreetingRequest> requests = DirectProcessor.create();
+
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreetingNotAuthorizedMessage(
+            requests.map(request -> ServiceMessage.builder().data(request).build()))
+            .map(ServiceMessage::data);
+
+    StepVerifier.create(responses)
+            .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+            .expectErrorMessage("Not authorized")
+            .verify(Duration.ofSeconds(3));
   }
 
   @Test
@@ -413,6 +448,31 @@ public class ServiceRemoteTest extends BaseTest {
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
+  }
+
+  @Test
+  public void test_remote_bidi_greeting_message_expect_GreetingResponse() {
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy();
+
+    UnicastProcessor<GreetingRequest> requests = UnicastProcessor.create();
+
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreetingMessage(requests
+            .map(request -> ServiceMessage.builder().data(request).build()))
+            .map(ServiceMessage::data);
+
+    StepVerifier.create(responses)
+            .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
+            .then(() -> requests.onNext(new GreetingRequest("joe-2")))
+            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
+            .then(() -> requests.onNext(new GreetingRequest("joe-3")))
+            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+            .then(() -> requests.onComplete())
+            .expectComplete()
+            .verify(Duration.ofSeconds(3));
   }
 
   @Test
