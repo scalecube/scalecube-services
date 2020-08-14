@@ -27,7 +27,12 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.*;
+import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
@@ -374,15 +379,18 @@ public class ServiceRemoteTest extends BaseTest {
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
-            service.bidiGreetingIllegalArgumentExceptionMessage(
-                    Mono.just(ServiceMessage.builder()
-                            .data(new GreetingRequest("IllegalArgumentException")).build()))
+        service
+            .bidiGreetingIllegalArgumentExceptionMessage(
+                Mono.just(
+                    ServiceMessage.builder()
+                        .data(new GreetingRequest("IllegalArgumentException"))
+                        .build()))
             .map(ServiceMessage::data);
 
     // call the service.
     StepVerifier.create(responses)
-            .expectErrorMessage("IllegalArgumentException")
-            .verify(Duration.ofSeconds(3));
+        .expectErrorMessage("IllegalArgumentException")
+        .verify(Duration.ofSeconds(3));
   }
 
   @Test
@@ -414,14 +422,16 @@ public class ServiceRemoteTest extends BaseTest {
     DirectProcessor<GreetingRequest> requests = DirectProcessor.create();
 
     // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreetingNotAuthorizedMessage(
-            requests.map(request -> ServiceMessage.builder().data(request).build()))
+    Flux<GreetingResponse> responses =
+        service
+            .bidiGreetingNotAuthorizedMessage(
+                requests.map(request -> ServiceMessage.builder().data(request).build()))
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-            .then(() -> requests.onNext(new GreetingRequest("joe-1")))
-            .expectErrorMessage("Not authorized")
-            .verify(Duration.ofSeconds(3));
+        .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+        .expectErrorMessage("Not authorized")
+        .verify(Duration.ofSeconds(3));
   }
 
   @Test
@@ -459,20 +469,22 @@ public class ServiceRemoteTest extends BaseTest {
     UnicastProcessor<GreetingRequest> requests = UnicastProcessor.create();
 
     // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreetingMessage(requests
-            .map(request -> ServiceMessage.builder().data(request).build()))
+    Flux<GreetingResponse> responses =
+        service
+            .bidiGreetingMessage(
+                requests.map(request -> ServiceMessage.builder().data(request).build()))
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-            .then(() -> requests.onNext(new GreetingRequest("joe-1")))
-            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
-            .then(() -> requests.onNext(new GreetingRequest("joe-2")))
-            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
-            .then(() -> requests.onNext(new GreetingRequest("joe-3")))
-            .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
-            .then(() -> requests.onComplete())
-            .expectComplete()
-            .verify(Duration.ofSeconds(3));
+        .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
+        .then(() -> requests.onNext(new GreetingRequest("joe-2")))
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
+        .then(() -> requests.onNext(new GreetingRequest("joe-3")))
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .then(() -> requests.onComplete())
+        .expectComplete()
+        .verify(Duration.ofSeconds(3));
   }
 
   @Test
