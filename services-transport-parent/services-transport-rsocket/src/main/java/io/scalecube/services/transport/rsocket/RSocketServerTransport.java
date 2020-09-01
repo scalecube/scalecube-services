@@ -5,6 +5,7 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.ConnectionSetupCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
