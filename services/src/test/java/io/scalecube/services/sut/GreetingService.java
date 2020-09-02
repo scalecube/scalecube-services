@@ -71,10 +71,25 @@ public interface GreetingService {
   Flux<GreetingResponse> bidiGreeting(Publisher<GreetingRequest> request);
 
   @ServiceMethod
+  @RequestType(GreetingRequest.class)
+  @ResponseType(GreetingResponse.class)
+  Flux<ServiceMessage> bidiGreetingMessage(Publisher<ServiceMessage> requests);
+
+  @ServiceMethod
   Flux<GreetingResponse> bidiGreetingNotAuthorized(Flux<GreetingRequest> request);
 
   @ServiceMethod
+  @RequestType(GreetingRequest.class)
+  @ResponseType(GreetingResponse.class)
+  Flux<ServiceMessage> bidiGreetingNotAuthorizedMessage(Publisher<ServiceMessage> requests);
+
+  @ServiceMethod
   Flux<GreetingResponse> bidiGreetingIllegalArgumentException(Publisher<GreetingRequest> request);
+
+  @ServiceMethod
+  @RequestType(GreetingRequest.class)
+  @ResponseType(GreetingResponse.class)
+  Flux<ServiceMessage> bidiGreetingIllegalArgumentExceptionMessage(Publisher<ServiceMessage> requests);
 
   @ServiceMethod
   Mono<GreetingResponse> greetingMonoEmpty(GreetingRequest request);

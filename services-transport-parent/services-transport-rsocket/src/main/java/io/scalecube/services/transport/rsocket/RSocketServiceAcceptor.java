@@ -9,6 +9,8 @@ import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.ConnectionSetup;
+import io.scalecube.services.auth.ConnectionSetupCodec;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.exceptions.ServiceException;

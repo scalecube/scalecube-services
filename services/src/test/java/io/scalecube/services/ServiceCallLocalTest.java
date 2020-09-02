@@ -19,13 +19,20 @@ import static org.junit.jupiter.api.Assertions.fail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.EmptyGreetingResponse;
+import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
+import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
@@ -174,5 +181,38 @@ public class ServiceCallLocalTest extends BaseTest {
       assertEquals(
           ex.getMessage(), "No reachable member with such service: " + NOT_FOUND_REQ.qualifier());
     }
+  }
+
+  @Test
+  public void test_custom_error_mapper() {
+    GreetingService service =
+        new ServiceCall()
+            .errorMapper(
+                message -> {
+                  throw new RuntimeException("custom error mapper");
+                })
+            .transport(new RSocketServiceTransport().start().block().clientTransport())
+            .router(ServiceCallLocalTest::route)
+            .api(GreetingService.class);
+
+    StepVerifier.create(service.exceptionRequest(new GreetingRequest()))
+        .expectErrorSatisfies(
+            throwable -> {
+              Assertions.assertEquals(RuntimeException.class, throwable.getClass());
+              Assertions.assertEquals("custom error mapper", throwable.getMessage());
+            })
+        .verify(timeout);
+  }
+
+  private static Optional<ServiceReference> route(
+      ServiceRegistry serviceRegistry, ServiceMessage request) {
+    return Optional.of(
+        new ServiceReference(
+            new ServiceMethodDefinition("dummy"),
+            new ServiceRegistration("ns", Collections.emptyMap(), Collections.emptyList()),
+            ServiceEndpoint.builder()
+                .id(UUID.randomUUID().toString())
+                .address(provider.serviceAddress())
+                .build()));
   }
 }
