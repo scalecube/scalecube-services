@@ -1,4 +1,4 @@
-package io.scalecube.services.auth;
+package io.scalecube.services.transport.rsocket;
 
 import java.io.IOException;
 import java.io.InputStream;

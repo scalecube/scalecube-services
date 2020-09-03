@@ -1,4 +1,4 @@
-package io.scalecube.services.auth;
+package io.scalecube.services.transport.rsocket;
 
 import io.scalecube.utils.MaskUtil;
 import java.io.Externalizable;
