@@ -10,8 +10,6 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.net.Address;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.auth.ConnectionSetup;
-import io.scalecube.services.auth.ConnectionSetupCodec;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.exceptions.ServiceException;
