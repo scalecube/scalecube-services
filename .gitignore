@@ -1,20 +1,13 @@
-# everything that starts with dot (hidden files)
 .*
-# except this file
 !.gitignore
-# except this file-extention
+!.gitattributes
+!.github
+!.editorconfig
 !.*.yml
-
-# Build targets
+!.env.example
 **/target/
-
-# logs and reports
+*.iml
+**/logs/*.log
+*.db
 *.csv
 *.log
-*.zip
-
-# IntelliJ IDEA project files and directories
-*.iml
-
-**/pom.xml.releaseBackup
-/release.properties
