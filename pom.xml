@@ -1,38 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
-  <artifactId>scalecube-services-parent</artifactId>
-  <version>2.10.6-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.1.2-RC3</version>
+    <version>0.2.1</version>
   </parent>
-  <packaging>pom</packaging>
 
-  <name>ScaleCube</name>
+  <artifactId>scalecube-services-parent</artifactId>
+  <version>2.10.6-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>ScaleCube-Services</name>
+
+  <repositories>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/scalecube/packages</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>oss.jfrog</id>
+      <name>jfrog</name>
+      <url>https://oss.jfrog.org/libs-release</url>
+    </repository>
+    <repository>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>bintray</id>
+      <name>bintray</name>
+      <url>https://jcenter.bintray.com</url>
+    </repository>
+    <repository>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <id>central</id>
+      <name>central</name>
+      <url>https://repo1.maven.org</url>
+    </repository>
+  </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>github</id>
+      <name>GitHub Packages</name>
+      <url>https://maven.pkg.github.com/scalecube/scalecube-services</url>
+    </repository>
+  </distributionManagement>
+
   <scm>
     <url>https://github.com/scalecube/scalecube-services</url>
-    <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
-    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git
+    <connection>scm:git:https://github.com/scalecube/scalecube-services.git</connection>
+    <developerConnection>scm:git:https://github.com/scalecube/scalecube-services.git
     </developerConnection>
     <tag>HEAD</tag>
   </scm>
 
   <properties>
-    <jackson.version>2.11.0</jackson.version>
-    <scalecube-cluster.version>2.6.0-RC7</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.7</scalecube-commons.version>
+    <scalecube-cluster.version>2.6.1</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.10</scalecube-commons.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.4.4</scalecube-config.version>
+    <scalecube-config.version>0.4.6</scalecube-config.version>
     <reactor.version>Dysprosium-SR9</reactor.version>
+
+    <jackson.version>2.11.0</jackson.version>
     <rsocket.version>1.0.1</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
     <slf4j.version>1.7.30</slf4j.version>
     <log4j.version>2.13.2</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
+
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
     <junit.version>5.1.1</junit.version>
@@ -208,33 +255,6 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>oss.jfrog</id>
-      <name>jfrog</name>
-      <url>https://oss.jfrog.org/libs-release</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>bintray</id>
-      <name>bintray</name>
-      <url>https://jcenter.bintray.com</url>
-    </repository>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>central</name>
-      <url>https://repo1.maven.org</url>
-    </repository>
-  </repositories>
 
   <pluginRepositories>
     <pluginRepository>
