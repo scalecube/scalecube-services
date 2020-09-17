@@ -1,0 +1,10 @@
+# Auto detect text files and perform LF normalization
+*       text=auto
+*.txt   text
+*.sh    text eol=lf
+*.html  text eol=lf diff=html
+*.css   text eol=lf
+*.js    text eol=lf
+*.jpg   -text
+*.pdf   -text
+*.java  text diff=java

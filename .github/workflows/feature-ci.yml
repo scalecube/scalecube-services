@@ -1,0 +1,37 @@
+name: Feature Branch CI
+
+on:
+  push:
+    paths-ignore:
+      - '.github/workflows/**'
+      - 'README.md'
+    branches-ignore:
+      - 'master'
+      - 'develop'
+      - 'release*'
+
+jobs:
+  build:
+    name: Feature Branch CI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+      - name: Maven Build
+        run: mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -Ddockerfile.skip=true -B -V
+        env:
+          GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
+      - name: Maven Verify
+        run: mvn verify -B
