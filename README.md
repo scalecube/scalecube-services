@@ -1,5 +1,4 @@
 # scalecube-services
-[![Build Status](https://travis-ci.org/scalecube/scalecube-services.svg?branch=develop)](https://travis-ci.org/scalecube/scalecube-services)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5e2ee9be41f7425590313ee1b8f737d7)](https://app.codacy.com/app/ScaleCube/scalecube-services?utm_source=github.com&utm_medium=referral&utm_content=scalecube/scalecube-services&utm_campaign=badger)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
 [![SourceSpy Dashboard](https://sourcespy.com/shield.svg)](https://sourcespy.com/github/scalecubescalecubeservices/)
@@ -10,7 +9,7 @@
  <tr>
    <td>
     An open-source project that is focused on streamlining reactive-programming of Microservices Reactive-systems that scale, built by developers for developers.<br><br>
-ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
+ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery
 based on gossip protocol, without single point-of-failure or bottlenecks.<br><br>
     Scalecube more gracefully address the cross cutting concernes of distributed microservices architecture.
     <br><br>
@@ -32,7 +31,7 @@ ScaleCube Services Features:
 * Reactive Streams support.
   * Fire And Forget - Send and not wait for a reply
   * Request Response - Send single request and expect single reply
-  * Request Stream - Send single request and expect stream of responses. 
+  * Request Stream - Send single request and expect stream of responses.
   * Request bidirectional - send stream of requests and expect stream of responses.
 * Built-in failure detection, fault tolerance, and elasticity
 * Routing and balancing strategies for both stateless and stateful services
@@ -55,10 +54,10 @@ User Guide:
 
 Basic Usage:
 
-The example provisions 2 cluster nodes and making a remote interaction. 
-1. seed is a member node and provision no services of its own. 
+The example provisions 2 cluster nodes and making a remote interaction.
+1. seed is a member node and provision no services of its own.
 2. then microservices variable is a member that joins seed member and provision GreetingService instance.
-3. finally from seed node - create a proxy by the GreetingService api and send a greeting request. 
+3. finally from seed node - create a proxy by the GreetingService api and send a greeting request.
 
 ```java
     //1. ScaleCube Node node with no members
@@ -126,19 +125,19 @@ Basic API-Gateway example:
         .gateway(options -> new WebsocketGateway(options.id("ws").port(8080)))
         .gateway(options -> new HttpGateway(options.id("http").port(7070)))
         .gateway(options -> new RSocketGateway(options.id("rsws").port(9090)))
-        
+
         .startAwait();
-        
+
         // HINT: you can try connect using the api sandbox to these ports to try the api.
         // http://scalecube.io/api-sandbox/app/index.html
 ```
 
 ### Maven
 
-With scalecube-services you may plug-and-play alternative providers for Transport,Codecs and discovery. 
-Scalecube is using ServiceLoader to load providers from class path, 
-  
-You can think about scalecube as slf4j for microservices - Currently supported SPIs: 
+With scalecube-services you may plug-and-play alternative providers for Transport,Codecs and discovery.
+Scalecube is using ServiceLoader to load providers from class path,
+
+You can think about scalecube as slf4j for microservices - Currently supported SPIs:
 
 **Transport providers:**
 
@@ -148,12 +147,12 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 
 * scalecube-services-transport-jackson: using Jackson to encode / decode service messages. https://github.com/FasterXML
 * scalecube-services-transport-protostuff: using protostuff to encode / decode service messages. https://github.com/protostuff
- 
+
 **Service discovery providers:**
 
 * scalecube-services-discovery: using scalecue-cluster do locate service Endpoint within the cluster
    https://github.com/scalecube/scalecube-cluster
-    
+
 
 Binaries and dependency information for Maven can be found at http://search.maven.org.
 
@@ -170,7 +169,7 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  </properties>
 
  <!-- -------------------------------------------
-   scalecube core and api:   
+   scalecube core and api:
  ------------------------------------------- -->
 
  <!-- scalecube apis   -->
@@ -179,14 +178,14 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <artifactId>scalecube-services-api</artifactId>
   <version>${scalecube.version}</version>
  </dependency>
- 
+
  <!-- scalecube services module   -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
   <version>${scalecube.version}</version>
  </dependency>
- 
+
 
  <!--
 
@@ -200,7 +199,7 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-transport-rsocket</artifactId>
   <version>${scalecube.version}</version>
- </dependency> 
+ </dependency>
 ```
 
 ----
