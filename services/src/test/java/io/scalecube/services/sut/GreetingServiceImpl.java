@@ -80,11 +80,13 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Flux<ServiceMessage> bidiGreetingMessage(Publisher<ServiceMessage> requests) {
-    return Flux.from(requests).map(request -> {
-      GreetingRequest data = request.data();
-      GreetingResponse resp = new GreetingResponse(" hello to: " + data.getName(), "1");
-      return ServiceMessage.builder().data(resp).build();
-    });
+    return Flux.from(requests)
+        .map(
+            request -> {
+              GreetingRequest data = request.data();
+              GreetingResponse resp = new GreetingResponse(" hello to: " + data.getName(), "1");
+              return ServiceMessage.builder().data(resp).build();
+            });
   }
 
   @Override
@@ -104,7 +106,8 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Flux<ServiceMessage> bidiGreetingIllegalArgumentExceptionMessage(Publisher<ServiceMessage> requests) {
+  public Flux<ServiceMessage> bidiGreetingIllegalArgumentExceptionMessage(
+      Publisher<ServiceMessage> requests) {
     throw new IllegalArgumentException("IllegalArgumentException");
   }
 

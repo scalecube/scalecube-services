@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -67,8 +69,6 @@
   <properties>
     <scalecube-cluster.version>2.6.1</scalecube-cluster.version>
     <scalecube-commons.version>1.0.10</scalecube-commons.version>
-    <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.4.6</scalecube-config.version>
     <reactor.version>Dysprosium-SR9</reactor.version>
 
     <jackson.version>2.11.0</jackson.version>
@@ -91,8 +91,7 @@
     <module>services-discovery</module>
     <module>services-bytebuf-codec</module>
     <module>services</module>
-    <module>services-benchmarks</module>
-    <module>services-examples-parent</module>
+    <module>services-examples</module>
   </modules>
 
   <dependencyManagement>
@@ -115,13 +114,6 @@
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-codec-jackson</artifactId>
         <version>${scalecube-cluster.version}</version>
-      </dependency>
-
-      <!-- Scalecube Config -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>config</artifactId>
-        <version>${scalecube-config.version}</version>
       </dependency>
 
       <!-- Reactor -->
@@ -192,18 +184,6 @@
         <groupId>io.protostuff</groupId>
         <artifactId>protostuff-runtime</artifactId>
         <version>${protostuff.version}</version>
-      </dependency>
-
-      <!-- Scalecube benchmarks -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-api</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-log4j2</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
       </dependency>
 
       <!-- JCTools -->
