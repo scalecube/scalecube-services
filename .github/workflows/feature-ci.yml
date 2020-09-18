@@ -7,7 +7,6 @@ on:
       - 'README.md'
     branches-ignore:
       - 'master'
-      - 'develop'
       - 'release*'
 
 jobs:
