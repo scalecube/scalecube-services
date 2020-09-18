@@ -130,7 +130,7 @@ public final class Microservices {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
-  private final String id = UUID.randomUUID().toString().replace("-", "");
+  private final String id = UUID.randomUUID().toString();
   private final Map<String, String> tags;
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
