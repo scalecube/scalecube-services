@@ -7,11 +7,10 @@ import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
+import io.scalecube.services.api.ServiceMessage;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Stream;
-
-import io.scalecube.services.api.ServiceMessage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -60,29 +59,32 @@ public class ReflectTest {
   @MethodSource("argsIsRequestTypeServiceMessage")
   public void testIsRequestTypeServiceMessage(String methodName, boolean expect) {
     // Given:
-    Method method = Arrays.stream(ReflectTest.TestService.class.getMethods())
+    Method method =
+        Arrays.stream(ReflectTest.TestService.class.getMethods())
             .filter(meth -> meth.getName().equals(methodName))
             .findFirst()
             .get();
     // When:
     boolean actual = Reflect.isRequestTypeServiceMessage(method);
     // Then:
-    Assertions.assertEquals(expect, actual,
-            String.format("isRequestTypeServiceMessage(%s) should be %b", methodName, expect));
+    Assertions.assertEquals(
+        expect,
+        actual,
+        String.format("isRequestTypeServiceMessage(%s) should be %b", methodName, expect));
   }
 
   static Stream<Arguments> argsIsRequestTypeServiceMessage() {
     return Stream.of(
-            Arguments.of("fireAndForget", false),
-            Arguments.of("emptyResponse", false),
-            Arguments.of("requestResponse", false),
-            Arguments.of("requestStream", false),
-            Arguments.of("requestChannel", false),
-            Arguments.of("fireAndForgetMessage", true),
-            Arguments.of("emptyResponseMessage", true),
-            Arguments.of("requestResponseMessage", true),
-            Arguments.of("requestStreamMessage", true),
-            Arguments.of("requestChannelMessage", true));
+        Arguments.of("fireAndForget", false),
+        Arguments.of("emptyResponse", false),
+        Arguments.of("requestResponse", false),
+        Arguments.of("requestStream", false),
+        Arguments.of("requestChannel", false),
+        Arguments.of("fireAndForgetMessage", true),
+        Arguments.of("emptyResponseMessage", true),
+        Arguments.of("requestResponseMessage", true),
+        Arguments.of("requestStreamMessage", true),
+        Arguments.of("requestChannelMessage", true));
   }
 
   private interface TestService {
@@ -105,6 +107,5 @@ public class ReflectTest {
     Flux<ServiceMessage> requestStreamMessage(ServiceMessage sm);
 
     Flux<ServiceMessage> requestChannelMessage(Flux<ServiceMessage> sm);
-
   }
 }

@@ -1,18 +1,12 @@
-name: Feature Branch CI
+name: Pre-release CI
 
 on:
-  push:
-    paths-ignore:
-      - '.github/workflows/**'
-      - 'README.md'
-    branches-ignore:
-      - 'master'
-      - 'develop'
-      - 'release*'
+  release:
+    types: [prereleased]
 
 jobs:
   build:
-    name: Feature Branch CI
+    name: Pre-release CI
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -29,9 +23,15 @@ jobs:
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
-      - name: Maven Build
-        run: mvn clean install -DskipTests=true -Dmaven.javadoc.skip=true -Ddockerfile.skip=true -B -V
+      - name: Deploy pre-release version
+        run: |
+          pre_release_version=${{ github.event.release.tag_name }}
+          echo Pre-release version $pre_release_version
+          mvn versions:set -DnewVersion=$pre_release_version -DgenerateBackupPoms=false
+          mvn versions:commit
+          mvn clean deploy -B -V
         env:
           GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
-      - name: Maven Verify
-        run: mvn verify -B
+      - name: Rollback pre-release (remove tag)
+        if: failure()
+        run: git push origin :refs/tags/${{ github.event.release.tag_name }}
