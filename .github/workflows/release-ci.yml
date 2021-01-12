@@ -19,7 +19,7 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Set up JDK 1.8
+      - name: Set up Java for publishing to GitHub Packages
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
@@ -44,10 +44,30 @@ jobs:
             -Darguments="-DskipTests=true -Ddockerfile.skip=true"
           echo ::set-output name=release_tag::$(git describe --tags --abbrev=0)
       - name: Perform release
-        run: mvn -B release:perform -Darguments="-DskipTests=true -Ddockerfile.skip=true"
+        run: mvn -B release:perform -Pdeploy2Github -Darguments="-DskipTests=true -Ddockerfile.skip=true -Pdeploy2Github"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ secrets.GITHUB_REPOSITORY }}
+      - name: Set up Java for publishing to Maven Central Repository
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+          server-id: ossrh
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - name: Deploy release version to the Maven Central Repository
+        run: |
+          release_version=$(echo ${{ steps.prepare_release.outputs.release_tag }} | sed "s/release-//")
+          echo release version $release_version
+          mvn versions:set -DnewVersion=$release_version -DgenerateBackupPoms=false
+          mvn versions:commit
+          mvn deploy -Pdeploy2Maven -DskipTests -B -V
+        env:
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       - name: Rollback release
         if: failure()
         run: |
