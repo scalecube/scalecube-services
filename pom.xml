@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.2.17</version>
+    <version>0.2.19</version>
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -48,14 +48,6 @@
     </repository>
   </repositories>
 
-  <distributionManagement>
-    <repository>
-      <id>github</id>
-      <name>GitHub Packages</name>
-      <url>https://maven.pkg.github.com/scalecube/scalecube-services</url>
-    </repository>
-  </distributionManagement>
-
   <scm>
     <url>https://github.com/scalecube/scalecube-services</url>
     <connection>scm:git:https://github.com/scalecube/scalecube-services.git</connection>
@@ -65,8 +57,8 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.2</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.11</scalecube-commons.version>
+    <scalecube-cluster.version>2.6.5</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.12</scalecube-commons.version>
     <reactor.version>Dysprosium-SR9</reactor.version>
 
     <jackson.version>2.11.0</jackson.version>
@@ -250,5 +242,45 @@
       <url>https://jcenter.bintray.com</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <profiles>
+    <profile>
+      <id>deploy2Github</id>
+      <distributionManagement>
+        <repository>
+          <id>github</id>
+          <name>GitHub Packages</name>
+          <url>https://maven.pkg.github.com/scalecube/scalecube-services</url>
+        </repository>
+      </distributionManagement>
+    </profile>
+    <profile>
+      <id>deploy2Maven</id>
+      <distributionManagement>
+        <repository>
+          <id>ossrh</id>
+          <name>Central Repository OSSRH</name>
+          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+      </distributionManagement>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-source-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-javadoc-plugin</artifactId>
+          </plugin>
+          <plugin>
+            <artifactId>maven-gpg-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
