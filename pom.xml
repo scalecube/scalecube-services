@@ -57,7 +57,7 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.5</scalecube-cluster.version>
+    <scalecube-cluster.version>2.6.6</scalecube-cluster.version>
     <scalecube-commons.version>1.0.12</scalecube-commons.version>
     <reactor.version>Dysprosium-SR9</reactor.version>
 
