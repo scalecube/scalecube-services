@@ -28,6 +28,7 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
 
   @Override
   public void encode(OutputStream stream, Object value) throws IOException {
+    //noinspection rawtypes
     Schema schema = RuntimeSchema.getSchema(value.getClass());
     //noinspection unchecked
     ProtobufIOUtil.writeTo(stream, value, schema, LinkedBuffer.allocate());
@@ -48,6 +49,7 @@ public final class ProtostuffCodec implements HeadersCodec, DataCodec {
       } else if (type instanceof ParameterizedType) {
         clazz = Class.forName(((ParameterizedType) type).getRawType().getTypeName());
       }
+      //noinspection rawtypes
       Schema schema = RuntimeSchema.getSchema(clazz);
       Object result = schema.newMessage();
       //noinspection unchecked

@@ -35,7 +35,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 class ScalecubeServiceDiscoveryTest extends BaseTest {
@@ -244,7 +244,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   private static class RecordingServiceDiscovery {
 
     final Supplier<Mono<ServiceDiscovery>> supplier;
-    final ReplayProcessor<ServiceDiscoveryEvent> discoveryEvents = ReplayProcessor.create();
+    final Sinks.Many<ServiceDiscoveryEvent> sink = Sinks.many().replay().all();
 
     ServiceDiscovery serviceDiscovery; // effectively final
 
@@ -258,7 +258,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     Flux<ServiceDiscoveryEvent> nonGroupDiscoveryEvents() {
-      return discoveryEvents.filter(ScalecubeServiceDiscoveryTest::filterNonGroupDiscoveryEvents);
+      return sink.asFlux()
+          .onBackpressureBuffer()
+          .filter(ScalecubeServiceDiscoveryTest::filterNonGroupDiscoveryEvents);
     }
 
     RecordingServiceDiscovery resubscribe() {
@@ -282,7 +284,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     }
 
     private RecordingServiceDiscovery subscribe() {
-      serviceDiscovery.listen().subscribe(discoveryEvents);
+      serviceDiscovery
+          .listen()
+          .subscribe(sink::tryEmitNext, sink::tryEmitError, sink::tryEmitComplete);
       return this;
     }
 

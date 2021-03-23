@@ -32,10 +32,9 @@ import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -46,8 +45,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private ClusterConfig clusterConfig;
   private Cluster cluster;
 
-  private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
-  private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+  // Sink
+  private final Sinks.Many<ServiceDiscoveryEvent> sink =
+      Sinks.many().multicast().directBestEffort();
 
   /**
    * Constructor.
@@ -132,7 +132,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    */
   @Override
   public Mono<Void> start() {
-    return Mono.deferWithContext(
+    return Mono.deferContextual(
         context -> {
           ServiceDiscoveryContext.Builder discoveryContextBuilder =
               context.get(ServiceDiscoveryContext.Builder.class);
@@ -161,7 +161,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listen() {
-    return subject.onBackpressureBuffer();
+    return sink.asFlux().onBackpressureBuffer();
   }
 
   @Override
@@ -169,11 +169,11 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           if (cluster == null) {
-            sink.complete();
+            sink.tryEmitComplete();
             return Mono.empty();
           }
           cluster.shutdown();
-          return cluster.onShutdown().doFinally(s -> sink.complete());
+          return cluster.onShutdown().doFinally(s -> sink.tryEmitComplete());
         });
   }
 
@@ -190,7 +190,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.next(discoveryEvent);
+      sink.tryEmitNext(discoveryEvent);
     }
   }
 

@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
+import reactor.util.context.ContextView;
 
 public final class ServiceMethodInvoker {
 
@@ -70,7 +71,7 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.deferWithContext(context -> authenticate(message, context))
+    return Mono.deferContextual(context -> authenticate(message, context))
         .flatMap(authData -> deferWithContextOne(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(
@@ -84,7 +85,7 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
-    return Mono.deferWithContext(context -> authenticate(message, context))
+    return Mono.deferContextual(context -> authenticate(message, context))
         .flatMapMany(authData -> deferWithContextMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(
@@ -101,7 +102,7 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                Mono.deferWithContext(context -> authenticate(first.get(), context))
+                Mono.deferContextual(context -> authenticate(first.get(), context))
                     .flatMapMany(authData -> deferWithContextBidirectional(messages, authData))
                     .map(
                         response ->
@@ -112,18 +113,18 @@ public final class ServiceMethodInvoker {
   }
 
   private Mono<?> deferWithContextOne(ServiceMessage message, Object authData) {
-    return Mono.deferWithContext(context -> Mono.from(invoke(toRequest(message))))
-        .subscriberContext(context -> enhanceContextWithPrincipal(authData, context));
+    return Mono.deferContextual(context -> Mono.from(invoke(toRequest(message))))
+        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
   }
 
   private Flux<?> deferWithContextMany(ServiceMessage message, Object authData) {
-    return Flux.deferWithContext(context -> Flux.from(invoke(toRequest(message))))
-        .subscriberContext(context -> enhanceContextWithPrincipal(authData, context));
+    return Flux.deferContextual(context -> Flux.from(invoke(toRequest(message))))
+        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
   }
 
   private Flux<?> deferWithContextBidirectional(Flux<ServiceMessage> messages, Object authData) {
-    return Flux.deferWithContext(context -> messages.map(this::toRequest).transform(this::invoke))
-        .subscriberContext(context -> enhanceContextWithPrincipal(authData, context));
+    return Flux.deferContextual(context -> messages.map(this::toRequest).transform(this::invoke))
+        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -155,7 +156,7 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Mono<Object> authenticate(ServiceMessage message, Context context) {
+  private Mono<Object> authenticate(ServiceMessage message, ContextView context) {
     if (!methodInfo.isSecured()) {
       return Mono.just(NULL_AUTH_CONTEXT);
     }
