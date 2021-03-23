@@ -55,11 +55,9 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -143,8 +141,8 @@ public final class Microservices {
   private final ServiceMessageDataDecoder defaultDataDecoder;
   private final String defaultContentType;
   private final PrincipalMapper<Object, Object> defaultPrincipalMapper;
-  private final MonoProcessor<Void> shutdown = MonoProcessor.create();
-  private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
+  private final Sinks.One<Void> shutdown = Sinks.one();
+  private final Sinks.One<Void> onShutdown = Sinks.one();
   private ServiceEndpoint serviceEndpoint;
   private final String externalHost;
   private final Integer externalPort;
@@ -167,8 +165,9 @@ public final class Microservices {
 
     // Setup cleanup
     shutdown
+        .asMono()
         .then(doShutdown())
-        .doFinally(s -> onShutdown.onComplete())
+        .doFinally(s -> onShutdown.tryEmitEmpty())
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -345,7 +344,7 @@ public final class Microservices {
    * @return result of shutdown
    */
   public Mono<Void> shutdown() {
-    return Mono.fromRunnable(shutdown::onComplete).then(onShutdown);
+    return Mono.fromRunnable(shutdown::tryEmitEmpty).then(onShutdown.asMono());
   }
 
   /**
@@ -354,7 +353,7 @@ public final class Microservices {
    * @return signal of when shutdown completed
    */
   public Mono<Void> onShutdown() {
-    return onShutdown;
+    return onShutdown.asMono();
   }
 
   private Mono<Void> doShutdown() {
@@ -547,9 +546,9 @@ public final class Microservices {
     private final Map<String, ServiceDiscoveryContext> discoveryContexts =
         new ConcurrentHashMap<>();
 
-    // Subject
-    private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
-    private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+    // Sink
+    private final Sinks.Many<ServiceDiscoveryEvent> sink =
+        Sinks.many().multicast().directBestEffort();
 
     private final Disposable.Composite disposables = Disposables.composite();
     private Scheduler scheduler;
@@ -606,7 +605,7 @@ public final class Microservices {
     public Flux<ServiceDiscoveryEvent> listen() {
       return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
           .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(subject)
+          .concatWith(sink.asFlux().onBackpressureBuffer())
           .subscribeOn(scheduler)
           .publishOn(scheduler);
     }
@@ -641,12 +640,12 @@ public final class Microservices {
               .listen()
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(sink::next)
+              .doOnNext(sink::tryEmitNext)
               .subscribe());
 
-      return Mono.deferWithContext(context -> discovery.start())
+      return Mono.deferContextual(context -> discovery.start())
           .doOnSuccess(avoid -> discoveryContexts.put(id, discoveryContextBuilder.build()))
-          .subscriberContext(
+          .contextWrite(
               context ->
                   context.put(ServiceDiscoveryContext.Builder.class, discoveryContextBuilder));
     }

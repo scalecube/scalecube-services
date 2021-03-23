@@ -37,9 +37,9 @@ public interface RSocketServerTransportFactory {
                 TcpServer.create()
                     .runOn(loopResources)
                     .bindAddress(() -> new InetSocketAddress(port))
-                    .option(ChannelOption.TCP_NODELAY, true)
-                    .option(ChannelOption.SO_KEEPALIVE, true)
-                    .option(ChannelOption.SO_REUSEADDR, true));
+                    .childOption(ChannelOption.TCP_NODELAY, true)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true)
+                    .childOption(ChannelOption.SO_REUSEADDR, true));
   }
 
   /**
@@ -64,14 +64,11 @@ public interface RSocketServerTransportFactory {
         () ->
             WebsocketServerTransport.create(
                 HttpServer.create()
-                    .tcpConfiguration(
-                        tcpServer ->
-                            tcpServer
-                                .runOn(loopResources)
-                                .bindAddress(() -> new InetSocketAddress(port))
-                                .option(ChannelOption.TCP_NODELAY, true)
-                                .option(ChannelOption.SO_KEEPALIVE, true)
-                                .option(ChannelOption.SO_REUSEADDR, true)));
+                    .runOn(loopResources)
+                    .bindAddress(() -> new InetSocketAddress(port))
+                    .childOption(ChannelOption.TCP_NODELAY, true)
+                    .childOption(ChannelOption.SO_KEEPALIVE, true)
+                    .childOption(ChannelOption.SO_REUSEADDR, true));
   }
 
   ServerTransport<CloseableChannel> serverTransport();

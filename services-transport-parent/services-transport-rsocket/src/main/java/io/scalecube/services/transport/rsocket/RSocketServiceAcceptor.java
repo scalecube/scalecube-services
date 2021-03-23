@@ -137,7 +137,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
-      return Mono.deferWithContext(context -> Mono.just(toMessage(payload)))
+      return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
           .doOnNext(this::validateRequest)
           .flatMap(
               message -> {
@@ -149,12 +149,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
               })
           .map(this::toPayload)
           .doOnError(ex -> LOGGER.error("[requestResponse] Exception occurred: {}", ex.toString()))
-          .subscriberContext(this::enhanceContextWithAuthData);
+          .contextWrite(this::enhanceContextWithAuthData);
     }
 
     @Override
     public Flux<Payload> requestStream(Payload payload) {
-      return Mono.deferWithContext(context -> Mono.just(toMessage(payload)))
+      return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
           .doOnNext(this::validateRequest)
           .flatMapMany(
               message -> {
@@ -166,12 +166,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
               })
           .map(this::toPayload)
           .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred: {}", ex.toString()))
-          .subscriberContext(this::enhanceContextWithAuthData);
+          .contextWrite(this::enhanceContextWithAuthData);
     }
 
     @Override
     public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-      return Flux.deferWithContext(context -> Flux.from(payloads))
+      return Flux.deferContextual(context -> Flux.from(payloads))
           .map(this::toMessage)
           .switchOnFirst(
               (first, messages) -> {
@@ -188,7 +188,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
               })
           .map(this::toPayload)
           .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred: {}", ex.toString()))
-          .subscriberContext(this::enhanceContextWithAuthData);
+          .contextWrite(this::enhanceContextWithAuthData);
     }
 
     private Payload toPayload(ServiceMessage response) {

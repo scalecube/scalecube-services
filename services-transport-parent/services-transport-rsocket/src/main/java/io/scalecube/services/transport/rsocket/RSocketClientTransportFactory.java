@@ -7,6 +7,7 @@ import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.scalecube.net.Address;
 import java.util.function.Function;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.TcpClient;
 
@@ -65,22 +66,20 @@ public interface RSocketClientTransportFactory {
   static Function<LoopResources, RSocketClientTransportFactory> websocket(boolean isSecured) {
     return (LoopResources loopResources) ->
         (RSocketClientTransportFactory)
-            address ->
-                WebsocketClientTransport.create(
-                    HttpClient.newConnection()
-                        .tcpConfiguration(
-                            tcpClient -> {
-                              TcpClient tcpClient1 =
-                                  tcpClient
-                                      .runOn(loopResources)
-                                      .host(address.host())
-                                      .port(address.port())
-                                      .option(ChannelOption.TCP_NODELAY, true)
-                                      .option(ChannelOption.SO_KEEPALIVE, true)
-                                      .option(ChannelOption.SO_REUSEADDR, true);
-                              return isSecured ? tcpClient1.secure() : tcpClient1;
-                            }),
-                    "/");
+            address -> {
+              HttpClient httpClient =
+                  HttpClient.create(ConnectionProvider.newConnection())
+                      .runOn(loopResources)
+                      .host(address.host())
+                      .port(address.port())
+                      .option(ChannelOption.TCP_NODELAY, true)
+                      .option(ChannelOption.SO_KEEPALIVE, true)
+                      .option(ChannelOption.SO_REUSEADDR, true);
+
+              httpClient = isSecured ? httpClient.secure() : httpClient;
+
+              return WebsocketClientTransport.create(httpClient, "/");
+            };
   }
 
   ClientTransport clientTransport(Address address);
