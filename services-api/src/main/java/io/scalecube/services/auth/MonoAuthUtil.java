@@ -11,6 +11,6 @@ public final class MonoAuthUtil {
   }
 
   public static <T> Mono<T> deferWithPrincipal(Class<T> clazz) {
-    return Mono.deferWithContext(context -> Mono.just(context.get(AUTH_CONTEXT_KEY))).cast(clazz);
+    return Mono.deferContextual(context -> Mono.just(context.get(AUTH_CONTEXT_KEY))).cast(clazz);
   }
 }

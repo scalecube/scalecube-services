@@ -12,6 +12,6 @@ public final class FluxAuthUtil {
   }
 
   public static <T> Flux<T> deferWithPrincipal(Class<T> clazz) {
-    return Flux.deferWithContext(context -> Mono.just(context.get(AUTH_CONTEXT_KEY))).cast(clazz);
+    return Flux.deferContextual(context -> Mono.just(context.get(AUTH_CONTEXT_KEY))).cast(clazz);
   }
 }
