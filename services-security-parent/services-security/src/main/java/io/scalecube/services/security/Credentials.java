@@ -15,6 +15,10 @@ import reactor.core.Exceptions;
 
 public class Credentials {
 
+  private Credentials() {
+    // Do not instantiate
+  }
+
   /**
    * Encodes the given credentials to the given stream.
    *
