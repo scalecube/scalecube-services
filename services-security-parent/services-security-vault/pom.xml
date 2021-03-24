@@ -18,6 +18,11 @@
       <artifactId>scalecube-services</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-security</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <!-- Other -->
     <dependency>
       <groupId>io.scalecube</groupId>
