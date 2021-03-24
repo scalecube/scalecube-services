@@ -10,9 +10,13 @@ import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 /**
- * Generic {@link Authenticator} implementation based on abstract {@link JwtTokenResolver}. Using
- * token resolver this authenticator turns extracted and verified token claims into the {@link
+ * Implementation of {@link Authenticator} backed up by provided {@link JwtTokenResolver}. Using
+ * token resolver this authenticator turns extracted (and verified) token claims into the {@link
  * ServiceClaims} object.
+ *
+ * @see #apply(Map)
+ * @see ServiceTokens
+ * @see ServiceClaims
  */
 public final class ServiceTokenAuthenticator implements Authenticator<ServiceClaims> {
 
