@@ -22,16 +22,38 @@ public final class ServiceTokenAuthenticator implements Authenticator<ServiceCla
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceTokenAuthenticator.class);
 
-  private final JwtTokenResolver tokenResolver;
-  private final Retry retryStrategy;
+  private JwtTokenResolver tokenResolver;
+  private Retry retryStrategy = RetryStrategies.noRetriesRetryStrategy();
 
-  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver) {
-    this(tokenResolver, Retry.max(0));
+  public ServiceTokenAuthenticator() {}
+
+  private ServiceTokenAuthenticator(ServiceTokenAuthenticator other) {
+    this.tokenResolver = other.tokenResolver;
+    this.retryStrategy = other.retryStrategy;
   }
 
-  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver, Retry retryStrategy) {
-    this.tokenResolver = tokenResolver;
-    this.retryStrategy = retryStrategy;
+  /**
+   * Setter for tokenResolver.
+   *
+   * @param tokenResolver tokenResolver
+   * @return new instance with applied setting
+   */
+  public ServiceTokenAuthenticator tokenResolver(JwtTokenResolver tokenResolver) {
+    final ServiceTokenAuthenticator c = copy();
+    c.tokenResolver = tokenResolver;
+    return c;
+  }
+
+  /**
+   * Setter for retryStrategy.
+   *
+   * @param retryStrategy retryStrategy
+   * @return new instance with applied setting
+   */
+  public ServiceTokenAuthenticator retryStrategy(Retry retryStrategy) {
+    final ServiceTokenAuthenticator c = copy();
+    c.retryStrategy = retryStrategy;
+    return c;
   }
 
   @Override
@@ -60,5 +82,9 @@ public final class ServiceTokenAuthenticator implements Authenticator<ServiceCla
       throw new UnauthorizedException("Authentication failed");
     }
     return new ServiceClaims(permissionsClaim);
+  }
+
+  private ServiceTokenAuthenticator copy() {
+    return new ServiceTokenAuthenticator(this);
   }
 }

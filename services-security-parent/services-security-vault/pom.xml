@@ -6,11 +6,11 @@
 
   <parent>
     <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-services-parent</artifactId>
+    <artifactId>scalecube-services-security-parent</artifactId>
     <version>2.10.13-SNAPSHOT</version>
   </parent>
 
-  <artifactId>scalecube-services-security</artifactId>
+  <artifactId>scalecube-services-security-vault</artifactId>
 
   <dependencies>
     <dependency>
@@ -18,9 +18,14 @@
       <artifactId>scalecube-services</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!-- Other -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-security-tokens</artifactId>
+      <artifactId>config-vault</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
     </dependency>
   </dependencies>
 
