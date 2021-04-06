@@ -18,12 +18,29 @@ import java.util.Collection;
 import java.util.StringJoiner;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
+import reactor.netty.channel.AbortedException;
 import reactor.netty.resources.LoopResources;
 
 public class RSocketServiceTransport implements ServiceTransport {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
+
+  static {
+    Hooks.onErrorDropped(
+        throwable -> {
+          if (throwable instanceof AbortedException) {
+            LOGGER.warn("[onErrorDropped] error: {}", throwable.toString());
+          } else {
+            LOGGER.error("[onErrorDropped] error:", throwable);
+          }
+        });
+  }
 
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
 
