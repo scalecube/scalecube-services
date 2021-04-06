@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
-import java.util.stream.Collectors;
 
 public final class ConnectionSetup implements Externalizable {
 
@@ -49,13 +48,8 @@ public final class ConnectionSetup implements Externalizable {
   @Override
   public String toString() {
     return new StringJoiner(", ", ConnectionSetup.class.getSimpleName() + "[", "]")
-        .add("credentials=" + mask(credentials))
+        .add("credentials=" + MaskUtil.mask(credentials))
         .toString();
-  }
-
-  private static Map<String, String> mask(Map<String, String> creds) {
-    return creds.entrySet().stream()
-        .collect(Collectors.toMap(Entry::getKey, entry -> MaskUtil.mask(entry.getValue())));
   }
 
   @Override
