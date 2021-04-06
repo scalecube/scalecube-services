@@ -24,9 +24,7 @@ import io.scalecube.utils.MaskUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -94,7 +92,7 @@ public class RSocketClientTransport implements ClientTransport {
                   creds ->
                       LOGGER.debug(
                           "[credentialsSupplier] Got credentials ({}) for service: {}",
-                          mask(creds),
+                          MaskUtil.mask(creds),
                           serviceReference))
               .doOnError(
                   ex ->
@@ -136,11 +134,6 @@ public class RSocketClientTransport implements ClientTransport {
             th ->
                 LOGGER.warn(
                     "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
-  }
-
-  private static Map<String, String> mask(Map<String, String> creds) {
-    return creds.entrySet().stream()
-        .collect(Collectors.toMap(Entry::getKey, entry -> MaskUtil.mask(entry.getValue())));
   }
 
   private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
