@@ -5,16 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Hooks;
 
 public abstract class BaseTest {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
-
-  static {
-    Hooks.onErrorDropped(
-        throwable -> LOGGER.warn("[onErrorDropped] error: {}", throwable.toString()));
-  }
 
   @BeforeEach
   public final void baseSetUp(TestInfo testInfo) {
