@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-services-parent</artifactId>
-    <version>2.10.13</version>
+    <version>2.10.14-SNAPSHOT</version>
   </parent>
 
   <artifactId>scalecube-services-security-parent</artifactId>
