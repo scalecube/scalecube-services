@@ -10,17 +10,18 @@ import reactor.core.publisher.Mono;
  * Internally maintains a map of service claims where key is some id (of type {@code long}) and
  * value is {@link ServiceClaims} object.
  *
- * @see #saveAuthData(long, ServiceClaims)
- * @see #getAuthData(long)
- * @see #removeAuthData(long)
+ * @see #put(long, ServiceClaims)
+ * @see #get(long)
+ * @see #remove(long)
+ * @see #containsKey(long)
  */
-public final class CompositeAuthenticator implements Authenticator<ServiceClaims> {
+public final class RegistryBasedAuthenticator implements Authenticator<ServiceClaims> {
 
   private final Authenticator<ServiceClaims> authenticator;
 
   private final Map<Long, ServiceClaims> registry = new NonBlockingHashMapLong<>();
 
-  public CompositeAuthenticator(Authenticator<ServiceClaims> authenticator) {
+  public RegistryBasedAuthenticator(Authenticator<ServiceClaims> authenticator) {
     this.authenticator = authenticator;
   }
 
@@ -29,19 +30,19 @@ public final class CompositeAuthenticator implements Authenticator<ServiceClaims
     return authenticator.apply(credentials);
   }
 
-  public void saveAuthData(long id, ServiceClaims serviceClaims) {
+  public void put(long id, ServiceClaims serviceClaims) {
     registry.put(id, serviceClaims);
   }
 
-  public ServiceClaims getAuthData(long id) {
+  public ServiceClaims get(long id) {
     return registry.get(id);
   }
 
-  public void removeAuthData(long id) {
+  public void remove(long id) {
     registry.remove(id);
   }
 
-  public boolean containsAuthData(long id) {
+  public boolean containsKey(long id) {
     return registry.containsKey(id);
   }
 }
