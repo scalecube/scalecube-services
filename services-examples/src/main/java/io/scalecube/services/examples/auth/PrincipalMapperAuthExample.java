@@ -39,7 +39,8 @@ public class PrincipalMapperAuthExample {
     Microservices userProfileCaller =
         Microservices.builder()
             .discovery("caller", endpoint -> discovery(service, endpoint))
-            .transport(() -> new RSocketServiceTransport().credentialsSupplier(credsSupplier()))
+            .transport(
+                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
             .startAwait();
 
     String responseByUserProfile =
@@ -54,7 +55,8 @@ public class PrincipalMapperAuthExample {
     Microservices apiKeyCaller =
         Microservices.builder()
             .discovery("caller", endpoint -> discovery(service, endpoint))
-            .transport(() -> new RSocketServiceTransport().credentialsSupplier(credsSupplier()))
+            .transport(
+                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
             .startAwait();
 
     String responseByApiKey =
@@ -82,7 +84,7 @@ public class PrincipalMapperAuthExample {
     };
   }
 
-  private static CredentialsSupplier credsSupplier() {
+  private static CredentialsSupplier credentialsSupplier() {
     return service -> {
       String namespace = service.namespace(); // decide by service
 
