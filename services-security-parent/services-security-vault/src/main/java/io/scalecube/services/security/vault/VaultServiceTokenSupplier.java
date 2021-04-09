@@ -4,11 +4,7 @@ import com.bettercloud.vault.json.Json;
 import com.bettercloud.vault.rest.Rest;
 import com.bettercloud.vault.rest.RestException;
 import com.bettercloud.vault.rest.RestResponse;
-import io.scalecube.services.ServiceReference;
-import io.scalecube.services.auth.CredentialsSupplier;
-import io.scalecube.services.security.ServiceTokens;
 import io.scalecube.utils.MaskUtil;
-import java.util.Collections;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.BiFunction;
@@ -18,10 +14,9 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 
-public final class VaultServiceTokenCredentialsSupplier implements CredentialsSupplier {
+public final class VaultServiceTokenSupplier {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(VaultServiceTokenCredentialsSupplier.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(VaultServiceTokenSupplier.class);
 
   private static final String VAULT_TOKEN_HEADER = "X-Vault-Token";
 
@@ -30,9 +25,9 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
   private Supplier<String> vaultTokenSupplier;
   private BiFunction<String, Map<String, String>, String> serviceTokenNameBuilder;
 
-  public VaultServiceTokenCredentialsSupplier() {}
+  public VaultServiceTokenSupplier() {}
 
-  private VaultServiceTokenCredentialsSupplier(VaultServiceTokenCredentialsSupplier other) {
+  private VaultServiceTokenSupplier(VaultServiceTokenSupplier other) {
     this.serviceRole = other.serviceRole;
     this.vaultAddress = other.vaultAddress;
     this.vaultTokenSupplier = other.vaultTokenSupplier;
@@ -45,8 +40,8 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
    * @param serviceRole serviceRole
    * @return new instance with applied setting
    */
-  public VaultServiceTokenCredentialsSupplier serviceRole(String serviceRole) {
-    final VaultServiceTokenCredentialsSupplier c = copy();
+  public VaultServiceTokenSupplier serviceRole(String serviceRole) {
+    final VaultServiceTokenSupplier c = copy();
     c.serviceRole = serviceRole;
     return c;
   }
@@ -57,8 +52,8 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
    * @param vaultAddress vaultAddress
    * @return new instance with applied setting
    */
-  public VaultServiceTokenCredentialsSupplier vaultAddress(String vaultAddress) {
-    final VaultServiceTokenCredentialsSupplier c = copy();
+  public VaultServiceTokenSupplier vaultAddress(String vaultAddress) {
+    final VaultServiceTokenSupplier c = copy();
     c.vaultAddress = vaultAddress;
     return c;
   }
@@ -69,9 +64,8 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
    * @param vaultTokenSupplier vaultTokenSupplier
    * @return new instance with applied setting
    */
-  public VaultServiceTokenCredentialsSupplier vaultTokenSupplier(
-      Supplier<String> vaultTokenSupplier) {
-    final VaultServiceTokenCredentialsSupplier c = copy();
+  public VaultServiceTokenSupplier vaultTokenSupplier(Supplier<String> vaultTokenSupplier) {
+    final VaultServiceTokenSupplier c = copy();
     c.vaultTokenSupplier = vaultTokenSupplier;
     return c;
   }
@@ -79,38 +73,40 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
   /**
    * Setter for serviceTokenNameBuilder.
    *
-   * @param serviceTokenNameBuilder serviceTokenNameBuilder
+   * @param serviceTokenNameBuilder serviceTokenNameBuilder; inputs for this function are {@code
+   *     serviceRole} and {@code tags} attributes
    * @return new instance with applied setting
    */
-  public VaultServiceTokenCredentialsSupplier serviceTokenNameBuilder(
+  public VaultServiceTokenSupplier serviceTokenNameBuilder(
       BiFunction<String, Map<String, String>, String> serviceTokenNameBuilder) {
-    final VaultServiceTokenCredentialsSupplier c = copy();
+    final VaultServiceTokenSupplier c = copy();
     c.serviceTokenNameBuilder = serviceTokenNameBuilder;
     return c;
   }
 
-  @Override
-  public Mono<Map<String, String>> apply(ServiceReference serviceReference) {
+  /**
+   * Returns credentials as {@code Map<String, String>} for the given args.
+   *
+   * @param tags tags attributes
+   * @return vault service token
+   */
+  public Mono<String> getServiceToken(Map<String, String> tags) {
     return Mono.fromCallable(vaultTokenSupplier::get)
-        .map(vaultToken -> rpcGetServiceToken(serviceReference.tags(), vaultToken))
+        .map(vaultToken -> rpcGetServiceToken(tags, vaultToken))
         .doOnNext(response -> verifyOk(response.getStatus()))
-        .map(this::toCredentials)
+        .map(
+            response ->
+                Json.parse(new String(response.getBody()))
+                    .asObject()
+                    .get("data")
+                    .asObject()
+                    .get("token")
+                    .asString())
         .doOnSuccess(
             creds ->
                 LOGGER.info(
                     "[rpcGetServiceToken] Successfully obtained vault service token: {}",
                     MaskUtil.mask(creds)));
-  }
-
-  private Map<String, String> toCredentials(RestResponse response) {
-    return Collections.singletonMap(
-        ServiceTokens.SERVICE_TOKEN_HEADER,
-        Json.parse(new String(response.getBody()))
-            .asObject()
-            .get("data")
-            .asObject()
-            .get("token")
-            .asString());
   }
 
   private RestResponse rpcGetServiceToken(Map<String, String> tags, String vaultToken) {
@@ -141,7 +137,7 @@ public final class VaultServiceTokenCredentialsSupplier implements CredentialsSu
         .toString();
   }
 
-  private VaultServiceTokenCredentialsSupplier copy() {
-    return new VaultServiceTokenCredentialsSupplier(this);
+  private VaultServiceTokenSupplier copy() {
+    return new VaultServiceTokenSupplier(this);
   }
 }
