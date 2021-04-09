@@ -14,11 +14,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.DirectProcessor;
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.UnicastProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 public class ServiceLocalTest extends BaseTest {
@@ -287,14 +285,15 @@ public class ServiceLocalTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
-    EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
+    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
     // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreetingNotAuthorized(requests);
+    Flux<GreetingResponse> responses =
+        service.bidiGreetingNotAuthorized(requests.asFlux().onBackpressureBuffer());
 
     // call the service.
 
-    requests.onNext(new GreetingRequest("joe-1"));
-    requests.onComplete();
+    requests.tryEmitNext(new GreetingRequest("joe-1"));
+    requests.tryEmitComplete();
 
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
@@ -306,17 +305,20 @@ public class ServiceLocalTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
-    DirectProcessor<GreetingRequest> requests = DirectProcessor.create();
+    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().directBestEffort();
 
     // call the service.
     Flux<GreetingResponse> responses =
         service
             .bidiGreetingNotAuthorizedMessage(
-                requests.map(request -> ServiceMessage.builder().data(request).build()))
+                requests
+                    .asFlux()
+                    .onBackpressureBuffer()
+                    .map(request -> ServiceMessage.builder().data(request).build()))
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-        .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-1")))
         .expectErrorMessage("Not authorized")
         .verify(Duration.ofSeconds(3));
   }
@@ -326,17 +328,18 @@ public class ServiceLocalTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
-    EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
+    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
 
     // call the service.
 
-    requests.onNext(new GreetingRequest("joe-1"));
-    requests.onNext(new GreetingRequest("joe-2"));
-    requests.onNext(new GreetingRequest("joe-3"));
-    requests.onComplete();
+    requests.tryEmitNext(new GreetingRequest("joe-1"));
+    requests.tryEmitNext(new GreetingRequest("joe-2"));
+    requests.tryEmitNext(new GreetingRequest("joe-3"));
+    requests.tryEmitComplete();
 
     // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
+    Flux<GreetingResponse> responses =
+        service.bidiGreeting(requests.asFlux().onBackpressureBuffer());
 
     StepVerifier.create(responses)
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
@@ -351,22 +354,25 @@ public class ServiceLocalTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
-    UnicastProcessor<GreetingRequest> requests = UnicastProcessor.create();
+    Sinks.Many<GreetingRequest> requests = Sinks.many().unicast().onBackpressureBuffer();
     // call the service.
     Flux<GreetingResponse> responses =
         service
             .bidiGreetingMessage(
-                requests.map(request -> ServiceMessage.builder().data(request).build()))
+                requests
+                    .asFlux()
+                    .onBackpressureBuffer()
+                    .map(request -> ServiceMessage.builder().data(request).build()))
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-        .then(() -> requests.onNext(new GreetingRequest("joe-1")))
+        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-1")))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
-        .then(() -> requests.onNext(new GreetingRequest("joe-2")))
+        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-2")))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
-        .then(() -> requests.onNext(new GreetingRequest("joe-3")))
+        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-3")))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
-        .then(() -> requests.onComplete())
+        .then(requests::tryEmitComplete)
         .expectComplete()
         .verify(Duration.ofSeconds(3));
   }

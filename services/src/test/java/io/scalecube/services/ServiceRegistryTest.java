@@ -24,14 +24,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
 public class ServiceRegistryTest extends BaseTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(30);
 
-  private static Stream<Arguments> metadataCodecSource() {
+  public static Stream<Arguments> metadataCodecSource() {
     return Stream.of(
         Arguments.of(new JdkMetadataCodec()), Arguments.of(new JacksonMetadataCodec()));
   }
@@ -39,7 +39,7 @@ public class ServiceRegistryTest extends BaseTest {
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void test_added_removed_registration_events(MetadataCodec metadataCodec) {
-    ReplayProcessor<ServiceDiscoveryEvent> events = ReplayProcessor.create();
+    Sinks.Many<ServiceDiscoveryEvent> events = Sinks.many().replay().all();
 
     Microservices seed =
         Microservices.builder()
@@ -47,7 +47,8 @@ public class ServiceRegistryTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    seed.listenDiscovery().subscribe(events);
+    seed.listenDiscovery()
+        .subscribe(events::tryEmitNext, events::tryEmitError, events::tryEmitComplete);
 
     Address seedAddress = seed.discovery("seed").address();
 
@@ -65,7 +66,7 @@ public class ServiceRegistryTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    StepVerifier.create(events)
+    StepVerifier.create(events.asFlux().onBackpressureBuffer())
         .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .assertNext(event -> assertEquals(ENDPOINT_ADDED, event.type()))
         .then(() -> Mono.whenDelayError(ms1.shutdown(), ms2.shutdown()).block(TIMEOUT))
@@ -81,7 +82,7 @@ public class ServiceRegistryTest extends BaseTest {
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void test_listen_to_discovery_events(MetadataCodec metadataCodec) {
-    ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
+    Sinks.Many<ServiceDiscoveryEvent> processor = Sinks.many().replay().all();
 
     List<Microservices> cluster = new CopyOnWriteArrayList<>();
 
@@ -93,11 +94,12 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.listenDiscovery().subscribe(processor);
+    seed.listenDiscovery()
+        .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
     Address seedAddress = seed.discovery("seed").address();
 
-    StepVerifier.create(processor)
+    StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
             () -> {
               Microservices ms1 =
@@ -146,7 +148,7 @@ public class ServiceRegistryTest extends BaseTest {
   @ParameterizedTest
   @MethodSource("metadataCodecSource")
   public void test_delayed_listen_to_discovery_events(MetadataCodec metadataCodec) {
-    ReplayProcessor<ServiceDiscoveryEvent> processor = ReplayProcessor.create();
+    Sinks.Many<ServiceDiscoveryEvent> processor = Sinks.many().replay().all();
 
     List<Microservices> cluster = new CopyOnWriteArrayList<>();
 
@@ -158,11 +160,12 @@ public class ServiceRegistryTest extends BaseTest {
             .startAwait();
     cluster.add(seed);
 
-    seed.listenDiscovery().subscribe(processor);
+    seed.listenDiscovery()
+        .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
     Address seedAddress = seed.discovery("seed").address();
 
-    StepVerifier.create(processor)
+    StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
             () -> {
               Microservices ms1 =

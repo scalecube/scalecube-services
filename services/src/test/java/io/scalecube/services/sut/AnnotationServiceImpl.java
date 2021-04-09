@@ -4,20 +4,25 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.publisher.Sinks;
 
 public class AnnotationServiceImpl implements AnnotationService {
 
-  private ReplayProcessor<ServiceDiscoveryEvent> serviceDiscoveryEvents;
+  private Sinks.Many<ServiceDiscoveryEvent> serviceDiscoveryEvents;
 
   @AfterConstruct
   void init(Microservices microservices) {
-    this.serviceDiscoveryEvents = ReplayProcessor.create();
-    microservices.listenDiscovery().subscribe(serviceDiscoveryEvents);
+    this.serviceDiscoveryEvents = Sinks.many().replay().all();
+    microservices
+        .listenDiscovery()
+        .subscribe(
+            serviceDiscoveryEvents::tryEmitNext,
+            serviceDiscoveryEvents::tryEmitError,
+            serviceDiscoveryEvents::tryEmitComplete);
   }
 
   @Override
   public Flux<ServiceDiscoveryEvent.Type> serviceDiscoveryEventTypes() {
-    return serviceDiscoveryEvents.map(ServiceDiscoveryEvent::type);
+    return serviceDiscoveryEvents.asFlux().onBackpressureBuffer().map(ServiceDiscoveryEvent::type);
   }
 }
