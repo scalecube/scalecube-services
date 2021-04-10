@@ -59,8 +59,7 @@
   <properties>
     <scalecube-cluster.version>2.6.7</scalecube-cluster.version>
     <scalecube-commons.version>1.0.13</scalecube-commons.version>
-    <scalecube-security-tokens.version>1.0.18</scalecube-security-tokens.version>
-    <scalecube-config.version>0.4.16</scalecube-config.version>
+    <scalecube-security.version>1.0.19</scalecube-security.version>
 
     <reactor.version>2020.0.5</reactor.version>
     <jackson.version>2.11.0</jackson.version>
@@ -85,7 +84,7 @@
     <module>services-transport-parent</module>
     <module>services-discovery</module>
     <module>services-bytebuf-codec</module>
-    <module>services-security-parent</module>
+    <module>services-security</module>
     <module>services-examples</module>
   </modules>
 
@@ -103,14 +102,7 @@
       <dependency>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-security-tokens</artifactId>
-        <version>${scalecube-security-tokens.version}</version>
-      </dependency>
-
-      <!-- Scalecube config -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-config-vault</artifactId>
-        <version>${scalecube-config.version}</version>
+        <version>${scalecube-security.version}</version>
       </dependency>
 
       <!-- Scalecube cluster -->
