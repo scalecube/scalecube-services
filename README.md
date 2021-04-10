@@ -129,7 +129,7 @@ Basic API-Gateway example:
         .startAwait();
 
         // HINT: you can try connect using the api sandbox to these ports to try the api.
-        // http://scalecube.io/api-sandbox/app/index.html
+        // https://scalecube.github.io/api-sandbox/app/index.html
 ```
 
 ### Maven
@@ -204,4 +204,6 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
 ----
 
-## Sponsored by [OM2](https://www.om2.com/)
+## Sponsored by: 
+* [OM2](https://www.om2.com/)
+* [exberry.io](https://exberry.io/)
