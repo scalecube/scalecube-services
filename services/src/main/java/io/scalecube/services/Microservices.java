@@ -638,6 +638,7 @@ public final class Microservices {
       disposables.add(
           discovery
               .listen()
+              .subscribeOn(scheduler)
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
               .doOnNext(sink::tryEmitNext)
