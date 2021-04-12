@@ -650,7 +650,7 @@ public final class Microservices {
               .subscribeOn(scheduler)
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(sink::tryEmitNext)
+              .doOnNext(event -> sink.emitNext(event, RetryEmitFailureHandler.INSTANCE))
               .subscribe());
 
       return Mono.deferContextual(context -> discovery.start())
