@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Operators;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitFailureHandler;
@@ -43,6 +44,10 @@ import reactor.core.publisher.Sinks.EmitResult;
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
+
+  static {
+    Operators.enableOnDiscard(null, obj -> LOGGER.warn("[onDiscard] obj = {}", obj));
+  }
 
   private final ServiceEndpoint serviceEndpoint;
 
