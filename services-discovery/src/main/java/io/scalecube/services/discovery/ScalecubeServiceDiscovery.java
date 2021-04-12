@@ -301,6 +301,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     @Override
     public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
+      LOGGER.warn("[onEmitFailure] signalType={}, emitResult={}", signalType, emitResult);
       return emitResult == FAIL_NON_SERIALIZED;
     }
   }
