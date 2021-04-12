@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
@@ -57,7 +59,10 @@ import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.EmitResult;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -167,7 +172,7 @@ public final class Microservices {
     shutdown
         .asMono()
         .then(doShutdown())
-        .doFinally(s -> onShutdown.tryEmitEmpty())
+        .doFinally(s -> onShutdown.emitEmpty(RetryEmitFailureHandler.INSTANCE))
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -344,7 +349,11 @@ public final class Microservices {
    * @return result of shutdown
    */
   public Mono<Void> shutdown() {
-    return Mono.fromRunnable(shutdown::tryEmitEmpty).then(onShutdown.asMono());
+    return Mono.defer(
+        () -> {
+          shutdown.emitEmpty(RetryEmitFailureHandler.INSTANCE);
+          return onShutdown.asMono();
+        });
   }
 
   /**
@@ -898,6 +907,16 @@ public final class Microservices {
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .toString();
+    }
+  }
+
+  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+
+    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+
+    @Override
+    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
+      return emitResult == FAIL_NON_SERIALIZED;
     }
   }
 }

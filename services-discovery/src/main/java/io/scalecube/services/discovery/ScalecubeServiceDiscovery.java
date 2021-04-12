@@ -3,6 +3,7 @@ package io.scalecube.services.discovery;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointAdded;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointLeaving;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointRemoved;
+import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -34,7 +35,10 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.EmitFailureHandler;
+import reactor.core.publisher.Sinks.EmitResult;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -169,11 +173,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           if (cluster == null) {
-            sink.tryEmitComplete();
+            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
             return Mono.empty();
           }
           cluster.shutdown();
-          return cluster.onShutdown().doFinally(s -> sink.tryEmitComplete());
+          return cluster
+              .onShutdown()
+              .doFinally(s -> sink.emitComplete(RetryEmitFailureHandler.INSTANCE));
         });
   }
 
@@ -190,7 +196,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.tryEmitNext(discoveryEvent);
+      sink.emitNext(discoveryEvent, RetryEmitFailureHandler.INSTANCE);
     }
   }
 
@@ -281,6 +287,16 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
         recentDiscoveryEvents.remove(0);
       }
+    }
+  }
+
+  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+
+    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+
+    @Override
+    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
+      return emitResult == FAIL_NON_SERIALIZED;
     }
   }
 }
