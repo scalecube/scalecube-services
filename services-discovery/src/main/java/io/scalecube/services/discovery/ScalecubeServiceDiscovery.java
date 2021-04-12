@@ -46,7 +46,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
   static {
-    Operators.enableOnDiscard(null, obj -> LOGGER.warn("[onDiscard] obj = {}", obj));
+    Operators.enableOnDiscard(null, o -> LOGGER.warn("[onDiscard] element = {}", o));
   }
 
   private final ServiceEndpoint serviceEndpoint;
