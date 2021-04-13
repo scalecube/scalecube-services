@@ -57,9 +57,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
@@ -558,8 +556,8 @@ public final class Microservices {
         new ConcurrentHashMap<>();
 
     // Subject
-    private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
-    private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+    private final Sinks.Many<ServiceDiscoveryEvent> sink =
+        Sinks.many().multicast().directBestEffort();
 
     private final Disposable.Composite disposables = Disposables.composite();
     private Scheduler scheduler;
@@ -616,7 +614,7 @@ public final class Microservices {
     public Flux<ServiceDiscoveryEvent> listen() {
       return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
           .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(subject)
+          .concatWith(sink.asFlux().onBackpressureBuffer())
           .subscribeOn(scheduler)
           .publishOn(scheduler);
     }
@@ -652,7 +650,7 @@ public final class Microservices {
               .subscribeOn(scheduler)
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(sink::next)
+              .doOnNext(event -> sink.emitNext(event, RetryEmitFailureHandler.INSTANCE))
               .subscribe());
 
       return Mono.deferContextual(context -> discovery.start())
@@ -676,6 +674,7 @@ public final class Microservices {
       return Mono.defer(
           () -> {
             disposables.dispose();
+            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
             return Mono.whenDelayError(
                     discoveryInstances.values().stream()
                         .map(ServiceDiscovery::shutdown)

@@ -33,12 +33,10 @@ import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Operators;
 import reactor.core.publisher.SignalType;
+import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.EmitFailureHandler;
 import reactor.core.publisher.Sinks.EmitResult;
 
@@ -46,18 +44,14 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  static {
-    Operators.enableOnDiscard(null, o -> LOGGER.warn("[onDiscard] element = {}", o));
-  }
-
   private final ServiceEndpoint serviceEndpoint;
 
   private ClusterConfig clusterConfig;
   private Cluster cluster;
 
   // Sink
-  private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
-  private final FluxSink<ServiceDiscoveryEvent> sink = subject.sink();
+  private final Sinks.Many<ServiceDiscoveryEvent> sink =
+      Sinks.many().multicast().directBestEffort();
 
   /**
    * Constructor.
@@ -171,7 +165,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Flux<ServiceDiscoveryEvent> listen() {
-    return subject.onBackpressureBuffer();
+    return sink.asFlux().onBackpressureBuffer();
   }
 
   @Override
@@ -179,11 +173,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           if (cluster == null) {
-            sink.complete();
+            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
             return Mono.empty();
           }
           cluster.shutdown();
-          return cluster.onShutdown().doFinally(s -> sink.complete());
+          return cluster
+              .onShutdown()
+              .doFinally(s -> sink.emitComplete(RetryEmitFailureHandler.INSTANCE));
         });
   }
 
@@ -200,7 +196,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.next(discoveryEvent);
+      sink.emitNext(discoveryEvent, RetryEmitFailureHandler.INSTANCE);
     }
   }
 
@@ -300,7 +296,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     @Override
     public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      LOGGER.warn("[onEmitFailure] signalType={}, emitResult={}", signalType, emitResult);
       return emitResult == FAIL_NON_SERIALIZED;
     }
   }
