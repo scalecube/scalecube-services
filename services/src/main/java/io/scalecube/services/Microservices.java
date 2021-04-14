@@ -555,7 +555,7 @@ public final class Microservices {
     private final Map<String, ServiceDiscoveryContext> discoveryContexts =
         new ConcurrentHashMap<>();
 
-    // Subject
+    // Sink
     private final Sinks.Many<ServiceDiscoveryEvent> sink =
         Sinks.many().multicast().directBestEffort();
 
