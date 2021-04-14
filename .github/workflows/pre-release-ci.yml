@@ -25,6 +25,7 @@ jobs:
           server-password: GITHUB_TOKEN
       - name: Deploy pre-release version to GitHub Packages
         run: |
+          sudo echo "127.0.0.1 $(eval hostname)" | sudo tee -a /etc/hosts
           pre_release_version=${{ github.event.release.tag_name }}
           echo Pre-release version $pre_release_version
           mvn versions:set -DnewVersion=$pre_release_version -DgenerateBackupPoms=false

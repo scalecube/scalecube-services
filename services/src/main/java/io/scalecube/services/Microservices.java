@@ -674,6 +674,7 @@ public final class Microservices {
       return Mono.defer(
           () -> {
             disposables.dispose();
+            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
             return Mono.whenDelayError(
                     discoveryInstances.values().stream()
                         .map(ServiceDiscovery::shutdown)
