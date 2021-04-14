@@ -31,7 +31,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
       - name: Maven Verify
-        run: mvn verify -B
+        run: |
+          sudo echo "127.0.0.1 $(eval hostname)" | sudo tee -a /etc/hosts
+          mvn verify -B
       - name: Configure git
         run: |
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
