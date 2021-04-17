@@ -6,6 +6,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import reactor.core.publisher.Mono;
 
 /**
  * The Hello World project is a time-honored tradition in computer programming. It is a simple
@@ -50,7 +51,6 @@ public class Example1 {
     // Execute the services and subscribe to service events
     service.sayHello("joe").subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.onShutdown().block();
-    ms.onShutdown().block();
+    Mono.whenDelayError(seed.shutdown(), ms.shutdown()).block();
   }
 }

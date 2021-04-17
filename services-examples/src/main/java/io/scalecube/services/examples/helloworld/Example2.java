@@ -70,7 +70,6 @@ public class Example2 {
               System.out.println(greeting.message());
             });
 
-    seed.onShutdown().block();
-    ms.onShutdown().block();
+    Mono.whenDelayError(seed.shutdown(), ms.shutdown()).block();
   }
 }

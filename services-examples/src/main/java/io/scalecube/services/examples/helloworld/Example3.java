@@ -7,6 +7,7 @@ import io.scalecube.services.examples.helloworld.service.BidiGreetingImpl;
 import io.scalecube.services.examples.helloworld.service.api.BidiGreetingService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * The Hello World project is a time-honored tradition in computer programming. It is a simple
@@ -54,7 +55,6 @@ public class Example3 {
         .doOnNext(System.out::println)
         .blockLast();
 
-    seed.onShutdown().block();
-    ms.onShutdown().block();
+    Mono.whenDelayError(seed.shutdown(), ms.shutdown()).block();
   }
 }
