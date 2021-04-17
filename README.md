@@ -37,6 +37,7 @@ ScaleCube Services Features:
 * Embeddable into existing applications
 * Natural Circuit-Breaker via scalecube-cluster discovery and failure detector.
 * Support Service instance tagging.
+* Support Service discovery partitioning using hierarchy of namespaces in a multi-cluster deployments.
 * Modular, flexible deployment models and topology
 * pluggable api-gateway providers (http / websocket / rsocket)
 * pluggable service transports (tcp / aeron / rsocket)
