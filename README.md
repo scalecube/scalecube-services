@@ -61,48 +61,47 @@ The example provisions 2 cluster nodes and making a remote interaction.
 3. finally from seed node - create a proxy by the GreetingService api and send a greeting request.
 
 ```java
-  // service definition
-  @Service("io.scalecube.Greetings")
-	public interface GreetingsService {
-	  @ServiceMethod("sayHello")
+// service definition
+@Service("io.scalecube.Greetings")
+public interface GreetingsService {
+  @ServiceMethod("sayHello")
 	  Mono<Greeting> sayHello(String name);
 	}
-	
-  // service implementation
-	public class GreetingServiceImpl implements GreetingsService {
-		@Override
-		public Mono<Greeting> sayHello(String name) {
-			return Mono.just(new Greeting("Nice to meet you " + name + " and welcome to ScaleCube"));
-		}
+}
+// service implementation
+public class GreetingServiceImpl implements GreetingsService {
+ @Override
+ public Mono<Greeting> sayHello(String name) {
+   return Mono.just(new Greeting("Nice to meet you " + name + " and welcome to ScaleCube"));
 	}
+}
 
-	//1. ScaleCube Node node with no members (container 1)
-	Microservices seed =
-				Microservices.builder()
-				.discovery("seed", ScalecubeServiceDiscovery::new)
-				.transport(RSocketServiceTransport::new)
-				.startAwait();
+//1. ScaleCube Node node with no members (container 1)
+Microservices seed = Microservices.builder()
+  .discovery("seed", ScalecubeServiceDiscovery::new)
+	.transport(RSocketServiceTransport::new)
+	.startAwait();
 
-	// get the address of the seed member - will be used to join any other members to the cluster.
-	final Address seedAddress = seed.discovery("seed").address();
+// get the address of the seed member - will be used to join any other members to the cluster.
+final Address seedAddress = seed.discovery("seed").address();
 
-	//2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service (container 2)
-	Microservices serviceNode = Microservices.builder()
-				.discovery("seed", ep -> new ScalecubeServiceDiscovery(ep)
-						.membership(cfg -> cfg.seedMembers(seedAddress)))
-				.transport(RSocketServiceTransport::new)
-				.services(new GreetingServiceImpl())
-				.startAwait();
+//2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service (container 2)
+Microservices serviceNode = Microservices.builder()
+  .discovery("seed", ep -> new ScalecubeServiceDiscovery(ep)
+		.membership(cfg -> cfg.seedMembers(seedAddress)))
+	.transport(RSocketServiceTransport::new)
+	.services(new GreetingServiceImpl())
+	.startAwait();
 
-	//3. Create service proxy (can be created from any node or container in the cluster)
-	//4. Execute the services and subscribe to service events
-	seed.call().api(GreetingsService.class)
-		  .sayHello("joe").subscribe(consumer -> {
-			  System.out.println(consumer.message());
-		   });
+//3. Create service proxy (can be created from any node or container in the cluster)
+//   and Execute the service and subscribe to incoming service events
+seed.call().api(GreetingsService.class)
+  .sayHello("joe").subscribe(consumer -> {
+    System.out.println(consumer.message());
+  });
 
-	Mono.whenDelayError(seed.shutdown(), serviceNode.shutdown())
-		.block();
+// await all instances to shutdown.
+Mono.whenDelayError(seed.shutdown(), serviceNode.shutdown()).block(); 
 ```
 
 Basic Service Example:
