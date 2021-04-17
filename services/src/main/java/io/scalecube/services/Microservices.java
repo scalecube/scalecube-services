@@ -61,7 +61,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitFailureHandler;
 import reactor.core.publisher.Sinks.EmitResult;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
@@ -172,7 +171,7 @@ public final class Microservices {
     shutdown
         .asMono()
         .then(doShutdown())
-        .doFinally(s -> onShutdown.emitEmpty(RetryEmitFailureHandler.INSTANCE))
+        .doFinally(s -> onShutdown.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED))
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -351,7 +350,7 @@ public final class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () -> {
-          shutdown.emitEmpty(RetryEmitFailureHandler.INSTANCE);
+          shutdown.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
           return onShutdown.asMono();
         });
   }
@@ -650,7 +649,7 @@ public final class Microservices {
               .subscribeOn(scheduler)
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(event -> sink.emitNext(event, RetryEmitFailureHandler.INSTANCE))
+              .doOnNext(event -> sink.emitNext(event, EmitFailureHandler.RETRY_NOT_SERIALIZED))
               .subscribe());
 
       return Mono.deferContextual(context -> discovery.start())
@@ -674,7 +673,7 @@ public final class Microservices {
       return Mono.defer(
           () -> {
             disposables.dispose();
-            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
+            sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED);
             return Mono.whenDelayError(
                     discoveryInstances.values().stream()
                         .map(ServiceDiscovery::shutdown)
@@ -911,9 +910,9 @@ public final class Microservices {
     }
   }
 
-  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
 
-    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
 
     @Override
     public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {

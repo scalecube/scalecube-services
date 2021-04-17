@@ -37,7 +37,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitFailureHandler;
 import reactor.core.publisher.Sinks.EmitResult;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
@@ -173,13 +172,13 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           if (cluster == null) {
-            sink.emitComplete(RetryEmitFailureHandler.INSTANCE);
+            sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED);
             return Mono.empty();
           }
           cluster.shutdown();
           return cluster
               .onShutdown()
-              .doFinally(s -> sink.emitComplete(RetryEmitFailureHandler.INSTANCE));
+              .doFinally(s -> sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED));
         });
   }
 
@@ -196,7 +195,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.emitNext(discoveryEvent, RetryEmitFailureHandler.INSTANCE);
+      sink.emitNext(discoveryEvent, EmitFailureHandler.RETRY_NOT_SERIALIZED);
     }
   }
 
@@ -290,9 +289,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
   }
 
-  private static class RetryEmitFailureHandler implements EmitFailureHandler {
+  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
 
-    private static final RetryEmitFailureHandler INSTANCE = new RetryEmitFailureHandler();
+    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
 
     @Override
     public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {

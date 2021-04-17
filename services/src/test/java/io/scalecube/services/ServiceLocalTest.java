@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.GreetingRequest;
@@ -292,8 +293,8 @@ public class ServiceLocalTest extends BaseTest {
 
     // call the service.
 
-    requests.tryEmitNext(new GreetingRequest("joe-1"));
-    requests.tryEmitComplete();
+    requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST);
+    requests.emitComplete(FAIL_FAST);
 
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
@@ -318,7 +319,7 @@ public class ServiceLocalTest extends BaseTest {
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-1")))
+        .then(() -> requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST))
         .expectErrorMessage("Not authorized")
         .verify(Duration.ofSeconds(3));
   }
@@ -332,10 +333,10 @@ public class ServiceLocalTest extends BaseTest {
 
     // call the service.
 
-    requests.tryEmitNext(new GreetingRequest("joe-1"));
-    requests.tryEmitNext(new GreetingRequest("joe-2"));
-    requests.tryEmitNext(new GreetingRequest("joe-3"));
-    requests.tryEmitComplete();
+    requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST);
+    requests.emitNext(new GreetingRequest("joe-2"), FAIL_FAST);
+    requests.emitNext(new GreetingRequest("joe-3"), FAIL_FAST);
+    requests.emitComplete(FAIL_FAST);
 
     // call the service.
     Flux<GreetingResponse> responses =
@@ -366,13 +367,13 @@ public class ServiceLocalTest extends BaseTest {
             .map(ServiceMessage::data);
 
     StepVerifier.create(responses)
-        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-1")))
+        .then(() -> requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
-        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-2")))
+        .then(() -> requests.emitNext(new GreetingRequest("joe-2"), FAIL_FAST))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
-        .then(() -> requests.tryEmitNext(new GreetingRequest("joe-3")))
+        .then(() -> requests.emitNext(new GreetingRequest("joe-3"), FAIL_FAST))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
-        .then(requests::tryEmitComplete)
+        .then(() -> requests.emitComplete(FAIL_FAST))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
   }
