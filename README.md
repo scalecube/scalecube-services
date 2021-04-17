@@ -25,7 +25,7 @@ ScaleCube Services Features:
 * Fast - Low latency and high throughput
 * Scaleable over- cores, jvms, clusters, regions.
 * Built-in Service Discovery and service routing
-* Zero configuration, automatic peer-to-peer service discovery using gossip
+* Zero configuration, automatic peer-to-peer service discovery using SWIM cluster membership protocol
 * Simple non-blocking, asynchronous programming model
 * Reactive Streams support.
   * Fire And Forget - Send and not wait for a reply
