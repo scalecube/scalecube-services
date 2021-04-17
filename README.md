@@ -41,6 +41,7 @@ ScaleCube Services Features:
 * pluggable api-gateway providers (http / websocket / rsocket)
 * pluggable service transports (tcp / aeron / rsocket)
 * pluggable encoders (json, SBE, Google protocol buffers)
+* pluggable service security authentication and authorization providers. 
 
 User Guide:
 
