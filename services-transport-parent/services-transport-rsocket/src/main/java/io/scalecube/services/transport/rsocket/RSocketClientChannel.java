@@ -8,10 +8,15 @@ import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.channel.AbortedException;
 
 public class RSocketClientChannel implements ClientChannel {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientChannel.class);
 
   private final Mono<RSocket> rsocket;
   private final ServiceMessageCodec messageCodec;
@@ -26,7 +31,8 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .doOnError(RSocketClientChannel::handleConnectionReset);
   }
 
   @Override
@@ -34,7 +40,8 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .doOnError(RSocketClientChannel::handleConnectionReset);
   }
 
   @Override
@@ -43,7 +50,8 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType));
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .doOnError(RSocketClientChannel::handleConnectionReset);
   }
 
   private Payload toPayload(ServiceMessage request) {
@@ -55,6 +63,14 @@ public class RSocketClientChannel implements ClientChannel {
       return messageCodec.decode(payload.sliceData().retain(), payload.sliceMetadata().retain());
     } finally {
       payload.release();
+    }
+  }
+
+  private static void handleConnectionReset(Throwable throwable) {
+    if (AbortedException.isConnectionReset(throwable)) {
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("[requestResponse] Connection has been reset");
+      }
     }
   }
 }
