@@ -8,6 +8,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
@@ -18,12 +19,30 @@ import java.util.Collection;
 import java.util.StringJoiner;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
+import reactor.netty.channel.AbortedException;
 import reactor.netty.resources.LoopResources;
 
 public class RSocketServiceTransport implements ServiceTransport {
+
+  public static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
+
+  static {
+    Hooks.onErrorDropped(
+        t -> {
+          if (AbortedException.isConnectionReset(t)
+              || ConnectionClosedException.isConnectionClosed(t)) {
+            if (LOGGER.isDebugEnabled()) {
+              LOGGER.debug("Connection aborted: {}", t.toString());
+            }
+          }
+        });
+  }
 
   private int numOfWorkers = Runtime.getRuntime().availableProcessors();
 
