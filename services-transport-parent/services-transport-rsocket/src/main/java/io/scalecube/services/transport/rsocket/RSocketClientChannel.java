@@ -4,6 +4,7 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Type;
@@ -32,7 +33,7 @@ public class RSocketClientChannel implements ClientChannel {
         .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
-        .doOnError(RSocketClientChannel::handleConnectionReset);
+        .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
   @Override
@@ -41,7 +42,7 @@ public class RSocketClientChannel implements ClientChannel {
         .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
-        .doOnError(RSocketClientChannel::handleConnectionReset);
+        .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
   @Override
@@ -51,7 +52,7 @@ public class RSocketClientChannel implements ClientChannel {
         .flatMapMany(rsocket -> rsocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage)
         .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
-        .doOnError(RSocketClientChannel::handleConnectionReset);
+        .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
   private Payload toPayload(ServiceMessage request) {
@@ -66,11 +67,9 @@ public class RSocketClientChannel implements ClientChannel {
     }
   }
 
-  private static void handleConnectionReset(Throwable throwable) {
-    if (AbortedException.isConnectionReset(throwable)) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("[requestResponse] Connection has been reset");
-      }
-    }
+  private static Throwable mapConnectionAborted(Throwable t) {
+    return AbortedException.isConnectionReset(t) || ConnectionClosedException.isConnectionClosed(t)
+        ? new ConnectionClosedException(t)
+        : t;
   }
 }

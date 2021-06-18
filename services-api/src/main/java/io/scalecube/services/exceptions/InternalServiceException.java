@@ -11,4 +11,12 @@ public class InternalServiceException extends ServiceException {
   public InternalServiceException(Throwable cause) {
     super(ERROR_TYPE, cause);
   }
+
+  public InternalServiceException(String message) {
+    super(ERROR_TYPE, message);
+  }
+
+  public InternalServiceException(String message, Throwable cause) {
+    super(ERROR_TYPE, message, cause);
+  }
 }
