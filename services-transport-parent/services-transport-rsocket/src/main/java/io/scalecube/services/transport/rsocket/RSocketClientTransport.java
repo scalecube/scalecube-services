@@ -1,8 +1,8 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.Unpooled;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
@@ -137,7 +137,7 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
-    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+    ByteBuf byteBuf = Unpooled.buffer();
     try {
       connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
     } catch (Throwable ex) {
