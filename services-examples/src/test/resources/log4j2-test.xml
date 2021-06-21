@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+  <Properties>
+    <Property name="patternLayout">%level{length=1} %d{ISO8601} %c{1.} %m [%t]%n</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="STDOUT" target="SYSTEM_OUT">
+      <PatternLayout pattern="${patternLayout}"/>
+    </Console>
+  </Appenders>
+
+  <Loggers>
+    <Root level="${env:logLevel:-INFO}">
+      <AppenderRef ref="STDOUT"/>
+    </Root>
+  </Loggers>
+
+</Configuration>

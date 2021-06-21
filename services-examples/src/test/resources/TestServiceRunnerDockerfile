@@ -1,0 +1,11 @@
+FROM openjdk:8
+
+ARG LOG4J_CONFIG="-Dlog4j.configurationFile=log4j2-test.xml"
+
+WORKDIR /opt/scalecube
+
+COPY services-examples/target/tests.jar app.jar
+COPY services-examples/target/lib lib
+
+
+ENTRYPOINT exec java $JAVA_OPTS $LOG4J_CONFIG -cp app.jar:lib/* io.scalecube.services.examples.docker.ExampleServiceRunner
