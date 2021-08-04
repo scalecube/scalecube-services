@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
@@ -59,9 +59,7 @@ import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -171,7 +169,7 @@ public final class Microservices {
     shutdown
         .asMono()
         .then(doShutdown())
-        .doFinally(s -> onShutdown.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED))
+        .doFinally(s -> onShutdown.emitEmpty(RETRY_NON_SERIALIZED))
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -350,7 +348,7 @@ public final class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () -> {
-          shutdown.emitEmpty(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+          shutdown.emitEmpty(RETRY_NON_SERIALIZED);
           return onShutdown.asMono();
         });
   }
@@ -649,7 +647,7 @@ public final class Microservices {
               .subscribeOn(scheduler)
               .publishOn(scheduler)
               .doOnNext(event -> onDiscoveryEvent(microservices, event))
-              .doOnNext(event -> sink.emitNext(event, EmitFailureHandler.RETRY_NOT_SERIALIZED))
+              .doOnNext(event -> sink.emitNext(event, RETRY_NON_SERIALIZED))
               .subscribe());
 
       return Mono.deferContextual(context -> discovery.start())
@@ -673,7 +671,7 @@ public final class Microservices {
       return Mono.defer(
           () -> {
             disposables.dispose();
-            sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+            sink.emitComplete(RETRY_NON_SERIALIZED);
             return Mono.whenDelayError(
                     discoveryInstances.values().stream()
                         .map(ServiceDiscovery::shutdown)
@@ -907,16 +905,6 @@ public final class Microservices {
           .add("serviceInstance=" + serviceInfo.serviceInstance())
           .add("tags=" + serviceInfo.tags())
           .toString();
-    }
-  }
-
-  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
-
-    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
-
-    @Override
-    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      return emitResult == FAIL_NON_SERIALIZED;
     }
   }
 }

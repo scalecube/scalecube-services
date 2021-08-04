@@ -1,9 +1,9 @@
 package io.scalecube.services.discovery;
 
+import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointAdded;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointLeaving;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointRemoved;
-import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -35,9 +35,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import reactor.core.publisher.Sinks.EmitResult;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -172,13 +170,11 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           if (cluster == null) {
-            sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED);
+            sink.emitComplete(RETRY_NON_SERIALIZED);
             return Mono.empty();
           }
           cluster.shutdown();
-          return cluster
-              .onShutdown()
-              .doFinally(s -> sink.emitComplete(EmitFailureHandler.RETRY_NOT_SERIALIZED));
+          return cluster.onShutdown().doFinally(s -> sink.emitComplete(RETRY_NON_SERIALIZED));
         });
   }
 
@@ -195,7 +191,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     if (discoveryEvent != null) {
       LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.emitNext(discoveryEvent, EmitFailureHandler.RETRY_NOT_SERIALIZED);
+      sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
     }
   }
 
@@ -286,16 +282,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
         recentDiscoveryEvents.remove(0);
       }
-    }
-  }
-
-  private static class EmitFailureHandler implements Sinks.EmitFailureHandler {
-
-    private static final EmitFailureHandler RETRY_NOT_SERIALIZED = new EmitFailureHandler();
-
-    @Override
-    public boolean onEmitFailure(SignalType signalType, EmitResult emitResult) {
-      return emitResult == FAIL_NON_SERIALIZED;
     }
   }
 }
