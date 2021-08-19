@@ -60,8 +60,9 @@ public class RoutersTest extends BaseTest {
             .discovery(
                 "gateway",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -73,8 +74,9 @@ public class RoutersTest extends BaseTest {
             .discovery(
                 "provider1",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
@@ -93,8 +95,9 @@ public class RoutersTest extends BaseTest {
             .discovery(
                 "provider2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
@@ -113,8 +116,9 @@ public class RoutersTest extends BaseTest {
             .discovery(
                 "provider3",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(

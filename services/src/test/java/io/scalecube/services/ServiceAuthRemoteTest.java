@@ -79,8 +79,9 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
             .services(
                 ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
@@ -93,8 +94,9 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new AnotherSecuredServiceImpl())
@@ -107,8 +109,9 @@ final class ServiceAuthRemoteTest extends BaseTest {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
             .services(
                 ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
@@ -330,8 +333,9 @@ final class ServiceAuthRemoteTest extends BaseTest {
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
-    return new ScalecubeServiceDiscovery(endpoint)
+    return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+        .options(opts -> opts.metadata(endpoint))
         .membership(
             opts ->
                 opts.seedMembers(

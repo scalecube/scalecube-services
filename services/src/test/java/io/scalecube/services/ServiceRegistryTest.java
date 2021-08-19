@@ -204,16 +204,18 @@ public class ServiceRegistryTest extends BaseTest {
 
   private ServiceDiscoveryFactory defServiceDiscovery(MetadataCodec metadataCodec) {
     return endpoint ->
-        new ScalecubeServiceDiscovery(endpoint)
+        new ScalecubeServiceDiscovery()
             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+            .options(opts -> opts.metadata(endpoint))
             .options(cfg -> cfg.metadataCodec(metadataCodec));
   }
 
   private static ServiceDiscoveryFactory defServiceDiscovery(
       Address address, MetadataCodec metadataCodec) {
     return endpoint ->
-        new ScalecubeServiceDiscovery(endpoint)
+        new ScalecubeServiceDiscovery()
             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+            .options(opts -> opts.metadata(endpoint))
             .options(cfg -> cfg.metadataCodec(metadataCodec))
             .membership(cfg -> cfg.seedMembers(address));
   }

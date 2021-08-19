@@ -225,8 +225,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
       Address seedAddress, MetadataCodec metadataCodec) {
     return Mono.fromCallable(
         () ->
-            new ScalecubeServiceDiscovery(newServiceEndpoint())
+            new ScalecubeServiceDiscovery()
                 .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                .options(opts -> opts.metadata(newServiceEndpoint()))
                 .options(opts -> opts.metadataCodec(metadataCodec))
                 .gossip(cfg -> GOSSIP_CONFIG)
                 .membership(cfg -> MEMBERSHIP_CONFIG)
@@ -234,9 +235,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   }
 
   private void startSeed(MetadataCodec metadataCodec) {
-    new ScalecubeServiceDiscovery(newServiceEndpoint())
+    new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .membership(opts -> opts.seedMembers(SEED_ADDRESS))
+        .options(opts -> opts.metadata(newServiceEndpoint()))
         .options(opts -> opts.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)
         .membership(cfg -> MEMBERSHIP_CONFIG)

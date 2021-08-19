@@ -32,8 +32,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .discovery(
                 "gateway",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -44,8 +45,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .discovery(
                 "facade",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Facade())
@@ -58,8 +60,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .discovery(
                 "ping",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
@@ -70,8 +73,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .discovery(
                 "pong",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PongService) () -> Mono.just(Thread.currentThread().getName()))

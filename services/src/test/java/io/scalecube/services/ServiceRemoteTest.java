@@ -72,8 +72,9 @@ public class ServiceRemoteTest extends BaseTest {
         .discovery(
             "gateway",
             serviceEndpoint ->
-                new ScalecubeServiceDiscovery(serviceEndpoint)
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                new ScalecubeServiceDiscovery()
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(serviceEndpoint)))
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }
@@ -509,8 +510,9 @@ public class ServiceRemoteTest extends BaseTest {
             .discovery(
                 "ms",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .tags(tags)
             .services(new GreetingServiceImpl())
@@ -566,8 +568,9 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
-    return new ScalecubeServiceDiscovery(endpoint)
+    return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+        .options(opts -> opts.metadata(endpoint))
         .membership(cfg -> cfg.seedMembers(gatewayAddress));
   }
 }

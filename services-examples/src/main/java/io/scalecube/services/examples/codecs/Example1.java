@@ -26,8 +26,9 @@ public class Example1 {
             .discovery(
                 "seed",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .defaultContentType(PROTOSTUFF) // set explicit default data format
             .startAwait();
@@ -40,8 +41,9 @@ public class Example1 {
             .discovery(
                 "ms",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())

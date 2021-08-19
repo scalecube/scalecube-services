@@ -22,8 +22,9 @@ public class ExceptionMapperExample {
             .discovery(
                 "ms1",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
@@ -41,8 +42,9 @@ public class ExceptionMapperExample {
             .discovery(
                 "ms2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(address1)))
             .transport(RSocketServiceTransport::new)
             .services(

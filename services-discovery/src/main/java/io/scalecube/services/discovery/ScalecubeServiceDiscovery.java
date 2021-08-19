@@ -21,7 +21,6 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
@@ -40,8 +39,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private final ServiceEndpoint serviceEndpoint;
-
   private ClusterConfig clusterConfig;
   private Cluster cluster;
 
@@ -49,14 +46,9 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private final Sinks.Many<ServiceDiscoveryEvent> sink =
       Sinks.many().multicast().directBestEffort();
 
-  /**
-   * Constructor.
-   *
-   * @param serviceEndpoint service endpoint
-   */
-  public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint) {
-    this.serviceEndpoint = Objects.requireNonNull(serviceEndpoint, "serviceEndpoint");
-    this.clusterConfig = ClusterConfig.defaultLanConfig().metadata(serviceEndpoint);
+  /** Constructor. */
+  public ScalecubeServiceDiscovery() {
+    this.clusterConfig = ClusterConfig.defaultLanConfig();
   }
 
   /**
@@ -65,7 +57,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    * @param other other instance
    */
   private ScalecubeServiceDiscovery(ScalecubeServiceDiscovery other) {
-    this.serviceEndpoint = other.serviceEndpoint;
     this.clusterConfig = other.clusterConfig;
     this.cluster = other.cluster;
   }
@@ -251,7 +242,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       jmxMBean.init();
       ObjectName objectName =
           new ObjectName(
-              String.format(OBJECT_NAME_FORMAT, instance.serviceEndpoint.id(), System.nanoTime()));
+              String.format(OBJECT_NAME_FORMAT, instance.cluster.member().id(), System.nanoTime()));
       StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
       mbeanServer.registerMBean(standardMBean, objectName);
       return jmxMBean;

@@ -77,8 +77,9 @@ public class ServiceCallRemoteTest extends BaseTest {
         .discovery(
             "serviceProvider",
             endpoint ->
-                new ScalecubeServiceDiscovery(endpoint)
+                new ScalecubeServiceDiscovery()
                     .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(endpoint))
                     .membership(cfg -> cfg.seedMembers(gateway.discovery("gateway").address())))
         .transport(RSocketServiceTransport::new)
         .services(service)
@@ -303,8 +304,9 @@ public class ServiceCallRemoteTest extends BaseTest {
         .discovery(
             "gateway",
             serviceEndpoint ->
-                new ScalecubeServiceDiscovery(serviceEndpoint)
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                new ScalecubeServiceDiscovery()
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(serviceEndpoint)))
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }

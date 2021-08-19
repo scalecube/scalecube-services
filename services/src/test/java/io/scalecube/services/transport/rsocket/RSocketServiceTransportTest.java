@@ -44,8 +44,9 @@ public class RSocketServiceTransportTest extends BaseTest {
             .discovery(
                 "gateway",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -56,8 +57,9 @@ public class RSocketServiceTransportTest extends BaseTest {
             .discovery(
                 "serviceNode",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new SimpleQuoteService())

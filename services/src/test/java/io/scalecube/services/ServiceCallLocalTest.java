@@ -76,8 +76,9 @@ public class ServiceCallLocalTest extends BaseTest {
         .discovery(
             "serviceProvider",
             serviceEndpoint ->
-                new ScalecubeServiceDiscovery(serviceEndpoint)
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                new ScalecubeServiceDiscovery()
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(serviceEndpoint)))
         .transport(RSocketServiceTransport::new)
         .services(new GreetingServiceImpl())
         .startAwait();

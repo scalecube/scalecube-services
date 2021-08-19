@@ -35,9 +35,10 @@ public class ErrorFlowTest extends BaseTest {
             .discovery(
                 "provider",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet()))
+                        .options(opts -> opts.metadata(endpoint)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -49,10 +50,11 @@ public class ErrorFlowTest extends BaseTest {
             .discovery(
                 "consumer",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
                         .membership(cfg -> cfg.seedMembers(seedAddress))
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .transport(cfg -> cfg.port(PORT.incrementAndGet())))
+                        .transport(cfg -> cfg.port(PORT.incrementAndGet()))
+                        .options(opts -> opts.metadata(endpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
   }

@@ -28,8 +28,9 @@ public class PrincipalMapperAuthExample {
             .discovery(
                 "service",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
             .services(
                 ServiceInfo.fromServiceInstance(new SecuredServiceByApiKeyImpl())
@@ -157,8 +158,9 @@ public class PrincipalMapperAuthExample {
 
   private static ScalecubeServiceDiscovery discovery(
       Microservices service, ServiceEndpoint endpoint) {
-    return new ScalecubeServiceDiscovery(endpoint)
+    return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+        .options(opts -> opts.metadata(endpoint))
         .membership(opts -> opts.seedMembers(service.discovery("service").address()));
   }
 }
