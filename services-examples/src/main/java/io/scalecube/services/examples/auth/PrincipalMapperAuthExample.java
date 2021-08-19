@@ -8,6 +8,7 @@ import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +25,11 @@ public class PrincipalMapperAuthExample {
   public static void main(String[] args) {
     Microservices service =
         Microservices.builder()
-            .discovery("service", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "service",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
             .services(
                 ServiceInfo.fromServiceInstance(new SecuredServiceByApiKeyImpl())
@@ -153,6 +158,7 @@ public class PrincipalMapperAuthExample {
   private static ScalecubeServiceDiscovery discovery(
       Microservices service, ServiceEndpoint endpoint) {
     return new ScalecubeServiceDiscovery(endpoint)
+        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .membership(opts -> opts.seedMembers(service.discovery("service").address()));
   }
 }

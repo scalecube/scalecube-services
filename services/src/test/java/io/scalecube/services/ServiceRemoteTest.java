@@ -19,6 +19,7 @@ import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +69,11 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices gateway() {
     return Microservices.builder()
-        .discovery("gateway", ScalecubeServiceDiscovery::new)
+        .discovery(
+            "gateway",
+            serviceEndpoint ->
+                new ScalecubeServiceDiscovery(serviceEndpoint)
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }
@@ -501,7 +506,11 @@ public class ServiceRemoteTest extends BaseTest {
 
     Microservices ms =
         Microservices.builder()
-            .discovery("ms", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "ms",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(RSocketServiceTransport::new)
             .tags(tags)
             .services(new GreetingServiceImpl())
@@ -558,6 +567,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {
     return new ScalecubeServiceDiscovery(endpoint)
+        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .membership(cfg -> cfg.seedMembers(gatewayAddress));
   }
 }

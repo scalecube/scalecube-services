@@ -39,6 +39,10 @@
       <artifactId>scalecube-services-discovery</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-transport-netty</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>it.unimi.dsi</groupId>

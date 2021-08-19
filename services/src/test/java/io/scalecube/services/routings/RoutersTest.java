@@ -30,6 +30,7 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
@@ -56,7 +57,11 @@ public class RoutersTest extends BaseTest {
   public static void setup() {
     gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -69,6 +74,7 @@ public class RoutersTest extends BaseTest {
                 "provider1",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
@@ -88,6 +94,7 @@ public class RoutersTest extends BaseTest {
                 "provider2",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
@@ -107,6 +114,7 @@ public class RoutersTest extends BaseTest {
                 "provider3",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(

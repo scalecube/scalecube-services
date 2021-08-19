@@ -13,6 +13,7 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,6 +36,7 @@ public class ErrorFlowTest extends BaseTest {
                 "provider",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
@@ -49,6 +51,7 @@ public class ErrorFlowTest extends BaseTest {
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
                         .membership(cfg -> cfg.seedMembers(seedAddress))
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .transport(cfg -> cfg.port(PORT.incrementAndGet())))
             .transport(RSocketServiceTransport::new)
             .startAwait();

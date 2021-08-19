@@ -6,6 +6,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import reactor.core.publisher.Mono;
 
 /**
@@ -27,7 +28,11 @@ public class Example1 {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
-            .discovery("seed", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "seed",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -40,6 +45,7 @@ public class Example1 {
                 "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())

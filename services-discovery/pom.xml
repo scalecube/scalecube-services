@@ -14,10 +14,6 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-cluster</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-transport-netty</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>
@@ -40,6 +36,11 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-codec-jackson</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-transport-netty</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -18,6 +18,7 @@ import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -225,6 +226,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
     return Mono.fromCallable(
         () ->
             new ScalecubeServiceDiscovery(newServiceEndpoint())
+                .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                 .options(opts -> opts.metadataCodec(metadataCodec))
                 .gossip(cfg -> GOSSIP_CONFIG)
                 .membership(cfg -> MEMBERSHIP_CONFIG)
@@ -233,6 +235,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
 
   private void startSeed(MetadataCodec metadataCodec) {
     new ScalecubeServiceDiscovery(newServiceEndpoint())
+        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .membership(opts -> opts.seedMembers(SEED_ADDRESS))
         .options(opts -> opts.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)

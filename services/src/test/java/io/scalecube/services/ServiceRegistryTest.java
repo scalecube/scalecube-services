@@ -16,6 +16,7 @@ import io.scalecube.services.sut.AnnotationService;
 import io.scalecube.services.sut.AnnotationServiceImpl;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -203,13 +204,16 @@ public class ServiceRegistryTest extends BaseTest {
 
   private ServiceDiscoveryFactory defServiceDiscovery(MetadataCodec metadataCodec) {
     return endpoint ->
-        new ScalecubeServiceDiscovery(endpoint).options(cfg -> cfg.metadataCodec(metadataCodec));
+        new ScalecubeServiceDiscovery(endpoint)
+            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+            .options(cfg -> cfg.metadataCodec(metadataCodec));
   }
 
   private static ServiceDiscoveryFactory defServiceDiscovery(
       Address address, MetadataCodec metadataCodec) {
     return endpoint ->
         new ScalecubeServiceDiscovery(endpoint)
+            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
             .options(cfg -> cfg.metadataCodec(metadataCodec))
             .membership(cfg -> cfg.seedMembers(address));
   }

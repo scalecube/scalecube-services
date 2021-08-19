@@ -18,7 +18,6 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -57,10 +56,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
    */
   public ScalecubeServiceDiscovery(ServiceEndpoint serviceEndpoint) {
     this.serviceEndpoint = Objects.requireNonNull(serviceEndpoint, "serviceEndpoint");
-    this.clusterConfig =
-        ClusterConfig.defaultLanConfig()
-            .metadata(serviceEndpoint)
-            .transport(opts -> opts.transportFactory(new WebsocketTransportFactory()));
+    this.clusterConfig = ClusterConfig.defaultLanConfig().metadata(serviceEndpoint);
   }
 
   /**

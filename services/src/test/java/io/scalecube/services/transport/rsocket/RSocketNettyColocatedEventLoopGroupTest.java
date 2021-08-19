@@ -10,6 +10,7 @@ import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
@@ -28,7 +29,11 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
   public void setUp() {
     this.gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -40,6 +45,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                 "facade",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Facade())
@@ -53,6 +59,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                 "ping",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
@@ -64,6 +71,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                 "pong",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(facadeAddress)))
             .transport(RSocketServiceTransport::new)
             .services((PongService) () -> Mono.just(Thread.currentThread().getName()))

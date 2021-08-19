@@ -4,6 +4,7 @@ import io.scalecube.net.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -17,7 +18,11 @@ public class Example2 {
   public static void main(String[] args) {
     Microservices gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory())))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -29,6 +34,7 @@ public class Example2 {
                 "service2Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Service2Impl())
@@ -40,6 +46,7 @@ public class Example2 {
                 "service1Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery(endpoint)
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .membership(cfg -> cfg.seedMembers(gatewayAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new Service1Impl())
