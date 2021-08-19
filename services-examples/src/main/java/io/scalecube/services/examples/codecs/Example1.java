@@ -6,6 +6,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 
 public class Example1 {
 
@@ -22,7 +23,12 @@ public class Example1 {
     // ScaleCube Node node with no members
     Microservices seed =
         Microservices.builder()
-            .discovery("seed", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "seed",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .defaultContentType(PROTOSTUFF) // set explicit default data format
             .startAwait();
@@ -35,7 +41,9 @@ public class Example1 {
             .discovery(
                 "ms",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())

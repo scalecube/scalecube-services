@@ -29,6 +29,7 @@ import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -76,7 +77,9 @@ public class ServiceCallRemoteTest extends BaseTest {
         .discovery(
             "serviceProvider",
             endpoint ->
-                new ScalecubeServiceDiscovery(endpoint)
+                new ScalecubeServiceDiscovery()
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(endpoint))
                     .membership(cfg -> cfg.seedMembers(gateway.discovery("gateway").address())))
         .transport(RSocketServiceTransport::new)
         .services(service)
@@ -298,7 +301,12 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices gateway() {
     return Microservices.builder()
-        .discovery("gateway", ScalecubeServiceDiscovery::new)
+        .discovery(
+            "gateway",
+            serviceEndpoint ->
+                new ScalecubeServiceDiscovery()
+                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                    .options(opts -> opts.metadata(serviceEndpoint)))
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }

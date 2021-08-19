@@ -10,6 +10,7 @@ import io.scalecube.services.routings.sut.GreetingServiceImplB;
 import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
@@ -22,7 +23,12 @@ public class ServiceTagsExample {
   public static void main(String[] args) {
     Microservices gateway =
         Microservices.builder()
-            .discovery("gateway", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "gateway",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
@@ -33,7 +39,9 @@ public class ServiceTagsExample {
             .discovery(
                 "services1",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(
@@ -47,7 +55,9 @@ public class ServiceTagsExample {
             .discovery(
                 "services2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(seedAddress)))
             .transport(RSocketServiceTransport::new)
             .services(

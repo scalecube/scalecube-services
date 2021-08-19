@@ -5,6 +5,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.util.Collections;
 
 public class ExceptionMapperExample {
@@ -18,7 +19,12 @@ public class ExceptionMapperExample {
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
         Microservices.builder()
-            .discovery("ms1", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "ms1",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
@@ -36,7 +42,9 @@ public class ExceptionMapperExample {
             .discovery(
                 "ms2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .membership(cfg -> cfg.seedMembers(address1)))
             .transport(RSocketServiceTransport::new)
             .services(

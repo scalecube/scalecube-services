@@ -7,6 +7,7 @@ import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.UUID;
@@ -22,7 +23,12 @@ public class ServiceTransportAuthExample {
   public static void main(String[] args) {
     Microservices service =
         Microservices.builder()
-            .discovery("service", ScalecubeServiceDiscovery::new)
+            .discovery(
+                "service",
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
             .services(new SecuredServiceByUserProfileImpl())
             .startAwait();
@@ -71,7 +77,9 @@ public class ServiceTransportAuthExample {
 
   private static ScalecubeServiceDiscovery discovery(
       Microservices service, ServiceEndpoint endpoint) {
-    return new ScalecubeServiceDiscovery(endpoint)
+    return new ScalecubeServiceDiscovery()
+        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+        .options(opts -> opts.metadata(endpoint))
         .membership(opts -> opts.seedMembers(service.discovery("service").address()));
   }
 }

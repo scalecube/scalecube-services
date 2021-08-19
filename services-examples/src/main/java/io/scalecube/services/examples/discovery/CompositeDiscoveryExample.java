@@ -9,6 +9,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.examples.helloworld.service.api.Greeting;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import reactor.core.publisher.Mono;
 
 public class CompositeDiscoveryExample {
@@ -24,7 +25,9 @@ public class CompositeDiscoveryExample {
             .discovery(
                 "seed1",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint))
                         .options(opts -> opts.memberAlias("seed1")))
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -34,7 +37,9 @@ public class CompositeDiscoveryExample {
             .discovery(
                 "seed2",
                 serviceEndpoint ->
-                    new ScalecubeServiceDiscovery(serviceEndpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint))
                         .options(opts -> opts.memberAlias("seed2")))
             .transport(RSocketServiceTransport::new)
             .startAwait();
@@ -47,7 +52,9 @@ public class CompositeDiscoveryExample {
             .discovery(
                 "ms1",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .options(opts -> opts.memberAlias("ms1"))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .transport(RSocketServiceTransport::new)
@@ -59,7 +66,9 @@ public class CompositeDiscoveryExample {
             .discovery(
                 "ms2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .options(opts -> opts.memberAlias("ms2"))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
@@ -71,13 +80,17 @@ public class CompositeDiscoveryExample {
             .discovery(
                 "domain1",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .options(opts -> opts.memberAlias("domain1"))
                         .membership(cfg -> cfg.seedMembers(seed1Address)))
             .discovery(
                 "domain2",
                 endpoint ->
-                    new ScalecubeServiceDiscovery(endpoint)
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
                         .options(opts -> opts.memberAlias("domain2"))
                         .membership(cfg -> cfg.seedMembers(seed2Address)))
             .transport(RSocketServiceTransport::new)
