@@ -57,9 +57,9 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.10</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.17</scalecube-commons.version>
-    <scalecube-security.version>1.0.19</scalecube-security.version>
+    <scalecube-cluster.version>2.6.11</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.18</scalecube-commons.version>
+    <scalecube-security.version>1.0.24</scalecube-security.version>
 
     <reactor.version>2020.0.10</reactor.version>
     <jackson.version>2.11.0</jackson.version>
