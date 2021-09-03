@@ -18,11 +18,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -255,11 +257,15 @@ public class Reflect {
    * @param serviceObject with extends service interface with @Service annotation.
    * @return service interface class.
    */
-  public static Collection<Class<?>> serviceInterfaces(Object serviceObject) {
-    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
-    return Arrays.stream(interfaces)
-        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
-        .collect(Collectors.toList());
+  public static Stream<Class<?>> serviceInterfaces(Object serviceObject) {
+    Class<?> current = serviceObject.getClass();
+    Set<Class<?>> interfaces = new HashSet<>();
+    while (current != Object.class) {
+      interfaces.addAll(Arrays.asList(current.getInterfaces()));
+      current = current.getSuperclass();
+    }
+    return interfaces.stream()
+        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));
   }
 
   public static String methodName(Method method) {

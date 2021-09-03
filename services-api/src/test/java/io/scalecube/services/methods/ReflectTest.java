@@ -7,11 +7,13 @@ import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
+import io.scalecube.services.annotations.Service;
 import io.scalecube.services.api.ServiceMessage;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -107,5 +109,32 @@ public class ReflectTest {
     Flux<ServiceMessage> requestStreamMessage(ServiceMessage sm);
 
     Flux<ServiceMessage> requestChannelMessage(Flux<ServiceMessage> sm);
+  }
+
+  @Service
+  private interface SimpleService {
+    public String name();
+  }
+
+  private class ServiceImpl implements SimpleService {
+    @Override
+    public String name() {
+      return "duke";
+    }
+  }
+
+  private class SubServiceImpl extends ServiceImpl {
+      
+  }
+
+  @Test
+  public void testSubServiceInterfaces() {
+
+    // When:
+    Stream<Class<?>> interfaces = Reflect.serviceInterfaces(new SubServiceImpl());
+    // Then:
+    Assertions.assertEquals(
+        1,
+        interfaces.count(), "serviceInterfaces(..) should detect interfaces in SubServiceImpl");
   }
 }
