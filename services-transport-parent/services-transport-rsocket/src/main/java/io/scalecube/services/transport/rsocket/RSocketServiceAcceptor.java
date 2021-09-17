@@ -98,7 +98,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   }
 
   private Mono<Object> authenticate(RSocket rsocket, ConnectionSetup connectionSetup) {
-    if (authenticator == null || connectionSetup == null || !connectionSetup.hasCredentials()) {
+    if (authenticator == null || connectionSetup == null) {
       return Mono.empty();
     }
     return authenticator
