@@ -58,7 +58,6 @@ public class RoutersTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -66,13 +65,12 @@ public class RoutersTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    gatewayAddress = gateway.discovery("gateway").address();
+    gatewayAddress = gateway.discovery().address();
 
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
             .discovery(
-                "provider1",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -93,7 +91,6 @@ public class RoutersTest extends BaseTest {
     provider2 =
         Microservices.builder()
             .discovery(
-                "provider2",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -114,7 +111,6 @@ public class RoutersTest extends BaseTest {
     provider3 =
         Microservices.builder()
             .discovery(
-                "provider3",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

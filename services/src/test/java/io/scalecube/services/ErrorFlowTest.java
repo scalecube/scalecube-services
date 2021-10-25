@@ -33,7 +33,6 @@ public class ErrorFlowTest extends BaseTest {
     provider =
         Microservices.builder()
             .discovery(
-                "provider",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -43,12 +42,11 @@ public class ErrorFlowTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    final Address seedAddress = provider.discovery("provider").address();
+    final Address seedAddress = provider.discovery().address();
 
     consumer =
         Microservices.builder()
             .discovery(
-                "consumer",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .membership(cfg -> cfg.seedMembers(seedAddress))

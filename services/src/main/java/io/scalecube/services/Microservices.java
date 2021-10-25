@@ -313,6 +313,16 @@ public final class Microservices {
   }
 
   /**
+   * Returns default service discovery context.
+   *
+   * @see Microservices.Builder#discovery(String, ServiceDiscoveryFactory)
+   * @return service discovery context
+   */
+  public ServiceDiscoveryContext discovery() {
+    return discovery("default");
+  }
+
+  /**
    * Returns service discovery context by id.
    *
    * @see Microservices.Builder#discovery(String, ServiceDiscoveryFactory)
@@ -457,6 +467,10 @@ public final class Microservices {
     public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
       this.methodRegistry = methodRegistry;
       return this;
+    }
+
+    public Builder discovery(ServiceDiscoveryFactory discoveryFactory) {
+      return discovery("default", discoveryFactory);
     }
 
     public Builder discovery(String id, ServiceDiscoveryFactory discoveryFactory) {

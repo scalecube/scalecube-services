@@ -26,7 +26,6 @@ public class PrincipalMapperAuthExample {
     Microservices service =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -44,7 +43,7 @@ public class PrincipalMapperAuthExample {
 
     Microservices userProfileCaller =
         Microservices.builder()
-            .discovery("caller", endpoint -> discovery(service, endpoint))
+            .discovery(endpoint -> discovery(service, endpoint))
             .transport(
                 () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
             .startAwait();
@@ -60,7 +59,7 @@ public class PrincipalMapperAuthExample {
 
     Microservices apiKeyCaller =
         Microservices.builder()
-            .discovery("caller", endpoint -> discovery(service, endpoint))
+            .discovery(endpoint -> discovery(service, endpoint))
             .transport(
                 () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
             .startAwait();
@@ -161,6 +160,6 @@ public class PrincipalMapperAuthExample {
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(endpoint))
-        .membership(opts -> opts.seedMembers(service.discovery("service").address()));
+        .membership(opts -> opts.seedMembers(service.discovery().address()));
   }
 }

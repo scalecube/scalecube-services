@@ -31,7 +31,6 @@ public class StreamingServiceTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -40,12 +39,11 @@ public class StreamingServiceTest extends BaseTest {
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery("gateway").address();
+    final Address gatewayAddress = gateway.discovery().address();
 
     node =
         Microservices.builder()
             .discovery(
-                "node",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

@@ -30,7 +30,6 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
     this.gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -38,12 +37,11 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.discovery("gateway").address();
+    final Address gatewayAddress = this.gateway.discovery().address();
 
     Microservices facade =
         Microservices.builder()
             .discovery(
-                "facade",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -53,12 +51,11 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .services(new Facade())
             .startAwait();
 
-    final Address facadeAddress = facade.discovery("facade").address();
+    final Address facadeAddress = facade.discovery().address();
 
     this.ping =
         Microservices.builder()
             .discovery(
-                "ping",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -71,7 +68,6 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
     this.pong =
         Microservices.builder()
             .discovery(
-                "pong",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

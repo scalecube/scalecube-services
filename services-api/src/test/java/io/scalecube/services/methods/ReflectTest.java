@@ -123,9 +123,7 @@ public class ReflectTest {
     }
   }
 
-  private class SubServiceImpl extends ServiceImpl {
-      
-  }
+  private class SubServiceImpl extends ServiceImpl {}
 
   @Test
   public void testSubServiceInterfaces() {
@@ -134,7 +132,6 @@ public class ReflectTest {
     Stream<Class<?>> interfaces = Reflect.serviceInterfaces(new SubServiceImpl());
     // Then:
     Assertions.assertEquals(
-        1,
-        interfaces.count(), "serviceInterfaces(..) should detect interfaces in SubServiceImpl");
+        1, interfaces.count(), "serviceInterfaces(..) should detect interfaces in SubServiceImpl");
   }
 }

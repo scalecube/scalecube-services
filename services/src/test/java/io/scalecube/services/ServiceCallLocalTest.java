@@ -74,7 +74,6 @@ public class ServiceCallLocalTest extends BaseTest {
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .discovery(
-            "serviceProvider",
             serviceEndpoint ->
                 new ScalecubeServiceDiscovery()
                     .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

@@ -44,25 +44,25 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery("seed", defServiceDiscovery(metadataCodec))
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
     seed.listenDiscovery()
         .subscribe(events::tryEmitNext, events::tryEmitError, events::tryEmitComplete);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.discovery().address();
 
     Microservices ms1 =
         Microservices.builder()
-            .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
+            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
+            .discovery(defServiceDiscovery(seedAddress, metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -89,7 +89,7 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery("seed", defServiceDiscovery(metadataCodec))
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new AnnotationServiceImpl())
             .startAwait();
@@ -98,14 +98,14 @@ public class ServiceRegistryTest extends BaseTest {
     seed.listenDiscovery()
         .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.discovery().address();
 
     StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -116,7 +116,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
@@ -155,7 +155,7 @@ public class ServiceRegistryTest extends BaseTest {
 
     Microservices seed =
         Microservices.builder()
-            .discovery("seed", defServiceDiscovery(metadataCodec))
+            .discovery(defServiceDiscovery(metadataCodec))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -164,14 +164,14 @@ public class ServiceRegistryTest extends BaseTest {
     seed.listenDiscovery()
         .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
-    Address seedAddress = seed.discovery("seed").address();
+    Address seedAddress = seed.discovery().address();
 
     StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
             () -> {
               Microservices ms1 =
                   Microservices.builder()
-                      .discovery("ms1", defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl(), new AnnotationServiceImpl())
                       .startAwait();
@@ -182,7 +182,7 @@ public class ServiceRegistryTest extends BaseTest {
             () -> {
               Microservices ms2 =
                   Microservices.builder()
-                      .discovery("ms2", defServiceDiscovery(seedAddress, metadataCodec))
+                      .discovery(defServiceDiscovery(seedAddress, metadataCodec))
                       .transport(RSocketServiceTransport::new)
                       .services(new GreetingServiceImpl())
                       .startAwait();
