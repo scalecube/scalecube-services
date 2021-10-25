@@ -19,7 +19,6 @@ public class Example2 {
     Microservices gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -32,7 +31,6 @@ public class Example2 {
     Microservices service2Node =
         Microservices.builder()
             .discovery(
-                "service2Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -45,7 +43,6 @@ public class Example2 {
     Microservices service1Node =
         Microservices.builder()
             .discovery(
-                "service1Node",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

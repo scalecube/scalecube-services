@@ -33,7 +33,6 @@ public class ErrorFlowTest extends BaseTest {
     provider =
         Microservices.builder()
             .discovery(
-                "provider",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

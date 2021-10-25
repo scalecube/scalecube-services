@@ -26,11 +26,10 @@ public class Example3 {
    * @param args ignored
    */
   public static void main(String[] args) {
-    // ScaleCube Node node with no members
+    // ScaleCube Node with no members
     Microservices seed =
         Microservices.builder()
             .discovery(
-                "seed",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -44,7 +43,6 @@ public class Example3 {
     Microservices ms =
         Microservices.builder()
             .discovery(
-                "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

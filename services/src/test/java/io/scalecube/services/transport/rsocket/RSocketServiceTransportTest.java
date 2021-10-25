@@ -42,7 +42,6 @@ public class RSocketServiceTransportTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

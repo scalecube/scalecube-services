@@ -70,7 +70,6 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway() {
     return Microservices.builder()
         .discovery(
-            "gateway",
             serviceEndpoint ->
                 new ScalecubeServiceDiscovery()
                     .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -508,7 +507,6 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder()
             .discovery(
-                "ms",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

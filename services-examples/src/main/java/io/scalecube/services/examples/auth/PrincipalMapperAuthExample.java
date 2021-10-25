@@ -26,7 +26,6 @@ public class PrincipalMapperAuthExample {
     Microservices service =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

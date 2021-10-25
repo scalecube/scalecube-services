@@ -24,7 +24,6 @@ public class ServiceTagsExample {
     Microservices gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -37,7 +36,6 @@ public class ServiceTagsExample {
     Microservices services1 =
         Microservices.builder()
             .discovery(
-                "services1",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -53,7 +51,6 @@ public class ServiceTagsExample {
     Microservices services2 =
         Microservices.builder()
             .discovery(
-                "services2",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

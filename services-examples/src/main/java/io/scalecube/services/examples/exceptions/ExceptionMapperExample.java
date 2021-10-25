@@ -20,7 +20,6 @@ public class ExceptionMapperExample {
     Microservices ms1 =
         Microservices.builder()
             .discovery(
-                "ms1",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -40,7 +39,6 @@ public class ExceptionMapperExample {
     Microservices ms2 =
         Microservices.builder()
             .discovery(
-                "ms2",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

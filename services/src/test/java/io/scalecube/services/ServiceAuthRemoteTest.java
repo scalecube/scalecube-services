@@ -77,7 +77,6 @@ final class ServiceAuthRemoteTest extends BaseTest {
     service =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -92,7 +91,6 @@ final class ServiceAuthRemoteTest extends BaseTest {
     serviceWithoutAuthenticator =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -107,7 +105,6 @@ final class ServiceAuthRemoteTest extends BaseTest {
     partiallySecuredService =
         Microservices.builder()
             .discovery(
-                "service",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

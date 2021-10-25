@@ -31,7 +31,6 @@ public class StreamingServiceTest extends BaseTest {
     gateway =
         Microservices.builder()
             .discovery(
-                "gateway",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -45,7 +44,6 @@ public class StreamingServiceTest extends BaseTest {
     node =
         Microservices.builder()
             .discovery(
-                "node",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

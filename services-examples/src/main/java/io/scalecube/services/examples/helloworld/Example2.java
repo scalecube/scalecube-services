@@ -50,7 +50,6 @@ public class Example2 {
     Microservices ms =
         Microservices.builder()
             .discovery(
-                "ms",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
