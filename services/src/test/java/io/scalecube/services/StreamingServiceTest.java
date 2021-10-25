@@ -40,7 +40,7 @@ public class StreamingServiceTest extends BaseTest {
             .defaultDataDecoder(ServiceMessageCodec::decodeData)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery("gateway").address();
+    final Address gatewayAddress = gateway.discovery().address();
 
     node =
         Microservices.builder()

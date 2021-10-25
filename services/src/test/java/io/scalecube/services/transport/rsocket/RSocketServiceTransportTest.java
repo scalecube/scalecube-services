@@ -50,12 +50,11 @@ public class RSocketServiceTransportTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.discovery("gateway").address();
+    final Address gatewayAddress = this.gateway.discovery().address();
 
     serviceNode =
         Microservices.builder()
             .discovery(
-                "serviceNode",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))

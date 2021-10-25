@@ -32,7 +32,7 @@ public class ServiceTagsExample {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    Address seedAddress = gateway.discovery("gateway").address();
+    Address seedAddress = gateway.discovery().address();
 
     Microservices services1 =
         Microservices.builder()

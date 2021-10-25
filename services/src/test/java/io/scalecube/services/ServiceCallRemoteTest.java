@@ -80,7 +80,7 @@ public class ServiceCallRemoteTest extends BaseTest {
                 new ScalecubeServiceDiscovery()
                     .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                     .options(opts -> opts.metadata(endpoint))
-                    .membership(cfg -> cfg.seedMembers(gateway.discovery("gateway").address())))
+                    .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
         .transport(RSocketServiceTransport::new)
         .services(service)
         .startAwait();

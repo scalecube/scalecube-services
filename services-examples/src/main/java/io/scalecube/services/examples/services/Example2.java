@@ -27,7 +27,7 @@ public class Example2 {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = gateway.discovery("gateway").address();
+    final Address gatewayAddress = gateway.discovery().address();
 
     Microservices service2Node =
         Microservices.builder()

@@ -35,7 +35,7 @@ public class ServiceTransportAuthExample {
 
     Microservices caller =
         Microservices.builder()
-            .discovery("caller", endpoint -> discovery(service, endpoint))
+            .discovery(endpoint -> discovery(service, endpoint))
             .transport(() -> new RSocketServiceTransport().credentialsSupplier(credsSupplier()))
             .startAwait();
 
@@ -80,6 +80,6 @@ public class ServiceTransportAuthExample {
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(endpoint))
-        .membership(opts -> opts.seedMembers(service.discovery("service").address()));
+        .membership(opts -> opts.seedMembers(service.discovery().address()));
   }
 }

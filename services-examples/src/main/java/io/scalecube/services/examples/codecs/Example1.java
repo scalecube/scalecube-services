@@ -33,7 +33,7 @@ public class Example1 {
             .defaultContentType(PROTOSTUFF) // set explicit default data format
             .startAwait();
 
-    final Address seedAddress = seed.discovery("seed").address();
+    final Address seedAddress = seed.discovery().address();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =

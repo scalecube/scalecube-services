@@ -285,7 +285,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
   private static Microservices newCaller() {
     return Microservices.builder()
-        .discovery("caller", ServiceAuthRemoteTest::serviceDiscovery)
+        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
         .transport(
             () ->
                 new RSocketServiceTransport()
@@ -295,14 +295,14 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
   private static Microservices newEmptyCredentialsCaller() {
     return Microservices.builder()
-        .discovery("caller", ServiceAuthRemoteTest::serviceDiscovery)
+        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .startAwait();
   }
 
   private static Microservices newInvalidCredentialsCaller() {
     return Microservices.builder()
-        .discovery("caller", ServiceAuthRemoteTest::serviceDiscovery)
+        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
         .transport(
             () ->
                 new RSocketServiceTransport()
@@ -339,8 +339,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
         .membership(
             opts ->
                 opts.seedMembers(
-                    service.discovery("service").address(),
-                    serviceWithoutAuthenticator.discovery("service").address(),
-                    partiallySecuredService.discovery("service").address()));
+                    service.discovery().address(),
+                    serviceWithoutAuthenticator.discovery().address(),
+                    partiallySecuredService.discovery().address()));
   }
 }

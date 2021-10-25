@@ -43,12 +43,11 @@ public class ErrorFlowTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    final Address seedAddress = provider.discovery("provider").address();
+    final Address seedAddress = provider.discovery().address();
 
     consumer =
         Microservices.builder()
             .discovery(
-                "consumer",
                 endpoint ->
                     new ScalecubeServiceDiscovery()
                         .membership(cfg -> cfg.seedMembers(seedAddress))

@@ -48,7 +48,7 @@ public class ServiceRemoteTest extends BaseTest {
   public static void setup() {
     Hooks.onOperatorDebug();
     gateway = gateway();
-    gatewayAddress = gateway.discovery("gateway").address();
+    gatewayAddress = gateway.discovery().address();
     provider = serviceProvider();
   }
 
@@ -81,7 +81,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .discovery("serviceProvider", ServiceRemoteTest::serviceDiscovery)
+        .discovery(ServiceRemoteTest::serviceDiscovery)
         .transport(RSocketServiceTransport::new)
         .services(new GreetingServiceImpl())
         .startAwait();
@@ -277,7 +277,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
@@ -300,7 +300,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another)
             .startAwait();
@@ -320,7 +320,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .discovery("ms", ServiceRemoteTest::serviceDiscovery)
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
             .startAwait();
@@ -345,7 +345,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .discovery("provider", ServiceRemoteTest::serviceDiscovery)
+            .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(another) // add service a and b
             .startAwait();

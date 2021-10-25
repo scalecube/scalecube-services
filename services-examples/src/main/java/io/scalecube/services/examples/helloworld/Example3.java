@@ -38,7 +38,7 @@ public class Example3 {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address seedAddress = seed.discovery("seed").address();
+    final Address seedAddress = seed.discovery().address();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =

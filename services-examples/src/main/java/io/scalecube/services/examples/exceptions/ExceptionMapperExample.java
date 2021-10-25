@@ -35,7 +35,7 @@ public class ExceptionMapperExample {
 
     System.err.println("ms1 started: " + ms1.serviceAddress());
 
-    final Address address1 = ms1.discovery("ms1").address();
+    final Address address1 = ms1.discovery().address();
 
     Microservices ms2 =
         Microservices.builder()

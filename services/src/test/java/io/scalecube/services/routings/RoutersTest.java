@@ -66,7 +66,7 @@ public class RoutersTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    gatewayAddress = gateway.discovery("gateway").address();
+    gatewayAddress = gateway.discovery().address();
 
     // Create microservices instance cluster.
     provider1 =
