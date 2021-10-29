@@ -6,8 +6,8 @@ import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
 @Secured
-@Service("securedServiceByApiKey")
-public interface SecuredServiceByApiKey {
+@Service("securedServiceByCompositeProfile")
+public interface SecuredServiceByCompositeProfile {
 
   @ServiceMethod
   Mono<String> hello(String name);

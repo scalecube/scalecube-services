@@ -1,5 +1,7 @@
 package io.scalecube.services.examples.auth;
 
+import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 
 public class UserProfile {
@@ -8,8 +10,12 @@ public class UserProfile {
   private final String role;
 
   public UserProfile(String name, String role) {
-    this.name = name;
-    this.role = role;
+    this.name = Objects.requireNonNull(name, "UserProfile.name");
+    this.role = Objects.requireNonNull(role, "UserProfile.role");
+  }
+
+  public static UserProfile fromHeaders(Map<String, String> headers) {
+    return new UserProfile(headers.get("userProfile.name"), headers.get("userProfile.role"));
   }
 
   public String name() {

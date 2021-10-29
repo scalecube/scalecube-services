@@ -1,5 +1,7 @@
 package io.scalecube.services.transport.rsocket;
 
+import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.rsocket.ConnectionSetupPayload;
@@ -26,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.annotation.Nullable;
 import reactor.util.context.Context;
 
 public class RSocketServiceAcceptor implements SocketAcceptor {
@@ -63,35 +64,22 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
-    LOGGER.info("[rsocket][accept][{}] Setup: {}", rsocket, setupPayload);
+    LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload);
 
     return Mono.justOrEmpty(decodeConnectionSetup(setupPayload.data()))
         .flatMap(connectionSetup -> authenticate(rsocket, connectionSetup))
-        .flatMap(
-            authData ->
-                Mono.fromCallable(
-                    () ->
-                        new RSocketImpl(
-                            authData,
-                            new ServiceMessageCodec(headersCodec, dataCodecs),
-                            methodRegistry)))
-        .switchIfEmpty(
-            Mono.fromCallable(
-                () ->
-                    new RSocketImpl(
-                        null /*authData*/,
-                        new ServiceMessageCodec(headersCodec, dataCodecs),
-                        methodRegistry)))
+        .flatMap(authData -> Mono.fromCallable(() -> newRSocket(authData)))
+        .switchIfEmpty(Mono.fromCallable(() -> newRSocket(null)))
         .cast(RSocket.class);
   }
 
   private ConnectionSetup decodeConnectionSetup(ByteBuf byteBuf) {
+    // Work with byteBuf as usual and dont release it here, because it will be done by rsocket
     if (byteBuf.isReadable()) {
       try (ByteBufInputStream stream = new ByteBufInputStream(byteBuf, false /*releaseOnClose*/)) {
         return connectionSetupCodec.decode(stream);
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(byteBuf); // release byteBuf
-        throw new MessageCodecException("Failed to decode ConnectionSetup", ex);
+        throw new MessageCodecException("Failed to decode connection setup", ex);
       }
     }
     return null;
@@ -103,12 +91,17 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     }
     return authenticator
         .apply(connectionSetup.credentials())
-        .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] Authenticated", rsocket))
+        .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] authenticated", rsocket))
         .doOnError(
             ex ->
                 LOGGER.error(
-                    "[rsocket][authenticate][{}] Exception occurred: {}", rsocket, ex.toString()))
+                    "[rsocket][authenticate][{}][error] cause: {}", rsocket, ex.toString()))
         .onErrorMap(this::toUnauthorizedException);
+  }
+
+  private RSocket newRSocket(Object authData) {
+    return new RSocketImpl(
+        authData, new ServiceMessageCodec(headersCodec, dataCodecs), methodRegistry);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -127,9 +120,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     private final ServiceMethodRegistry methodRegistry;
 
     private RSocketImpl(
-        @Nullable Object authData,
-        ServiceMessageCodec messageCodec,
-        ServiceMethodRegistry methodRegistry) {
+        Object authData, ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
       this.authData = authData;
       this.messageCodec = messageCodec;
       this.methodRegistry = methodRegistry;
@@ -148,8 +139,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestResponse] Exception occurred: {}", ex.toString()))
-          .contextWrite(this::enhanceContextWithAuthData);
+          .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()))
+          .contextWrite(this::setupContext);
     }
 
     @Override
@@ -165,8 +156,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                     .doOnNext(response -> releaseRequestOnError(message, response));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred: {}", ex.toString()))
-          .contextWrite(this::enhanceContextWithAuthData);
+          .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()))
+          .contextWrite(this::setupContext);
     }
 
     @Override
@@ -187,8 +178,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 return messages;
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred: {}", ex.toString()))
-          .contextWrite(this::enhanceContextWithAuthData);
+          .doOnError(ex -> LOGGER.error("[requestChannel][error] cause: {}", ex.toString()))
+          .contextWrite(this::setupContext);
     }
 
     private Payload toPayload(ServiceMessage response) {
@@ -203,14 +194,14 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
     }
 
-    private Context enhanceContextWithAuthData(Context context) {
-      return authData != null ? context.put(Authenticator.AUTH_CONTEXT_KEY, authData) : context;
+    private Context setupContext(Context context) {
+      return authData != null ? Context.of(AUTH_CONTEXT_KEY, authData) : context;
     }
 
     private void validateRequest(ServiceMessage message) throws ServiceException {
       if (message.qualifier() == null) {
         releaseRequest(message);
-        LOGGER.error("[qualifier is null] Invocation failed for {}", message);
+        LOGGER.error("Qualifier is null, invocation failed for {}", message);
         throw new BadRequestException("Qualifier is null");
       }
     }
@@ -218,7 +209,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     private void validateMethodInvoker(ServiceMethodInvoker methodInvoker, ServiceMessage message) {
       if (methodInvoker == null) {
         releaseRequest(message);
-        LOGGER.error("[no service invoker found] Invocation failed for {}", message);
+        LOGGER.error("No service invoker found, invocation failed for {}", message);
         throw new ServiceUnavailableException("No service invoker found");
       }
     }

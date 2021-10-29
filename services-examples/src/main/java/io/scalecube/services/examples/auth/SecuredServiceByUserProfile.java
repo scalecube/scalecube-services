@@ -6,7 +6,7 @@ import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
 @Secured
-@Service
+@Service("securedServiceByUserProfile")
 public interface SecuredServiceByUserProfile {
 
   @ServiceMethod
