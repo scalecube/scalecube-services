@@ -113,17 +113,17 @@ public final class ServiceMethodInvoker {
 
   private Mono<?> deferWithContextOne(ServiceMessage message, Object authData) {
     return Mono.deferContextual(context -> Mono.from(invoke(toRequest(message))))
-        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
+        .contextWrite(context -> enhanceContext(authData, context));
   }
 
   private Flux<?> deferWithContextMany(ServiceMessage message, Object authData) {
     return Flux.deferContextual(context -> Flux.from(invoke(toRequest(message))))
-        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
+        .contextWrite(context -> enhanceContext(authData, context));
   }
 
   private Flux<?> deferWithContextBidirectional(Flux<ServiceMessage> messages, Object authData) {
     return Flux.deferContextual(context -> messages.map(this::toRequest).transform(this::invoke))
-        .contextWrite(context -> enhanceContextWithPrincipal(authData, context));
+        .contextWrite(context -> enhanceContext(authData, context));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -160,16 +160,19 @@ public final class ServiceMethodInvoker {
       return Mono.just(NULL_AUTH_CONTEXT);
     }
 
-    if (context.hasKey(AUTH_CONTEXT_KEY)) {
-      return Mono.just(context.get(AUTH_CONTEXT_KEY));
-    }
-
     if (authenticator == null) {
-      LOGGER.error("Authentication failed (auth context not found and authenticator not set)");
-      throw new UnauthorizedException("Authentication failed");
+      if (context.hasKey(AUTH_CONTEXT_KEY)) {
+        return Mono.just(context.get(AUTH_CONTEXT_KEY));
+      } else {
+        LOGGER.error("Authentication failed (auth context not found and authenticator not set)");
+        throw new UnauthorizedException("Authentication failed");
+      }
     }
 
-    return authenticator.apply(message.headers()).onErrorMap(this::toUnauthorizedException);
+    return authenticator
+        .apply(message.headers())
+        .switchIfEmpty(Mono.just(NULL_AUTH_CONTEXT))
+        .onErrorMap(this::toUnauthorizedException);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -181,12 +184,14 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  private Context enhanceContextWithPrincipal(Object authData, Context context) {
-    if (authData == NULL_AUTH_CONTEXT || authData == null) {
-      return context;
+  private Context enhanceContext(Object authData, Context context) {
+    if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
+      return context.put(AUTH_CONTEXT_KEY, authData);
     }
-    return context.put(
-        AUTH_CONTEXT_KEY, principalMapper != null ? principalMapper.apply(authData) : authData);
+
+    Object mappedData = principalMapper.apply(authData);
+
+    return context.put(AUTH_CONTEXT_KEY, mappedData != null ? mappedData : NULL_AUTH_CONTEXT);
   }
 
   private Object toRequest(ServiceMessage message) {

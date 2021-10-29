@@ -35,7 +35,8 @@ public class ServiceTransportAuthExample {
     Microservices caller =
         Microservices.builder()
             .discovery(endpoint -> discovery(service, endpoint))
-            .transport(() -> new RSocketServiceTransport().credentialsSupplier(credsSupplier()))
+            .transport(
+                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
             .startAwait();
 
     String response =
@@ -65,7 +66,7 @@ public class ServiceTransportAuthExample {
     };
   }
 
-  private static CredentialsSupplier credsSupplier() {
+  private static CredentialsSupplier credentialsSupplier() {
     return service -> {
       HashMap<String, String> creds = new HashMap<>();
       creds.put("username", "Alice");
