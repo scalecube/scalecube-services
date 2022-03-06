@@ -57,6 +57,8 @@
   </scm>
 
   <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+
     <scalecube-cluster.version>2.6.12</scalecube-cluster.version>
     <scalecube-commons.version>1.0.18</scalecube-commons.version>
     <scalecube-security.version>1.0.24</scalecube-security.version>
