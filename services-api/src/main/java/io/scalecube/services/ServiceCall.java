@@ -308,7 +308,7 @@ public class ServiceCall {
                   return check.get(); // toString, hashCode was invoked.
                 }
 
-                if(method.isDefault()) {
+                if (method.isDefault()) {
                   return InvocationHandler.invokeDefault(proxy, method, params);
                 }
 
