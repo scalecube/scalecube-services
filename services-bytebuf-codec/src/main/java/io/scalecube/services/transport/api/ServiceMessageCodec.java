@@ -157,7 +157,8 @@ public final class ServiceMessageCodec {
       throws MessageCodecException {
     if (dataType == null
         || !message.hasData(ByteBuf.class)
-        || ((ByteBuf) message.data()).readableBytes() == 0) {
+        || ((ByteBuf) message.data()).readableBytes() == 0
+        || ByteBuf.class == dataType) {
       return message;
     }
 
