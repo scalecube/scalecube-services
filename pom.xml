@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.scalecube</groupId>
-    <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.2.19</version>
+    <artifactId>scalecube-parent</artifactId>
+    <version>0.2.20</version>
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -57,25 +59,26 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.12</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.18</scalecube-commons.version>
-    <scalecube-security.version>1.0.24</scalecube-security.version>
+    <scalecube-cluster.version>2.6.13</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.21</scalecube-commons.version>
+    <scalecube-security.version>1.0.28</scalecube-security.version>
 
-    <reactor.version>2020.0.10</reactor.version>
-    <jackson.version>2.11.0</jackson.version>
-    <rsocket.version>1.0.5</rsocket.version>
+    <reactor.version>2020.0.23</reactor.version>
+    <jackson.version>2.13.3</jackson.version>
+    <rsocket.version>1.1.3</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <slf4j.version>1.7.30</slf4j.version>
-    <log4j.version>2.13.2</log4j.version>
+    <slf4j.version>1.7.36</slf4j.version>
+    <log4j.version>2.17.2</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
-    <netty.version>4.1.66.Final</netty.version>
-    <snakeyaml.version>1.26</snakeyaml.version>
-
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
-    <junit.version>5.1.1</junit.version>
-    <mockito.version>2.24.5</mockito.version>
+
+    <mockito-junit-jupiter.version>4.6.1</mockito-junit-jupiter.version>
+    <junit-jupiter.version>5.8.2</junit-jupiter.version>
     <hamcrest.version>1.3</hamcrest.version>
+
+    <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
+    </distributionManagement.url>
   </properties>
 
   <modules>
@@ -89,7 +92,6 @@
   </modules>
 
   <dependencyManagement>
-
     <dependencies>
       <!-- Scalecube commons -->
       <dependency>
@@ -198,25 +200,6 @@
         <artifactId>jctools-core</artifactId>
         <version>${jctools.version}</version>
       </dependency>
-
-      <!-- Enforcer / Netty -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-buffer</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-common</artifactId>
-        <version>${netty.version}</version>
-      </dependency>
-
-      <!-- Yaml -->
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>${snakeyaml.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -225,30 +208,24 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>${junit.version}</version>
+      <version>${junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit.version}</version>
+      <version>${junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito.version}</version>
+      <version>${mockito-junit-jupiter.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
       <version>${hamcrest.version}</version>
       <scope>test</scope>
     </dependency>
@@ -277,45 +254,5 @@
       <url>https://jcenter.bintray.com</url>
     </pluginRepository>
   </pluginRepositories>
-
-  <profiles>
-    <profile>
-      <id>deploy2Github</id>
-      <distributionManagement>
-        <repository>
-          <id>github</id>
-          <name>GitHub Packages</name>
-          <url>https://maven.pkg.github.com/scalecube/scalecube-services</url>
-        </repository>
-      </distributionManagement>
-    </profile>
-    <profile>
-      <id>deploy2Maven</id>
-      <distributionManagement>
-        <repository>
-          <id>ossrh</id>
-          <name>Central Repository OSSRH</name>
-          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-      </distributionManagement>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-          </plugin>
-          <plugin>
-            <artifactId>maven-source-plugin</artifactId>
-          </plugin>
-          <plugin>
-            <artifactId>maven-javadoc-plugin</artifactId>
-          </plugin>
-          <plugin>
-            <artifactId>maven-gpg-plugin</artifactId>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-  </profiles>
 
 </project>
