@@ -10,6 +10,8 @@ https://scalecube.github.io/
 
 ## MICROSERVICES 2.0
 
+ScaleCube is a library that simplifies the development of reactive and distributed applications by providing an embeddable microservices library. It connects distributed microservices in a way that resembles a fabric when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for managing microservices architecture. ScaleCube is built based on ScaleCube Cluster, which provides a built-in service discovery. The discovery uses SWIM protocol and gossip that scales better and has inherent failure detection and superior coherent understanding of the cluster state and cluster membership taking part in a swarm of services. ScaleCube cluster is a membership protocol that maintains membership amongst processes in a distributed system
+
 <table text-align="top">
  <tr>
    <td>
