@@ -1,9 +1,3 @@
-# We Hire at exberry.io
-https://exberry.io/career/
-
-# website
-https://scalecube.github.io/
-
 # scalecube-services
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
 [![SourceSpy Dashboard](https://sourcespy.com/shield.svg)](https://sourcespy.com/github/scalecubescalecubeservices/)
@@ -236,3 +230,9 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 ## Sponsored by: 
 * [OM2](https://www.om2.com/)
 * [exberry.io](https://exberry.io/)
+
+### We Hire at exberry.io
+https://exberry.io/career/
+
+### website
+https://scalecube.github.io/
