@@ -129,6 +129,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
               .config(options -> clusterConfig)
               .handler(
                   cluster -> {
+                    //noinspection CodeBlock2Expr
                     return new ClusterMessageHandler() {
                       @Override
                       public void onMembershipEvent(MembershipEvent event) {
@@ -176,10 +177,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       return;
     }
 
-    if (discoveryEvent != null) {
-      LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
-    }
+    LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
+    sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
   }
 
   private ServiceDiscoveryEvent toServiceDiscoveryEvent(MembershipEvent membershipEvent) {
