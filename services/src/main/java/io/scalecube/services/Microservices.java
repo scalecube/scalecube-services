@@ -126,7 +126,7 @@ import reactor.core.scheduler.Schedulers;
  *
  * }</pre>
  */
-public final class Microservices {
+public final class Microservices implements AutoCloseable {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
@@ -190,12 +190,8 @@ public final class Microservices {
   private Mono<Microservices> start() {
     LOGGER.info("[{}][start] Starting", id);
 
-    // Create bootstrap scheduler
-    Scheduler scheduler = Schedulers.newSingle(toString(), true);
-
     return transportBootstrap
         .start(this)
-        .publishOn(scheduler)
         .flatMap(
             transportBootstrap -> {
               final ServiceCall call = call();
@@ -229,19 +225,15 @@ public final class Microservices {
 
               return createDiscovery(
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                  .publishOn(scheduler)
                   .then(startGateway(new GatewayOptions().call(call)))
-                  .publishOn(scheduler)
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(compositeDiscovery.startListen())
-                  .publishOn(scheduler)
                   .thenReturn(this);
             })
         .onErrorResume(
             ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(Microservices.class))
-        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
-        .doOnTerminate(scheduler::dispose);
+        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id));
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
@@ -310,6 +302,18 @@ public final class Microservices {
 
   public List<ServiceEndpoint> serviceEndpoints() {
     return serviceRegistry.listServiceEndpoints();
+  }
+
+  public Map<String, String> tags() {
+    return tags;
+  }
+
+  public ServiceRegistry serviceRegistry() {
+    return serviceRegistry;
+  }
+
+  public ServiceMethodRegistry methodRegistry() {
+    return methodRegistry;
   }
 
   /**
@@ -391,6 +395,15 @@ public final class Microservices {
             .map(ServiceInfo::serviceInstance)
             .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
             .collect(Collectors.toList()));
+  }
+
+  @Override
+  public void close() {
+    try {
+      shutdown().toFuture().get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static final class Builder {
