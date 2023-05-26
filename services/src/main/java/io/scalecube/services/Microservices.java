@@ -16,8 +16,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.methods.MethodInfo;
-import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.registry.ServiceRegistryImpl;
@@ -29,7 +27,6 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -41,7 +38,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.StringJoiner;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -49,9 +45,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -227,7 +220,6 @@ public final class Microservices implements AutoCloseable {
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
                   .then(startGateway(new GatewayOptions().call(call)))
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                  .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
                   .then(compositeDiscovery.startListen())
                   .thenReturn(this);
             })
@@ -845,93 +837,6 @@ public final class Microservices implements AutoCloseable {
                           .map(ServiceTransport::stop)
                           .orElse(Mono.empty()))
                   .then());
-    }
-  }
-
-  @SuppressWarnings("unused")
-  public interface MonitorMBean {
-
-    String getServiceEndpoint();
-
-    String getAllServiceEndpoints();
-
-    String getServiceMethodInvokers();
-
-    String getServiceInfos();
-  }
-
-  private static class JmxMonitorMBean implements MonitorMBean {
-
-    private static final String OBJECT_NAME_FORMAT = "io.scalecube.services:name=%s@%s";
-
-    private final Microservices microservices;
-
-    private static JmxMonitorMBean start(Microservices instance) throws Exception {
-      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      ObjectName objectName =
-          new ObjectName(String.format(OBJECT_NAME_FORMAT, instance.id(), System.nanoTime()));
-      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
-      mbeanServer.registerMBean(standardMBean, objectName);
-      return jmxMBean;
-    }
-
-    private JmxMonitorMBean(Microservices microservices) {
-      this.microservices = microservices;
-    }
-
-    @Override
-    public String getServiceEndpoint() {
-      return String.valueOf(microservices.serviceEndpoint);
-    }
-
-    @Override
-    public String getAllServiceEndpoints() {
-      return microservices.serviceRegistry.listServiceEndpoints().stream()
-          .map(ServiceEndpoint::toString)
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public String getServiceMethodInvokers() {
-      return microservices.methodRegistry.listInvokers().stream()
-          .map(JmxMonitorMBean::asString)
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    @Override
-    public String getServiceInfos() {
-      return microservices.methodRegistry.listServices().stream()
-          .map(JmxMonitorMBean::asString)
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    private static String asString(ServiceMethodInvoker invoker) {
-      return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-          .add("methodInfo=" + asString(invoker.methodInfo()))
-          .add(
-              "serviceMethod="
-                  + invoker.service().getClass().getCanonicalName()
-                  + "."
-                  + invoker.methodInfo().methodName()
-                  + "("
-                  + invoker.methodInfo().parameterCount()
-                  + ")")
-          .toString();
-    }
-
-    private static String asString(MethodInfo methodInfo) {
-      return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
-          .add("qualifier=" + methodInfo.qualifier())
-          .add("auth=" + methodInfo.isSecured())
-          .toString();
-    }
-
-    private static String asString(ServiceInfo serviceInfo) {
-      return new StringJoiner(", ", ServiceMethodInvoker.class.getSimpleName() + "[", "]")
-          .add("serviceInstance=" + serviceInfo.serviceInstance())
-          .add("tags=" + serviceInfo.tags())
-          .toString();
     }
   }
 }
