@@ -18,16 +18,9 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryContext;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.StringJoiner;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
-import javax.management.StandardMBean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
@@ -129,6 +122,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
               .config(options -> clusterConfig)
               .handler(
                   cluster -> {
+                    //noinspection CodeBlock2Expr
                     return new ClusterMessageHandler() {
                       @Override
                       public void onMembershipEvent(MembershipEvent event) {
@@ -142,7 +136,6 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
                     this.cluster = cluster;
                     discoveryContextBuilder.address(this.cluster.address());
                   })
-              .then(Mono.fromCallable(() -> JmxMonitorMBean.start(this)))
               .then();
         });
   }
@@ -176,10 +169,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       return;
     }
 
-    if (discoveryEvent != null) {
-      LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-      sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
-    }
+    LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
+    sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
   }
 
   private ServiceDiscoveryEvent toServiceDiscoveryEvent(MembershipEvent membershipEvent) {
@@ -213,62 +204,5 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
         .add("cluster=" + cluster)
         .add("clusterConfig=" + clusterConfig)
         .toString();
-  }
-
-  @SuppressWarnings("unused")
-  public interface MonitorMBean {
-
-    String getClusterConfig();
-
-    String getRecentDiscoveryEvents();
-  }
-
-  private static class JmxMonitorMBean implements MonitorMBean {
-
-    private static final String OBJECT_NAME_FORMAT = "io.scalecube.services.discovery:name=%s@%s";
-
-    public static final int RECENT_DISCOVERY_EVENTS_SIZE = 128;
-
-    private final ScalecubeServiceDiscovery discovery;
-    private final List<ServiceDiscoveryEvent> recentDiscoveryEvents = new CopyOnWriteArrayList<>();
-
-    private JmxMonitorMBean(ScalecubeServiceDiscovery discovery) {
-      this.discovery = discovery;
-    }
-
-    private static JmxMonitorMBean start(ScalecubeServiceDiscovery instance) throws Exception {
-      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-      JmxMonitorMBean jmxMBean = new JmxMonitorMBean(instance);
-      jmxMBean.init();
-      ObjectName objectName =
-          new ObjectName(
-              String.format(OBJECT_NAME_FORMAT, instance.cluster.member().id(), System.nanoTime()));
-      StandardMBean standardMBean = new StandardMBean(jmxMBean, MonitorMBean.class);
-      mbeanServer.registerMBean(standardMBean, objectName);
-      return jmxMBean;
-    }
-
-    private void init() {
-      discovery.listen().subscribe(this::onDiscoveryEvent);
-    }
-
-    @Override
-    public String getClusterConfig() {
-      return String.valueOf(discovery.clusterConfig);
-    }
-
-    @Override
-    public String getRecentDiscoveryEvents() {
-      return recentDiscoveryEvents.stream()
-          .map(ServiceDiscoveryEvent::toString)
-          .collect(Collectors.joining(",", "[", "]"));
-    }
-
-    private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
-      recentDiscoveryEvents.add(event);
-      if (recentDiscoveryEvents.size() > RECENT_DISCOVERY_EVENTS_SIZE) {
-        recentDiscoveryEvents.remove(0);
-      }
-    }
   }
 }
