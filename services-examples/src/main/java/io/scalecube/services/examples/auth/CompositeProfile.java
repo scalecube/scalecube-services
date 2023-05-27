@@ -7,8 +7,7 @@ public class CompositeProfile {
   private final ServiceEndpointProfile serviceEndpointProfile;
   private final UserProfile userProfile;
 
-  public CompositeProfile(
-      ServiceEndpointProfile serviceEndpointProfile, UserProfile userProfile) {
+  public CompositeProfile(ServiceEndpointProfile serviceEndpointProfile, UserProfile userProfile) {
     this.serviceEndpointProfile = serviceEndpointProfile;
     this.userProfile = userProfile;
   }

@@ -45,6 +45,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
   public static final AtomicInteger ID_COUNTER = new AtomicInteger();
   public static final GossipConfig GOSSIP_CONFIG = GossipConfig.defaultLocalConfig();
+  public static final FailureDetectorConfig FAILURE_DETECTOR_CONFIG =
+      FailureDetectorConfig.defaultLocalConfig();
   public static final MembershipConfig MEMBERSHIP_CONFIG = MembershipConfig.defaultLocalConfig();
   public static final int CLUSTER_SIZE = 3 + 1; // r1 + r2 + r3 (plus 1 for be sure)
   public static final Address SEED_ADDRESS = Address.from("localhost:5678");
@@ -227,9 +229,10 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () ->
             new ScalecubeServiceDiscovery()
                 .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                .options(opts -> opts.metadata(newServiceEndpoint()))
-                .options(opts -> opts.metadataCodec(metadataCodec))
+                .options(cfg -> cfg.metadata(newServiceEndpoint()))
+                .options(cfg -> cfg.metadataCodec(metadataCodec))
                 .gossip(cfg -> GOSSIP_CONFIG)
+                .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
                 .membership(cfg -> MEMBERSHIP_CONFIG)
                 .membership(cfg -> cfg.seedMembers(seedAddress)));
   }
@@ -237,13 +240,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   private void startSeed(MetadataCodec metadataCodec) {
     new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-        .membership(opts -> opts.seedMembers(SEED_ADDRESS))
-        .options(opts -> opts.metadata(newServiceEndpoint()))
-        .options(opts -> opts.metadataCodec(metadataCodec))
+        .membership(cfg -> cfg.seedMembers(SEED_ADDRESS))
+        .options(cfg -> cfg.metadata(newServiceEndpoint()))
+        .options(cfg -> cfg.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)
+        .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
         .membership(cfg -> MEMBERSHIP_CONFIG)
-        .start()
-        .block();
+        .start();
   }
 
   private static class RecordingServiceDiscovery {
@@ -283,7 +286,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
           serviceDiscovery -> {
             result.serviceDiscovery = serviceDiscovery;
             result.subscribe();
-            result.serviceDiscovery.start().block();
+            result.serviceDiscovery.start();
           });
       return result;
     }
@@ -300,7 +303,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
       long timeout =
           ClusterMath.suspicionTimeout(
               MEMBERSHIP_CONFIG.suspicionMult(), CLUSTER_SIZE, pingInterval);
-      serviceDiscovery.shutdown().then(Mono.delay(Duration.ofMillis(timeout))).block();
+      serviceDiscovery.shutdown();
+      Mono.delay(Duration.ofMillis(timeout)).block();
       return this;
     }
   }

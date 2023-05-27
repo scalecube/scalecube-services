@@ -42,7 +42,7 @@ public class ErrorFlowTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    final Address seedAddress = provider.discovery().address();
+    final Address seedAddress = provider.discoveryAddress();
 
     consumer =
         Microservices.builder()

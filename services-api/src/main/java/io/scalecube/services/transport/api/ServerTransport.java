@@ -1,28 +1,23 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.net.Address;
-import reactor.core.publisher.Mono;
 
 public interface ServerTransport {
 
   /**
-   * Returns factual listen server address.
+   * Returns listening server address.
    *
-   * @return listen server address
+   * @return listening server address, or {@code null} if {@link #bind()} was not called.
    */
   Address address();
 
   /**
-   * Starts a server transport.
+   * Starts {@link ServiceTransport} instance.
    *
-   * @return bound server address
+   * @return transport instance
    */
-  Mono<ServerTransport> bind();
+  ServerTransport bind();
 
-  /**
-   * Stops server transport.
-   *
-   * @return srop signal
-   */
-  Mono<Void> stop();
+  /** Stops this {@link ServiceTransport} instance and release occupied resources. */
+  void stop();
 }

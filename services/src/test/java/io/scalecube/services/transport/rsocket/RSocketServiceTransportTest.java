@@ -49,7 +49,7 @@ public class RSocketServiceTransportTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.discovery().address();
+    final Address gatewayAddress = this.gateway.discoveryAddress();
 
     serviceNode =
         Microservices.builder()

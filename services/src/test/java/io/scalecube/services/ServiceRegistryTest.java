@@ -51,7 +51,7 @@ public class ServiceRegistryTest extends BaseTest {
     seed.listenDiscovery()
         .subscribe(events::tryEmitNext, events::tryEmitError, events::tryEmitComplete);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discoveryAddress();
 
     Microservices ms1 =
         Microservices.builder()
@@ -98,7 +98,7 @@ public class ServiceRegistryTest extends BaseTest {
     seed.listenDiscovery()
         .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discoveryAddress();
 
     StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
@@ -164,7 +164,7 @@ public class ServiceRegistryTest extends BaseTest {
     seed.listenDiscovery()
         .subscribe(processor::tryEmitNext, processor::tryEmitError, processor::tryEmitComplete);
 
-    Address seedAddress = seed.discovery().address();
+    Address seedAddress = seed.discoveryAddress();
 
     StepVerifier.create(processor.asFlux().onBackpressureBuffer())
         .then(
