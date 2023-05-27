@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.auth;
 
-import static io.scalecube.services.auth.MonoAuthUtil.deferWithPrincipal;
+import static io.scalecube.services.auth.Authenticator.deferSecured;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
@@ -84,7 +84,7 @@ public class CompositeProfileAuthExample {
 
   private static Authenticator<CompositeProfile> compositeAuthenticator() {
     return headers ->
-        deferWithPrincipal(ServiceEndpointProfile.class)
+        deferSecured(ServiceEndpointProfile.class)
             .flatMap(
                 serviceEndpointProfile -> {
 
