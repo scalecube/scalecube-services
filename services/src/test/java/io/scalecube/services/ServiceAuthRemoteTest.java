@@ -135,8 +135,7 @@ final class ServiceAuthRemoteTest extends BaseTest {
   @Test
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
-    Microservices caller = newCaller();
-    try {
+    try (Microservices caller = newCaller()) {
       SecuredService securedService = caller.call().api(SecuredService.class);
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -150,16 +149,13 @@ final class ServiceAuthRemoteTest extends BaseTest {
       StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
           .assertNext(response -> assertEquals("Hello, Bob and Alice", response))
           .verifyComplete();
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
   @Test
   @DisplayName("Authentication failed if authenticator not provided")
   void failedAuthenticationWhenAuthenticatorNotProvided() {
-    Microservices caller = newCaller();
-    try {
+    try (Microservices caller = newCaller()) {
       AnotherSecuredService securedService = caller.call().api(AnotherSecuredService.class);
 
       Consumer<Throwable> verifyError =
@@ -179,16 +175,13 @@ final class ServiceAuthRemoteTest extends BaseTest {
       StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
           .expectErrorSatisfies(verifyError)
           .verify();
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
   @Test
   @DisplayName("Authentication failed with empty credentials")
   void failedAuthenticationWithEmptyCredentials() {
-    Microservices caller = newEmptyCredentialsCaller();
-    try {
+    try (Microservices caller = newEmptyCredentialsCaller()) {
       SecuredService securedService = caller.call().api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
@@ -208,16 +201,13 @@ final class ServiceAuthRemoteTest extends BaseTest {
       StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
           .expectErrorSatisfies(verifyError)
           .verify();
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
   @Test
   @DisplayName("Authentication failed with invalid credentials")
   void failedAuthenticationWithInvalidCredentials() {
-    Microservices caller = newInvalidCredentialsCaller();
-    try {
+    try (Microservices caller = newInvalidCredentialsCaller()) {
       SecuredService securedService = caller.call().api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
@@ -237,32 +227,26 @@ final class ServiceAuthRemoteTest extends BaseTest {
       StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
           .expectErrorSatisfies(verifyError)
           .verify();
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
   @Test
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
-    Microservices caller = newCaller();
-    try {
+    try (Microservices caller = newCaller()) {
       StepVerifier.create(caller.call().api(PartiallySecuredService.class).securedMethod("Alice"))
           .assertNext(response -> assertEquals("Hello, Alice", response))
           .verifyComplete();
       StepVerifier.create(caller.call().api(PartiallySecuredService.class).publicMethod("Alice"))
           .assertNext(response -> assertEquals("Hello, Alice", response))
           .verifyComplete();
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
   @Test
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
-    Microservices caller = newCaller();
-    try {
+    try (Microservices caller = newCaller()) {
       StepVerifier.create(caller.call().api(PartiallySecuredService.class).publicMethod("Alice"))
           .assertNext(response -> assertEquals("Hello, Alice", response))
           .verifyComplete();
@@ -275,8 +259,6 @@ final class ServiceAuthRemoteTest extends BaseTest {
 
       StepVerifier.create(caller.call().api(PartiallySecuredService.class).securedMethod("Alice"))
           .verifyErrorSatisfies(verifyError);
-    } finally {
-      caller.shutdown().block(TIMEOUT);
     }
   }
 
