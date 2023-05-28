@@ -213,9 +213,8 @@ public final class Microservices implements AutoCloseable {
                   .thenReturn(this);
             })
         .doOnSubscribe(s -> LOGGER.info("[{}][start] Starting", id))
-        .onErrorResume(
-            ex -> Mono.defer(this::shutdown).then(Mono.error(ex)).cast(Microservices.class))
-        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id));
+        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
+        .onErrorResume(ex -> Mono.defer(this::shutdown).then(Mono.error(ex)));
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
@@ -616,7 +615,9 @@ public final class Microservices implements AutoCloseable {
     @Override
     public void close() {
       disposables.dispose();
+
       sink.emitComplete(RETRY_NON_SERIALIZED);
+
       try {
         if (serviceDiscovery != null) {
           serviceDiscovery.shutdown();
