@@ -36,7 +36,6 @@ public class Example2 {
     Microservices seed =
         Microservices.builder()
             .discovery(
-                "seed",
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
@@ -45,7 +44,7 @@ public class Example2 {
             .startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
-    final Address seedAddress = seed.discovery().address();
+    final Address seedAddress = seed.discoveryAddress();
 
     Microservices ms =
         Microservices.builder()

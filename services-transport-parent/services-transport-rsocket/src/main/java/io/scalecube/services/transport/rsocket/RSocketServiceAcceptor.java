@@ -171,6 +171,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
                       methodRegistry.getInvoker(message.qualifier());
+                  validateMethodInvoker(methodInvoker, message);
                   return methodInvoker
                       .invokeBidirectional(messages)
                       .doOnNext(response -> releaseRequestOnError(message, response));

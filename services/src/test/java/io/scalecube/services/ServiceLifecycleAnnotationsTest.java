@@ -1,31 +1,33 @@
 package io.scalecube.services;
 
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Service;
-import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.Assertions;
+import org.apache.logging.log4j.core.util.Throwables;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 public class ServiceLifecycleAnnotationsTest extends BaseTest {
 
-  private static final Duration TIMEOUT = Duration.ofSeconds(3);
+  private final AfterConstructHandle afterConstruct = Mockito.mock(AfterConstructHandle.class);
+  private final BeforeDestroyHandle beforeDestroy = Mockito.mock(BeforeDestroyHandle.class);
 
   @Test
-  void testAfterConstructThenBeforeDestroy() throws Exception {
-    final CountDownLatch afterConstruct = new CountDownLatch(1);
-    final CountDownLatch beforeDestroy = new CountDownLatch(1);
-
-    Microservices microservices =
+  void testAfterConstructThenBeforeDestroy() {
+    //noinspection EmptyTryBlock,unused
+    try (Microservices microservices =
         Microservices.builder()
             .services(
                 ServiceInfo.fromServiceInstance(
                         new TestService() {
                           @AfterConstruct
                           void init() {
-                            afterConstruct.countDown();
+                            afterConstruct.invoke();
                           }
                         })
                     .build(),
@@ -33,52 +35,60 @@ public class ServiceLifecycleAnnotationsTest extends BaseTest {
                         new TestService() {
                           @BeforeDestroy
                           void cleanup() {
-                            beforeDestroy.countDown();
+                            beforeDestroy.invoke();
                           }
                         })
                     .build())
-            .startAwait();
+            .startAwait()) {}
 
-    afterConstruct.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-    Assertions.assertEquals(0, afterConstruct.getCount());
-
-    microservices.shutdown().block();
-
-    beforeDestroy.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-    Assertions.assertEquals(0, beforeDestroy.getCount());
+    verify(afterConstruct, times(1)).invoke();
+    verify(beforeDestroy, times(1)).invoke();
   }
 
   @Test
-  void testAfterConstructFailsThenBeforeDestroy() throws Exception {
-    final CountDownLatch beforeDestroy = new CountDownLatch(1);
+  void testAfterConstructFailsThenBeforeDestroy() {
+    final RuntimeException exception = new RuntimeException("AfterConstruct failed");
+    doThrow(exception).when(afterConstruct).invoke();
 
-    Assertions.assertThrows(
-        Exception.class,
-        () ->
-            Microservices.builder()
-                .services(
-                    ServiceInfo.fromServiceInstance(
-                            new TestService() {
-                              @AfterConstruct
-                              void init() {
-                                throw new RuntimeException("AfterConstruct failed");
-                              }
-                            })
-                        .build(),
-                    ServiceInfo.fromServiceInstance(
-                            new TestService() {
-                              @BeforeDestroy
-                              void init() {
-                                beforeDestroy.countDown();
-                              }
-                            })
-                        .build())
-                .startAwait());
+    //noinspection EmptyTryBlock,unused
+    try (Microservices microservices =
+        Microservices.builder()
+            .services(
+                ServiceInfo.fromServiceInstance(
+                        new TestService() {
+                          @AfterConstruct
+                          void init() {
+                            afterConstruct.invoke();
+                          }
+                        })
+                    .build(),
+                ServiceInfo.fromServiceInstance(
+                        new TestService() {
+                          @BeforeDestroy
+                          void cleanup() {
+                            beforeDestroy.invoke();
+                          }
+                        })
+                    .build())
+            .startAwait()) {
+    } catch (Exception ex) {
+      assertSame(exception, Throwables.getRootCause(ex));
+    }
 
-    beforeDestroy.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-    Assertions.assertEquals(0, beforeDestroy.getCount());
+    verify(afterConstruct, times(1)).invoke();
+    verify(beforeDestroy, times(1)).invoke();
   }
 
   @Service("service")
   interface TestService {}
+
+  interface AfterConstructHandle {
+
+    void invoke();
+  }
+
+  interface BeforeDestroyHandle {
+
+    void invoke();
+  }
 }

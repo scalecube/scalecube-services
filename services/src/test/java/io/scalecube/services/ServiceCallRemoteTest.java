@@ -79,7 +79,7 @@ public class ServiceCallRemoteTest extends BaseTest {
                 new ScalecubeServiceDiscovery()
                     .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                     .options(opts -> opts.metadata(endpoint))
-                    .membership(cfg -> cfg.seedMembers(gateway.discovery().address())))
+                    .membership(cfg -> cfg.seedMembers(gateway.discoveryAddress())))
         .transport(RSocketServiceTransport::new)
         .services(service)
         .startAwait();
@@ -273,7 +273,7 @@ public class ServiceCallRemoteTest extends BaseTest {
                 message -> {
                   throw new RuntimeException("custom error mapper");
                 })
-            .transport(new RSocketServiceTransport().start().block().clientTransport())
+            .transport(new RSocketServiceTransport().start().clientTransport())
             .router(ServiceCallRemoteTest::route)
             .api(GreetingService.class);
 

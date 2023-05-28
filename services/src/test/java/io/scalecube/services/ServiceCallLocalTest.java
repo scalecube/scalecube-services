@@ -196,7 +196,7 @@ public class ServiceCallLocalTest extends BaseTest {
                 message -> {
                   throw new RuntimeException("custom error mapper");
                 })
-            .transport(new RSocketServiceTransport().start().block().clientTransport())
+            .transport(new RSocketServiceTransport().start().clientTransport())
             .router(ServiceCallLocalTest::route)
             .api(GreetingService.class);
 

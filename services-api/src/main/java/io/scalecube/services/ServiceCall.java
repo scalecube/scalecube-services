@@ -372,7 +372,7 @@ public class ServiceCall {
 
   private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     LOGGER.error(
-        "Failed  to invoke service, "
+        "Failed to invoke service, "
             + "No reachable member with such service definition [{}], args [{}]",
         request.qualifier(),
         request);
