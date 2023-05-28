@@ -229,8 +229,8 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
         () ->
             new ScalecubeServiceDiscovery()
                 .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                .options(cfg -> cfg.metadata(newServiceEndpoint()))
-                .options(cfg -> cfg.metadataCodec(metadataCodec))
+                .options(opts -> opts.metadata(newServiceEndpoint()))
+                .options(opts -> opts.metadataCodec(metadataCodec))
                 .gossip(cfg -> GOSSIP_CONFIG)
                 .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
                 .membership(cfg -> MEMBERSHIP_CONFIG)
@@ -240,9 +240,9 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
   private void startSeed(MetadataCodec metadataCodec) {
     new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-        .membership(cfg -> cfg.seedMembers(SEED_ADDRESS))
-        .options(cfg -> cfg.metadata(newServiceEndpoint()))
-        .options(cfg -> cfg.metadataCodec(metadataCodec))
+        .membership(opts -> opts.seedMembers(SEED_ADDRESS))
+        .options(opts -> opts.metadata(newServiceEndpoint()))
+        .options(opts -> opts.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)
         .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
         .membership(cfg -> MEMBERSHIP_CONFIG)
