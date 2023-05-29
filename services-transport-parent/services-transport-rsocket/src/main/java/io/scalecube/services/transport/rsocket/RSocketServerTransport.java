@@ -9,11 +9,9 @@ import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
-import java.net.InetSocketAddress;
 import java.util.Collection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
 
@@ -55,44 +53,40 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Address address() {
-    InetSocketAddress socketAddress = serverChannel.address();
-    return Address.create(socketAddress.getAddress().getHostAddress(), socketAddress.getPort());
+    final String host = serverChannel.address().getAddress().getHostAddress();
+    final int port = serverChannel.address().getPort();
+    return Address.create(host, port);
   }
 
   @Override
-  public Mono<ServerTransport> bind() {
-    return Mono.defer(
-        () ->
-            RSocketServer.create()
-                .acceptor(
-                    new RSocketServiceAcceptor(
-                        connectionSetupCodec,
-                        headersCodec,
-                        dataCodecs,
-                        authenticator,
-                        methodRegistry))
-                .payloadDecoder(PayloadDecoder.DEFAULT)
-                .bind(serverTransportFactory.serverTransport())
-                .doOnSuccess(channel -> serverChannel = channel)
-                .thenReturn(this));
+  public ServerTransport bind() {
+    try {
+      RSocketServer.create()
+          .acceptor(
+              new RSocketServiceAcceptor(
+                  connectionSetupCodec, headersCodec, dataCodecs, authenticator, methodRegistry))
+          .payloadDecoder(PayloadDecoder.DEFAULT)
+          .bind(serverTransportFactory.serverTransport())
+          .doOnSuccess(channel -> serverChannel = channel)
+          .toFuture()
+          .get();
+      return this;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
-  public Mono<Void> stop() {
-    return Mono.defer(
-        () -> {
-          if (serverChannel == null || serverChannel.isDisposed()) {
-            return Mono.empty();
-          }
-          return Mono.fromRunnable(() -> serverChannel.dispose())
-              .then(
-                  serverChannel
-                      .onClose()
-                      .doOnError(
-                          e ->
-                              LOGGER.warn(
-                                  "[rsocket][server][onClose] Exception occurred: {}",
-                                  e.toString())));
-        });
+  public void stop() {
+    if (serverChannel == null || serverChannel.isDisposed()) {
+      return;
+    }
+
+    try {
+      serverChannel.dispose();
+      serverChannel.onClose().toFuture().get();
+    } catch (Exception e) {
+      LOGGER.warn("[serverChannel][onClose] Exception: {}", e.toString());
+    }
   }
 }

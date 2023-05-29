@@ -2,62 +2,46 @@ package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
 import java.util.StringJoiner;
-import java.util.UUID;
-import java.util.function.Consumer;
 
-public final class ServiceDiscoveryOptions {
+public final class ServiceDiscoveryOptions implements Cloneable {
 
-  private String id = UUID.randomUUID().toString();
   private ServiceEndpoint serviceEndpoint;
   private ServiceDiscoveryFactory discoveryFactory;
 
   public ServiceDiscoveryOptions() {}
 
-  /**
-   * ServiceDiscoveryOptions copy constructor.
-   *
-   * @param other ServiceDiscoveryOptions to copy
-   */
-  public ServiceDiscoveryOptions(ServiceDiscoveryOptions other) {
-    this.id = other.id;
-    this.serviceEndpoint = other.serviceEndpoint;
-    this.discoveryFactory = other.discoveryFactory;
-  }
-
-  private ServiceDiscoveryOptions set(Consumer<ServiceDiscoveryOptions> c) {
-    ServiceDiscoveryOptions s = new ServiceDiscoveryOptions(this);
-    c.accept(s);
-    return s;
-  }
-
-  public ServiceDiscoveryOptions id(String id) {
-    return set(o -> o.id = id);
-  }
-
-  public String id() {
-    return id;
-  }
-
-  public ServiceDiscoveryOptions serviceEndpoint(ServiceEndpoint serviceEndpoint) {
-    return set(o -> o.serviceEndpoint = serviceEndpoint);
-  }
-
   public ServiceEndpoint serviceEndpoint() {
     return serviceEndpoint;
   }
 
-  public ServiceDiscoveryOptions discoveryFactory(ServiceDiscoveryFactory discoveryFactory) {
-    return set(o -> o.discoveryFactory = discoveryFactory);
+  public ServiceDiscoveryOptions serviceEndpoint(ServiceEndpoint serviceEndpoint) {
+    final ServiceDiscoveryOptions c = clone();
+    c.serviceEndpoint = serviceEndpoint;
+    return c;
   }
 
   public ServiceDiscoveryFactory discoveryFactory() {
     return discoveryFactory;
   }
 
+  public ServiceDiscoveryOptions discoveryFactory(ServiceDiscoveryFactory discoveryFactory) {
+    final ServiceDiscoveryOptions c = clone();
+    c.discoveryFactory = discoveryFactory;
+    return c;
+  }
+
+  @Override
+  public ServiceDiscoveryOptions clone() {
+    try {
+      return (ServiceDiscoveryOptions) super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceDiscoveryOptions.class.getSimpleName() + "[", "]")
-        .add("id='" + id + "'")
         .add("serviceEndpoint=" + serviceEndpoint)
         .add("discoveryFactory=" + discoveryFactory)
         .toString();

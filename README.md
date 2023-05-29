@@ -44,7 +44,7 @@ ScaleCube Services Features:
 * pluggable api-gateway providers (http / websocket / rsocket)
 * pluggable service transports (tcp / aeron / rsocket)
 * pluggable encoders (json, SBE, Google protocol buffers)
-* pluggable service security authentication and authorization providers. 
+* pluggable service security authentication and authorization providers.
 
 User Guide:
 
@@ -103,7 +103,7 @@ seed.call().api(GreetingsService.class)
   });
 
 // await all instances to shutdown.
-Mono.whenDelayError(seed.shutdown(), serviceNode.shutdown()).block(); 
+Mono.whenDelayError(seed.shutdown(), serviceNode.shutdown()).block();
 ```
 
 Basic Service Example:
@@ -141,7 +141,7 @@ Basic API-Gateway example:
 ```java
 
     Microservices.builder()
-        .discovery(options -> options.seeds(seed.discovery().address()))
+        .discovery(options -> options.seeds(seed.discoveryAddress()))
         .services(...) // OPTIONAL: services (if any) as part of this node.
 
         // configure list of gateways plugins exposing the apis
@@ -227,7 +227,7 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
 ----
 
-## Sponsored by: 
+## Sponsored by:
 * [OM2](https://www.om2.com/)
 * [exberry.io](https://exberry.io/)
 

@@ -3,9 +3,8 @@ package io.scalecube.services.gateway;
 import io.scalecube.services.ServiceCall;
 import java.util.StringJoiner;
 import java.util.concurrent.Executor;
-import java.util.function.Consumer;
 
-public class GatewayOptions {
+public class GatewayOptions implements Cloneable {
 
   private String id;
   private int port = 0;
@@ -14,54 +13,53 @@ public class GatewayOptions {
 
   public GatewayOptions() {}
 
-  /**
-   * GatewayOptions copy contractor.
-   *
-   * @param other GatewayOptions to copy.
-   */
-  public GatewayOptions(GatewayOptions other) {
-    this.id = other.id;
-    this.port = other.port;
-    this.workerPool = other.workerPool;
-    this.call = other.call;
-  }
-
-  private GatewayOptions set(Consumer<GatewayOptions> c) {
-    GatewayOptions s = new GatewayOptions(this);
-    c.accept(s);
-    return s;
-  }
-
-  public GatewayOptions id(String id) {
-    return set(o -> o.id = id);
-  }
-
   public String id() {
     return id;
   }
 
-  public GatewayOptions port(int port) {
-    return set(o -> o.port = port);
+  public GatewayOptions id(String id) {
+    final GatewayOptions c = clone();
+    c.id = id;
+    return c;
   }
 
   public int port() {
     return port;
   }
 
-  public GatewayOptions workerPool(Executor workerPool) {
-    return set(o -> o.workerPool = workerPool);
+  public GatewayOptions port(int port) {
+    final GatewayOptions c = clone();
+    c.port = port;
+    return c;
   }
 
   public Executor workerPool() {
     return workerPool;
   }
 
-  public GatewayOptions call(ServiceCall call) {
-    return set(o -> o.call = call);
+  public GatewayOptions workerPool(Executor workerPool) {
+    final GatewayOptions c = clone();
+    c.workerPool = workerPool;
+    return c;
   }
 
   public ServiceCall call() {
     return call;
+  }
+
+  public GatewayOptions call(ServiceCall call) {
+    final GatewayOptions c = clone();
+    c.call = call;
+    return c;
+  }
+
+  @Override
+  public GatewayOptions clone() {
+    try {
+      return (GatewayOptions) super.clone();
+    } catch (CloneNotSupportedException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

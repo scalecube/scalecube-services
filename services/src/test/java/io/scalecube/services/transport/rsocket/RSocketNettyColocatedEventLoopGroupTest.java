@@ -37,7 +37,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .startAwait();
 
-    final Address gatewayAddress = this.gateway.discovery().address();
+    final Address gatewayAddress = this.gateway.discoveryAddress();
 
     Microservices facade =
         Microservices.builder()
@@ -51,7 +51,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
             .services(new Facade())
             .startAwait();
 
-    final Address facadeAddress = facade.discovery().address();
+    final Address facadeAddress = facade.discoveryAddress();
 
     this.ping =
         Microservices.builder()

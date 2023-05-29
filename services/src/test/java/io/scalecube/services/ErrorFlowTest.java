@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
@@ -29,7 +28,7 @@ public class ErrorFlowTest extends BaseTest {
   private static Microservices consumer;
 
   @BeforeAll
-  public static void initNodes() {
+  public static void initNodes() throws InterruptedException {
     provider =
         Microservices.builder()
             .discovery(
@@ -42,19 +41,22 @@ public class ErrorFlowTest extends BaseTest {
             .services(new GreetingServiceImpl())
             .startAwait();
 
-    final Address seedAddress = provider.discovery().address();
-
     consumer =
         Microservices.builder()
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery()
-                        .membership(cfg -> cfg.seedMembers(seedAddress))
+                        .membership(cfg -> cfg.seedMembers(provider.discoveryAddress()))
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .transport(cfg -> cfg.port(PORT.incrementAndGet()))
                         .options(opts -> opts.metadata(endpoint)))
             .transport(RSocketServiceTransport::new)
             .startAwait();
+
+    while (consumer.serviceEndpoints().size() != 1) {
+      //noinspection BusyWait
+      Thread.sleep(1);
+    }
   }
 
   @AfterAll

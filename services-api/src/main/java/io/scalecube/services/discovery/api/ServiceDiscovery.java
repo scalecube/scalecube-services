@@ -1,9 +1,16 @@
 package io.scalecube.services.discovery.api;
 
+import io.scalecube.net.Address;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public interface ServiceDiscovery {
+
+  /**
+   * Return listening address.
+   *
+   * @return listening address, or null if {@link #start()} was not called.
+   */
+  Address address();
 
   /**
    * Function to subscribe and listen on stream of {@code ServiceDiscoveryEvent}\s.
@@ -13,16 +20,11 @@ public interface ServiceDiscovery {
   Flux<ServiceDiscoveryEvent> listen();
 
   /**
-   * Starting this {@code ServiceDiscovery} instance.
-   *
-   * @return started {@code ServiceDiscovery} instance
+   * Starts this {@link ServiceDiscovery} instance. After started - subscribers begin to receive
+   * {@code ServiceDiscoveryEvent}\s on {@link #listen()}.
    */
-  Mono<Void> start();
+  void start();
 
-  /**
-   * Shutting down this {@code ServiceDiscovery} instance.
-   *
-   * @return async signal of the result
-   */
-  Mono<Void> shutdown();
+  /** Stops this {@link ServiceDiscovery} instance and release occupied resources. */
+  void shutdown();
 }

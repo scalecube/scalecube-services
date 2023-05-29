@@ -1,6 +1,6 @@
 package io.scalecube.services.methods;
 
-import io.scalecube.services.auth.MonoAuthUtil;
+import io.scalecube.services.auth.Authenticator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -38,6 +38,6 @@ public class StubServiceImpl implements StubService {
 
   @Override
   public Mono<Void> helloAuthContext() {
-    return MonoAuthUtil.deferWithPrincipal(StubServicePrincipal.class).then();
+    return Authenticator.deferSecured(StubServicePrincipal.class).then();
   }
 }
