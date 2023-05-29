@@ -48,8 +48,8 @@ class RSocketClientTransportTest {
       ;
 
 
-    server.start().block();
-    client.start().block();
+    server.start();
+    client.start();
 
 
     AtomicInteger callCount = new AtomicInteger();
@@ -65,8 +65,7 @@ class RSocketClientTransportTest {
     );
     ServerTransport serverTransport = server
       .serverTransport(registry)
-      .bind()
-      .block();
+      .bind();
 
     ServiceReference reference = new ServiceReference(
       new ServiceMethodDefinition("dummy"),
