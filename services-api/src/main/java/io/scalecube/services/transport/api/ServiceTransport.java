@@ -1,7 +1,6 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.methods.ServiceMethodRegistry;
-import reactor.core.publisher.Mono;
 
 public interface ServiceTransport {
 
@@ -21,16 +20,12 @@ public interface ServiceTransport {
   ServerTransport serverTransport(ServiceMethodRegistry methodRegistry);
 
   /**
-   * Starts transport.
+   * Starts {@link ServiceTransport} instance.
    *
-   * @return mono result
+   * @return transport instance
    */
-  Mono<? extends ServiceTransport> start();
+  ServiceTransport start();
 
-  /**
-   * Shutdowns transport.
-   *
-   * @return shutdown completion signal
-   */
-  Mono<Void> stop();
+  /** Shutdowns transport and release occupied resources. */
+  void stop();
 }

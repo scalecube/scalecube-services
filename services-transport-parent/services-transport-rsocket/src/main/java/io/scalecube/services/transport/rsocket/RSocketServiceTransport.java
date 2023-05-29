@@ -206,22 +206,26 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Mono<RSocketServiceTransport> start() {
-    return Mono.fromRunnable(this::start0).thenReturn(this);
-  }
-
-  @Override
-  public Mono<Void> stop() {
-    return Flux.concatDelayError(
-            Mono.defer(() -> serverLoopResources.disposeLater()),
-            Mono.defer(this::shutdownEventLoopGroup))
-        .then();
-  }
-
-  private void start0() {
+  public ServiceTransport start() {
     eventLoopGroup = newEventLoopGroup();
     clientLoopResources = DelegatedLoopResources.newClientLoopResources(eventLoopGroup);
     serverLoopResources = DelegatedLoopResources.newServerLoopResources(eventLoopGroup);
+    return this;
+  }
+
+  @Override
+  public void stop() {
+    try {
+      //noinspection unchecked,rawtypes
+      Flux.concatDelayError(
+              Mono.defer(() -> serverLoopResources.disposeLater()),
+              Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully())))
+          .then()
+          .toFuture()
+          .get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private EventLoopGroup newEventLoopGroup() {
@@ -231,11 +235,6 @@ public class RSocketServiceTransport implements ServiceTransport {
             ? new EpollEventLoopGroup(numOfWorkers, threadFactory)
             : new NioEventLoopGroup(numOfWorkers, threadFactory);
     return LoopResources.colocate(eventLoopGroup);
-  }
-
-  private Mono<Void> shutdownEventLoopGroup() {
-    //noinspection unchecked,rawtypes
-    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
   }
 
   @Override

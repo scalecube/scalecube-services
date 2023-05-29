@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -57,12 +59,13 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.13</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.21</scalecube-commons.version>
-    <scalecube-security.version>1.0.28</scalecube-security.version>
+    <scalecube-cluster.version>2.6.15</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.22</scalecube-commons.version>
+    <scalecube-security.version>1.0.29</scalecube-security.version>
 
-    <reactor.version>2020.0.23</reactor.version>
-    <jackson.version>2.13.3</jackson.version>
+    <reactor.version>2022.0.7</reactor.version>
+    <jackson.version>2.15.1</jackson.version>
+    <netty.version>4.1.92.Final</netty.version>
     <rsocket.version>1.1.3</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
     <slf4j.version>1.7.36</slf4j.version>
@@ -71,12 +74,13 @@
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
 
-    <mockito-junit-jupiter.version>4.6.1</mockito-junit-jupiter.version>
+    <mockito-junit.version>4.6.1</mockito-junit.version>
     <junit-jupiter.version>5.8.2</junit-jupiter.version>
     <hamcrest.version>1.3</hamcrest.version>
 
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
+    <checkstyle.skip>true</checkstyle.skip>
   </properties>
 
   <modules>
@@ -127,6 +131,15 @@
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
         <version>${reactor.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Reactor -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -218,7 +231,7 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito-junit-jupiter.version}</version>
+      <version>${mockito-junit.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

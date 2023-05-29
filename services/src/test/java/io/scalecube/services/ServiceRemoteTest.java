@@ -48,7 +48,7 @@ public class ServiceRemoteTest extends BaseTest {
   public static void setup() {
     Hooks.onOperatorDebug();
     gateway = gateway();
-    gatewayAddress = gateway.discovery().address();
+    gatewayAddress = gateway.discoveryAddress();
     provider = serviceProvider();
   }
 
