@@ -23,6 +23,9 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,8 +69,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
     LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload);
 
-    return Mono.justOrEmpty(decodeConnectionSetup(setupPayload.data()))
-        .flatMap(connectionSetup -> authenticate(rsocket, connectionSetup))
+    return authenticate(rsocket, decodeConnectionSetup(setupPayload.data()))
         .flatMap(authData -> Mono.fromCallable(() -> newRSocket(authData)))
         .switchIfEmpty(Mono.fromCallable(() -> newRSocket(null)))
         .cast(RSocket.class);
@@ -86,11 +88,15 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   }
 
   private Mono<Object> authenticate(RSocket rsocket, ConnectionSetup connectionSetup) {
-    if (authenticator == null || connectionSetup == null) {
+    if (authenticator == null) {
       return Mono.empty();
     }
+
+    Map<String, String> credentials  =
+      connectionSetup == null ? Collections.emptyMap() : connectionSetup.credentials();
+
     return authenticator
-        .apply(connectionSetup.credentials())
+        .apply(credentials)
         .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] authenticated", rsocket))
         .doOnError(
             ex ->
