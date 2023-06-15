@@ -61,7 +61,7 @@
   <properties>
     <scalecube-cluster.version>2.6.15</scalecube-cluster.version>
     <scalecube-commons.version>1.0.22</scalecube-commons.version>
-    <scalecube-security.version>1.0.29</scalecube-security.version>
+    <scalecube-security.version>1.0.30</scalecube-security.version>
 
     <reactor.version>2022.0.7</reactor.version>
     <jackson.version>2.15.1</jackson.version>
