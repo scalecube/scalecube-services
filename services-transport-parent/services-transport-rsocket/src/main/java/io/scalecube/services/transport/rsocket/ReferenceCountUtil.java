@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.api;
+package io.scalecube.services.transport.rsocket;
 
 import io.netty.util.ReferenceCounted;
 import org.slf4j.Logger;

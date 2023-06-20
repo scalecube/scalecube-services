@@ -18,8 +18,6 @@ import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.api.ReferenceCountUtil;
-import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.utils.MaskUtil;
 import java.util.Collection;
 import java.util.Collections;

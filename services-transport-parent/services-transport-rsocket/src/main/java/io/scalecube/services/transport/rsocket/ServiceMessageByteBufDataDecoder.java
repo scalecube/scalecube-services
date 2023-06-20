@@ -1,6 +1,7 @@
-package io.scalecube.services.transport.api;
+package io.scalecube.services.transport.rsocket;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 
 public class ServiceMessageByteBufDataDecoder implements ServiceMessageDataDecoder {
 
