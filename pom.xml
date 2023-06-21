@@ -86,7 +86,6 @@
     <module>services-api</module>
     <module>services-transport-parent</module>
     <module>services-discovery</module>
-    <module>services-bytebuf-codec</module>
     <module>services-security</module>
     <module>services-examples</module>
   </modules>
