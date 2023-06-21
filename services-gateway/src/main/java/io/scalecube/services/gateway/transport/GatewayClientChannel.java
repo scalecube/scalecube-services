@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.transport;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.gateway.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
