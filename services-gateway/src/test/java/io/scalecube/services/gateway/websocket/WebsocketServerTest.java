@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
@@ -83,9 +83,8 @@ class WebsocketServerTest extends BaseTest {
     }
   }
 
-  @RepeatedTest(100)
+  @Test
   void testMessageSequence() {
-
     client =
         new WebsocketGatewayClient(
             GatewayClientSettings.builder().address(gatewayAddress).build(),
@@ -97,7 +96,7 @@ class WebsocketServerTest extends BaseTest {
             .transport(new GatewayClientTransport(client))
             .router(new StaticAddressRouter(gatewayAddress));
 
-    int count = 100;
+    int count = 1000;
 
     StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
         .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
