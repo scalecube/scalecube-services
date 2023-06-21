@@ -5,65 +5,73 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <artifactId>scalecube-services-parent</artifactId>
     <groupId>io.scalecube</groupId>
+    <artifactId>scalecube-services-parent</artifactId>
     <version>2.10.26-SNAPSHOT</version>
   </parent>
 
-  <artifactId>scalecube-services</artifactId>
+  <artifactId>services-gateway</artifactId>
   <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-api</artifactId>
-      <version>${project.version}</version>
+      <artifactId>scalecube-services</artifactId>
+      <version>${project.parent.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
     </dependency>
 
     <dependency>
       <groupId>org.jctools</groupId>
       <artifactId>jctools-core</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
 
     <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${project.version}</version>
+      <artifactId>scalecube-services-examples</artifactId>
+      <version>${project.parent.version}</version>
       <scope>test</scope>
     </dependency>
-
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${project.parent.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-rsocket</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-bytebuf-codec</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
-      <version>${project.version}</version>
+      <version>${project.parent.version}</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-protostuff</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j-impl</artifactId>
@@ -74,15 +82,9 @@
       <artifactId>log4j-core</artifactId>
       <scope>test</scope>
     </dependency>
-
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-codec-jackson</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-transport-netty</artifactId>
+      <groupId>com.lmax</groupId>
+      <artifactId>disruptor</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
