@@ -57,11 +57,11 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.16</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.23</scalecube-commons.version>
-    <scalecube-security.version>1.0.31</scalecube-security.version>
+    <scalecube-cluster.version>2.6.17</scalecube-cluster.version>
+    <scalecube-commons.version>1.0.24</scalecube-commons.version>
+    <scalecube-security.version>1.0.32</scalecube-security.version>
 
-    <reactor.version>2022.0.8</reactor.version>
+    <reactor.version>2020.0.32</reactor.version>
     <jackson.version>2.15.1</jackson.version>
     <netty.version>4.1.93.Final</netty.version>
     <rsocket.version>1.1.4</rsocket.version>
