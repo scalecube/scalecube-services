@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,7 +24,7 @@ public class ServiceEndpoint implements Externalizable {
   private static final long serialVersionUID = 1L;
 
   private String id;
-  private Address address;
+  private List<Address> addresses;
   private Set<String> contentTypes;
   private Map<String, String> tags;
   private Collection<ServiceRegistration> serviceRegistrations;
@@ -38,7 +39,8 @@ public class ServiceEndpoint implements Externalizable {
 
   private ServiceEndpoint(Builder builder) {
     this.id = Objects.requireNonNull(builder.id, "ServiceEndpoint.id is required");
-    this.address = Objects.requireNonNull(builder.address, "ServiceEndpoint.address is required");
+    this.addresses =
+        Objects.requireNonNull(builder.addresses, "ServiceEndpoint.addresses is required");
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.serviceRegistrations =
@@ -57,8 +59,8 @@ public class ServiceEndpoint implements Externalizable {
     return id;
   }
 
-  public Address address() {
-    return address;
+  public List<Address> addresses() {
+    return addresses;
   }
 
   public Set<String> contentTypes() {
@@ -88,7 +90,7 @@ public class ServiceEndpoint implements Externalizable {
   public String toString() {
     return new StringJoiner(", ", ServiceEndpoint.class.getSimpleName() + "[", "]")
         .add("id=" + id)
-        .add("address=" + address)
+        .add("addresses=" + addresses)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
         .add("serviceRegistrations(" + serviceRegistrations.size() + ")")
@@ -100,8 +102,11 @@ public class ServiceEndpoint implements Externalizable {
     // id
     out.writeUTF(id);
 
-    // address
-    out.writeUTF(address.toString());
+    // addresses
+    out.writeInt(addresses.size());
+    for (Address address : addresses) {
+      out.writeUTF(address.toString());
+    }
 
     // contentTypes
     out.writeInt(contentTypes.size());
@@ -128,8 +133,12 @@ public class ServiceEndpoint implements Externalizable {
     // id
     id = in.readUTF();
 
-    // address
-    address = Address.from(in.readUTF());
+    // addresses
+    final int addressesSize = in.readInt();
+    addresses = new ArrayList<>(addressesSize);
+    for (int i = 0; i < addressesSize; i++) {
+      addresses.add(Address.from(in.readUTF()));
+    }
 
     // contentTypes
     int contentTypesSize = in.readInt();
@@ -161,7 +170,7 @@ public class ServiceEndpoint implements Externalizable {
   public static class Builder {
 
     private String id;
-    private Address address = Address.NULL_ADDRESS;
+    private List<Address> addresses = new ArrayList<>();
     private Set<String> contentTypes = Collections.emptySet();
     private Map<String, String> tags = Collections.emptyMap();
     private Collection<ServiceRegistration> serviceRegistrations = new ArrayList<>();
@@ -170,7 +179,7 @@ public class ServiceEndpoint implements Externalizable {
 
     private Builder(ServiceEndpoint other) {
       this.id = other.id;
-      this.address = other.address;
+      this.addresses = new ArrayList<>(other.addresses);
       this.contentTypes = new HashSet<>(other.contentTypes);
       this.tags = new HashMap<>(other.tags);
       this.serviceRegistrations = new ArrayList<>(other.serviceRegistrations);
@@ -181,8 +190,12 @@ public class ServiceEndpoint implements Externalizable {
       return this;
     }
 
-    public Builder address(Address address) {
-      this.address = Objects.requireNonNull(address, "address");
+    public Builder addresses(Address... addresses) {
+      return addresses(Arrays.asList(addresses));
+    }
+
+    public Builder addresses(List<Address> addresses) {
+      this.addresses = new ArrayList<>(Objects.requireNonNull(addresses, "addresses"));
       return this;
     }
 

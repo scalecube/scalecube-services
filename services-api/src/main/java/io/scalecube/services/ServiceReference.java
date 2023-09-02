@@ -2,8 +2,10 @@ package io.scalecube.services;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.api.Qualifier;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -20,7 +22,7 @@ public class ServiceReference {
   private final Set<String> contentTypes;
   private final Map<String, String> tags;
   private final String action;
-  private final Address address;
+  private final List<Address> addresses;
   private final boolean isSecured;
 
   /**
@@ -40,7 +42,7 @@ public class ServiceReference {
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
-    this.address = serviceEndpoint.address();
+    this.addresses = new ArrayList<>(serviceEndpoint.addresses());
     this.isSecured = serviceMethodDefinition.isSecured();
   }
 
@@ -72,8 +74,8 @@ public class ServiceReference {
     return action;
   }
 
-  public Address address() {
-    return this.address;
+  public List<Address> addresses() {
+    return addresses;
   }
 
   public boolean isSecured() {
@@ -95,7 +97,7 @@ public class ServiceReference {
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
         .add("endpointId=" + endpointId)
-        .add("address=" + address)
+        .add("addresses=" + addresses)
         .add("qualifier=" + qualifier)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)

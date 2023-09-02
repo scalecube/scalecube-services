@@ -136,8 +136,7 @@ public final class Microservices implements AutoCloseable {
   private final Sinks.One<Void> shutdown = Sinks.one();
   private final Sinks.One<Void> onShutdown = Sinks.one();
   private ServiceEndpoint serviceEndpoint;
-  private final String externalHost;
-  private final Integer externalPort;
+  private final List<String> externalHosts;
 
   private Microservices(Builder builder) {
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
@@ -152,8 +151,7 @@ public final class Microservices implements AutoCloseable {
     this.defaultDataDecoder = builder.defaultDataDecoder;
     this.defaultContentType = builder.defaultContentType;
     this.defaultPrincipalMapper = builder.defaultPrincipalMapper;
-    this.externalHost = builder.externalHost;
-    this.externalPort = builder.externalPort;
+    this.externalHosts = new ArrayList<>(builder.externalHosts);
 
     // Setup cleanup
     shutdown
@@ -182,28 +180,26 @@ public final class Microservices implements AutoCloseable {
         .flatMap(
             transportBootstrap -> {
               final ServiceCall serviceCall = call();
-              final Address serviceAddress = transportBootstrap.transportAddress;
 
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
+              final ServiceEndpoint.Builder builder =
                   ServiceEndpoint.builder()
                       .id(id)
-                      .address(serviceAddress)
                       .contentTypes(DataCodec.getAllContentTypes())
                       .tags(tags);
 
               // invoke service providers and register services
-              List<Object> serviceInstances =
+              final List<Object> serviceInstances =
                   serviceProviders.stream()
                       .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
                       .peek(this::registerService)
                       .peek(
                           serviceInfo ->
-                              serviceEndpointBuilder.appendServiceRegistrations(
+                              builder.appendServiceRegistrations(
                                   ServiceScanner.scanServiceInfo(serviceInfo)))
                       .map(ServiceInfo::serviceInstance)
                       .collect(Collectors.toList());
 
-              serviceEndpoint = newServiceEndpoint(serviceEndpointBuilder.build());
+              serviceEndpoint = newServiceEndpoint(builder);
 
               return concludeDiscovery(
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
@@ -217,18 +213,16 @@ public final class Microservices implements AutoCloseable {
         .onErrorResume(ex -> Mono.defer(this::shutdown).then(Mono.error(ex)));
   }
 
-  private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
-    ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
+  private ServiceEndpoint newServiceEndpoint(ServiceEndpoint.Builder builder) {
+    final List<Address> addresses = new ArrayList<>();
 
-    int port = Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
+    addresses.add(transportBootstrap.transportAddress);
 
-    // calculate local service endpoint address
-    Address newAddress =
-        Optional.ofNullable(externalHost)
-            .map(host -> Address.create(host, port))
-            .orElseGet(() -> Address.create(serviceEndpoint.address().host(), port));
+    for (String externalHost : externalHosts) {
+      addresses.add(Address.create(externalHost, transportBootstrap.transportAddress.port()));
+    }
 
-    return builder.address(newAddress).build();
+    return builder.addresses(addresses).build();
   }
 
   private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
@@ -381,10 +375,10 @@ public final class Microservices implements AutoCloseable {
             .orElse((message, dataType) -> message);
     private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
-    private String externalHost;
-    private Integer externalPort;
+    private List<String> externalHosts = new ArrayList<>();
 
     public Mono<Microservices> start() {
+      //noinspection resource
       return Mono.defer(() -> new Microservices(this).start());
     }
 
@@ -421,13 +415,12 @@ public final class Microservices implements AutoCloseable {
       return this;
     }
 
-    public Builder externalHost(String externalHost) {
-      this.externalHost = externalHost;
-      return this;
+    public Builder externalHosts(String... externalHosts) {
+      return externalHosts(Arrays.asList(externalHosts));
     }
 
-    public Builder externalPort(Integer externalPort) {
-      this.externalPort = externalPort;
+    public Builder externalHosts(List<String> externalHosts) {
+      this.externalHosts = new ArrayList<>(externalHosts);
       return this;
     }
 
