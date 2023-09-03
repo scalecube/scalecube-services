@@ -30,7 +30,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -139,8 +138,8 @@ public final class Microservices implements AutoCloseable {
   private final List<String> externalHosts;
 
   private Microservices(Builder builder) {
-    this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
+    this.tags = builder.tags;
+    this.serviceProviders = builder.serviceProviders;
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
     this.defaultAuthenticator = builder.defaultAuthenticator;
@@ -151,7 +150,7 @@ public final class Microservices implements AutoCloseable {
     this.defaultDataDecoder = builder.defaultDataDecoder;
     this.defaultContentType = builder.defaultContentType;
     this.defaultPrincipalMapper = builder.defaultPrincipalMapper;
-    this.externalHosts = new ArrayList<>(builder.externalHosts);
+    this.externalHosts = builder.externalHosts;
 
     // Setup cleanup
     shutdown
@@ -420,7 +419,7 @@ public final class Microservices implements AutoCloseable {
     }
 
     public Builder externalHosts(List<String> externalHosts) {
-      this.externalHosts = new ArrayList<>(externalHosts);
+      this.externalHosts = externalHosts;
       return this;
     }
 
