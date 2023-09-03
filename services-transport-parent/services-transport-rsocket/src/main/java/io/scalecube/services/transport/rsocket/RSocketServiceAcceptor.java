@@ -17,7 +17,7 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
-import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import java.util.Collection;
@@ -36,7 +36,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
   private final Authenticator<Object> authenticator;
-  private final ServiceMethodRegistry methodRegistry;
+  private final ServiceRegistry serviceRegistry;
 
   /**
    * Constructor.
@@ -45,19 +45,19 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param authenticator authenticator
-   * @param methodRegistry methodRegistry
+   * @param serviceRegistry serviceRegistry
    */
   public RSocketServiceAcceptor(
       ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       Authenticator<Object> authenticator,
-      ServiceMethodRegistry methodRegistry) {
+      ServiceRegistry serviceRegistry) {
     this.connectionSetupCodec = connectionSetupCodec;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.authenticator = authenticator;
-    this.methodRegistry = methodRegistry;
+    this.serviceRegistry = serviceRegistry;
   }
 
   @Override
@@ -99,7 +99,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private RSocket newRSocket(Object authData) {
     return new RSocketImpl(
-        authData, new ServiceMessageCodec(headersCodec, dataCodecs), methodRegistry);
+        authData, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -115,13 +115,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     private final Object authData;
     private final ServiceMessageCodec messageCodec;
-    private final ServiceMethodRegistry methodRegistry;
+    private final ServiceRegistry serviceRegistry;
 
     private RSocketImpl(
-        Object authData, ServiceMessageCodec messageCodec, ServiceMethodRegistry methodRegistry) {
+        Object authData, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
       this.authData = authData;
       this.messageCodec = messageCodec;
-      this.methodRegistry = methodRegistry;
+      this.serviceRegistry = serviceRegistry;
     }
 
     @Override
@@ -130,7 +130,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .doOnNext(this::validateRequest)
           .flatMap(
               message -> {
-                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                ServiceMethodInvoker methodInvoker =
+                    serviceRegistry.getInvoker(message.qualifier());
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeOne(message)
@@ -147,7 +148,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .doOnNext(this::validateRequest)
           .flatMapMany(
               message -> {
-                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                ServiceMethodInvoker methodInvoker =
+                    serviceRegistry.getInvoker(message.qualifier());
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeMany(message)
@@ -168,7 +170,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                   ServiceMessage message = first.get();
                   validateRequest(message);
                   ServiceMethodInvoker methodInvoker =
-                      methodRegistry.getInvoker(message.qualifier());
+                      serviceRegistry.getInvoker(message.qualifier());
                   validateMethodInvoker(methodInvoker, message);
                   return methodInvoker
                       .invokeBidirectional(messages)

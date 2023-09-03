@@ -5,7 +5,7 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.scalecube.net.Address;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
@@ -18,7 +18,7 @@ public class RSocketServerTransport implements ServerTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
   private final Authenticator<Object> authenticator;
-  private final ServiceMethodRegistry methodRegistry;
+  private final ServiceRegistry serviceRegistry;
   private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
@@ -30,7 +30,7 @@ public class RSocketServerTransport implements ServerTransport {
    * Constructor for this server transport.
    *
    * @param authenticator authenticator
-   * @param methodRegistry methodRegistry
+   * @param serviceRegistry serviceRegistry
    * @param connectionSetupCodec connectionSetupCodec
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
@@ -38,13 +38,13 @@ public class RSocketServerTransport implements ServerTransport {
    */
   public RSocketServerTransport(
       Authenticator<Object> authenticator,
-      ServiceMethodRegistry methodRegistry,
+      ServiceRegistry serviceRegistry,
       ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       RSocketServerTransportFactory serverTransportFactory) {
     this.authenticator = authenticator;
-    this.methodRegistry = methodRegistry;
+    this.serviceRegistry = serviceRegistry;
     this.connectionSetupCodec = connectionSetupCodec;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
@@ -64,7 +64,7 @@ public class RSocketServerTransport implements ServerTransport {
       RSocketServer.create()
           .acceptor(
               new RSocketServiceAcceptor(
-                  connectionSetupCodec, headersCodec, dataCodecs, authenticator, methodRegistry))
+                  connectionSetupCodec, headersCodec, dataCodecs, authenticator, serviceRegistry))
           .payloadDecoder(PayloadDecoder.DEFAULT)
           .bind(serverTransportFactory.serverTransport())
           .doOnSuccess(channel -> serverChannel = channel)

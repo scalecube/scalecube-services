@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.registry.api.ServiceRegistry;
 
 public interface ServiceTransport {
 
@@ -14,10 +14,10 @@ public interface ServiceTransport {
   /**
    * Provider for {@link ServerTransport}.
    *
-   * @param methodRegistry methodRegistry
+   * @param serviceRegistry serviceRegistry
    * @return {@code ServerTransport} instance
    */
-  ServerTransport serverTransport(ServiceMethodRegistry methodRegistry);
+  ServerTransport serverTransport(ServiceRegistry serviceRegistry);
 
   /**
    * Starts {@link ServiceTransport} instance.

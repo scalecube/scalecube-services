@@ -15,8 +15,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.methods.ServiceMethodRegistry;
-import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -123,7 +121,6 @@ public final class Microservices implements AutoCloseable {
   private final Map<String, String> tags;
   private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
-  private final ServiceMethodRegistry methodRegistry;
   private final Authenticator<Object> defaultAuthenticator;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
@@ -141,7 +138,6 @@ public final class Microservices implements AutoCloseable {
     this.tags = builder.tags;
     this.serviceProviders = builder.serviceProviders;
     this.serviceRegistry = builder.serviceRegistry;
-    this.methodRegistry = builder.methodRegistry;
     this.defaultAuthenticator = builder.defaultAuthenticator;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discoveryBootstrap = builder.discoveryBootstrap;
@@ -234,7 +230,7 @@ public final class Microservices implements AutoCloseable {
   }
 
   private void registerService(ServiceInfo serviceInfo) {
-    methodRegistry.registerService(
+    serviceRegistry.registerService(
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(defaultErrorMapper)
             .dataDecoderIfAbsent(defaultDataDecoder)
@@ -251,7 +247,6 @@ public final class Microservices implements AutoCloseable {
     return new ServiceCall()
         .transport(transportBootstrap.clientTransport)
         .serviceRegistry(serviceRegistry)
-        .methodRegistry(methodRegistry)
         .contentType(defaultContentType)
         .errorMapper(DefaultErrorMapper.INSTANCE)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
@@ -279,10 +274,6 @@ public final class Microservices implements AutoCloseable {
 
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
-  }
-
-  public ServiceMethodRegistry methodRegistry() {
-    return methodRegistry;
   }
 
   public Address discoveryAddress() {
@@ -343,7 +334,7 @@ public final class Microservices implements AutoCloseable {
     return Mono.defer(
         () ->
             Mono.whenDelayError(
-                methodRegistry.listServices().stream()
+                serviceRegistry.listServices().stream()
                     .map(ServiceInfo::serviceInstance)
                     .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
                     .collect(Collectors.toList())));
@@ -363,7 +354,6 @@ public final class Microservices implements AutoCloseable {
     private Map<String, String> tags = new HashMap<>();
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
-    private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private Authenticator<Object> defaultAuthenticator = null;
     private final ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
@@ -425,11 +415,6 @@ public final class Microservices implements AutoCloseable {
 
     public Builder serviceRegistry(ServiceRegistry serviceRegistry) {
       this.serviceRegistry = serviceRegistry;
-      return this;
-    }
-
-    public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
-      this.methodRegistry = methodRegistry;
       return this;
     }
 
@@ -709,7 +694,7 @@ public final class Microservices implements AutoCloseable {
       try {
         try {
           serviceTransport = serviceTransport.start();
-          serverTransport = serviceTransport.serverTransport(microservices.methodRegistry).bind();
+          serverTransport = serviceTransport.serverTransport(microservices.serviceRegistry).bind();
         } catch (Exception e) {
           throw new RuntimeException(e);
         }

@@ -2,6 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.BaseTest;
@@ -33,6 +34,7 @@ public class RSocketServiceTransportTest extends BaseTest {
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justManyNever").build();
   private static final ServiceMessage ONLY_ONE_AND_THEN_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "onlyOneAndThenNever").build();
+  public static final Duration TIMEOUT = Duration.ofSeconds(6);
 
   private Microservices gateway;
   private Microservices serviceNode;
@@ -80,7 +82,7 @@ public class RSocketServiceTransportTest extends BaseTest {
   public void test_remote_node_died_mono_never() throws Exception {
     int batchSize = 1;
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
+    final CountDownLatch latch = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
@@ -90,16 +92,19 @@ public class RSocketServiceTransportTest extends BaseTest {
     gateway
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
-        .subscribe(onNext -> latch1.countDown(), System.err::println);
+        .subscribe(onNext -> latch.countDown(), System.err::println);
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.shutdown().block(TIMEOUT);
 
-    latch1.await(20, TimeUnit.SECONDS);
-    TimeUnit.MILLISECONDS.sleep(100);
+    if (!latch.await(20, TimeUnit.SECONDS)) {
+      fail("latch.await");
+    }
 
-    assertEquals(0, latch1.getCount());
+    TimeUnit.MILLISECONDS.sleep(1000);
+
+    assertEquals(0, latch.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
@@ -108,7 +113,7 @@ public class RSocketServiceTransportTest extends BaseTest {
   public void test_remote_node_died_many_never() throws Exception {
     int batchSize = 1;
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
+    final CountDownLatch latch = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
@@ -118,16 +123,19 @@ public class RSocketServiceTransportTest extends BaseTest {
     gateway
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
-        .subscribe(onNext -> latch1.countDown(), System.err::println);
+        .subscribe(onNext -> latch.countDown(), System.err::println);
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.shutdown().block(TIMEOUT);
 
-    latch1.await(20, TimeUnit.SECONDS);
-    TimeUnit.MILLISECONDS.sleep(100);
+    if (!latch.await(20, TimeUnit.SECONDS)) {
+      fail("latch.await");
+    }
 
-    assertEquals(0, latch1.getCount());
+    TimeUnit.MILLISECONDS.sleep(1000);
+
+    assertEquals(0, latch.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
@@ -136,7 +144,7 @@ public class RSocketServiceTransportTest extends BaseTest {
   public void test_remote_node_died_many_then_never() throws Exception {
     int batchSize = 1;
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
+    final CountDownLatch latch = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
@@ -150,16 +158,19 @@ public class RSocketServiceTransportTest extends BaseTest {
     gateway
         .listenDiscovery()
         .filter(ServiceDiscoveryEvent::isEndpointRemoved)
-        .subscribe(onNext -> latch1.countDown(), System.err::println);
+        .subscribe(onNext -> latch.countDown(), System.err::println);
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.shutdown().block(TIMEOUT);
 
-    latch1.await(20, TimeUnit.SECONDS);
-    TimeUnit.MILLISECONDS.sleep(100);
+    if (!latch.await(20, TimeUnit.SECONDS)) {
+      fail("latch.await");
+    }
 
-    assertEquals(0, latch1.getCount());
+    TimeUnit.MILLISECONDS.sleep(1000);
+
+    assertEquals(0, latch.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
