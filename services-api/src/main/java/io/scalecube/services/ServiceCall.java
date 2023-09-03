@@ -7,7 +7,6 @@ import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
-import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
@@ -34,7 +33,6 @@ public class ServiceCall {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   private ClientTransport transport;
-  private ServiceMethodRegistry methodRegistry;
   private ServiceRegistry serviceRegistry;
   private Router router;
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
@@ -45,7 +43,6 @@ public class ServiceCall {
 
   private ServiceCall(ServiceCall other) {
     this.transport = other.transport;
-    this.methodRegistry = other.methodRegistry;
     this.serviceRegistry = other.serviceRegistry;
     this.router = other.router;
     this.errorMapper = other.errorMapper;
@@ -74,18 +71,6 @@ public class ServiceCall {
   public ServiceCall serviceRegistry(ServiceRegistry serviceRegistry) {
     ServiceCall target = new ServiceCall(this);
     target.serviceRegistry = serviceRegistry;
-    return target;
-  }
-
-  /**
-   * Setter for {@code methodRegistry}.
-   *
-   * @param methodRegistry method registry.
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall methodRegistry(ServiceMethodRegistry methodRegistry) {
-    ServiceCall target = new ServiceCall(this);
-    target.methodRegistry = methodRegistry;
     return target;
   }
 
@@ -180,8 +165,8 @@ public class ServiceCall {
     return Mono.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
-          if (methodRegistry != null
-              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+          if (serviceRegistry != null
+              && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
             // local service
             return methodInvoker.invokeOne(request).map(this::throwIfError);
           } else {
@@ -219,8 +204,8 @@ public class ServiceCall {
     return Flux.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
-          if (methodRegistry != null
-              && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+          if (serviceRegistry != null
+              && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
             // local service
             return methodInvoker.invokeMany(request).map(this::throwIfError);
           } else {
@@ -262,8 +247,8 @@ public class ServiceCall {
               if (first.hasValue()) {
                 ServiceMessage request = first.get();
                 ServiceMethodInvoker methodInvoker;
-                if (methodRegistry != null
-                    && (methodInvoker = methodRegistry.getInvoker(request.qualifier())) != null) {
+                if (serviceRegistry != null
+                    && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
                   // local service
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
