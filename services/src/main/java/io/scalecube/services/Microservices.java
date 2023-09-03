@@ -213,8 +213,10 @@ public final class Microservices implements AutoCloseable {
 
     addresses.add(transportBootstrap.transportAddress);
 
-    for (String externalHost : externalHosts) {
-      addresses.add(Address.create(externalHost, transportBootstrap.transportAddress.port()));
+    if (externalHosts != null) {
+      for (String externalHost : externalHosts) {
+        addresses.add(Address.create(externalHost, transportBootstrap.transportAddress.port()));
+      }
     }
 
     return builder.addresses(addresses).build();
