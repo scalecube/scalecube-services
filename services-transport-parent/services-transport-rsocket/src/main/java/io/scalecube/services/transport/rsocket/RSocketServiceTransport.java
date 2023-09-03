@@ -9,7 +9,7 @@ import io.netty.util.concurrent.Future;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -195,10 +195,10 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public ServerTransport serverTransport(ServiceMethodRegistry methodRegistry) {
+  public ServerTransport serverTransport(ServiceRegistry serviceRegistry) {
     return new RSocketServerTransport(
         authenticator,
-        methodRegistry,
+        serviceRegistry,
         connectionSetupCodec,
         headersCodec,
         dataCodecs,
