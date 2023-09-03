@@ -89,7 +89,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    return cluster != null ? cluster.address() : null;
+    return cluster != null ? cluster.addresses().get(0) : null;
   }
 
   @Override

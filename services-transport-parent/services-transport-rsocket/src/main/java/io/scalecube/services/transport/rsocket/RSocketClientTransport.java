@@ -21,8 +21,10 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.utils.MaskUtil;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -31,7 +33,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
+  private final ThreadLocal<Map<String, Mono<RSocket>>> connections =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final CredentialsSupplier credentialsSupplier;
@@ -64,17 +66,72 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
-    final Address address = serviceReference.address();
-    Mono<RSocket> mono =
-        monoMap.computeIfAbsent(
-            address,
+    final String endpointId = serviceReference.endpointId();
+    final Map<String, Mono<RSocket>> connections = this.connections.get();
+
+    Mono<RSocket> promise =
+        connections.computeIfAbsent(
+            endpointId,
             key ->
-                getCredentials(serviceReference)
-                    .flatMap(creds -> connect(key, creds, monoMap))
+                connect(serviceReference, connections)
                     .cache()
-                    .doOnError(ex -> monoMap.remove(key)));
-    return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
+                    .doOnError(ex -> connections.remove(key)));
+
+    return new RSocketClientChannel(promise, new ServiceMessageCodec(headersCodec, dataCodecs));
+  }
+
+  private Mono<RSocket> connect(
+      ServiceReference serviceReference, Map<String, Mono<RSocket>> connections) {
+    return Mono.defer(
+        () -> {
+          final String endpointId = serviceReference.endpointId();
+          final List<Address> addresses = serviceReference.addresses();
+          final AtomicInteger currentIndex = new AtomicInteger(0);
+
+          return Mono.defer(
+                  () -> {
+                    final Address address = addresses.get(currentIndex.get());
+                    return connect(serviceReference, connections, address, endpointId);
+                  })
+              .doOnError(ex -> currentIndex.incrementAndGet())
+              .retry(addresses.size() - 1)
+              .doOnError(
+                  th ->
+                      LOGGER.warn(
+                          "Failed to connect ({}/{}), cause: {}",
+                          endpointId,
+                          addresses,
+                          th.toString()));
+        });
+  }
+
+  private Mono<RSocket> connect(
+      ServiceReference serviceReference,
+      Map<String, Mono<RSocket>> connections,
+      Address address,
+      String endpointId) {
+    return getCredentials(serviceReference)
+        .flatMap(
+            creds ->
+                RSocketConnector.create()
+                    .payloadDecoder(PayloadDecoder.DEFAULT)
+                    .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
+                    .connect(() -> clientTransportFactory.clientTransport(address)))
+        .doOnSuccess(
+            rsocket -> {
+              LOGGER.debug("[{}] Connected successfully", address);
+              // Setup shutdown hook
+              rsocket
+                  .onClose()
+                  .doFinally(
+                      s -> {
+                        connections.remove(endpointId);
+                        LOGGER.debug("[{}] Connection closed", address);
+                      })
+                  .doOnError(
+                      th -> LOGGER.warn("[{}] Exception on close: {}", address, th.toString()))
+                  .subscribe();
+            });
   }
 
   private Mono<Map<String, String>> getCredentials(ServiceReference serviceReference) {
@@ -101,37 +158,6 @@ public class RSocketClientTransport implements ClientTransport {
                           ex.toString()))
               .onErrorMap(this::toUnauthorizedException);
         });
-  }
-
-  private Mono<RSocket> connect(
-      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
-    return RSocketConnector.create()
-        .payloadDecoder(PayloadDecoder.DEFAULT)
-        .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
-        .connect(() -> clientTransportFactory.clientTransport(address))
-        .doOnSuccess(
-            rsocket -> {
-              LOGGER.debug("[rsocket][client][{}] Connected successfully", address);
-              // setup shutdown hook
-              rsocket
-                  .onClose()
-                  .doFinally(
-                      s -> {
-                        monoMap.remove(address);
-                        LOGGER.debug("[rsocket][client][{}] Connection closed", address);
-                      })
-                  .doOnError(
-                      th ->
-                          LOGGER.warn(
-                              "[rsocket][client][{}][onClose] Exception occurred: {}",
-                              address,
-                              th.toString()))
-                  .subscribe();
-            })
-        .doOnError(
-            th ->
-                LOGGER.warn(
-                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
   }
 
   private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {

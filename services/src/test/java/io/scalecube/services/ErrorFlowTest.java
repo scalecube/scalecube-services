@@ -1,9 +1,7 @@
 package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static reactor.core.publisher.Mono.from;
 
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
@@ -17,7 +15,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
 import reactor.test.StepVerifier;
 
 public class ErrorFlowTest extends BaseTest {
@@ -67,27 +64,35 @@ public class ErrorFlowTest extends BaseTest {
 
   @Test
   public void testCorruptedRequest() {
-    Publisher<ServiceMessage> req =
-        consumer
-            .call()
-            .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
-    assertThrows(InternalServiceException.class, () -> from(req).block());
+    assertThrows(
+        InternalServiceException.class,
+        () ->
+            consumer
+                .call()
+                .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class)
+                .block());
   }
 
   @Test
   public void testNotAuthorized() {
-    Publisher<ServiceMessage> req =
-        consumer
-            .call()
-            .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
-    assertThrows(ForbiddenException.class, () -> from(req).block());
+    assertThrows(
+        ForbiddenException.class,
+        () ->
+            consumer
+                .call()
+                .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class)
+                .block());
   }
 
   @Test
   public void testNullRequestPayload() {
-    Publisher<ServiceMessage> req =
-        consumer.call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
-    assertThrows(BadRequestException.class, () -> from(req).block());
+    assertThrows(
+        BadRequestException.class,
+        () ->
+            consumer
+                .call()
+                .requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class)
+                .block());
   }
 
   @Test
