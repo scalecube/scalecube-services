@@ -44,7 +44,7 @@ jobs:
           mvn -B build-helper:parse-version release:prepare \
             -DreleaseVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.incrementalVersion} \
             -Darguments="-DskipTests=true -Ddockerfile.skip=true"
-          echo ::set-output name=release_tag::$(git describe --tags --abbrev=0)
+          echo release_tag=$(git describe --tags --abbrev=0) >> $GITHUB_OUTPUT
       - name: Perform release
         run: mvn -B release:perform -Pdeploy2Github -Darguments="-DskipTests=true -Ddockerfile.skip=true -Pdeploy2Github"
         env:
