@@ -217,7 +217,7 @@ public class ServiceCallLocalTest extends BaseTest {
             new ServiceRegistration("ns", Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder()
                 .id(UUID.randomUUID().toString())
-                .address(provider.serviceAddress())
+                .addresses(provider.serviceAddress())
                 .build()));
   }
 }
