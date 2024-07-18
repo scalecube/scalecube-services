@@ -4,7 +4,11 @@
 
 ## MICROSERVICES 2.0
 
-ScaleCube is a library that simplifies the development of reactive and distributed applications by providing an embeddable microservices library. It connects distributed microservices in a way that resembles a fabric when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for managing microservices architecture. ScaleCube is built based on ScaleCube Cluster, which provides a built-in service discovery. The discovery uses SWIM protocol and gossip that scales better and has inherent failure detection and superior coherent understanding of the cluster state and cluster membership taking part in a swarm of services. ScaleCube cluster is a membership protocol that maintains membership amongst processes in a distributed system
+ScaleCube is a microservices library designed for high throughput and lower latency, catering to scalable and reactive system needs. It excels in API gateway integration, service discovery, and load balancing, employing the SWIM protocol for efficient cluster management. Its modular architecture supports various pluggable communication modules, enabling seamless and flexible deployments. With a focus on real-time stream processing and fault tolerance, ScaleCube ensures optimal performance and reliability for distributed microservices environments.
+
+Reactive microservices communicate via streams, utilising asynchronous data flows to exchange information between services. This approach enhances system responsiveness and scalability by allowing services to process and react to data as it arrives, without blocking operations.
+
+In practice, this involves the use of technologies and protocols that support reactive streams, such as RxJava, Reactor, or Akka Streams. These tools enable the development of highly responsive, resilient systems capable of handling dynamic workloads efficiently.
 
 <table text-align="top">
  <tr>
