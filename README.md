@@ -8,16 +8,15 @@ ScaleCube is a microservices library designed for high throughput and lower late
 
 Reactive microservices communicate via streams, utilising asynchronous data flows to exchange information between services. This approach enhances system responsiveness and scalability by allowing services to process and react to data as it arrives, without blocking operations.
 
-In practice, this involves the use of technologies and protocols that support reactive streams, such as RxJava, Reactor, or Akka Streams. These tools enable the development of highly responsive, resilient systems capable of handling dynamic workloads efficiently.
+In practice, this involves using technologies and protocols that support reactive streams, such as Reactor. These tools enable the development of highly responsive, resilient systems capable of handling dynamic workloads efficiently.
 
 <table text-align="top">
  <tr>
    <td>
-    An open-source project that is focused on streamlining reactive-programming of Microservices Reactive-systems that scale, built by developers for developers.<br><br>
-ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery
-based on gossip protocol, without single point-of-failure or bottlenecks.<br><br>
-    Scalecube more gracefully address the cross cutting concernes of distributed microservices architecture.
-    <br><br>
+     A fully mesh, brokerless architecture is particularly beneficial for high-performing, reliable, and scalable applications.
+     <br> It ensures continuous availability and responsiveness, making it ideal for real-time data processing, large-scale distributed systems, and environments where minimizing latency matters.
+<br><br>
+ScaleCube’s fully mesh architecture delivers a robust, efficient, and scalable solution for modern microservices applications, enhancing system performance and reliability without the need for complex middleware setups.
   </td>
   <td>
   <img src="https://user-images.githubusercontent.com/1706296/43058327-b4a0147e-8e4f-11e8-9999-68c4ec99632e.gif">
