@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.utils.ServiceLoaderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -8,14 +7,16 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public interface DataCodec {
 
   Map<String, DataCodec> INSTANCES =
-      ServiceLoaderUtil.findAll(DataCodec.class)
+      StreamSupport.stream(ServiceLoader.load(DataCodec.class).spliterator(), false)
           .collect(Collectors.toMap(DataCodec::contentType, Function.identity()));
 
   static Collection<DataCodec> getAllInstances() {

@@ -1,11 +1,12 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.utils.ServiceLoaderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.StreamSupport;
 
 public interface HeadersCodec {
 
@@ -25,8 +26,9 @@ public interface HeadersCodec {
    *     is thrown if not exist)
    */
   static HeadersCodec loadInstance(String contentType) {
-    return ServiceLoaderUtil.findFirst(
-            HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
+    return StreamSupport.stream(ServiceLoader.load(HeadersCodec.class).spliterator(), false)
+        .filter(codec -> codec.contentType().equalsIgnoreCase(contentType))
+        .findFirst()
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
