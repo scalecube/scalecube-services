@@ -1,6 +1,10 @@
 package io.scalecube.services.transport.api;
 
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import java.util.Map;
+import java.util.function.Function;
+import reactor.core.publisher.Mono;
 
 public interface ServiceTransport {
 
@@ -28,4 +32,11 @@ public interface ServiceTransport {
 
   /** Shutdowns transport and release occupied resources. */
   void stop();
+
+  /**
+   * Returns credentials for the given {@link ServiceReference}. Credentials are being returned in
+   * most generic form which is {@code Map<String, String>}.
+   */
+  @FunctionalInterface
+  interface CredentialsSupplier extends Function<ServiceReference, Mono<Map<String, String>>> {}
 }
