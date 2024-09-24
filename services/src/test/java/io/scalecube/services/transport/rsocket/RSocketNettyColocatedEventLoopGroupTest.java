@@ -2,7 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -46,7 +46,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(new Facade())
             .startAwait();
@@ -60,7 +60,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();
@@ -72,7 +72,7 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(facadeAddress)))
+                        .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
             .startAwait();

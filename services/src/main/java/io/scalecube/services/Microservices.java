@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;

@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import java.time.Duration;

@@ -14,7 +14,7 @@ import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.cluster.transport.api.TransportConfig;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -90,7 +90,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    return cluster != null ? cluster.address() : null;
+    return cluster != null ? Address.from(cluster.address()) : null;
   }
 
   @Override

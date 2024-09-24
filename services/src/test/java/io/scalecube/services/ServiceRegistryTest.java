@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.scalecube.cluster.codec.jackson.JacksonMetadataCodec;
 import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
-import io.scalecube.net.Address;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -217,6 +216,6 @@ public class ServiceRegistryTest extends BaseTest {
             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
             .options(opts -> opts.metadata(endpoint))
             .options(cfg -> cfg.metadataCodec(metadataCodec))
-            .membership(cfg -> cfg.seedMembers(address));
+            .membership(cfg -> cfg.seedMembers(address.toString()));
   }
 }

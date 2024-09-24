@@ -12,7 +12,7 @@ import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
@@ -234,13 +234,13 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                 .gossip(cfg -> GOSSIP_CONFIG)
                 .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
                 .membership(cfg -> MEMBERSHIP_CONFIG)
-                .membership(cfg -> cfg.seedMembers(seedAddress)));
+                .membership(cfg -> cfg.seedMembers(seedAddress.toString())));
   }
 
   private void startSeed(MetadataCodec metadataCodec) {
     new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-        .membership(opts -> opts.seedMembers(SEED_ADDRESS))
+        .membership(opts -> opts.seedMembers(SEED_ADDRESS.toString()))
         .options(opts -> opts.metadata(newServiceEndpoint()))
         .options(opts -> opts.metadataCodec(metadataCodec))
         .gossip(cfg -> GOSSIP_CONFIG)

@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.helloworld;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
@@ -46,7 +46,7 @@ public class Example1 {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(seedAddress)))
+                        .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .startAwait();

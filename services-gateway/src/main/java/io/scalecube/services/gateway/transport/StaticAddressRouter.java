@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceReference;

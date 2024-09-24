@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
@@ -75,7 +75,7 @@ public class RoutersTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
@@ -95,7 +95,7 @@ public class RoutersTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
@@ -115,7 +115,7 @@ public class RoutersTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(
                 ServiceInfo.fromServiceInstance(tagService)

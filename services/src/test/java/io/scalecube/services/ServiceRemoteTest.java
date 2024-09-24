@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -569,6 +568,6 @@ public class ServiceRemoteTest extends BaseTest {
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(endpoint))
-        .membership(cfg -> cfg.seedMembers(gatewayAddress));
+        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString()));
   }
 }

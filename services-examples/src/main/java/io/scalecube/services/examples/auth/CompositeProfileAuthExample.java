@@ -108,6 +108,6 @@ public class CompositeProfileAuthExample {
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(endpoint))
-        .membership(opts -> opts.seedMembers(service.discoveryAddress()));
+        .membership(opts -> opts.seedMembers(service.discoveryAddress().toString()));
   }
 }

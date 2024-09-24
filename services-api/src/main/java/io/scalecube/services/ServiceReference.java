@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.net.Address;
 import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
 import java.util.HashMap;

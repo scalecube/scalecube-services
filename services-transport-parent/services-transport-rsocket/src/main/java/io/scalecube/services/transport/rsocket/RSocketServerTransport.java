@@ -3,7 +3,7 @@ package io.scalecube.services.transport.rsocket;
 import io.rsocket.core.RSocketServer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
