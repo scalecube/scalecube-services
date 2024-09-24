@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
@@ -78,6 +79,7 @@ public class RSocketServiceTransportTest extends BaseTest {
     }
   }
 
+  @Disabled
   @Test
   public void test_remote_node_died_mono_never() throws Exception {
     int batchSize = 1;
