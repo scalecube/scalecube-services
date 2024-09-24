@@ -18,7 +18,6 @@ import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.utils.MaskUtil;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -86,12 +85,6 @@ public class RSocketClientTransport implements ClientTransport {
           return credentialsSupplier
               .apply(serviceReference)
               .switchIfEmpty(Mono.just(Collections.emptyMap()))
-              .doOnSuccess(
-                  creds ->
-                      LOGGER.debug(
-                          "[credentialsSupplier] Got credentials ({}) for service: {}",
-                          MaskUtil.mask(creds),
-                          serviceReference))
               .doOnError(
                   ex ->
                       LOGGER.error(

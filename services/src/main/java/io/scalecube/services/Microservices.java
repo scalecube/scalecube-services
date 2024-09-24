@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.scalecube.net.Address;
 import io.scalecube.services.api.ServiceMessage;
@@ -26,6 +26,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -155,7 +156,7 @@ public final class Microservices implements AutoCloseable {
     shutdown
         .asMono()
         .then(doShutdown())
-        .doFinally(s -> onShutdown.emitEmpty(RETRY_NON_SERIALIZED))
+        .doFinally(s -> onShutdown.emitEmpty(busyLooping(Duration.ofSeconds(3))))
         .subscribe(
             null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
   }
@@ -313,7 +314,7 @@ public final class Microservices implements AutoCloseable {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () -> {
-          shutdown.emitEmpty(RETRY_NON_SERIALIZED);
+          shutdown.emitEmpty(busyLooping(Duration.ofSeconds(3)));
           return onShutdown.asMono();
         });
   }
@@ -564,7 +565,7 @@ public final class Microservices implements AutoCloseable {
                     .subscribeOn(scheduler)
                     .publishOn(scheduler)
                     .doOnNext(event -> onDiscoveryEvent(microservices, event))
-                    .doOnNext(event -> sink.emitNext(event, RETRY_NON_SERIALIZED))
+                    .doOnNext(event -> sink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
                     .subscribe());
 
             return Mono.fromRunnable(serviceDiscovery::start)
@@ -601,7 +602,7 @@ public final class Microservices implements AutoCloseable {
     public void close() {
       disposables.dispose();
 
-      sink.emitComplete(RETRY_NON_SERIALIZED);
+      sink.emitComplete(busyLooping(Duration.ofSeconds(3)));
 
       try {
         if (serviceDiscovery != null) {

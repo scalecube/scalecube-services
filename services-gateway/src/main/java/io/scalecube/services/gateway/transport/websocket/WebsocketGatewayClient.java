@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
-import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
@@ -101,7 +101,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.emitEmpty(RETRY_NON_SERIALIZED))
+        .doFinally(s -> onClose.emitEmpty(busyLooping(Duration.ofSeconds(3))))
         .doOnTerminate(() -> LOGGER.info("Closed client"))
         .subscribe(null, ex -> LOGGER.warn("Failed to close client, cause: " + ex));
   }
@@ -143,7 +143,7 @@ public final class WebsocketGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.emitEmpty(RETRY_NON_SERIALIZED);
+    close.emitEmpty(busyLooping(Duration.ofSeconds(3)));
   }
 
   @Override
