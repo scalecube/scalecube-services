@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceEndpoint;
@@ -108,7 +108,7 @@ public abstract class AbstractGatewayExtension
     return new ScalecubeServiceDiscovery()
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(serviceEndpoint))
-        .membership(opts -> opts.seedMembers(gateway.discoveryAddress()));
+        .membership(opts -> opts.seedMembers(gateway.discoveryAddress().toString()));
   }
 
   public void shutdownServices() {

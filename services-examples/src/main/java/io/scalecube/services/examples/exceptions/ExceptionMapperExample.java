@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.exceptions;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -43,7 +43,7 @@ public class ExceptionMapperExample {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(address1)))
+                        .membership(cfg -> cfg.seedMembers(address1.toString())))
             .transport(RSocketServiceTransport::new)
             .services(
                 call -> {

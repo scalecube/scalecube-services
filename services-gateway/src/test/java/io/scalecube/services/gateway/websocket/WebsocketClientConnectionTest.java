@@ -7,7 +7,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -80,7 +80,8 @@ class WebsocketClientConnectionTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(opts -> opts.seedMembers(gateway.discoveryAddress())))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
             .startAwait();

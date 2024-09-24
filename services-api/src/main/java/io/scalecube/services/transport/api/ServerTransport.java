@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 
 public interface ServerTransport {
 

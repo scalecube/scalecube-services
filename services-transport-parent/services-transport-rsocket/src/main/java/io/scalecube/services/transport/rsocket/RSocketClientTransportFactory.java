@@ -4,7 +4,7 @@ import io.netty.channel.ChannelOption;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import java.util.function.Function;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;

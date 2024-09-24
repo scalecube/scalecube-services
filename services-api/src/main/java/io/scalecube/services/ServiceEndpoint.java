@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.net.Address;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

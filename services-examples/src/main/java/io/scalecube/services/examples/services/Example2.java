@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.services;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -35,7 +35,7 @@ public class Example2 {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(new Service2Impl())
             .startAwait();
@@ -47,7 +47,7 @@ public class Example2 {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress)))
+                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
             .transport(RSocketServiceTransport::new)
             .services(new Service1Impl())
             .startAwait();

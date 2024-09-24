@@ -46,7 +46,7 @@ public class ErrorFlowTest extends BaseTest {
             .discovery(
                 endpoint ->
                     new ScalecubeServiceDiscovery()
-                        .membership(cfg -> cfg.seedMembers(provider.discoveryAddress()))
+                        .membership(cfg -> cfg.seedMembers(provider.discoveryAddress().toString()))
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .transport(cfg -> cfg.port(PORT.incrementAndGet()))
                         .options(opts -> opts.metadata(endpoint)))

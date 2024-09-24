@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.http;
 
-import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
@@ -8,6 +8,7 @@ import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.gateway.transport.GatewayClient;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import java.time.Duration;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -87,7 +88,7 @@ public final class HttpGatewayClient implements GatewayClient {
     close
         .asMono()
         .then(doClose())
-        .doFinally(s -> onClose.emitEmpty(RETRY_NON_SERIALIZED))
+        .doFinally(s -> onClose.emitEmpty(busyLooping(Duration.ofSeconds(3))))
         .doOnTerminate(() -> LOGGER.info("Closed HttpGatewayClient resources"))
         .subscribe(null, ex -> LOGGER.warn("Exception occurred on HttpGatewayClient close: " + ex));
   }
@@ -128,7 +129,7 @@ public final class HttpGatewayClient implements GatewayClient {
 
   @Override
   public void close() {
-    close.emitEmpty(RETRY_NON_SERIALIZED);
+    close.emitEmpty(busyLooping(Duration.ofSeconds(3)));
   }
 
   @Override

@@ -1,6 +1,6 @@
 package io.scalecube.services.examples.gateway;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayOptions;
 import java.net.InetSocketAddress;

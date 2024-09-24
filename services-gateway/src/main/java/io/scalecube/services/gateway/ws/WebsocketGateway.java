@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;

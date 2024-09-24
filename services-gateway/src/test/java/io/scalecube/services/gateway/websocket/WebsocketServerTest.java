@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;

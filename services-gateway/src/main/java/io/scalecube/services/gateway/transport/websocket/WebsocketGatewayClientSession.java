@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.transport.websocket;
 
-import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -9,6 +9,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.transport.GatewayClientCodec;
 import java.nio.channels.ClosedChannelException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.StringJoiner;
 import org.jctools.maps.NonBlockingHashMapLong;
@@ -187,29 +188,29 @@ public final class WebsocketGatewayClientSession {
   private static void emitNext(Object processor, ServiceMessage message) {
     if (processor instanceof One) {
       //noinspection unchecked
-      ((One<ServiceMessage>) processor).emitValue(message, RETRY_NON_SERIALIZED);
+      ((One<ServiceMessage>) processor).emitValue(message, busyLooping(Duration.ofSeconds(3)));
     }
     if (processor instanceof Many) {
       //noinspection unchecked
-      ((Many<ServiceMessage>) processor).emitNext(message, RETRY_NON_SERIALIZED);
+      ((Many<ServiceMessage>) processor).emitNext(message, busyLooping(Duration.ofSeconds(3)));
     }
   }
 
   private static void emitComplete(Object processor) {
     if (processor instanceof One) {
-      ((One<?>) processor).emitEmpty(RETRY_NON_SERIALIZED);
+      ((One<?>) processor).emitEmpty(busyLooping(Duration.ofSeconds(3)));
     }
     if (processor instanceof Many) {
-      ((Many<?>) processor).emitComplete(RETRY_NON_SERIALIZED);
+      ((Many<?>) processor).emitComplete(busyLooping(Duration.ofSeconds(3)));
     }
   }
 
   private static void emitError(Object processor, Exception e) {
     if (processor instanceof One) {
-      ((One<?>) processor).emitError(e, RETRY_NON_SERIALIZED);
+      ((One<?>) processor).emitError(e, busyLooping(Duration.ofSeconds(3)));
     }
     if (processor instanceof Many) {
-      ((Many<?>) processor).emitError(e, RETRY_NON_SERIALIZED);
+      ((Many<?>) processor).emitError(e, busyLooping(Duration.ofSeconds(3)));
     }
   }
 

@@ -1,6 +1,6 @@
 package io.scalecube.services.discovery.api;
 
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import reactor.core.publisher.Flux;
 
 public interface ServiceDiscovery {

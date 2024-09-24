@@ -1,9 +1,9 @@
 package io.scalecube.services.discovery;
 
-import static io.scalecube.reactor.RetryNonSerializedEmitFailureHandler.RETRY_NON_SERIALIZED;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointAdded;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointLeaving;
 import static io.scalecube.services.discovery.api.ServiceDiscoveryEvent.newEndpointRemoved;
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -14,11 +14,12 @@ import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.cluster.transport.api.TransportConfig;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
@@ -89,7 +90,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    return cluster != null ? cluster.address() : null;
+    return cluster != null ? Address.from(cluster.address()) : null;
   }
 
   @Override
@@ -99,7 +100,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public void shutdown() {
-    sink.emitComplete(RETRY_NON_SERIALIZED);
+    sink.emitComplete(busyLooping(Duration.ofSeconds(3)));
     if (cluster != null) {
       cluster.shutdown();
     }
@@ -117,7 +118,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
 
     LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
-    sink.emitNext(discoveryEvent, RETRY_NON_SERIALIZED);
+    sink.emitNext(discoveryEvent, busyLooping(Duration.ofSeconds(3)));
   }
 
   private ServiceDiscoveryEvent toServiceDiscoveryEvent(MembershipEvent membershipEvent) {

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -57,8 +59,7 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.17</scalecube-cluster.version>
-    <scalecube-commons.version>1.0.24</scalecube-commons.version>
+    <scalecube-cluster.version>2.6.18.rc1</scalecube-cluster.version>
     <scalecube-security.version>1.0.32</scalecube-security.version>
 
     <reactor.version>2020.0.32</reactor.version>
@@ -93,13 +94,6 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- Scalecube commons -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-commons</artifactId>
-        <version>${scalecube-commons.version}</version>
-      </dependency>
-
       <!-- Scalecube security tokens -->
       <dependency>
         <groupId>io.scalecube</groupId>

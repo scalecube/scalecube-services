@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.http;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.net.Address;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
@@ -61,7 +61,8 @@ class HttpClientConnectionTest extends BaseTest {
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(opts -> opts.seedMembers(gateway.discoveryAddress())))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl())
             .startAwait();

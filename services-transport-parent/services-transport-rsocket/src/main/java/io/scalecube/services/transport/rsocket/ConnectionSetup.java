@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.utils.MaskUtil;
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -10,7 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.StringJoiner;
 
 public final class ConnectionSetup implements Externalizable {
 
@@ -43,13 +41,6 @@ public final class ConnectionSetup implements Externalizable {
 
   public boolean hasCredentials() {
     return !credentials.isEmpty();
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", ConnectionSetup.class.getSimpleName() + "[", "]")
-        .add("credentials=" + MaskUtil.mask(credentials))
-        .toString();
   }
 
   @Override

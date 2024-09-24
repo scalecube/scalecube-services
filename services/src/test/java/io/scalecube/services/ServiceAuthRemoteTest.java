@@ -318,8 +318,8 @@ final class ServiceAuthRemoteTest extends BaseTest {
         .membership(
             opts ->
                 opts.seedMembers(
-                    service.discoveryAddress(),
-                    serviceWithoutAuthenticator.discoveryAddress(),
-                    partiallySecuredService.discoveryAddress()));
+                    service.discoveryAddress().toString(),
+                    serviceWithoutAuthenticator.discoveryAddress().toString(),
+                    partiallySecuredService.discoveryAddress().toString()));
   }
 }
