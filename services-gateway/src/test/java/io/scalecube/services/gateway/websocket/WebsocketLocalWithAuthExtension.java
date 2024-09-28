@@ -4,7 +4,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.AuthRegistry;
 import io.scalecube.services.gateway.GatewaySessionHandlerImpl;
-import io.scalecube.services.gateway.client.transport.GatewayClientTransports;
+import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 
 public class WebsocketLocalWithAuthExtension extends AbstractLocalGatewayExtension {

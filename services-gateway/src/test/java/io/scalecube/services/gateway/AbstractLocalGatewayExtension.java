@@ -5,7 +5,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.client.GatewayClientSettings;
-import io.scalecube.services.gateway.client.transport.StaticAddressRouter;
+import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.transport.api.ClientTransport;
 import java.util.Optional;
 import java.util.function.Function;

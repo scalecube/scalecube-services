@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.transport.websocket;
+package io.scalecube.services.gateway.client.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 

@@ -2,7 +2,7 @@ package io.scalecube.services.gateway.http;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
-import io.scalecube.services.gateway.client.transport.GatewayClientTransports;
+import io.scalecube.services.gateway.client.GatewayClientTransports;
 
 class HttpGatewayExtension extends AbstractGatewayExtension {
 

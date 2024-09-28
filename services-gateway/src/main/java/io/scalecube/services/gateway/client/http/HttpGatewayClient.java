@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.transport.http;
+package io.scalecube.services.gateway.client.http;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 

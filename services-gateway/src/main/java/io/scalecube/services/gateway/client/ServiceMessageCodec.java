@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.transport;
+package io.scalecube.services.gateway.client;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
