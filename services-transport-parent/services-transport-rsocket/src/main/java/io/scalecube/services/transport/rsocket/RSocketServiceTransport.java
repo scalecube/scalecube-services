@@ -7,7 +7,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
