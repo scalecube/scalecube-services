@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.transport.websocket;
+package io.scalecube.services.gateway.client.transport.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 
@@ -21,7 +21,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;

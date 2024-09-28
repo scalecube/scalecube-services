@@ -1,13 +1,13 @@
-package io.scalecube.services.gateway.transport.http;
+package io.scalecube.services.gateway.client.transport.http;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
-import io.scalecube.services.gateway.transport.GatewayClient;
-import io.scalecube.services.gateway.transport.GatewayClientCodec;
-import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.client.GatewayClient;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClientSettings;
 import java.time.Duration;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;

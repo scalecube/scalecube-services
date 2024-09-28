@@ -3,7 +3,7 @@ package io.scalecube.services.gateway.websocket;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.GatewayOptions;
-import io.scalecube.services.gateway.transport.GatewayClientTransports;
+import io.scalecube.services.gateway.client.transport.GatewayClientTransports;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
 import java.util.function.Function;
 

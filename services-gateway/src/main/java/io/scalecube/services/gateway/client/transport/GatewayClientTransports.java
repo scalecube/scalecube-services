@@ -1,9 +1,11 @@
-package io.scalecube.services.gateway.transport;
+package io.scalecube.services.gateway.client.transport;
 
-import io.scalecube.services.gateway.transport.http.HttpGatewayClient;
-import io.scalecube.services.gateway.transport.http.HttpGatewayClientCodec;
-import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.transport.websocket.WebsocketGatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClient;
+import io.scalecube.services.gateway.client.GatewayClientSettings;
+import io.scalecube.services.gateway.client.transport.http.HttpGatewayClient;
+import io.scalecube.services.gateway.client.transport.http.HttpGatewayClientCodec;
+import io.scalecube.services.gateway.client.transport.websocket.WebsocketGatewayClient;
+import io.scalecube.services.gateway.client.transport.websocket.WebsocketGatewayClientCodec;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import java.util.function.Function;

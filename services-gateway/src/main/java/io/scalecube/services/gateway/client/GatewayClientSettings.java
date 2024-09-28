@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.transport;
+package io.scalecube.services.gateway.client;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.exceptions.DefaultErrorMapper;

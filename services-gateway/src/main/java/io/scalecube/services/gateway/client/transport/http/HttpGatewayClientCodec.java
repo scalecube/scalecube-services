@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.transport.http;
+package io.scalecube.services.gateway.client.transport.http;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -6,7 +6,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

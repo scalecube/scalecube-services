@@ -1,13 +1,13 @@
-package io.scalecube.services.gateway.transport.websocket;
+package io.scalecube.services.gateway.client.transport.websocket;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.gateway.transport.GatewayClient;
-import io.scalecube.services.gateway.transport.GatewayClientCodec;
-import io.scalecube.services.gateway.transport.GatewayClientSettings;
+import io.scalecube.services.gateway.client.GatewayClient;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClientSettings;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;

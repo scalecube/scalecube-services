@@ -1,7 +1,8 @@
-package io.scalecube.services.gateway.transport;
+package io.scalecube.services.gateway.client;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.gateway.client.transport.ServiceMessageCodec;
 import java.lang.reflect.Type;
 
 /**

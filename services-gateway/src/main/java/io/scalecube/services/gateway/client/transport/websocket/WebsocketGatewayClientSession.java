@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.transport.websocket;
+package io.scalecube.services.gateway.client.transport.websocket;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
@@ -7,7 +7,7 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
-import io.scalecube.services.gateway.transport.GatewayClientCodec;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
 import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.Map;

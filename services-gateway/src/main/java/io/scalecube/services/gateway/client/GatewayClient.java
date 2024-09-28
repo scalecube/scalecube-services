@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.transport;
+package io.scalecube.services.gateway.client;
 
 import io.scalecube.services.api.ServiceMessage;
 import reactor.core.publisher.Flux;
