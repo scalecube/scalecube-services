@@ -1,12 +1,9 @@
 package io.scalecube.services.routing;
 
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 
 public final class Routers {
-  private static final Logger LOGGER = LoggerFactory.getLogger(Routers.class);
 
   private static final ConcurrentHashMap<Class<? extends Router>, Router> routers =
       new ConcurrentHashMap<>();
@@ -28,7 +25,6 @@ public final class Routers {
     try {
       return routerType.newInstance();
     } catch (Exception ex) {
-      LOGGER.error("Create router type: {} failed: {}", routerType, ex);
       throw Exceptions.propagate(ex);
     }
   }

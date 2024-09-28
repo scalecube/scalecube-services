@@ -17,15 +17,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public final class ServiceMethodInvoker {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodInvoker.class);
 
   private final Method method;
   private final Object service;
@@ -164,8 +160,8 @@ public final class ServiceMethodInvoker {
       if (context.hasKey(AUTH_CONTEXT_KEY)) {
         return Mono.just(context.get(AUTH_CONTEXT_KEY));
       } else {
-        LOGGER.error("Authentication failed (auth context not found and authenticator not set)");
-        throw new UnauthorizedException("Authentication failed");
+        throw new UnauthorizedException(
+            "Authentication failed (auth context not found and authenticator not set)");
       }
     }
 
