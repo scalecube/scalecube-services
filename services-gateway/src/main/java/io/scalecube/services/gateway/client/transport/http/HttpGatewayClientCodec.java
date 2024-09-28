@@ -8,12 +8,8 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientCodec.class);
 
   private final DataCodec dataCodec;
 
@@ -38,7 +34,6 @@ public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf>
         dataCodec.encode(new ByteBufOutputStream(content), message.data());
       } catch (Throwable t) {
         ReferenceCountUtil.safestRelease(content);
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, t);
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), t);
       }

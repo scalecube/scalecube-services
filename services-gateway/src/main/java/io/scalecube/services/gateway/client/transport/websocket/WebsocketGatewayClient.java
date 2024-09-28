@@ -204,28 +204,37 @@ public final class WebsocketGatewayClient implements GatewayClient {
         .doOnError(
             ex -> {
               LOGGER.warn(
-                  "Failed to connect on {}:{}, cause: {}", settings.host(), settings.port(), ex);
+                  "Failed to connect on {}:{}, cause: {}",
+                  settings.host(),
+                  settings.port(),
+                  ex.toString());
               websocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();
   }
 
   private void onWriteIdle(Connection connection) {
-    LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
         .then()
-        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
   }
 
   private void onReadIdle(Connection connection) {
-    LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
         .then()
-        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
   }
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {

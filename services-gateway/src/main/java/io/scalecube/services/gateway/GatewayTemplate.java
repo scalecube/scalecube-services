@@ -1,16 +1,12 @@
 package io.scalecube.services.gateway;
 
 import java.net.InetSocketAddress;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
 public abstract class GatewayTemplate implements Gateway {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayTemplate.class);
 
   protected final GatewayOptions options;
 
@@ -57,9 +53,7 @@ public abstract class GatewayTemplate implements Gateway {
           if (loopResources == null) {
             return Mono.empty();
           }
-          return loopResources
-              .disposeLater()
-              .doOnError(e -> LOGGER.warn("Failed to close loopResources: " + e));
+          return loopResources.disposeLater();
         });
   }
 
@@ -76,7 +70,7 @@ public abstract class GatewayTemplate implements Gateway {
             return Mono.empty();
           }
           server.dispose();
-          return server.onDispose().doOnError(e -> LOGGER.warn("Failed to close server: " + e));
+          return server.onDispose();
         });
   }
 }

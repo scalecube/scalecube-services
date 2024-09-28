@@ -12,7 +12,7 @@ public class GatewayClientChannel implements ClientChannel {
 
   private final GatewayClient gatewayClient;
 
-  GatewayClientChannel(GatewayClient gatewayClient) {
+  public GatewayClientChannel(GatewayClient gatewayClient) {
     this.gatewayClient = gatewayClient;
   }
 

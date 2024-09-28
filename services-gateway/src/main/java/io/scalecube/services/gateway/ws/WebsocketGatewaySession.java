@@ -201,20 +201,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
     }
     if (result) {
       if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("Registered subscription with sid={}, session={}", streamId, sessionId);
+        LOGGER.debug("Registered subscription by sid={}, session={}", streamId, sessionId);
       }
     }
   }
 
   private void clearSubscriptions() {
-    if (subscriptions.size() > 1) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("Clear all {} subscriptions on session={}", subscriptions.size(), sessionId);
-      }
-    } else if (subscriptions.size() == 1) {
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug("Clear 1 subscription on session={}", sessionId);
-      }
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug("Clear subscriptions on session={}", sessionId);
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();

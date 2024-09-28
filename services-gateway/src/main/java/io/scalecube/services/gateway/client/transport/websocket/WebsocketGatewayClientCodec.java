@@ -26,12 +26,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class WebsocketGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClientCodec.class);
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
@@ -104,7 +100,6 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec<Byt
     } catch (Throwable ex) {
       ReferenceCountUtil.safestRelease(byteBuf);
       Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
-      LOGGER.error("Failed to encode message: {}", message, ex);
       throw new MessageCodecException("Failed to encode message", ex);
     }
     return byteBuf;

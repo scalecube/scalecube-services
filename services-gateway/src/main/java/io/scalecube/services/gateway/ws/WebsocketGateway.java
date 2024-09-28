@@ -11,8 +11,6 @@ import io.scalecube.services.gateway.GatewayTemplate;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.StringJoiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
@@ -20,8 +18,6 @@ import reactor.netty.DisposableServer;
 import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway extends GatewayTemplate {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
 
   private final GatewaySessionHandler gatewayHandler;
   private final Duration keepAliveInterval;
@@ -144,20 +140,26 @@ public class WebsocketGateway extends GatewayTemplate {
   }
 
   private void onWriteIdle(Connection connection) {
-    LOGGER.debug("Sending keepalive on writeIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
         .then()
-        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on writeIdle: " + ex));
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
   }
 
   private void onReadIdle(Connection connection) {
-    LOGGER.debug("Sending keepalive on readIdle");
     connection
         .outbound()
         .sendObject(new PingWebSocketFrame())
         .then()
-        .subscribe(null, ex -> LOGGER.warn("Can't send keepalive on readIdle: " + ex));
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
   }
 }
