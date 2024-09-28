@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.EmptyGreetingResponse;
@@ -183,8 +184,11 @@ public class ServiceCallLocalTest extends BaseTest {
       Mono.from(service.requestOne(NOT_FOUND_REQ)).block(timeout);
       fail("Expected no-service-found exception");
     } catch (Exception ex) {
-      assertEquals(
-          ex.getMessage(), "No reachable member with such service: " + NOT_FOUND_REQ.qualifier());
+      assertEquals(ServiceUnavailableException.class, ex.getClass());
+      assertNotNull(ex.getMessage());
+      assertTrue(
+          ex.getMessage()
+              .startsWith("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
     }
   }
 

@@ -160,8 +160,7 @@ public final class ServiceMethodInvoker {
       if (context.hasKey(AUTH_CONTEXT_KEY)) {
         return Mono.just(context.get(AUTH_CONTEXT_KEY));
       } else {
-        throw new UnauthorizedException(
-            "Authentication failed (auth context not found and authenticator not set)");
+        throw new UnauthorizedException("Authentication failed");
       }
     }
 
