@@ -22,15 +22,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class ServiceCall {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   private ClientTransport transport;
   private ServiceRegistry serviceRegistry;
@@ -355,14 +351,12 @@ public class ServiceCall {
         .build();
   }
 
-  private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
-    LOGGER.error(
-        "Failed to invoke service, "
-            + "No reachable member with such service definition [{}], args [{}]",
-        request.qualifier(),
-        request);
+  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     return new ServiceUnavailableException(
-        "No reachable member with such service: " + request.qualifier());
+        "No reachable member with such service: "
+            + request.qualifier()
+            + ", failed request: "
+            + request);
   }
 
   /**
