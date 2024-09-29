@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.client.http;
 
+import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeData;
+
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
@@ -98,7 +100,8 @@ public class HttpGatewayClientTransport implements ClientChannel, ClientTranspor
               .send((clientRequest, outbound) -> send(request, clientRequest, outbound))
               .responseSingle(
                   (clientResponse, mono) ->
-                      mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)));
+                      mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
+              .map(msg -> decodeData(msg, responseType));
         });
   }
 
