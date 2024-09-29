@@ -1,9 +1,8 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.ws;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
 import io.scalecube.services.gateway.client.GatewayClientTransports;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
 
 class WebsocketGatewayExtension extends AbstractGatewayExtension {
 
@@ -16,7 +15,7 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
   WebsocketGatewayExtension(ServiceInfo serviceInfo) {
     super(
         serviceInfo,
-        opts -> new WebsocketGateway(builder -> builder.options(opts.id(GATEWAY_ALIAS_NAME))),
+        opts -> new WebsocketGateway.Builder().options(opts.id(GATEWAY_ALIAS_NAME)).build(),
         GatewayClientTransports::websocketGatewayClientTransport);
   }
 }

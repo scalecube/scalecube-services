@@ -11,7 +11,6 @@ import io.scalecube.services.gateway.GatewayOptions;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
-import java.util.function.UnaryOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
@@ -33,10 +32,6 @@ public class HttpGateway implements Gateway {
     this.errorMapper = builder.errorMapper;
     this.corsEnabled = builder.corsEnabled;
     this.corsConfigBuilder = builder.corsConfigBuilder;
-  }
-
-  public HttpGateway(UnaryOperator<Builder> operator) {
-    this(operator.apply(new Builder()));
   }
 
   @Override

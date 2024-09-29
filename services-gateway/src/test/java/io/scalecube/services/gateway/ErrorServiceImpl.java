@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.exceptions;
+package io.scalecube.services.gateway;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

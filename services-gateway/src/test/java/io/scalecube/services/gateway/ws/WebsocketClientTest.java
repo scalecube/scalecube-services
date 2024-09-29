@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.Address;
@@ -16,7 +16,6 @@ import io.scalecube.services.gateway.client.GatewayClientTransport;
 import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
@@ -56,11 +55,10 @@ class WebsocketClientTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .gateway(
                 options ->
-                    new WebsocketGateway(
-                        builder ->
-                            builder
-                                .options(options.id("WS"))
-                                .gatewayHandler(new TestGatewaySessionHandler())))
+                    new WebsocketGateway.Builder()
+                        .options(options.id("WS"))
+                        .gatewayHandler(new TestGatewaySessionHandler())
+                        .build())
             .startAwait();
     gatewayAddress = gateway.gateway("WS").address();
 

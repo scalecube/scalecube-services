@@ -15,7 +15,7 @@ class HttpLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   HttpLocalGatewayExtension(ServiceInfo serviceInfo) {
-    this(serviceInfo, opts -> new HttpGateway(builder -> builder.options(opts)));
+    this(serviceInfo, opts -> new HttpGateway.Builder().options(opts).build());
   }
 
   HttpLocalGatewayExtension(

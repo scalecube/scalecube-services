@@ -1,26 +1,29 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.ws;
 
+import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
-import static io.scalecube.services.gateway.exceptions.GatewayErrorMapperImpl.ERROR_MAPPER;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.BaseTest;
-import io.scalecube.services.gateway.exceptions.ErrorService;
-import io.scalecube.services.gateway.exceptions.ErrorServiceImpl;
-import io.scalecube.services.gateway.exceptions.SomeException;
+import io.scalecube.services.gateway.ErrorService;
+import io.scalecube.services.gateway.ErrorServiceImpl;
+import io.scalecube.services.gateway.SomeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
-class WebsocketClientErrorMapperTest extends BaseTest {
+class WebsocketLocalGatewayErrorMapperTest extends BaseTest {
 
   @RegisterExtension
-  static WebsocketGatewayExtension extension =
-      new WebsocketGatewayExtension(
-          ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-              .errorMapper(ERROR_MAPPER)
-              .build());
+  static WebsocketLocalGatewayExtension extension =
+      new WebsocketLocalGatewayExtension(
+          ServiceInfo.fromServiceInstance(new ErrorServiceImpl()).errorMapper(ERROR_MAPPER).build(),
+          opts ->
+              new WebsocketGateway.Builder()
+                  .options(opts.call(opts.call().errorMapper(ERROR_MAPPER)))
+                  .errorMapper(ERROR_MAPPER)
+                  .build());
 
   private ErrorService service;
 

@@ -60,15 +60,13 @@ public class CorsTest extends BaseTest {
         gatewayBuilder
             .gateway(
                 opts ->
-                    new HttpGateway(
-                        builder ->
-                            builder
-                                .options(opts.id("http").port(HTTP_PORT))
-                                .corsEnabled(true)
-                                .corsConfigBuilder(
-                                    corsConfigBuilder ->
-                                        corsConfigBuilder.allowedRequestHeaders(
-                                            "Content-Type", "X-Correlation-ID"))))
+                    new HttpGateway.Builder()
+                        .options(opts.id("http").port(HTTP_PORT))
+                        .corsEnabled(true)
+                        .corsConfigBuilder(
+                            builder ->
+                                builder.allowedRequestHeaders("Content-Type", "X-Correlation-ID"))
+                        .build())
             .start()
             .block(TIMEOUT);
 
@@ -118,8 +116,7 @@ public class CorsTest extends BaseTest {
     gateway =
         gatewayBuilder
             .gateway(
-                opts ->
-                    new HttpGateway(builder -> builder.options(opts.id("http").port(HTTP_PORT))))
+                opts -> new HttpGateway.Builder().options(opts.id("http").port(HTTP_PORT)).build())
             .start()
             .block(TIMEOUT);
 

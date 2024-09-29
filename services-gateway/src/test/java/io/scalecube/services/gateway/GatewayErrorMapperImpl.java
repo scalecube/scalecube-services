@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.exceptions;
+package io.scalecube.services.gateway;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;

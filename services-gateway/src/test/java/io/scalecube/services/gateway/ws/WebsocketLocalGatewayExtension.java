@@ -1,10 +1,9 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.ws;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractLocalGatewayExtension;
 import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.client.GatewayClientTransports;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
 import java.util.function.Function;
 
 class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
@@ -16,7 +15,7 @@ class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   WebsocketLocalGatewayExtension(ServiceInfo serviceInfo) {
-    this(serviceInfo, opts -> new WebsocketGateway(builder -> builder.options(opts)));
+    this(serviceInfo, opts -> new WebsocketGateway.Builder().options(opts).build());
   }
 
   WebsocketLocalGatewayExtension(

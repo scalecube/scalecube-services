@@ -1,13 +1,13 @@
 package io.scalecube.services.gateway.http;
 
+import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
-import static io.scalecube.services.gateway.exceptions.GatewayErrorMapperImpl.ERROR_MAPPER;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.BaseTest;
-import io.scalecube.services.gateway.exceptions.ErrorService;
-import io.scalecube.services.gateway.exceptions.ErrorServiceImpl;
-import io.scalecube.services.gateway.exceptions.SomeException;
+import io.scalecube.services.gateway.ErrorService;
+import io.scalecube.services.gateway.ErrorServiceImpl;
+import io.scalecube.services.gateway.SomeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.websocket;
+package io.scalecube.services.gateway.ws;
 
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +24,6 @@ import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClient;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientSession;
-import io.scalecube.services.gateway.ws.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -70,9 +69,10 @@ class WebsocketClientConnectionTest extends BaseTest {
             .transport(RSocketServiceTransport::new)
             .gateway(
                 options ->
-                    new WebsocketGateway(
-                        builder ->
-                            builder.options(options.id("WS")).gatewayHandler(sessionEventHandler)))
+                    new WebsocketGateway.Builder()
+                        .options(options.id("WS"))
+                        .gatewayHandler(sessionEventHandler)
+                        .build())
             .startAwait();
 
     gatewayAddress = gateway.gateway("WS").address();
