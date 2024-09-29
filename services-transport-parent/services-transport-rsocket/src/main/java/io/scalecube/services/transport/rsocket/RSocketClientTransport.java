@@ -148,4 +148,9 @@ public class RSocketClientTransport implements ClientTransport {
       return new UnauthorizedException(th);
     }
   }
+
+  @Override
+  public void close() {
+    // no-op
+  }
 }

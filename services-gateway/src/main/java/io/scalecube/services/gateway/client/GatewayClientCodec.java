@@ -1,15 +1,11 @@
 package io.scalecube.services.gateway.client;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.lang.reflect.Type;
 
-/**
- * Describes encoding/decoding operations for {@link ServiceMessage} to/from {@link T} type.
- *
- * @param <T> represents source or result for decoding or encoding operations respectively
- */
-public interface GatewayClientCodec<T> {
+public interface GatewayClientCodec {
 
   /**
    * Data decoder function.
@@ -25,18 +21,18 @@ public interface GatewayClientCodec<T> {
   }
 
   /**
-   * Encodes {@link ServiceMessage} to {@link T} type.
+   * Encodes {@link ServiceMessage}.
    *
-   * @param message client message to encode
-   * @return encoded message represented by {@link T} type
+   * @param message message to encode
+   * @return encoded message
    */
-  T encode(ServiceMessage message);
+  ByteBuf encode(ServiceMessage message);
 
   /**
-   * Decodes message represented by {@link T} type to {@link ServiceMessage} object.
+   * Decodes {@link ServiceMessage} object from {@link ByteBuf}.
    *
-   * @param encodedMessage message to decode
-   * @return decoded message represented by {@link ServiceMessage} type
+   * @param byteBuf message to decode
+   * @return decoded message represented by {@link ServiceMessage}
    */
-  ServiceMessage decode(T encodedMessage);
+  ServiceMessage decode(ByteBuf byteBuf);
 }
