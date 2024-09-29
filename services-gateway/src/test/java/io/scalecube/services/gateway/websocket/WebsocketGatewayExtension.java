@@ -16,7 +16,7 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
   WebsocketGatewayExtension(ServiceInfo serviceInfo) {
     super(
         serviceInfo,
-        opts -> new WebsocketGateway(opts.id(GATEWAY_ALIAS_NAME)),
+        opts -> new WebsocketGateway(builder -> builder.options(opts.id(GATEWAY_ALIAS_NAME))),
         GatewayClientTransports::websocketGatewayClientTransport);
   }
 }

@@ -15,7 +15,7 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
   HttpGatewayExtension(ServiceInfo serviceInfo) {
     super(
         serviceInfo,
-        opts -> new HttpGateway(opts.id(GATEWAY_ALIAS_NAME)),
+        opts -> new HttpGateway(builder -> builder.options(opts.id(GATEWAY_ALIAS_NAME))),
         GatewayClientTransports::httpGatewayClientTransport);
   }
 }

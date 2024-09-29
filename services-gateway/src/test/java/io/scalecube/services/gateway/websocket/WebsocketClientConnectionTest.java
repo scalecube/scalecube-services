@@ -68,7 +68,11 @@ class WebsocketClientConnectionTest extends BaseTest {
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new WebsocketGateway(options.id("WS"), sessionEventHandler))
+            .gateway(
+                options ->
+                    new WebsocketGateway(
+                        builder ->
+                            builder.options(options.id("WS")).gatewayHandler(sessionEventHandler)))
             .startAwait();
 
     gatewayAddress = gateway.gateway("WS").address();

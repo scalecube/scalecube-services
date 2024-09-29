@@ -20,7 +20,10 @@ public class WebsocketLocalWithAuthExtension extends AbstractLocalGatewayExtensi
         serviceInfo,
         opts ->
             new WebsocketGateway(
-                opts.id(GATEWAY_ALIAS_NAME), new GatewaySessionHandlerImpl(authReg)),
+                builder ->
+                    builder
+                        .options(opts.id(GATEWAY_ALIAS_NAME))
+                        .gatewayHandler(new GatewaySessionHandlerImpl(authReg))),
         GatewayClientTransports::websocketGatewayClientTransport);
   }
 }

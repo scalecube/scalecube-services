@@ -16,7 +16,7 @@ class WebsocketLocalGatewayExtension extends AbstractLocalGatewayExtension {
   }
 
   WebsocketLocalGatewayExtension(ServiceInfo serviceInfo) {
-    this(serviceInfo, WebsocketGateway::new);
+    this(serviceInfo, opts -> new WebsocketGateway(builder -> builder.options(opts)));
   }
 
   WebsocketLocalGatewayExtension(

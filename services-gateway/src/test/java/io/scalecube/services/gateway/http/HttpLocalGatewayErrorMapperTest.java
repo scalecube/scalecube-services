@@ -21,7 +21,12 @@ class HttpLocalGatewayErrorMapperTest extends BaseTest {
   static HttpLocalGatewayExtension extension =
       new HttpLocalGatewayExtension(
           ServiceInfo.fromServiceInstance(new ErrorServiceImpl()).errorMapper(ERROR_MAPPER).build(),
-          opts -> new HttpGateway(opts.call(opts.call().errorMapper(ERROR_MAPPER)), ERROR_MAPPER));
+          opts ->
+              new HttpGateway(
+                  builder ->
+                      builder
+                          .options(opts.call(opts.call().errorMapper(ERROR_MAPPER)))
+                          .errorMapper(ERROR_MAPPER)));
 
   private ErrorService service;
 

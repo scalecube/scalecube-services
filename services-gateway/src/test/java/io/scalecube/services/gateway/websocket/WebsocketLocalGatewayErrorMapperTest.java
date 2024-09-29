@@ -21,7 +21,11 @@ class WebsocketLocalGatewayErrorMapperTest extends BaseTest {
       new WebsocketLocalGatewayExtension(
           ServiceInfo.fromServiceInstance(new ErrorServiceImpl()).errorMapper(ERROR_MAPPER).build(),
           opts ->
-              new WebsocketGateway(opts.call(opts.call().errorMapper(ERROR_MAPPER)), ERROR_MAPPER));
+              new WebsocketGateway(
+                  builder ->
+                      builder
+                          .options(opts.call(opts.call().errorMapper(ERROR_MAPPER)))
+                          .errorMapper(ERROR_MAPPER)));
 
   private ErrorService service;
 
