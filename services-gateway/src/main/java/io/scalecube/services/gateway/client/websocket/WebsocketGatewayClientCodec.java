@@ -27,7 +27,7 @@ import java.io.OutputStream;
 import java.util.Map.Entry;
 import java.util.Optional;
 
-public final class WebsocketGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
+public final class WebsocketGatewayClientCodec implements GatewayClientCodec {
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
@@ -106,8 +106,8 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec<Byt
   }
 
   @Override
-  public ServiceMessage decode(ByteBuf encodedMessage) {
-    try (InputStream stream = new ByteBufInputStream(encodedMessage, true)) {
+  public ServiceMessage decode(ByteBuf byteBuf) {
+    try (InputStream stream = new ByteBufInputStream(byteBuf, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ServiceMessage.Builder result = ServiceMessage.builder();
 
@@ -141,7 +141,7 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec<Byt
       }
       // data
       if (dataEnd > dataStart) {
-        result.data(encodedMessage.copy((int) dataStart, (int) (dataEnd - dataStart)));
+        result.data(byteBuf.copy((int) dataStart, (int) (dataEnd - dataStart)));
       }
       return result.build();
     } catch (Throwable ex) {
