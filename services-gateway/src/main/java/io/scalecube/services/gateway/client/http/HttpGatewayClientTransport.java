@@ -29,7 +29,7 @@ import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 
-public class HttpGatewayClientTransport implements ClientChannel, ClientTransport {
+public final class HttpGatewayClientTransport implements ClientChannel, ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
 
