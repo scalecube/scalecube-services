@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.websocket;
+package io.scalecube.services.gateway.client.ws;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
@@ -34,15 +34,15 @@ public final class WebsocketGatewayClientSession {
   private static final String SIGNAL = "sig";
 
   private final String id; // keep id for tracing
-  private final GatewayClientCodec<ByteBuf> codec;
+  private final GatewayClientCodec clientCodec;
   private final Connection connection;
 
   // processor by sid mapping
   private final Map<Long, Object> inboundProcessors = new NonBlockingHashMapLong<>(1024);
 
-  WebsocketGatewayClientSession(GatewayClientCodec<ByteBuf> codec, Connection connection) {
+  WebsocketGatewayClientSession(GatewayClientCodec clientCodec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
-    this.codec = codec;
+    this.clientCodec = clientCodec;
     this.connection = connection;
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
@@ -59,7 +59,7 @@ public final class WebsocketGatewayClientSession {
               // decode message
               ServiceMessage message;
               try {
-                message = codec.decode(byteBuf);
+                message = clientCodec.decode(byteBuf);
               } catch (Exception ex) {
                 LOGGER.error("Response decoder failed:", ex);
                 return;
@@ -124,7 +124,7 @@ public final class WebsocketGatewayClientSession {
 
   void cancel(long sid, String qualifier) {
     ByteBuf byteBuf =
-        codec.encode(
+        clientCodec.encode(
             ServiceMessage.builder()
                 .qualifier(qualifier)
                 .header(STREAM_ID, sid)
@@ -177,7 +177,7 @@ public final class WebsocketGatewayClientSession {
         }
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
-          emitNext(processor, codec.decodeData(response, ErrorData.class));
+          emitNext(processor, clientCodec.decodeData(response, ErrorData.class));
         }
       }
     } catch (Exception e) {
