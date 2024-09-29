@@ -9,7 +9,7 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.DataCodec;
 
-public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf> {
+public final class HttpGatewayClientCodec implements GatewayClientCodec {
 
   private final DataCodec dataCodec;
 
@@ -43,7 +43,7 @@ public final class HttpGatewayClientCodec implements GatewayClientCodec<ByteBuf>
   }
 
   @Override
-  public ServiceMessage decode(ByteBuf encodedMessage) {
-    return ServiceMessage.builder().data(encodedMessage).build();
+  public ServiceMessage decode(ByteBuf byteBuf) {
+    return ServiceMessage.builder().data(byteBuf).build();
   }
 }
