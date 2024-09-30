@@ -5,6 +5,7 @@ import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeDat
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
@@ -35,16 +36,13 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
 
   private static final String CONTENT_TYPE = "application/json";
-  private static final String DEFAULT_HOST = "localhost";
-
   private static final LoopResources LOOP_RESOURCES = LoopResources.create("http-gateway-client");
   private static final HttpGatewayClientCodec CLIENT_CODEC =
       new HttpGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
 
   private final GatewayClientCodec clientCodec;
   private final LoopResources loopResources;
-  private final String host;
-  private final int port;
+  private final Address address;
   private final Duration connectTimeout;
   private final String contentType;
   private final boolean followRedirect;
@@ -58,8 +56,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private HttpGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
     this.loopResources = builder.loopResources;
-    this.host = builder.host;
-    this.port = builder.port;
+    this.address = builder.address;
     this.connectTimeout = builder.connectTimeout;
     this.contentType = builder.contentType;
     this.followRedirect = builder.followRedirect;
@@ -85,8 +82,8 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
                   .followRedirect(followRedirect)
                   .wiretap(shouldWiretap)
                   .runOn(loopResources)
-                  .host(host)
-                  .port(port)
+                  .host(address.host())
+                  .port(address.port())
                   .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) connectTimeout.toMillis())
                   .option(ChannelOption.TCP_NODELAY, true);
 
@@ -170,8 +167,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
     private GatewayClientCodec clientCodec = CLIENT_CODEC;
     private LoopResources loopResources = LOOP_RESOURCES;
-    private String host = DEFAULT_HOST;
-    private int port;
+    private Address address;
     private Duration connectTimeout = Duration.ofSeconds(5);
     private String contentType = CONTENT_TYPE;
     private boolean followRedirect;
@@ -199,21 +195,12 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
       return this;
     }
 
-    public String host() {
-      return host;
+    public Address address() {
+      return address;
     }
 
-    public Builder host(String host) {
-      this.host = host;
-      return this;
-    }
-
-    public int port() {
-      return port;
-    }
-
-    public Builder port(int port) {
-      this.port = port;
+    public Builder address(Address address) {
+      this.address = address;
       return this;
     }
 
