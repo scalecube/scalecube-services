@@ -72,7 +72,9 @@ class HttpGatewayTest extends BaseTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
+                        .options(opts -> opts.metadata(serviceEndpoint))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
             .services(

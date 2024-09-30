@@ -58,11 +58,6 @@ class WebsocketGatewayTest extends BaseTest {
                         .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .gateway(options -> new WebsocketGateway.Builder().options(options.id("WS")).build())
-            .services(new GreetingServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
             .startAwait();
 
     gatewayAddress = gateway.gateway("WS").address();
@@ -74,9 +69,15 @@ class WebsocketGatewayTest extends BaseTest {
                 serviceEndpoint ->
                     new ScalecubeServiceDiscovery()
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
+                        .options(opts -> opts.metadata(serviceEndpoint))
+                        .membership(
+                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                    .errorMapper(ERROR_MAPPER)
+                    .build())
             .startAwait();
   }
 
