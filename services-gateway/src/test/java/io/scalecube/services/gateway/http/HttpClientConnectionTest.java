@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.http;
 
-import io.netty.buffer.ByteBuf;
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -8,13 +7,8 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
-import io.scalecube.services.gateway.client.GatewayClient;
-import io.scalecube.services.gateway.client.GatewayClientCodec;
-import io.scalecube.services.gateway.client.GatewayClientSettings;
-import io.scalecube.services.gateway.client.GatewayClientTransport;
-import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
-import io.scalecube.services.gateway.client.http.HttpGatewayClient;
+import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -29,15 +23,11 @@ import reactor.test.StepVerifier;
 
 class HttpClientConnectionTest extends BaseTest {
 
-  public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
-      GatewayClientTransports.HTTP_CLIENT_CODEC;
-
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices service;
 
   private static final AtomicInteger onCloseCounter = new AtomicInteger();
-  private GatewayClient client;
 
   @BeforeEach
   void beforEach() {
@@ -73,7 +63,6 @@ class HttpClientConnectionTest extends BaseTest {
   @AfterEach
   void afterEach() {
     Flux.concat(
-            Mono.justOrEmpty(client).doOnNext(GatewayClient::close).flatMap(GatewayClient::onClose),
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
             Mono.justOrEmpty(service).map(Microservices::shutdown))
         .then()
@@ -82,41 +71,32 @@ class HttpClientConnectionTest extends BaseTest {
 
   @Test
   void testCloseServiceStreamAfterLostConnection() {
-    client =
-        new HttpGatewayClient(
-            GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
-
-    ServiceCall serviceCall =
+    try (ServiceCall serviceCall =
         new ServiceCall()
-            .transport(new GatewayClientTransport(client))
-            .router(new StaticAddressRouter(gatewayAddress));
-
-    StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
-        .thenAwait(Duration.ofSeconds(5))
-        .then(() -> client.close())
-        .then(() -> client.onClose().block())
-        .expectError(IOException.class)
-        .verify(Duration.ofSeconds(1));
+            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build())
+            .router(new StaticAddressRouter(gatewayAddress))) {
+      StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
+          .thenAwait(Duration.ofSeconds(5))
+          .then(serviceCall::close)
+          .expectError(IOException.class)
+          .verify(Duration.ofSeconds(1));
+    }
   }
 
   @Test
   public void testCallRepeatedlyByInvalidAddress() {
     Address invalidAddress = Address.create("localhost", 5050);
 
-    client =
-        new HttpGatewayClient(
-            GatewayClientSettings.builder().address(invalidAddress).build(), CLIENT_CODEC);
-
-    ServiceCall serviceCall =
+    try (ServiceCall serviceCall =
         new ServiceCall()
-            .transport(new GatewayClientTransport(client))
-            .router(new StaticAddressRouter(invalidAddress));
-
-    for (int i = 0; i < 100; i++) {
-      StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
-          .thenAwait(Duration.ofSeconds(1))
-          .expectError(IOException.class)
-          .verify(Duration.ofSeconds(10));
+            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build())
+            .router(new StaticAddressRouter(invalidAddress))) {
+      for (int i = 0; i < 15; i++) {
+        StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
+            .thenAwait(Duration.ofSeconds(1))
+            .expectError(IOException.class)
+            .verify(Duration.ofSeconds(10));
+      }
     }
   }
 

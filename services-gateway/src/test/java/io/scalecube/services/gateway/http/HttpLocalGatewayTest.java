@@ -2,6 +2,9 @@ package io.scalecube.services.gateway.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.Address;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.examples.EmptyGreetingRequest;
@@ -11,25 +14,59 @@ import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.BaseTest;
+import io.scalecube.services.gateway.client.StaticAddressRouter;
+import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import java.time.Duration;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
 class HttpLocalGatewayTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
-  @RegisterExtension
-  static HttpLocalGatewayExtension extension =
-      new HttpLocalGatewayExtension(new GreetingServiceImpl());
+  private static Microservices gateway;
+  private static Address gatewayAddress;
+  private static StaticAddressRouter router;
 
+  private ServiceCall serviceCall;
   private GreetingService service;
 
+  @BeforeAll
+  static void beforeAll() {
+    gateway =
+        Microservices.builder()
+            .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
+            .services(new GreetingServiceImpl())
+            .startAwait();
+    gatewayAddress = gateway.gateway("HTTP").address();
+    router = new StaticAddressRouter(gatewayAddress);
+  }
+
   @BeforeEach
-  void initService() {
-    service = extension.client().api(GreetingService.class);
+  void beforeEach() {
+    serviceCall =
+        new ServiceCall()
+            .router(router)
+            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build());
+    service = serviceCall.api(GreetingService.class);
+  }
+
+  @AfterEach
+  void afterEach() {
+    if (serviceCall != null) {
+      serviceCall.close();
+    }
+  }
+
+  @AfterAll
+  static void afterAll() {
+    if (gateway != null) {
+      gateway.close();
+    }
   }
 
   @Test
@@ -117,7 +154,7 @@ class HttpLocalGatewayTest extends BaseTest {
     String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
     ServiceMessage request =
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
-    StepVerifier.create(extension.client().requestOne(request, EmptyGreetingResponse.class))
+    StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
         .expectSubscription()
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()

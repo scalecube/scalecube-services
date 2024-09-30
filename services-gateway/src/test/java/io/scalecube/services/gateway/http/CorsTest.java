@@ -7,13 +7,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.BaseTest;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,24 +25,13 @@ import reactor.netty.resources.ConnectionProvider;
 public class CorsTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
-  public static final int HTTP_PORT = 8999;
 
   private Microservices gateway;
-
-  private final Microservices.Builder gatewayBuilder =
-      Microservices.builder()
-          .discovery(
-              serviceEndpoint ->
-                  new ScalecubeServiceDiscovery()
-                      .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                      .options(opts -> opts.metadata(serviceEndpoint)))
-          .transport(RSocketServiceTransport::new)
-          .services(new GreetingServiceImpl());
-  private HttpClient client;
+  private ConnectionProvider connectionProvider;
 
   @BeforeEach
-  void beforeEach() {
-    client = HttpClient.create(ConnectionProvider.newConnection()).port(HTTP_PORT).wiretap(true);
+  void setUp() {
+    connectionProvider = ConnectionProvider.newConnection();
   }
 
   @AfterEach
@@ -52,23 +39,29 @@ public class CorsTest extends BaseTest {
     if (gateway != null) {
       gateway.shutdown().block();
     }
+    if (connectionProvider != null) {
+      connectionProvider.dispose();
+    }
   }
 
   @Test
   void testCrossOriginRequest() {
     gateway =
-        gatewayBuilder
+        Microservices.builder()
             .gateway(
                 opts ->
                     new HttpGateway.Builder()
-                        .options(opts.id("http").port(HTTP_PORT))
+                        .options(opts.id("http"))
                         .corsEnabled(true)
                         .corsConfigBuilder(
                             builder ->
                                 builder.allowedRequestHeaders("Content-Type", "X-Correlation-ID"))
                         .build())
+            .services(new GreetingServiceImpl())
             .start()
             .block(TIMEOUT);
+
+    final HttpClient client = newClient(gateway.gateway("http").address());
 
     HttpClientResponse response =
         client
@@ -111,14 +104,20 @@ public class CorsTest extends BaseTest {
     assertEquals("*", responseHeaders.get("Access-Control-Allow-Origin"));
   }
 
+  private HttpClient newClient(final Address address) {
+    return HttpClient.create(connectionProvider).port(address.port());
+  }
+
   @Test
   void testOptionRequestCorsDisabled() {
     gateway =
-        gatewayBuilder
-            .gateway(
-                opts -> new HttpGateway.Builder().options(opts.id("http").port(HTTP_PORT)).build())
+        Microservices.builder()
+            .gateway(opts -> new HttpGateway.Builder().options(opts.id("http")).build())
+            .services(new GreetingServiceImpl())
             .start()
             .block(TIMEOUT);
+
+    final HttpClient client = newClient(gateway.gateway("http").address());
 
     HttpClientResponse response =
         client

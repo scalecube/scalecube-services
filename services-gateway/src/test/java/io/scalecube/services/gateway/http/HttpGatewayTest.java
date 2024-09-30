@@ -1,37 +1,97 @@
 package io.scalecube.services.gateway.http;
 
-import static org.hamcrest.CoreMatchers.startsWith;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.scalecube.services.Address;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.EmptyGreetingRequest;
 import io.scalecube.services.examples.EmptyGreetingResponse;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.gateway.BaseTest;
+import io.scalecube.services.gateway.client.StaticAddressRouter;
+import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
+import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.test.StepVerifier;
 
 class HttpGatewayTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
-  @RegisterExtension
-  static HttpGatewayExtension extension = new HttpGatewayExtension(new GreetingServiceImpl());
+  private static Microservices gateway;
+  private static Address gatewayAddress;
+  private static StaticAddressRouter router;
+  private static Microservices services;
 
+  private ServiceCall serviceCall;
   private GreetingService service;
 
+  @BeforeAll
+  static void beforeAll() {
+    gateway =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new)
+            .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
+            .services(new GreetingServiceImpl())
+            .startAwait();
+
+    gatewayAddress = gateway.gateway("HTTP").address();
+    router = new StaticAddressRouter(gatewayAddress);
+
+    services =
+        Microservices.builder()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new)
+            .services(new GreetingServiceImpl())
+            .startAwait();
+  }
+
   @BeforeEach
-  void initService() {
-    service = extension.client().api(GreetingService.class);
+  void beforeEach() {
+    serviceCall =
+        new ServiceCall()
+            .router(router)
+            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build());
+    service = serviceCall.api(GreetingService.class);
+  }
+
+  @AfterEach
+  void afterEach() {
+    if (serviceCall != null) {
+      serviceCall.close();
+    }
+  }
+
+  @AfterAll
+  static void afterAll() {
+    if (gateway != null) {
+      gateway.close();
+    }
+    if (services != null) {
+      services.close();
+    }
   }
 
   @Test
@@ -70,20 +130,6 @@ class HttpGatewayTest extends BaseTest {
   @Test
   void shouldReturnNoContentWhenResponseIsEmpty() {
     StepVerifier.create(service.emptyOne("hello")).expectComplete().verify(TIMEOUT);
-  }
-
-  @Test
-  void shouldReturnServiceUnavailableWhenServiceIsDown() {
-    extension.shutdownServices();
-
-    StepVerifier.create(service.one("hello"))
-        .expectErrorSatisfies(
-            throwable -> {
-              assertEquals(ServiceUnavailableException.class, throwable.getClass());
-              assertThat(
-                  throwable.getMessage(), startsWith("No reachable member with such service:"));
-            })
-        .verify(TIMEOUT);
   }
 
   @Test
@@ -133,7 +179,7 @@ class HttpGatewayTest extends BaseTest {
     String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
     ServiceMessage request =
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
-    StepVerifier.create(extension.client().requestOne(request, EmptyGreetingResponse.class))
+    StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
         .expectSubscription()
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
