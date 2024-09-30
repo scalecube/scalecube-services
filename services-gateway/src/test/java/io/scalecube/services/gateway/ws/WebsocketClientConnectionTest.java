@@ -22,8 +22,8 @@ import io.scalecube.services.gateway.client.GatewayClientSettings;
 import io.scalecube.services.gateway.client.GatewayClientTransport;
 import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
-import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClient;
-import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientSession;
+import io.scalecube.services.gateway.client.ws.WebsocketGatewayClientTransport;
+import io.scalecube.services.gateway.client.ws.WebsocketGatewayClientSession;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -106,7 +106,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   @Test
   void testCloseServiceStreamAfterLostConnection() {
     client =
-        new WebsocketGatewayClient(
+        new WebsocketGatewayClientTransport(
             GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
     ServiceCall serviceCall =
@@ -130,7 +130,7 @@ class WebsocketClientConnectionTest extends BaseTest {
     Address invalidAddress = Address.create("localhost", 5050);
 
     client =
-        new WebsocketGatewayClient(
+        new WebsocketGatewayClientTransport(
             GatewayClientSettings.builder().address(invalidAddress).build(), CLIENT_CODEC);
 
     ServiceCall serviceCall =
@@ -150,7 +150,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   public void testHandlerEvents() throws InterruptedException {
     // Test Connect
     client =
-        new WebsocketGatewayClient(
+        new WebsocketGatewayClientTransport(
             GatewayClientSettings.builder().address(gatewayAddress).build(), CLIENT_CODEC);
 
     TestService service =
@@ -183,14 +183,14 @@ class WebsocketClientConnectionTest extends BaseTest {
     Duration keepAliveInterval = Duration.ofSeconds(1);
     CountDownLatch keepaliveLatch = new CountDownLatch(expectedKeepalives);
     client =
-        new WebsocketGatewayClient(
+        new WebsocketGatewayClientTransport(
             GatewayClientSettings.builder()
                 .address(gatewayAddress)
                 .keepAliveInterval(keepAliveInterval)
                 .build(),
             CLIENT_CODEC);
 
-    Method getOrConnect = WebsocketGatewayClient.class.getDeclaredMethod("getOrConnect");
+    Method getOrConnect = WebsocketGatewayClientTransport.class.getDeclaredMethod("getOrConnect");
     getOrConnect.setAccessible(true);
     //noinspection unchecked
     WebsocketGatewayClientSession session =
@@ -222,7 +222,7 @@ class WebsocketClientConnectionTest extends BaseTest {
     String headerKey = "secret-token";
     String headerValue = UUID.randomUUID().toString();
     client =
-        new WebsocketGatewayClient(
+        new WebsocketGatewayClientTransport(
             GatewayClientSettings.builder()
                 .address(gatewayAddress)
                 .headers(Collections.singletonMap(headerKey, headerValue))

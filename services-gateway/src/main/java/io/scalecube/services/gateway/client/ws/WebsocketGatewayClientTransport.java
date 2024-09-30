@@ -1,45 +1,43 @@
-package io.scalecube.services.gateway.client.http;
-
-import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeData;
+package io.scalecube.services.gateway.client.ws;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.DataCodec;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.NettyOutbound;
+import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.http.client.HttpClientRequest;
-import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
 
-public final class HttpGatewayClientTransport implements ClientChannel, ClientTransport {
+public final class WebsocketGatewayClientTransport implements ClientChannel, ClientTransport {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(WebsocketGatewayClientTransport.class);
 
   private static final String CONTENT_TYPE = "application/json";
   private static final String DEFAULT_HOST = "localhost";
+  private static final String STREAM_ID = "sid";
 
-  private static final LoopResources LOOP_RESOURCES = LoopResources.create("http-gateway-client");
-  private static final HttpGatewayClientCodec CLIENT_CODEC =
-      new HttpGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
+  private static final LoopResources LOOP_RESOURCES =
+      LoopResources.create("websocket-gateway-client");
+  private static final WebsocketGatewayClientCodec CLIENT_CODEC = new WebsocketGatewayClientCodec();
 
   private final GatewayClientCodec clientCodec;
   private final LoopResources loopResources;
@@ -50,12 +48,15 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private final boolean followRedirect;
   private final SslProvider sslProvider;
   private final boolean shouldWiretap;
+  private final Duration keepAliveInterval;
   private final Map<String, String> headers;
 
+  private final AtomicLong sidCounter = new AtomicLong();
   private ConnectionProvider connectionProvider;
-  private final AtomicReference<HttpClient> httpClientReference = new AtomicReference<>();
+  private final AtomicReference<WebsocketGatewayClientSession> clientSessionReference =
+      new AtomicReference<>();
 
-  private HttpGatewayClientTransport(Builder builder) {
+  private WebsocketGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
     this.loopResources = builder.loopResources;
     this.host = builder.host;
@@ -65,18 +66,19 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
     this.shouldWiretap = builder.shouldWiretap;
+    this.keepAliveInterval = builder.keepAliveInterval;
     this.headers = builder.headers;
   }
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    httpClientReference.getAndUpdate(
+    clientSessionReference.getAndUpdate(
         oldValue -> {
           if (oldValue != null) {
             return oldValue;
           }
 
-          connectionProvider = ConnectionProvider.create("http-gateway-client");
+          connectionProvider = ConnectionProvider.newConnection();
 
           HttpClient httpClient =
               HttpClient.create(connectionProvider)
@@ -94,39 +96,79 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
             httpClient = httpClient.secure(sslProvider);
           }
 
-          return httpClient;
+          return createClientSession(httpClient);
         });
     return this;
+  }
+
+  private WebsocketGatewayClientSession createClientSession(HttpClient httpClient) {
+    try {
+      return httpClient
+          .websocket()
+          .uri("/")
+          .connect()
+          .map(
+              connection ->
+                  keepAliveInterval != Duration.ZERO
+                      ? connection
+                          .onReadIdle(keepAliveInterval.toMillis(), () -> onReadIdle(connection))
+                          .onWriteIdle(keepAliveInterval.toMillis(), () -> onWriteIdle(connection))
+                      : connection)
+          .map(
+              connection -> {
+                WebsocketGatewayClientSession session =
+                    new WebsocketGatewayClientSession(clientCodec, connection);
+                LOGGER.info("Created session: {}", session);
+                // setup shutdown hook
+                session
+                    .onClose()
+                    .doOnTerminate(() -> LOGGER.info("Closed session: {}", session))
+                    .subscribe(
+                        null,
+                        th ->
+                            LOGGER.warn(
+                                "Exception on closing session: {}, cause: {}",
+                                session,
+                                th.toString()));
+                return session;
+              })
+          .doOnError(
+              ex -> LOGGER.warn("Failed to connect on {}:{}, cause: {}", host, port, ex.toString()))
+          .toFuture()
+          .get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
-          final HttpClient httpClient = httpClientReference.get();
-          return httpClient
-              .post()
-              .uri("/" + request.qualifier())
-              .send((clientRequest, outbound) -> send(request, clientRequest, outbound))
-              .responseSingle(
-                  (clientResponse, mono) ->
-                      mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
-              .map(msg -> decodeData(msg, responseType));
+          long sid = sidCounter.incrementAndGet();
+          final WebsocketGatewayClientSession session = clientSessionReference.get();
+          return session
+              .send(encodeRequest(request, sid))
+              .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+              .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
+              .doOnCancel(() -> session.cancel(sid, request.qualifier()))
+              .doFinally(s -> session.removeProcessor(sid));
         });
   }
 
-  private Mono<Void> send(
-      ServiceMessage request, HttpClientRequest clientRequest, NettyOutbound outbound) {
-    LOGGER.debug("Sending request: {}", request);
-    // prepare request headers
-    request.headers().forEach(clientRequest::header);
-    // send with publisher (defer buffer cleanup to netty)
-    return outbound.sendObject(Mono.just(clientCodec.encode(request))).then();
-  }
-
   @Override
-  public Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType) {
-    return Flux.error(new UnsupportedOperationException("requestStream is not supported"));
+  public Flux<ServiceMessage> requestStream(ServiceMessage request, Type responseType) {
+    return Flux.defer(
+        () -> {
+          long sid = sidCounter.incrementAndGet();
+          final WebsocketGatewayClientSession session = clientSessionReference.get();
+          return session
+              .send(encodeRequest(request, sid))
+              .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+              .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
+              .doOnCancel(() -> session.cancel(sid, request.qualifier()))
+              .doFinally(s -> session.removeProcessor(sid));
+        });
   }
 
   @Override
@@ -135,28 +177,32 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     return Flux.error(new UnsupportedOperationException("requestChannel is not supported"));
   }
 
-  private static ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf data) {
-    ServiceMessage.Builder builder =
-        ServiceMessage.builder().qualifier(httpResponse.uri()).data(data);
-
-    HttpResponseStatus status = httpResponse.status();
-    if (isError(status)) {
-      builder.header(ServiceMessage.HEADER_ERROR_TYPE, status.code());
-    }
-
-    // prepare response headers
-    httpResponse
-        .responseHeaders()
-        .entries()
-        .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
-    ServiceMessage message = builder.build();
-
-    LOGGER.debug("Received response: {}", message);
-    return message;
+  private static void onWriteIdle(Connection connection) {
+    connection
+        .outbound()
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
   }
 
-  private static boolean isError(HttpResponseStatus status) {
-    return status.code() >= 400 && status.code() <= 599;
+  private static void onReadIdle(Connection connection) {
+    connection
+        .outbound()
+        .sendObject(new PingWebSocketFrame())
+        .then()
+        .subscribe(
+            null,
+            ex -> {
+              // no-op
+            });
+  }
+
+  private ByteBuf encodeRequest(ServiceMessage message, long sid) {
+    return clientCodec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
   }
 
   @Override
@@ -177,6 +223,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     private boolean followRedirect;
     private SslProvider sslProvider;
     private boolean shouldWiretap;
+    private Duration keepAliveInterval = Duration.ZERO;
     private Map<String, String> headers;
 
     public Builder() {}
@@ -235,7 +282,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
       return this;
     }
 
-    public boolean followRedirect() {
+    public boolean isFollowRedirect() {
       return followRedirect;
     }
 
@@ -253,12 +300,21 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
       return this;
     }
 
-    public boolean shouldWiretap() {
+    public boolean isShouldWiretap() {
       return shouldWiretap;
     }
 
-    public Builder shouldWiretap(boolean wiretap) {
-      this.shouldWiretap = wiretap;
+    public Builder shouldWiretap(boolean shouldWiretap) {
+      this.shouldWiretap = shouldWiretap;
+      return this;
+    }
+
+    public Duration keepAliveInterval() {
+      return keepAliveInterval;
+    }
+
+    public Builder keepAliveInterval(Duration keepAliveInterval) {
+      this.keepAliveInterval = keepAliveInterval;
       return this;
     }
 
@@ -271,8 +327,8 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
       return this;
     }
 
-    public HttpGatewayClientTransport build() {
-      return new HttpGatewayClientTransport(this);
+    public WebsocketGatewayClientTransport builder() {
+      return new WebsocketGatewayClientTransport(this);
     }
   }
 }
