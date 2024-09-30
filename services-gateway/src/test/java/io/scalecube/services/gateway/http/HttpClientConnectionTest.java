@@ -79,7 +79,7 @@ class HttpClientConnectionTest extends BaseTest {
           .verify(Duration.ofSeconds(10));
 
       Mono.delay(Duration.ofMillis(100))
-          .repeat(() -> !(onCloseCounter.get() == 1))
+          .repeat(() -> onCloseCounter.get() != 1)
           .then()
           .block(Duration.ofSeconds(10));
 

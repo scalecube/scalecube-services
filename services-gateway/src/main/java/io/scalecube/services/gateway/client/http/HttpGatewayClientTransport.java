@@ -173,7 +173,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     private boolean followRedirect;
     private SslProvider sslProvider;
     private boolean shouldWiretap;
-    private Map<String, String> headers;
+    private Map<String, String> headers = new HashMap<>();
 
     public Builder() {}
 

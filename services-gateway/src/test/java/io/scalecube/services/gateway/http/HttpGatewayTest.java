@@ -29,7 +29,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
@@ -56,12 +55,12 @@ class HttpGatewayTest extends BaseTest {
                         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                         .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
-            .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
-            .services(new GreetingServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
+            .gateway(
+                options ->
+                    new HttpGateway.Builder()
+                        .options(options.id("HTTP"))
+                        .errorMapper(ERROR_MAPPER)
+                        .build())
             .startAwait();
 
     gatewayAddress = gateway.gateway("HTTP").address();
@@ -76,6 +75,10 @@ class HttpGatewayTest extends BaseTest {
                         .options(opts -> opts.metadata(serviceEndpoint)))
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                    .errorMapper(ERROR_MAPPER)
+                    .build())
             .startAwait();
   }
 
@@ -198,7 +201,6 @@ class HttpGatewayTest extends BaseTest {
         .verify();
   }
 
-  @Disabled("Cannot deserialize instance of java.lang.String out of START_OBJECT token")
   @Test
   void shouldReturnSomeException() {
     StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
