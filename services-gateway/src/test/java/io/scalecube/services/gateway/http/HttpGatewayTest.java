@@ -40,7 +40,7 @@ class HttpGatewayTest extends BaseTest {
   private static Microservices gateway;
   private static Address gatewayAddress;
   private static StaticAddressRouter router;
-  private static Microservices services;
+  private static Microservices microservices;
 
   private ServiceCall serviceCall;
   private GreetingService greetingService;
@@ -67,7 +67,7 @@ class HttpGatewayTest extends BaseTest {
     gatewayAddress = gateway.gateway("HTTP").address();
     router = new StaticAddressRouter(gatewayAddress);
 
-    services =
+    microservices =
         Microservices.builder()
             .discovery(
                 serviceEndpoint ->
@@ -101,8 +101,8 @@ class HttpGatewayTest extends BaseTest {
     if (gateway != null) {
       gateway.close();
     }
-    if (services != null) {
-      services.close();
+    if (microservices != null) {
+      microservices.close();
     }
   }
 

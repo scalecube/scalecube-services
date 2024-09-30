@@ -36,7 +36,7 @@ public class WebsocketLocalGatewayAuthTest {
 
   private static ServiceMessage createSessionReq(String username) {
     return ServiceMessage.builder()
-        .qualifier("/" + SecuredService.NS + "/createSession")
+        .qualifier("/" + SecuredService.NAMESPACE + "/createSession")
         .data(username)
         .build();
   }

@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import static io.scalecube.services.gateway.SecuredService.NS;
+import static io.scalecube.services.gateway.SecuredService.NAMESPACE;
 
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
@@ -10,10 +10,10 @@ import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/** Authentication service and the service body itself in one class. */
-@Service(NS)
+@Service(NAMESPACE)
 public interface SecuredService {
-  String NS = "gw.auth";
+
+  String NAMESPACE = "gw.auth";
 
   @ServiceMethod
   @RequestType(String.class)

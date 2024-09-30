@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class SecuredServiceImpl implements SecuredService {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(SecuredServiceImpl.class);
 
   private static final String ALLOWED_USER = "VASYA_PUPKIN";

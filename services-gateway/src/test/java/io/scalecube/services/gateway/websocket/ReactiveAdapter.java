@@ -11,7 +11,7 @@ import reactor.core.publisher.BaseSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Operators;
 
-public final class ReactiveAdapter extends BaseSubscriber<Object> implements ReactiveOperator {
+public class ReactiveAdapter extends BaseSubscriber<Object> implements ReactiveOperator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ReactiveAdapter.class);
 

@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.http;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
@@ -25,9 +27,9 @@ class HttpClientConnectionTest extends BaseTest {
 
   private Microservices gateway;
   private Address gatewayAddress;
-  private Microservices service;
+  private Microservices microservices;
 
-  private static final AtomicInteger onCloseCounter = new AtomicInteger();
+  private final AtomicInteger onCloseCounter = new AtomicInteger();
 
   @BeforeEach
   void beforEach() {
@@ -44,7 +46,7 @@ class HttpClientConnectionTest extends BaseTest {
 
     gatewayAddress = gateway.gateway("HTTP").address();
 
-    service =
+    microservices =
         Microservices.builder()
             .discovery(
                 serviceEndpoint ->
@@ -54,43 +56,41 @@ class HttpClientConnectionTest extends BaseTest {
                         .membership(
                             opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
-            .services(new TestServiceImpl())
+            .services(new TestServiceImpl(onCloseCounter))
             .startAwait();
-
-    onCloseCounter.set(0);
   }
 
   @AfterEach
   void afterEach() {
     Flux.concat(
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(service).map(Microservices::shutdown))
+            Mono.justOrEmpty(microservices).map(Microservices::shutdown))
         .then()
         .block();
   }
 
   @Test
   void testCloseServiceStreamAfterLostConnection() {
-    try (ServiceCall serviceCall =
-        new ServiceCall()
-            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build())
-            .router(new StaticAddressRouter(gatewayAddress))) {
+    try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
       StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
           .thenAwait(Duration.ofSeconds(5))
           .then(serviceCall::close)
           .expectError(IOException.class)
-          .verify(Duration.ofSeconds(1));
+          .verify(Duration.ofSeconds(10));
+
+      Mono.delay(Duration.ofMillis(100))
+          .repeat(() -> !(onCloseCounter.get() == 1))
+          .then()
+          .block(Duration.ofSeconds(10));
+
+      assertEquals(1, onCloseCounter.get());
     }
   }
 
   @Test
   public void testCallRepeatedlyByInvalidAddress() {
-    Address invalidAddress = Address.create("localhost", 5050);
-
-    try (ServiceCall serviceCall =
-        new ServiceCall()
-            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build())
-            .router(new StaticAddressRouter(invalidAddress))) {
+    final Address address = Address.create("localhost", 5050);
+    try (ServiceCall serviceCall = serviceCall(address)) {
       for (int i = 0; i < 15; i++) {
         StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
             .thenAwait(Duration.ofSeconds(1))
@@ -100,14 +100,26 @@ class HttpClientConnectionTest extends BaseTest {
     }
   }
 
+  private static ServiceCall serviceCall(Address address) {
+    return new ServiceCall()
+        .transport(new HttpGatewayClientTransport.Builder().address(address).build())
+        .router(new StaticAddressRouter(address));
+  }
+
   @Service
   public interface TestService {
 
-    @ServiceMethod("oneNever")
+    @ServiceMethod
     Mono<Long> oneNever(String name);
   }
 
   private static class TestServiceImpl implements TestService {
+
+    private final AtomicInteger onCloseCounter;
+
+    public TestServiceImpl(AtomicInteger onCloseCounter) {
+      this.onCloseCounter = onCloseCounter;
+    }
 
     @Override
     public Mono<Long> oneNever(String name) {

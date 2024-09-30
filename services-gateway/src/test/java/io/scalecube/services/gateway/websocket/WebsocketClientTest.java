@@ -1,19 +1,19 @@
 package io.scalecube.services.gateway.websocket;
 
-import io.netty.buffer.ByteBuf;
+import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
+
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
+import io.scalecube.services.gateway.ErrorService;
+import io.scalecube.services.gateway.ErrorServiceImpl;
+import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.TestGatewaySessionHandler;
-import io.scalecube.services.gateway.client.GatewayClient;
-import io.scalecube.services.gateway.client.GatewayClientCodec;
-import io.scalecube.services.gateway.client.GatewayClientSettings;
-import io.scalecube.services.gateway.client.GatewayClientTransport;
-import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -22,29 +22,22 @@ import java.time.Duration;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.netty.resources.LoopResources;
 import reactor.test.StepVerifier;
 
 class WebsocketClientTest extends BaseTest {
 
-  public static final GatewayClientCodec<ByteBuf> CLIENT_CODEC =
-      GatewayClientTransports.WEBSOCKET_CLIENT_CODEC;
+  private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
   private static Microservices gateway;
   private static Address gatewayAddress;
-  private static Microservices service;
-  private static GatewayClient client;
-  private static LoopResources loopResources;
+  private static Microservices microservices;
 
   @BeforeAll
   static void beforeAll() {
-    loopResources = LoopResources.create("websocket-gateway-client");
-
     gateway =
         Microservices.builder()
             .discovery(
@@ -60,9 +53,10 @@ class WebsocketClientTest extends BaseTest {
                         .gatewayHandler(new TestGatewaySessionHandler())
                         .build())
             .startAwait();
+
     gatewayAddress = gateway.gateway("WS").address();
 
-    service =
+    microservices =
         Microservices.builder()
             .discovery(
                 serviceEndpoint ->
@@ -73,60 +67,63 @@ class WebsocketClientTest extends BaseTest {
                             opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl())
+            .services(
+                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                    .errorMapper(ERROR_MAPPER)
+                    .build())
             .startAwait();
-  }
-
-  @AfterEach
-  void afterEach() {
-    final GatewayClient client = WebsocketClientTest.client;
-    if (client != null) {
-      client.close();
-    }
   }
 
   @AfterAll
   static void afterAll() {
-    final GatewayClient client = WebsocketClientTest.client;
-    if (client != null) {
-      client.close();
-    }
-
     Flux.concat(
             Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(service).map(Microservices::shutdown))
+            Mono.justOrEmpty(microservices).map(Microservices::shutdown))
         .then()
         .block();
-
-    if (loopResources != null) {
-      loopResources.disposeLater().block();
-    }
   }
 
   @Test
   void testMessageSequence() {
-    client =
-        new WebsocketGatewayClientTransport(
-            GatewayClientSettings.builder().address(gatewayAddress).build(),
-            CLIENT_CODEC,
-            loopResources);
+    try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final int count = 1000;
+      StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
+          .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
+          .expectComplete()
+          .verify(TIMEOUT);
+    }
+  }
 
-    ServiceCall serviceCall =
-        new ServiceCall()
-            .transport(new GatewayClientTransport(client))
-            .router(new StaticAddressRouter(gatewayAddress));
+  @Test
+  void shouldReturnSomeExceptionOnFlux() {
+    try (final ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final ErrorService errorService =
+          serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
+      StepVerifier.create(errorService.manyError())
+          .expectError(SomeException.class)
+          .verify(TIMEOUT);
+    }
+  }
 
-    int count = 1000;
+  @Test
+  void shouldReturnSomeExceptionOnMono() {
+    try (final ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final ErrorService errorService =
+          serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
+      StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
+    }
+  }
 
-    StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
-        .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
-        .expectComplete()
-        .verify(Duration.ofSeconds(10));
+  private static ServiceCall serviceCall(final Address address) {
+    return new ServiceCall()
+        .transport(new WebsocketGatewayClientTransport.Builder().address(address).build())
+        .router(new StaticAddressRouter(address));
   }
 
   @Service
   public interface TestService {
 
-    @ServiceMethod("many")
+    @ServiceMethod
     Flux<Integer> many(int count);
   }
 

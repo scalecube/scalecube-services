@@ -315,7 +315,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
       return this;
     }
 
-    public WebsocketGatewayClientTransport builder() {
+    public WebsocketGatewayClientTransport build() {
       return new WebsocketGatewayClientTransport(this);
     }
   }
