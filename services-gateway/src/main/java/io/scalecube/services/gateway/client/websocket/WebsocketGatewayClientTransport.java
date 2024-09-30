@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.ws;
+package io.scalecube.services.gateway.client.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;

@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.ws;
+package io.scalecube.services.gateway.websocket;
 
 public enum Signal {
   COMPLETE(1),
@@ -13,20 +13,6 @@ public enum Signal {
 
   public int code() {
     return code;
-  }
-
-  public String codeAsString() {
-    return String.valueOf(code);
-  }
-
-  /**
-   * Return appropriate instance of {@link Signal} for given signal code.
-   *
-   * @param code signal code
-   * @return signal instance
-   */
-  public static Signal from(String code) {
-    return from(Integer.parseInt(code));
   }
 
   /**

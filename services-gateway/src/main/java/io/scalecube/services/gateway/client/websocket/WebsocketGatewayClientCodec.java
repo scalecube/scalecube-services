@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.client.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 
@@ -21,34 +21,38 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.gateway.client.GatewayClientCodec;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Map.Entry;
+import java.util.Optional;
 
-public final class WebsocketServiceMessageCodec {
+public final class WebsocketGatewayClientCodec implements GatewayClientCodec {
 
-  private static final ObjectMapper objectMapper = objectMapper();
+  private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
-  private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper);
+  // special numeric fields
+  private static final String STREAM_ID_FIELD = "sid";
+  private static final String SIGNAL_FIELD = "sig";
+  private static final String INACTIVITY_FIELD = "i";
+  private static final String RATE_LIMIT_FIELD = "rlimit";
+  // data field
+  private static final String DATA_FIELD = "d";
 
   private final boolean releaseDataOnEncode;
 
-  public WebsocketServiceMessageCodec() {
+  public WebsocketGatewayClientCodec() {
     this(true /*always release by default*/);
   }
 
-  public WebsocketServiceMessageCodec(boolean releaseDataOnEncode) {
+  public WebsocketGatewayClientCodec(boolean releaseDataOnEncode) {
     this.releaseDataOnEncode = releaseDataOnEncode;
   }
 
-  /**
-   * Encodes {@link ServiceMessage} to {@link ByteBuf}.
-   *
-   * @param message - message to encode
-   * @throws MessageCodecException in case of error during encoding
-   */
-  public ByteBuf encode(ServiceMessage message) throws MessageCodecException {
+  @Override
+  public ByteBuf encode(ServiceMessage message) {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+
     try (JsonGenerator generator =
         jsonFactory.createGenerator(
             (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
@@ -59,10 +63,10 @@ public final class WebsocketServiceMessageCodec {
         String fieldName = header.getKey();
         String value = header.getValue();
         switch (fieldName) {
-          case GatewayMessages.STREAM_ID_FIELD:
-          case GatewayMessages.SIGNAL_FIELD:
-          case GatewayMessages.INACTIVITY_FIELD:
-          case GatewayMessages.RATE_LIMIT_FIELD:
+          case STREAM_ID_FIELD:
+          case SIGNAL_FIELD:
+          case INACTIVITY_FIELD:
+          case RATE_LIMIT_FIELD:
             generator.writeNumberField(fieldName, Long.parseLong(value));
             break;
           default:
@@ -77,7 +81,7 @@ public final class WebsocketServiceMessageCodec {
           ByteBuf dataBin = (ByteBuf) data;
           if (dataBin.isReadable()) {
             try {
-              generator.writeFieldName(GatewayMessages.DATA_FIELD);
+              generator.writeFieldName(DATA_FIELD);
               generator.writeRaw(":");
               generator.flush();
               byteBuf.writeBytes(dataBin);
@@ -88,29 +92,21 @@ public final class WebsocketServiceMessageCodec {
             }
           }
         } else {
-          generator.writeObjectField(GatewayMessages.DATA_FIELD, data);
+          generator.writeObjectField(DATA_FIELD, data);
         }
       }
 
       generator.writeEndObject();
     } catch (Throwable ex) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      if (message.data() != null) {
-        ReferenceCountUtil.safestRelease(message.data());
-      }
-      throw new MessageCodecException("Failed to encode gateway service message", ex);
+      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
+      throw new MessageCodecException("Failed to encode message", ex);
     }
     return byteBuf;
   }
 
-  /**
-   * Decodes {@link ByteBuf} into {@link ServiceMessage}.
-   *
-   * @param byteBuf - buffer with gateway service message to be decoded
-   * @return decoded {@code ServiceMessage} instance
-   * @throws MessageCodecException - in case of issues during decoding
-   */
-  public ServiceMessage decode(ByteBuf byteBuf) throws MessageCodecException {
+  @Override
+  public ServiceMessage decode(ByteBuf byteBuf) {
     try (InputStream stream = new ByteBufInputStream(byteBuf, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ServiceMessage.Builder result = ServiceMessage.builder();
@@ -128,7 +124,7 @@ public final class WebsocketServiceMessageCodec {
           continue;
         }
 
-        if (fieldName.equals(GatewayMessages.DATA_FIELD)) {
+        if (DATA_FIELD.equals(fieldName)) {
           dataStart = jp.getTokenLocation().getByteOffset();
           if (current.isScalarValue()) {
             if (!current.isNumeric() && !current.isBoolean()) {
@@ -149,7 +145,7 @@ public final class WebsocketServiceMessageCodec {
       }
       return result.build();
     } catch (Throwable ex) {
-      throw new MessageCodecException("Failed to decode gateway service message", ex);
+      throw new MessageCodecException("Failed to decode message", ex);
     }
   }
 

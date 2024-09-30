@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 import static io.scalecube.services.gateway.TestUtils.TIMEOUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,8 +22,8 @@ import io.scalecube.services.gateway.client.GatewayClientSettings;
 import io.scalecube.services.gateway.client.GatewayClientTransport;
 import io.scalecube.services.gateway.client.GatewayClientTransports;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
-import io.scalecube.services.gateway.client.ws.WebsocketGatewayClientTransport;
-import io.scalecube.services.gateway.client.ws.WebsocketGatewayClientSession;
+import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
+import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientSession;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;

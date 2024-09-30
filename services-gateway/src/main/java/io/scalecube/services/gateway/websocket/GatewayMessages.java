@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;

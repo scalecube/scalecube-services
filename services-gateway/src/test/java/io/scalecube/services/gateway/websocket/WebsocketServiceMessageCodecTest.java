@@ -1,10 +1,10 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
-import static io.scalecube.services.gateway.ws.GatewayMessages.DATA_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessages.INACTIVITY_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessages.QUALIFIER_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessages.SIGNAL_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessages.STREAM_ID_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.DATA_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.INACTIVITY_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.QUALIFIER_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.SIGNAL_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.STREAM_ID_FIELD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;

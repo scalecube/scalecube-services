@@ -1,13 +1,13 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
-import static io.scalecube.services.gateway.ws.GatewayMessages.RATE_LIMIT_FIELD;
-import static io.scalecube.services.gateway.ws.GatewayMessages.getSid;
-import static io.scalecube.services.gateway.ws.GatewayMessages.getSignal;
-import static io.scalecube.services.gateway.ws.GatewayMessages.newCancelMessage;
-import static io.scalecube.services.gateway.ws.GatewayMessages.newCompleteMessage;
-import static io.scalecube.services.gateway.ws.GatewayMessages.newResponseMessage;
-import static io.scalecube.services.gateway.ws.GatewayMessages.toErrorResponse;
-import static io.scalecube.services.gateway.ws.GatewayMessages.validateSidOnSession;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.RATE_LIMIT_FIELD;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.getSid;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.getSignal;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.newCancelMessage;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.newCompleteMessage;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.newResponseMessage;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.toErrorResponse;
+import static io.scalecube.services.gateway.websocket.GatewayMessages.validateSidOnSession;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

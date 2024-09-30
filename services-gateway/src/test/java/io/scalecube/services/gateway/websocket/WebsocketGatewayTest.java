@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

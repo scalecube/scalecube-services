@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 public interface TestInputs {
 

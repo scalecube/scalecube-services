@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.Address;

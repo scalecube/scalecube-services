@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client.ws;
+package io.scalecube.services.gateway.client.websocket;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 

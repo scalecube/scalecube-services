@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.ws;
+package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.gateway.AbstractGatewayExtension;
