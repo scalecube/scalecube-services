@@ -14,7 +14,7 @@ public class TestServiceImpl implements TestService {
 
   @Override
   public Flux<Long> manyNever() {
-    return Flux.<Long>never().log(">>> ").doOnCancel(onClose);
+    return Flux.<Long>never().log(">>>").doOnCancel(onClose);
   }
 
   @Override

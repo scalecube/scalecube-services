@@ -72,7 +72,7 @@ class HttpClientConnectionTest extends BaseTest {
   @Test
   void testCloseServiceStreamAfterLostConnection() {
     try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
-      StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
+      StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<<"))
           .thenAwait(Duration.ofSeconds(5))
           .then(serviceCall::close)
           .expectError(IOException.class)
@@ -92,7 +92,7 @@ class HttpClientConnectionTest extends BaseTest {
     final Address address = Address.create("localhost", 5050);
     try (ServiceCall serviceCall = serviceCall(address)) {
       for (int i = 0; i < 15; i++) {
-        StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<< "))
+        StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<<"))
             .thenAwait(Duration.ofSeconds(1))
             .expectError(IOException.class)
             .verify(Duration.ofSeconds(10));
@@ -123,7 +123,7 @@ class HttpClientConnectionTest extends BaseTest {
 
     @Override
     public Mono<Long> oneNever(String name) {
-      return Mono.<Long>never().log(">>> ").doOnCancel(onCloseCounter::incrementAndGet);
+      return Mono.<Long>never().log(">>>").doOnCancel(onCloseCounter::incrementAndGet);
     }
   }
 }

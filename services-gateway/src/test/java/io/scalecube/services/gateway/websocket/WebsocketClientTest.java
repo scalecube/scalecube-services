@@ -87,7 +87,7 @@ class WebsocketClientTest extends BaseTest {
   void testMessageSequence() {
     try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
       final int count = 1000;
-      StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<< ")*/)
+      StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<<")*/)
           .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
           .expectComplete()
           .verify(TIMEOUT);

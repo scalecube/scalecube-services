@@ -87,7 +87,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   @Test
   void testCloseServiceStreamAfterLostConnection() {
     try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
-      StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+      StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<<"))
           .thenAwait(Duration.ofSeconds(5))
           .then(serviceCall::close)
           .expectError(IOException.class)
@@ -106,7 +106,7 @@ class WebsocketClientConnectionTest extends BaseTest {
   public void testCallRepeatedlyByInvalidAddress() {
     try (ServiceCall serviceCall = serviceCall(Address.create("localhost", 5050))) {
       for (int i = 0; i < 15; i++) {
-        StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<< "))
+        StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<<"))
             .thenAwait(Duration.ofSeconds(1))
             .expectError(IOException.class)
             .verify(Duration.ofSeconds(10));
