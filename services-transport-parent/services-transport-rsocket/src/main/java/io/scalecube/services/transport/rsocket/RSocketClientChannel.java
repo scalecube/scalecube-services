@@ -8,15 +8,11 @@ import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.channel.AbortedException;
 
 public class RSocketClientChannel implements ClientChannel {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientChannel.class);
 
   private final Mono<RSocket> rsocket;
   private final ServiceMessageCodec messageCodec;
