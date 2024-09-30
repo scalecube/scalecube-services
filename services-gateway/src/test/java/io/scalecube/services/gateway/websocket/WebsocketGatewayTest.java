@@ -19,6 +19,7 @@ import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
+import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -216,5 +217,15 @@ class WebsocketGatewayTest extends BaseTest {
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
         .verify();
+  }
+
+  @Test
+  void shouldReturnSomeExceptionOnFlux() {
+    StepVerifier.create(errorService.manyError()).expectError(SomeException.class).verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldReturnSomeExceptionOnMono() {
+    StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
   }
 }

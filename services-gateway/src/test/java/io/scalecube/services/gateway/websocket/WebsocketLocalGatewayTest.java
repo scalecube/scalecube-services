@@ -48,7 +48,12 @@ class WebsocketLocalGatewayTest extends BaseTest {
   static void beforeAll() {
     gateway =
         Microservices.builder()
-            .gateway(options -> new WebsocketGateway.Builder().options(options.id("WS")).build())
+            .gateway(
+                options ->
+                    new WebsocketGateway.Builder()
+                        .options(options.id("WS").call(options.call().errorMapper(ERROR_MAPPER)))
+                        .errorMapper(ERROR_MAPPER)
+                        .build())
             .services(new GreetingServiceImpl())
             .services(
                 ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

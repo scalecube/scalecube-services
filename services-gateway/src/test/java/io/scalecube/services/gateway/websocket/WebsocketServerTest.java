@@ -5,13 +5,10 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -30,19 +27,12 @@ class WebsocketServerTest extends BaseTest {
   static void beforeAll() {
     gateway =
         Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
             .gateway(
                 options ->
                     new WebsocketGateway.Builder()
                         .options(options.id("WS"))
                         .gatewayHandler(new TestGatewaySessionHandler())
                         .build())
-            .transport(RSocketServiceTransport::new)
             .services(new TestServiceImpl())
             .startAwait();
     gatewayAddress = gateway.gateway("WS").address();
