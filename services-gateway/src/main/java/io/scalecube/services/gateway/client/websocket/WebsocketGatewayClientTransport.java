@@ -54,7 +54,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     this.operator = builder.operator;
     this.loopResources =
         builder.loopResources == null
-            ? LoopResources.create("websocket-gateway-client")
+            ? LoopResources.create("websocket-gateway-client", 1, true)
             : builder.loopResources;
     this.ownsLoopResources = builder.loopResources == null;
   }

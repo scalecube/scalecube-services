@@ -52,7 +52,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     this.operator = builder.operator;
     this.loopResources =
         builder.loopResources == null
-            ? LoopResources.create("http-gateway-client")
+            ? LoopResources.create("http-gateway-client", 1, true)
             : builder.loopResources;
     this.ownsLoopResources = builder.loopResources == null;
   }

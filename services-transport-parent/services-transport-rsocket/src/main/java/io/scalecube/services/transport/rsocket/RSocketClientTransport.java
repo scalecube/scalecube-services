@@ -30,8 +30,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
-      ThreadLocal.withInitial(ConcurrentHashMap::new);
+  private final Map<Address, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
 
   private final CredentialsSupplier credentialsSupplier;
   private final ConnectionSetupCodec connectionSetupCodec;
@@ -63,7 +62,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
+    final Map<Address, Mono<RSocket>> monoMap = this.rsockets; // keep reference for threadsafety
     final Address address = serviceReference.address();
     Mono<RSocket> mono =
         monoMap.computeIfAbsent(
@@ -151,6 +150,13 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public void close() {
-    // no-op
+    rsockets.forEach(
+        (address, socketMono) ->
+            socketMono.subscribe(
+                RSocket::dispose,
+                throwable -> {
+                  // no-op
+                }));
+    rsockets.clear();
   }
 }
