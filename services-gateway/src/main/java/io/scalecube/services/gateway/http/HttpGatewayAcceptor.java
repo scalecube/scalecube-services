@@ -55,7 +55,6 @@ public class HttpGatewayAcceptor
         httpRequest.params());
 
     if (httpRequest.method() != POST) {
-      LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
       return methodNotAllowed(httpResponse);
     }
 

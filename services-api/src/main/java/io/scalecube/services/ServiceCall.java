@@ -26,7 +26,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ServiceCall {
+public class ServiceCall implements AutoCloseable {
 
   private ClientTransport transport;
   private ServiceRegistry serviceRegistry;
@@ -399,5 +399,16 @@ public class ServiceCall {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
     return message;
+  }
+
+  @Override
+  public void close() {
+    if (transport != null) {
+      try {
+        transport.close();
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 }
