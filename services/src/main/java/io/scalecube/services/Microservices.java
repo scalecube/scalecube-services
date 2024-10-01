@@ -188,7 +188,7 @@ public final class Microservices implements AutoCloseable {
                       .tags(tags);
 
               // invoke service providers and register services
-              List<Object> serviceInstances =
+              final List<Object> serviceInstances =
                   serviceProviders.stream()
                       .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
                       .peek(this::registerService)
