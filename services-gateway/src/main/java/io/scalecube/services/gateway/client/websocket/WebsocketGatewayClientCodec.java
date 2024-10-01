@@ -106,8 +106,8 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec {
   }
 
   @Override
-  public ServiceMessage decode(ByteBuf byteBuf) {
-    try (InputStream stream = new ByteBufInputStream(byteBuf, true)) {
+  public ServiceMessage decode(ByteBuf encodedMessage) {
+    try (InputStream stream = new ByteBufInputStream(encodedMessage, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ServiceMessage.Builder result = ServiceMessage.builder();
 
@@ -141,7 +141,7 @@ public final class WebsocketGatewayClientCodec implements GatewayClientCodec {
       }
       // data
       if (dataEnd > dataStart) {
-        result.data(byteBuf.copy((int) dataStart, (int) (dataEnd - dataStart)));
+        result.data(encodedMessage.copy((int) dataStart, (int) (dataEnd - dataStart)));
       }
       return result.build();
     } catch (Throwable ex) {

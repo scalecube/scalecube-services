@@ -43,7 +43,7 @@ public final class HttpGatewayClientCodec implements GatewayClientCodec {
   }
 
   @Override
-  public ServiceMessage decode(ByteBuf byteBuf) {
-    return ServiceMessage.builder().data(byteBuf).build();
+  public ServiceMessage decode(ByteBuf encodedMessage) {
+    return ServiceMessage.builder().data(encodedMessage).build();
   }
 }
