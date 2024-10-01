@@ -25,11 +25,13 @@ import reactor.test.StepVerifier;
 
 class HttpClientConnectionTest extends BaseTest {
 
+  private static final Duration TIMEOUT = Duration.ofSeconds(10);
+
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices microservices;
 
-  private final AtomicInteger onCloseCounter = new AtomicInteger();
+  private final AtomicInteger onCancelCounter = new AtomicInteger();
 
   @BeforeEach
   void beforEach() {
@@ -56,7 +58,7 @@ class HttpClientConnectionTest extends BaseTest {
                         .membership(
                             opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
             .transport(RSocketServiceTransport::new)
-            .services(new TestServiceImpl(onCloseCounter))
+            .services(new TestServiceImpl(onCancelCounter))
             .startAwait();
   }
 
@@ -73,17 +75,17 @@ class HttpClientConnectionTest extends BaseTest {
   void testCloseServiceStreamAfterLostConnection() {
     try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
       StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<<"))
-          .thenAwait(Duration.ofSeconds(5))
+          .thenAwait(Duration.ofSeconds(3))
           .then(serviceCall::close)
           .expectError(IOException.class)
-          .verify(Duration.ofSeconds(10));
+          .verify(TIMEOUT);
 
       Mono.delay(Duration.ofMillis(100))
-          .repeat(() -> onCloseCounter.get() != 1)
+          .repeat(() -> onCancelCounter.get() != 1)
           .then()
-          .block(Duration.ofSeconds(10));
+          .block(TIMEOUT);
 
-      assertEquals(1, onCloseCounter.get());
+      assertEquals(1, onCancelCounter.get());
     }
   }
 
@@ -95,7 +97,7 @@ class HttpClientConnectionTest extends BaseTest {
         StepVerifier.create(serviceCall.api(TestService.class).oneNever("body").log("<<<"))
             .thenAwait(Duration.ofSeconds(1))
             .expectError(IOException.class)
-            .verify(Duration.ofSeconds(10));
+            .verify(TIMEOUT);
       }
     }
   }
@@ -110,20 +112,20 @@ class HttpClientConnectionTest extends BaseTest {
   public interface TestService {
 
     @ServiceMethod
-    Mono<Long> oneNever(String name);
+    Mono<Void> oneNever(String name);
   }
 
   private static class TestServiceImpl implements TestService {
 
-    private final AtomicInteger onCloseCounter;
+    private final AtomicInteger onCancelCounter;
 
-    public TestServiceImpl(AtomicInteger onCloseCounter) {
-      this.onCloseCounter = onCloseCounter;
+    public TestServiceImpl(AtomicInteger onCancelCounter) {
+      this.onCancelCounter = onCancelCounter;
     }
 
     @Override
-    public Mono<Long> oneNever(String name) {
-      return Mono.<Long>never().log(">>>").doOnCancel(onCloseCounter::incrementAndGet);
+    public Mono<Void> oneNever(String name) {
+      return Mono.never().log(">>>").doOnCancel(onCancelCounter::incrementAndGet).then();
     }
   }
 }

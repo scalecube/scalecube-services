@@ -36,8 +36,6 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   private static final String CONTENT_TYPE = "application/json";
   private static final String STREAM_ID = "sid";
 
-  private static final LoopResources LOOP_RESOURCES =
-      LoopResources.create("websocket-gateway-client");
   private static final WebsocketGatewayClientCodec CLIENT_CODEC = new WebsocketGatewayClientCodec();
 
   private final GatewayClientCodec clientCodec;
@@ -50,15 +48,14 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   private final boolean shouldWiretap;
   private final Duration keepAliveInterval;
   private final Map<String, String> headers;
+  private final boolean ownsLoopResources;
 
   private final AtomicLong sidCounter = new AtomicLong();
-  private ConnectionProvider connectionProvider;
   private final AtomicReference<WebsocketGatewayClientSession> clientSessionReference =
       new AtomicReference<>();
 
   private WebsocketGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
-    this.loopResources = builder.loopResources;
     this.address = builder.address;
     this.connectTimeout = builder.connectTimeout;
     this.contentType = builder.contentType;
@@ -67,6 +64,11 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     this.shouldWiretap = builder.shouldWiretap;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.headers = builder.headers;
+    this.loopResources =
+        builder.loopResources == null
+            ? LoopResources.create("websocket-gateway-client")
+            : builder.loopResources;
+    this.ownsLoopResources = builder.loopResources == null;
   }
 
   @Override
@@ -77,10 +79,8 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
             return oldValue;
           }
 
-          connectionProvider = ConnectionProvider.newConnection();
-
           HttpClient httpClient =
-              HttpClient.create(connectionProvider)
+              HttpClient.create(ConnectionProvider.newConnection())
                   .headers(entries -> headers.forEach(entries::add))
                   .headers(entries -> entries.set("Content-Type", contentType))
                   .followRedirect(followRedirect)
@@ -208,15 +208,15 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   @Override
   public void close() {
-    if (connectionProvider != null) {
-      connectionProvider.dispose();
+    if (ownsLoopResources) {
+      loopResources.dispose();
     }
   }
 
   public static class Builder {
 
     private GatewayClientCodec clientCodec = CLIENT_CODEC;
-    private LoopResources loopResources = LOOP_RESOURCES;
+    private LoopResources loopResources;
     private Address address;
     private Duration connectTimeout = Duration.ofSeconds(5);
     private String contentType = CONTENT_TYPE;

@@ -36,7 +36,6 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
 
   private static final String CONTENT_TYPE = "application/json";
-  private static final LoopResources LOOP_RESOURCES = LoopResources.create("http-gateway-client");
   private static final HttpGatewayClientCodec CLIENT_CODEC =
       new HttpGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
 
@@ -49,13 +48,12 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private final SslProvider sslProvider;
   private final boolean shouldWiretap;
   private final Map<String, String> headers;
+  private final boolean ownsLoopResources;
 
-  private ConnectionProvider connectionProvider;
   private final AtomicReference<HttpClient> httpClientReference = new AtomicReference<>();
 
   private HttpGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
-    this.loopResources = builder.loopResources;
     this.address = builder.address;
     this.connectTimeout = builder.connectTimeout;
     this.contentType = builder.contentType;
@@ -63,6 +61,11 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     this.sslProvider = builder.sslProvider;
     this.shouldWiretap = builder.shouldWiretap;
     this.headers = builder.headers;
+    this.loopResources =
+        builder.loopResources == null
+            ? LoopResources.create("http-gateway-client")
+            : builder.loopResources;
+    this.ownsLoopResources = builder.loopResources == null;
   }
 
   @Override
@@ -73,10 +76,8 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
             return oldValue;
           }
 
-          connectionProvider = ConnectionProvider.create("http-gateway-client");
-
           HttpClient httpClient =
-              HttpClient.create(connectionProvider)
+              HttpClient.create(ConnectionProvider.create("http-gateway-client"))
                   .headers(entries -> headers.forEach(entries::add))
                   .headers(entries -> entries.set("Content-Type", contentType))
                   .followRedirect(followRedirect)
@@ -158,15 +159,15 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   @Override
   public void close() {
-    if (connectionProvider != null) {
-      connectionProvider.dispose();
+    if (ownsLoopResources) {
+      loopResources.dispose();
     }
   }
 
   public static class Builder {
 
     private GatewayClientCodec clientCodec = CLIENT_CODEC;
-    private LoopResources loopResources = LOOP_RESOURCES;
+    private LoopResources loopResources;
     private Address address;
     private Duration connectTimeout = Duration.ofSeconds(5);
     private String contentType = CONTENT_TYPE;

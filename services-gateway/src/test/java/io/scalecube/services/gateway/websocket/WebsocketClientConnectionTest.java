@@ -91,7 +91,7 @@ class WebsocketClientConnectionTest extends BaseTest {
           .thenAwait(Duration.ofSeconds(5))
           .then(serviceCall::close)
           .expectError(IOException.class)
-          .verify(Duration.ofSeconds(10));
+          .verify(TIMEOUT);
 
       Mono.delay(Duration.ofMillis(100))
           .repeat(() -> onCloseCounter.get() != 1)
@@ -109,7 +109,7 @@ class WebsocketClientConnectionTest extends BaseTest {
         StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<<"))
             .thenAwait(Duration.ofSeconds(1))
             .expectError(IOException.class)
-            .verify(Duration.ofSeconds(10));
+            .verify(TIMEOUT);
       }
     }
   }
