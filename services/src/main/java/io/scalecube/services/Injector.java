@@ -45,8 +45,7 @@ final class Injector {
       if (!routerClass.isInterface()) {
         call.router(routerClass);
       }
-      final Object targetProxy = call.api(field.getType());
-      setField(field, service, targetProxy);
+      setField(field, service, call.api(field.getType()));
     }
   }
 
@@ -74,21 +73,21 @@ final class Injector {
         .filter(method -> method.isAnnotationPresent(annotation))
         .forEach(
             targetMethod -> {
+              targetMethod.setAccessible(true);
+              Object[] parameters =
+                  Arrays.stream(targetMethod.getParameters())
+                      .map(
+                          mapper -> {
+                            if (mapper.getType().equals(Microservices.class)) {
+                              return microservices;
+                            } else if (Reflect.isService(mapper.getType())) {
+                              return microservices.call().api(mapper.getType());
+                            } else {
+                              return null;
+                            }
+                          })
+                      .toArray();
               try {
-                targetMethod.setAccessible(true);
-                Object[] parameters =
-                    Arrays.stream(targetMethod.getParameters())
-                        .map(
-                            mapper -> {
-                              if (mapper.getType().equals(Microservices.class)) {
-                                return microservices;
-                              } else if (Reflect.isService(mapper.getType())) {
-                                return microservices.call().api(mapper.getType());
-                              } else {
-                                return null;
-                              }
-                            })
-                        .toArray();
                 targetMethod.invoke(targetInstance, parameters);
               } catch (Exception ex) {
                 throw Exceptions.propagate(ex);
