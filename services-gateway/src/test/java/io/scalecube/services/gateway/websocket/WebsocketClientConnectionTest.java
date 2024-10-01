@@ -1,6 +1,8 @@
 package io.scalecube.services.gateway.websocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
@@ -108,7 +110,12 @@ class WebsocketClientConnectionTest extends BaseTest {
       for (int i = 0; i < 15; i++) {
         StepVerifier.create(serviceCall.api(TestService.class).manyNever().log("<<<"))
             .thenAwait(Duration.ofSeconds(1))
-            .expectError(IOException.class)
+            .expectErrorSatisfies(
+                ex -> {
+                  final Throwable cause = ex.getCause();
+                  assertNotNull(cause, "cause");
+                  assertInstanceOf(IOException.class, cause);
+                })
             .verify(TIMEOUT);
       }
     }

@@ -136,7 +136,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
           .toFuture()
           .get();
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException(getRootCause(e));
     }
   }
 
@@ -204,6 +204,11 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   private ByteBuf encodeRequest(ServiceMessage message, long sid) {
     return clientCodec.encode(ServiceMessage.from(message).header(STREAM_ID, sid).build());
+  }
+
+  private static Throwable getRootCause(Throwable throwable) {
+    Throwable cause = throwable.getCause();
+    return (cause == null) ? throwable : getRootCause(cause);
   }
 
   @Override
