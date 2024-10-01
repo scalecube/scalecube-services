@@ -214,17 +214,14 @@ public final class Microservices implements AutoCloseable {
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
-    ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
+    final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
 
-    int port = Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
+    final String finalHost =
+        Optional.ofNullable(externalHost).orElse(serviceEndpoint.address().host());
+    final int finalPort =
+        Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
 
-    // calculate local service endpoint address
-    Address newAddress =
-        Optional.ofNullable(externalHost)
-            .map(host -> Address.create(host, port))
-            .orElseGet(() -> Address.create(serviceEndpoint.address().host(), port));
-
-    return builder.address(newAddress).build();
+    return builder.address(Address.create(finalHost, finalPort)).build();
   }
 
   private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
