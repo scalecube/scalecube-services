@@ -522,6 +522,8 @@ public final class Microservices implements AutoCloseable {
     private Scheduler scheduler;
     private Microservices microservices;
 
+    private ServiceDiscoveryBootstrap() {}
+
     private ServiceDiscoveryBootstrap operator(UnaryOperator<ServiceDiscoveryOptions> op) {
       operator = op;
       return this;
@@ -529,6 +531,9 @@ public final class Microservices implements AutoCloseable {
 
     private ServiceDiscoveryBootstrap conclude(
         Microservices microservices, ServiceDiscoveryOptions options) {
+      this.microservices = microservices;
+      this.scheduler = Schedulers.newSingle("discovery", true);
+
       if (operator == null) {
         return this;
       }
@@ -542,8 +547,6 @@ public final class Microservices implements AutoCloseable {
       }
 
       serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
-      this.microservices = microservices;
-      this.scheduler = Schedulers.newSingle("discovery", true);
 
       return this;
     }
