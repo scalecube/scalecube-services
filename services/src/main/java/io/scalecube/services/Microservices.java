@@ -188,7 +188,7 @@ public final class Microservices implements AutoCloseable {
                       .tags(tags);
 
               // invoke service providers and register services
-              List<Object> serviceInstances =
+              final List<Object> serviceInstances =
                   serviceProviders.stream()
                       .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
                       .peek(this::registerService)
@@ -214,17 +214,14 @@ public final class Microservices implements AutoCloseable {
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
-    ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
+    final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
 
-    int port = Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
+    final String finalHost =
+        Optional.ofNullable(externalHost).orElse(serviceEndpoint.address().host());
+    final int finalPort =
+        Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
 
-    // calculate local service endpoint address
-    Address newAddress =
-        Optional.ofNullable(externalHost)
-            .map(host -> Address.create(host, port))
-            .orElseGet(() -> Address.create(serviceEndpoint.address().host(), port));
-
-    return builder.address(newAddress).build();
+    return builder.address(Address.create(finalHost, finalPort)).build();
   }
 
   private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
@@ -525,6 +522,8 @@ public final class Microservices implements AutoCloseable {
     private Scheduler scheduler;
     private Microservices microservices;
 
+    private ServiceDiscoveryBootstrap() {}
+
     private ServiceDiscoveryBootstrap operator(UnaryOperator<ServiceDiscoveryOptions> op) {
       operator = op;
       return this;
@@ -532,6 +531,9 @@ public final class Microservices implements AutoCloseable {
 
     private ServiceDiscoveryBootstrap conclude(
         Microservices microservices, ServiceDiscoveryOptions options) {
+      this.microservices = microservices;
+      this.scheduler = Schedulers.newSingle("discovery", true);
+
       if (operator == null) {
         return this;
       }
@@ -545,8 +547,6 @@ public final class Microservices implements AutoCloseable {
       }
 
       serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
-      this.microservices = microservices;
-      this.scheduler = Schedulers.newSingle("discovery", true);
 
       return this;
     }

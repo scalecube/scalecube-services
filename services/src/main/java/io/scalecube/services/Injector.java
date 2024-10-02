@@ -3,12 +3,15 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.Subscriber;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.routing.Router;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
+import reactor.core.CoreSubscriber;
 import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
@@ -32,7 +35,20 @@ final class Injector {
             Arrays.stream(service.getClass().getDeclaredFields())
                 .forEach(field -> injectField(microservices, field, service)));
     services.forEach(service -> processAfterConstruct(microservices, service));
+    services.forEach(service -> processServiceDiscoverySubscriber(microservices, service));
     return microservices;
+  }
+
+  private static void processServiceDiscoverySubscriber(
+      Microservices microservices, Object service) {
+    if (service instanceof CoreSubscriber) {
+      final Subscriber subscriberAnnotation = service.getClass().getAnnotation(Subscriber.class);
+      if (subscriberAnnotation != null
+          && ServiceDiscoveryEvent.class.isAssignableFrom(subscriberAnnotation.value())) {
+        //noinspection unchecked,rawtypes
+        microservices.listenDiscovery().subscribe((CoreSubscriber) service);
+      }
+    }
   }
 
   private static void injectField(Microservices microservices, Field field, Object service) {
@@ -45,8 +61,7 @@ final class Injector {
       if (!routerClass.isInterface()) {
         call.router(routerClass);
       }
-      final Object targetProxy = call.api(field.getType());
-      setField(field, service, targetProxy);
+      setField(field, service, call.api(field.getType()));
     }
   }
 
@@ -74,21 +89,21 @@ final class Injector {
         .filter(method -> method.isAnnotationPresent(annotation))
         .forEach(
             targetMethod -> {
+              targetMethod.setAccessible(true);
+              Object[] parameters =
+                  Arrays.stream(targetMethod.getParameters())
+                      .map(
+                          mapper -> {
+                            if (mapper.getType().equals(Microservices.class)) {
+                              return microservices;
+                            } else if (Reflect.isService(mapper.getType())) {
+                              return microservices.call().api(mapper.getType());
+                            } else {
+                              return null;
+                            }
+                          })
+                      .toArray();
               try {
-                targetMethod.setAccessible(true);
-                Object[] parameters =
-                    Arrays.stream(targetMethod.getParameters())
-                        .map(
-                            mapper -> {
-                              if (mapper.getType().equals(Microservices.class)) {
-                                return microservices;
-                              } else if (Reflect.isService(mapper.getType())) {
-                                return microservices.call().api(mapper.getType());
-                              } else {
-                                return null;
-                              }
-                            })
-                        .toArray();
                 targetMethod.invoke(targetInstance, parameters);
               } catch (Exception ex) {
                 throw Exceptions.propagate(ex);
