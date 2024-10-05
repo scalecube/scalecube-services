@@ -15,7 +15,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.Exceptions;
 
 /** Service Injector scan and injects beans to a given Microservices instance. */
-final class Injector {
+class Injector {
 
   private Injector() {
     // Do not instantiate

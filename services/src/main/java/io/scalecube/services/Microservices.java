@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -106,7 +107,7 @@ import reactor.core.scheduler.Scheduler;
  *
  * }</pre>
  */
-public final class Microservices implements AutoCloseable {
+public class Microservices implements AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
@@ -121,6 +122,7 @@ public final class Microservices implements AutoCloseable {
   private ServiceEndpoint serviceEndpoint;
   private ServiceCall serviceCall;
   private List<Object> serviceInstances;
+  private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
   private ServiceDiscovery serviceDiscovery;
   private final Sinks.Many<ServiceDiscoveryEvent> sink =
       Sinks.many().multicast().directBestEffort();
@@ -136,6 +138,7 @@ public final class Microservices implements AutoCloseable {
     try {
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
       microservices.buildServiceEndpoint();
+      microservices.startGateways();
     } catch (Exception ex) {
       microservices.close();
       throw Exceptions.propagate(ex);
@@ -174,7 +177,7 @@ public final class Microservices implements AutoCloseable {
             transportBootstrap -> {
               return concludeDiscovery(
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                  .then(startGateway(new GatewayOptions().call(serviceCall)))
+                  .then(startGateways(new GatewayOptions().call(serviceCall)))
                   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
                   .then(discoveryBootstrap.startListen())
                   .thenReturn(this);
@@ -218,8 +221,11 @@ public final class Microservices implements AutoCloseable {
     return builder.address(Address.create(finalHost, finalPort)).build();
   }
 
-  private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
-    return Mono.fromCallable(() -> gatewayBootstrap.start(this, options));
+  private void startGateways() {
+    final GatewayOptions options = new GatewayOptions().call(serviceCall);
+    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
+      gateways.add(factory.apply(options).start());
+    }
   }
 
   private void registerService(ServiceInfo serviceInfo) {
@@ -244,11 +250,14 @@ public final class Microservices implements AutoCloseable {
   }
 
   public List<Gateway> gateways() {
-    return gatewayBootstrap.gateways();
+    return gateways;
   }
 
   public Gateway gateway(String id) {
-    return gatewayBootstrap.gateway(id);
+    return gateways.stream()
+        .filter(gateway -> gateway.id().equals(id))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
   }
 
   public ServiceEndpoint serviceEndpoint() {
@@ -318,6 +327,7 @@ public final class Microservices implements AutoCloseable {
         // TODO: log it
       }
     }
+
     if (serverTransport != null) {
       try {
         serverTransport.stop();
@@ -325,10 +335,19 @@ public final class Microservices implements AutoCloseable {
         // TODO: log it
       }
     }
+
     if (serviceTransport != null) {
       try {
         serviceTransport.stop();
       } catch (Exception e) {
+        // TODO: log it
+      }
+    }
+
+    for (Gateway gateway : gateways) {
+      try {
+        gateway.stop();
+      } catch (Exception ex) {
         // TODO: log it
       }
     }
@@ -351,8 +370,7 @@ public final class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-
-    //    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
+    private final List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
 
     public Context() {}
 
@@ -410,7 +428,7 @@ public final class Microservices implements AutoCloseable {
     }
 
     public Context gateway(Function<GatewayOptions, Gateway> factory) {
-      gatewayBootstrap.addFactory(factory);
+      gatewayFactories.add(factory);
       return this;
     }
 
