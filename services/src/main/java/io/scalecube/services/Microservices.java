@@ -539,7 +539,7 @@ public class Microservices implements AutoCloseable {
     }
 
     private Context conclude() {
-      if (isConcluded.compareAndSet(false, true)) {
+      if (!isConcluded.compareAndSet(false, true)) {
         throw new IllegalStateException("Context is already concluded");
       }
 
