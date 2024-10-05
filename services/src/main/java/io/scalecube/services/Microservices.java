@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -122,7 +121,7 @@ public class Microservices implements AutoCloseable {
   private ServiceEndpoint serviceEndpoint;
   private ServiceCall serviceCall;
   private List<Object> serviceInstances;
-  private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
+  private final List<Gateway> gateways = new ArrayList<>();
   private ServiceDiscovery serviceDiscovery;
   private final Sinks.Many<ServiceDiscoveryEvent> sink =
       Sinks.many().multicast().directBestEffort();
