@@ -407,6 +407,11 @@ public class Microservices implements AutoCloseable {
       return this;
     }
 
+    public Context tags(Map<String, String> tags) {
+      this.tags = tags;
+      return this;
+    }
+
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
       this.serviceRegistry = serviceRegistry;
       return this;
@@ -419,11 +424,6 @@ public class Microservices implements AutoCloseable {
 
     public Context transport(Supplier<ServiceTransport> transportSupplier) {
       this.transportSupplier = transportSupplier;
-      return this;
-    }
-
-    public Context tags(Map<String, String> tags) {
-      this.tags = tags;
       return this;
     }
 
