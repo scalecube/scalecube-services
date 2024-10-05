@@ -1,13 +1,11 @@
 package io.scalecube.services;
 
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
-import io.scalecube.services.discovery.api.ServiceDiscoveryOptions;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -112,66 +110,68 @@ public final class Microservices implements AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
+  private final Microservices.Context context;
   private final String id = UUID.randomUUID().toString();
-  private final Map<String, String> tags;
-  private final List<ServiceProvider> serviceProviders;
-  private final ServiceRegistry serviceRegistry;
-  private final Authenticator<Object> defaultAuthenticator;
-  private final ServiceTransportBootstrap transportBootstrap;
-  private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscoveryBootstrap discoveryBootstrap;
-  private final ServiceProviderErrorMapper defaultErrorMapper;
-  private final ServiceMessageDataDecoder defaultDataDecoder;
-  private final String defaultContentType;
-  private final PrincipalMapper<Object, Object> defaultPrincipalMapper;
-  private ServiceEndpoint serviceEndpoint;
-  private final String externalHost;
-  private final Integer externalPort;
 
   private ServiceTransport serviceTransport;
   private ClientTransport clientTransport;
   private ServerTransport serverTransport;
-  private Address transportAddress = Address.NULL_ADDRESS;
+  private Address serviceAddress = Address.NULL_ADDRESS;
 
-  private Microservices() {}
+  private ServiceEndpoint serviceEndpoint;
+  private ServiceCall serviceCall;
+  private List<Object> serviceInstances;
+  private ServiceDiscovery serviceDiscovery;
+  private final Sinks.Many<ServiceDiscoveryEvent> sink =
+      Sinks.many().multicast().directBestEffort();
+  private final Disposable.Composite disposables = Disposables.composite();
+  private Scheduler scheduler;
 
-  public String id() {
-    return this.id;
+  private Microservices(Microservices.Context context) {
+    this.context = context;
   }
 
-  @Override
-  public String toString() {
-    return "Microservices@" + id;
+  public static Microservices start(Microservices.Context context) {
+    final Microservices microservices = new Microservices(context.conclude());
+    try {
+      microservices.startTransport(context.transportSupplier, context.serviceRegistry);
+      microservices.buildServiceEndpoint();
+    } catch (Exception ex) {
+      microservices.close();
+      throw Exceptions.propagate(ex);
+    }
+    return microservices;
+  }
+
+  private void startTransport(
+      Supplier<ServiceTransport> transportSupplier, ServiceRegistry serviceRegistry) {
+    if (transportSupplier == null) {
+      return;
+    }
+    serviceTransport = transportSupplier.get().start();
+    serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
+    clientTransport = serviceTransport.clientTransport();
+    serviceAddress = prepareAddress(serverTransport.address());
+  }
+
+  private static Address prepareAddress(Address address) {
+    final InetAddress inetAddress;
+    try {
+      inetAddress = InetAddress.getByName(address.host());
+    } catch (UnknownHostException e) {
+      throw Exceptions.propagate(e);
+    }
+    if (inetAddress.isAnyLocalAddress()) {
+      return Address.create(Address.getLocalIpAddress().getHostAddress(), address.port());
+    } else {
+      return Address.create(inetAddress.getHostAddress(), address.port());
+    }
   }
 
   private Mono<Microservices> start() {
     return Mono.fromCallable(() -> transportBootstrap.start(this))
         .flatMap(
             transportBootstrap -> {
-              final ServiceCall serviceCall = call();
-              final Address serviceAddress = transportBootstrap.transportAddress;
-
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
-                  ServiceEndpoint.builder()
-                      .id(id)
-                      .address(serviceAddress)
-                      .contentTypes(DataCodec.getAllContentTypes())
-                      .tags(tags);
-
-              // invoke service providers and register services
-              final List<Object> serviceInstances =
-                  serviceProviders.stream()
-                      .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
-                      .peek(this::registerService)
-                      .peek(
-                          serviceInfo ->
-                              serviceEndpointBuilder.appendServiceRegistrations(
-                                  ServiceScanner.scanServiceInfo(serviceInfo)))
-                      .map(ServiceInfo::serviceInstance)
-                      .collect(Collectors.toList());
-
-              serviceEndpoint = newServiceEndpoint(serviceEndpointBuilder.build());
-
               return concludeDiscovery(
                       this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
                   .then(startGateway(new GatewayOptions().call(serviceCall)))
@@ -184,13 +184,36 @@ public final class Microservices implements AutoCloseable {
         .onErrorResume(ex -> Mono.defer(this::shutdown).then(Mono.error(ex)));
   }
 
+  private void buildServiceEndpoint() {
+    serviceCall = call();
+
+    final ServiceEndpoint.Builder builder =
+        ServiceEndpoint.builder()
+            .id(id)
+            .address(serviceAddress)
+            .contentTypes(DataCodec.getAllContentTypes())
+            .tags(context.tags);
+
+    serviceInstances =
+        context.serviceProviders.stream()
+            .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
+            .peek(this::registerService)
+            .peek(
+                serviceInfo ->
+                    builder.appendServiceRegistrations(ServiceScanner.scanServiceInfo(serviceInfo)))
+            .map(ServiceInfo::serviceInstance)
+            .collect(Collectors.toList());
+
+    serviceEndpoint = newServiceEndpoint(builder.build());
+  }
+
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
     final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
 
     final String finalHost =
-        Optional.ofNullable(externalHost).orElse(serviceEndpoint.address().host());
+        Optional.ofNullable(context.externalHost).orElse(serviceEndpoint.address().host());
     final int finalPort =
-        Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
+        Optional.ofNullable(context.externalPort).orElse(serviceEndpoint.address().port());
 
     return builder.address(Address.create(finalHost, finalPort)).build();
   }
@@ -199,31 +222,24 @@ public final class Microservices implements AutoCloseable {
     return Mono.fromCallable(() -> gatewayBootstrap.start(this, options));
   }
 
-  private Mono<ServiceDiscoveryBootstrap> concludeDiscovery(
-      Microservices microservices, ServiceDiscoveryOptions options) {
-    return Mono.fromCallable(() -> discoveryBootstrap.conclude(microservices, options));
-  }
-
   private void registerService(ServiceInfo serviceInfo) {
-    serviceRegistry.registerService(
+    context.serviceRegistry.registerService(
         ServiceInfo.from(serviceInfo)
-            .errorMapperIfAbsent(defaultErrorMapper)
-            .dataDecoderIfAbsent(defaultDataDecoder)
-            .authenticatorIfAbsent(defaultAuthenticator)
-            .principalMapperIfAbsent(defaultPrincipalMapper)
+            .errorMapperIfAbsent(context.defaultErrorMapper)
+            .dataDecoderIfAbsent(context.defaultDataDecoder)
+            .authenticatorIfAbsent(context.defaultAuthenticator)
+            .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .build());
   }
 
   public Address serviceAddress() {
-    return transportBootstrap.transportAddress;
+    return serviceAddress;
   }
 
   public ServiceCall call() {
     return new ServiceCall()
-        .transport(transportBootstrap.clientTransport)
-        .serviceRegistry(serviceRegistry)
-        .contentType(defaultContentType)
-        .errorMapper(DefaultErrorMapper.INSTANCE)
+        .transport(clientTransport)
+        .serviceRegistry(context.serviceRegistry)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
@@ -240,15 +256,15 @@ public final class Microservices implements AutoCloseable {
   }
 
   public List<ServiceEndpoint> serviceEndpoints() {
-    return serviceRegistry.listServiceEndpoints();
+    return context.serviceRegistry.listServiceEndpoints();
   }
 
   public Map<String, String> tags() {
-    return tags;
+    return context.tags;
   }
 
   public ServiceRegistry serviceRegistry() {
-    return serviceRegistry;
+    return context.serviceRegistry;
   }
 
   public Address discoveryAddress() {
@@ -295,14 +311,30 @@ public final class Microservices implements AutoCloseable {
 
   @Override
   public void close() {
-    try {
-      shutdown().toFuture().get();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (clientTransport != null) {
+      try {
+        clientTransport.close();
+      } catch (Exception e) {
+        // TODO: log it
+      }
+    }
+    if (serverTransport != null) {
+      try {
+        serverTransport.stop();
+      } catch (Exception e) {
+        // TODO: log it
+      }
+    }
+    if (serviceTransport != null) {
+      try {
+        serviceTransport.stop();
+      } catch (Exception e) {
+        // TODO: log it
+      }
     }
   }
 
-  public static final class Context implements AutoCloseable {
+  public static final class Context {
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
 
@@ -315,22 +347,10 @@ public final class Microservices implements AutoCloseable {
     private ServiceMessageDataDecoder defaultDataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
-    private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
     private String externalHost;
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-
-    private ServiceDiscovery serviceDiscovery;
-    private final Sinks.Many<ServiceDiscoveryEvent> sink =
-        Sinks.many().multicast().directBestEffort();
-    private final Disposable.Composite disposables = Disposables.composite();
-    private Scheduler scheduler;
-
-    private ServiceTransport serviceTransport;
-    private ClientTransport clientTransport;
-    private ServerTransport serverTransport;
-    private Address transportAddress = Address.NULL_ADDRESS;
 
     //    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
@@ -420,18 +440,6 @@ public final class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for default {@code contentType}. By default, default {@code contentType} is set to
-     * {@link ServiceMessage#DEFAULT_DATA_FORMAT}.
-     *
-     * @param contentType contentType; not null
-     * @return this builder with applied parameter
-     */
-    public Context defaultContentType(String contentType) {
-      this.defaultContentType = Objects.requireNonNull(contentType, "default contentType");
-      return this;
-    }
-
-    /**
      * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
      *
      * @param authenticator authenticator; optional
@@ -459,58 +467,14 @@ public final class Microservices implements AutoCloseable {
       return this;
     }
 
-    private void conclude() {
+    private Context conclude() {
       if (isConcluded.compareAndSet(false, true)) {
         throw new IllegalStateException("Context is already concluded");
       }
 
-      concludeTransport(transportSupplier, serviceRegistry);
-    }
+      // TODO: add validations
 
-    private void concludeTransport(
-        Supplier<ServiceTransport> transportSupplier, ServiceRegistry serviceRegistry) {
-      if (transportSupplier == null || (serviceTransport = transportSupplier.get()) == null) {
-        return;
-      }
-
-      Objects.requireNonNull(serviceRegistry, "serviceRegistry");
-
-      serviceTransport = serviceTransport.start();
-      serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
-      clientTransport = serviceTransport.clientTransport();
-      transportAddress = prepareAddress(serverTransport.address());
-    }
-
-    private static Address prepareAddress(Address address) {
-      final InetAddress inetAddress;
-      try {
-        inetAddress = InetAddress.getByName(address.host());
-      } catch (UnknownHostException e) {
-        throw Exceptions.propagate(e);
-      }
-      if (inetAddress.isAnyLocalAddress()) {
-        return Address.create(Address.getLocalIpAddress().getHostAddress(), address.port());
-      } else {
-        return Address.create(inetAddress.getHostAddress(), address.port());
-      }
-    }
-
-    @Override
-    public void close() {
-      if (serverTransport != null) {
-        try {
-          serverTransport.stop();
-        } catch (Exception e) {
-          // TODO: log it
-        }
-      }
-      if (serviceTransport != null) {
-        try {
-          serviceTransport.stop();
-        } catch (Exception e) {
-          // TODO: log it
-        }
-      }
+      return this;
     }
   }
 }
