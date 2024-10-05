@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import io.scalecube.services.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
-import reactor.core.publisher.Mono;
 
 public class RSocketServiceTransportTest extends BaseTest {
 
@@ -43,40 +43,34 @@ public class RSocketServiceTransportTest extends BaseTest {
   @BeforeEach
   public void setUp() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint)))
+                .transport(RSocketServiceTransport::new));
 
     final Address gatewayAddress = this.gateway.discoveryAddress();
 
     serviceNode =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new SimpleQuoteService())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new SimpleQuoteService()));
   }
 
   @AfterEach
   public void cleanUp() {
-    try {
-      Mono.whenDelayError(
-              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(serviceNode).map(Microservices::shutdown).orElse(Mono.empty()))
-          .block();
-    } catch (Throwable ignore) {
-      // no-op
-    }
+    Optional.ofNullable(gateway).ifPresent(Microservices::close);
+    Optional.ofNullable(serviceNode).ifPresent(Microservices::close);
   }
 
   @Disabled
@@ -98,7 +92,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(TIMEOUT);
+    serviceNode.close();
 
     if (!latch.await(20, TimeUnit.SECONDS)) {
       fail("latch.await");
@@ -129,7 +123,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(TIMEOUT);
+    serviceNode.close();
 
     if (!latch.await(20, TimeUnit.SECONDS)) {
       fail("latch.await");
@@ -164,7 +158,7 @@ public class RSocketServiceTransportTest extends BaseTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(TIMEOUT);
+    serviceNode.close();
 
     if (!latch.await(20, TimeUnit.SECONDS)) {
       fail("latch.await");

@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.Subscriber;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.util.concurrent.atomic.AtomicReference;
@@ -18,7 +19,7 @@ public class ServiceDiscoverySubscriberTest extends BaseTest {
     final NonDiscoverySubscriber1 discoverySubscriber1 = spy(new NonDiscoverySubscriber1());
     final NonDiscoverySubscriber2 discoverySubscriber2 = spy(new NonDiscoverySubscriber2());
 
-    Microservices.builder().services(discoverySubscriber1, discoverySubscriber2).startAwait();
+    Microservices.start(new Context().services(discoverySubscriber1, discoverySubscriber2));
 
     verifyNoInteractions(discoverySubscriber1, discoverySubscriber2);
   }
@@ -28,7 +29,7 @@ public class ServiceDiscoverySubscriberTest extends BaseTest {
     final NotMatchingTypeDiscoverySubscriber discoverySubscriber =
         spy(new NotMatchingTypeDiscoverySubscriber());
 
-    Microservices.builder().services(discoverySubscriber).startAwait();
+    Microservices.start(new Context().services(discoverySubscriber));
 
     verifyNoInteractions(discoverySubscriber);
   }
@@ -39,7 +40,7 @@ public class ServiceDiscoverySubscriberTest extends BaseTest {
     final NormalDiscoverySubscriber normalDiscoverySubscriber =
         new NormalDiscoverySubscriber(subscriptionReference);
 
-    Microservices.builder().services(normalDiscoverySubscriber).startAwait();
+    Microservices.start(new Context().services(normalDiscoverySubscriber));
 
     assertNotNull(subscriptionReference.get(), "subscription");
   }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
@@ -28,13 +29,13 @@ public class ServiceLocalTest extends BaseTest {
 
   @BeforeEach
   public void setUp() {
-    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
+    microservices = Microservices.start(new Context().services(new GreetingServiceImpl()));
   }
 
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
-      microservices.shutdown().block(timeout);
+      microservices.close();
     }
   }
 

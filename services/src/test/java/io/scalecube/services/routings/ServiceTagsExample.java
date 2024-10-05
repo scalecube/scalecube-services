@@ -2,6 +2,7 @@ package io.scalecube.services.routings;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.routings.sut.CanaryService;
@@ -22,46 +23,46 @@ public class ServiceTagsExample {
    */
   public static void main(String[] args) {
     Microservices gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new));
 
     Address seedAddress = gateway.discoveryAddress();
 
     Microservices services1 =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
-                    .tag("Weight", "0.3")
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
+                        .tag("Weight", "0.3")
+                        .build()));
 
     Microservices services2 =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
-                    .tag("Weight", "0.7")
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
+                        .tag("Weight", "0.7")
+                        .build()));
 
     CanaryService service =
         gateway.call().router(WeightedRandomRouter.class).api(CanaryService.class);

@@ -1,6 +1,7 @@
 package io.scalecube.services.examples.auth;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -22,22 +23,23 @@ public class ServiceTransportAuthExample {
    */
   public static void main(String[] args) {
     Microservices service =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
-            .services(new SecuredServiceByUserProfileImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
+                .services(new SecuredServiceByUserProfileImpl()));
 
     Microservices caller =
-        Microservices.builder()
-            .discovery(endpoint -> discovery(service, endpoint))
-            .transport(
-                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(endpoint -> discovery(service, endpoint))
+                .transport(
+                    () ->
+                        new RSocketServiceTransport().credentialsSupplier(credentialsSupplier())));
 
     String response =
         caller

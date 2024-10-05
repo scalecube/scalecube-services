@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -54,35 +55,35 @@ public class ServiceRemoteTest extends BaseTest {
   @AfterAll
   public static void tearDown() {
     try {
-      gateway.shutdown().block();
+      gateway.close();
     } catch (Exception ignore) {
       // no-op
     }
 
     try {
-      provider.shutdown().block();
+      provider.close();
     } catch (Exception ignore) {
       // no-op
     }
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .discovery(
-            serviceEndpoint ->
-                new ScalecubeServiceDiscovery()
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                    .options(opts -> opts.metadata(serviceEndpoint)))
-        .transport(RSocketServiceTransport::new)
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new));
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder()
-        .discovery(ServiceRemoteTest::serviceDiscovery)
-        .transport(RSocketServiceTransport::new)
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(ServiceRemoteTest::serviceDiscovery)
+            .transport(RSocketServiceTransport::new)
+            .services(new GreetingServiceImpl()));
   }
 
   @Test
@@ -274,11 +275,12 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .services(new CoarseGrainedServiceImpl()) // add service a and b
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(ServiceRemoteTest::serviceDiscovery)
+                .transport(RSocketServiceTransport::new)
+                .services(new CoarseGrainedServiceImpl()) // add service a and b
+            );
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
@@ -286,7 +288,7 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<String> future = service.callGreeting("joe");
 
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
-    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
+    provider.close();
   }
 
   @Test
@@ -297,17 +299,17 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .services(another)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(ServiceRemoteTest::serviceDiscovery)
+                .transport(RSocketServiceTransport::new)
+                .services(another));
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
     assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)));
-    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
+    provider.close();
   }
 
   @Test
@@ -317,11 +319,12 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     Microservices ms =
-        Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .services(another) // add service a and b
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(ServiceRemoteTest::serviceDiscovery)
+                .transport(RSocketServiceTransport::new)
+                .services(another) // add service a and b
+            );
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
@@ -331,7 +334,7 @@ public class ServiceRemoteTest extends BaseTest {
             () -> Mono.from(service.callGreetingTimeout("joe")).block());
     assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
     System.out.println("done");
-    ms.shutdown().then(Mono.delay(TIMEOUT2)).block();
+    ms.close();
   }
 
   @Test
@@ -342,11 +345,12 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     Microservices provider =
-        Microservices.builder()
-            .discovery(ServiceRemoteTest::serviceDiscovery)
-            .transport(RSocketServiceTransport::new)
-            .services(another) // add service a and b
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(ServiceRemoteTest::serviceDiscovery)
+                .transport(RSocketServiceTransport::new)
+                .services(another) // add service a and b
+            );
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
@@ -354,7 +358,7 @@ public class ServiceRemoteTest extends BaseTest {
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
 
-    provider.shutdown().then(Mono.delay(TIMEOUT2)).block();
+    provider.close();
   }
 
   @Test
@@ -504,16 +508,16 @@ public class ServiceRemoteTest extends BaseTest {
     tags.put("HOSTNAME", "host1");
 
     Microservices ms =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .tags(tags)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .tags(tags)
+                .services(new GreetingServiceImpl()));
 
     assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
   }

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Service;
@@ -21,25 +22,25 @@ public class ServiceLifecycleAnnotationsTest extends BaseTest {
   void testAfterConstructThenBeforeDestroy() {
     //noinspection EmptyTryBlock,unused
     try (Microservices microservices =
-        Microservices.builder()
-            .services(
-                ServiceInfo.fromServiceInstance(
-                        new TestService() {
-                          @AfterConstruct
-                          void init() {
-                            afterConstruct.invoke();
-                          }
-                        })
-                    .build(),
-                ServiceInfo.fromServiceInstance(
-                        new TestService() {
-                          @BeforeDestroy
-                          void cleanup() {
-                            beforeDestroy.invoke();
-                          }
-                        })
-                    .build())
-            .startAwait()) {}
+        Microservices.start(
+            new Context()
+                .services(
+                    ServiceInfo.fromServiceInstance(
+                            new TestService() {
+                              @AfterConstruct
+                              void init() {
+                                afterConstruct.invoke();
+                              }
+                            })
+                        .build(),
+                    ServiceInfo.fromServiceInstance(
+                            new TestService() {
+                              @BeforeDestroy
+                              void cleanup() {
+                                beforeDestroy.invoke();
+                              }
+                            })
+                        .build()))) {}
 
     verify(afterConstruct, times(1)).invoke();
     verify(beforeDestroy, times(1)).invoke();
@@ -52,25 +53,25 @@ public class ServiceLifecycleAnnotationsTest extends BaseTest {
 
     //noinspection EmptyTryBlock,unused
     try (Microservices microservices =
-        Microservices.builder()
-            .services(
-                ServiceInfo.fromServiceInstance(
-                        new TestService() {
-                          @AfterConstruct
-                          void init() {
-                            afterConstruct.invoke();
-                          }
-                        })
-                    .build(),
-                ServiceInfo.fromServiceInstance(
-                        new TestService() {
-                          @BeforeDestroy
-                          void cleanup() {
-                            beforeDestroy.invoke();
-                          }
-                        })
-                    .build())
-            .startAwait()) {
+        Microservices.start(
+            new Context()
+                .services(
+                    ServiceInfo.fromServiceInstance(
+                            new TestService() {
+                              @AfterConstruct
+                              void init() {
+                                afterConstruct.invoke();
+                              }
+                            })
+                        .build(),
+                    ServiceInfo.fromServiceInstance(
+                            new TestService() {
+                              @BeforeDestroy
+                              void cleanup() {
+                                beforeDestroy.invoke();
+                              }
+                            })
+                        .build()))) {
     } catch (Exception ex) {
       assertSame(exception, Throwables.getRootCause(ex));
     }

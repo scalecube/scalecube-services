@@ -4,6 +4,7 @@ import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
@@ -25,7 +26,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class WebsocketClientTest extends BaseTest {
@@ -39,48 +39,45 @@ class WebsocketClientTest extends BaseTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .gateway(
-                options ->
-                    new WebsocketGateway.Builder()
-                        .options(options.id("WS"))
-                        .gatewayHandler(new TestGatewaySessionHandler())
-                        .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .gateway(
+                    options ->
+                        new WebsocketGateway.Builder()
+                            .options(options.id("WS"))
+                            .gatewayHandler(new TestGatewaySessionHandler())
+                            .build()));
 
     gatewayAddress = gateway.gateway("WS").address();
 
     microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(
-                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new TestServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint))
+                            .membership(
+                                opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new TestServiceImpl())
+                .services(
+                    ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                        .errorMapper(ERROR_MAPPER)
+                        .build()));
   }
 
   @AfterAll
   static void afterAll() {
-    Flux.concat(
-            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(microservices).map(Microservices::shutdown))
-        .then()
-        .block();
+    gateway.close();
+    microservices.close();
   }
 
   @Test

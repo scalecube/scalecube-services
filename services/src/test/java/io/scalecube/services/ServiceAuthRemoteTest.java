@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.rsocket.exceptions.RejectedSetupException;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
@@ -75,60 +76,60 @@ final class ServiceAuthRemoteTest extends BaseTest {
     principalMapper = authData -> new UserProfile(authData.get("name"), authData.get("role"));
 
     service =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
-            .services(
-                ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
-                    .principalMapper(principalMapper)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
+                .services(
+                    ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
+                        .principalMapper(principalMapper)
+                        .build()));
 
     serviceWithoutAuthenticator =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(new AnotherSecuredServiceImpl())
-                    .principalMapper(principalMapper)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(new AnotherSecuredServiceImpl())
+                        .principalMapper(principalMapper)
+                        .build()));
 
     partiallySecuredService =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
-            .services(
-                ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
-                    .principalMapper(principalMapper)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(() -> new RSocketServiceTransport().authenticator(authenticator))
+                .services(
+                    ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
+                        .principalMapper(principalMapper)
+                        .build()));
   }
 
   @AfterAll
   static void afterAll() {
     if (service != null) {
-      service.shutdown().block(TIMEOUT);
+      service.close();
     }
 
     if (serviceWithoutAuthenticator != null) {
-      serviceWithoutAuthenticator.shutdown().block(TIMEOUT);
+      serviceWithoutAuthenticator.close();
     }
 
     if (partiallySecuredService != null) {
-      partiallySecuredService.shutdown().block(TIMEOUT);
+      partiallySecuredService.close();
     }
   }
 
@@ -263,30 +264,30 @@ final class ServiceAuthRemoteTest extends BaseTest {
   }
 
   private static Microservices newCaller() {
-    return Microservices.builder()
-        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
-        .transport(
-            () ->
-                new RSocketServiceTransport()
-                    .credentialsSupplier(ServiceAuthRemoteTest::credentialsSupplier))
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .transport(
+                () ->
+                    new RSocketServiceTransport()
+                        .credentialsSupplier(ServiceAuthRemoteTest::credentialsSupplier)));
   }
 
   private static Microservices newEmptyCredentialsCaller() {
-    return Microservices.builder()
-        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
-        .transport(RSocketServiceTransport::new)
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .transport(RSocketServiceTransport::new));
   }
 
   private static Microservices newInvalidCredentialsCaller() {
-    return Microservices.builder()
-        .discovery(ServiceAuthRemoteTest::serviceDiscovery)
-        .transport(
-            () ->
-                new RSocketServiceTransport()
-                    .credentialsSupplier(ServiceAuthRemoteTest::invalidCredentialsSupplier))
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(ServiceAuthRemoteTest::serviceDiscovery)
+            .transport(
+                () ->
+                    new RSocketServiceTransport()
+                        .credentialsSupplier(ServiceAuthRemoteTest::invalidCredentialsSupplier)));
   }
 
   private static Mono<Map<String, String>> credentialsSupplier(ServiceReference serviceReference) {

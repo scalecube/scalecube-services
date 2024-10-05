@@ -4,6 +4,7 @@ import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.Qualifier;
@@ -47,19 +48,21 @@ class WebsocketLocalGatewayTest extends BaseTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .gateway(
-                options ->
-                    new WebsocketGateway.Builder()
-                        .options(options.id("WS").call(options.call().errorMapper(ERROR_MAPPER)))
+        Microservices.start(
+            new Context()
+                .gateway(
+                    options ->
+                        new WebsocketGateway.Builder()
+                            .options(
+                                options.id("WS").call(options.call().errorMapper(ERROR_MAPPER)))
+                            .errorMapper(ERROR_MAPPER)
+                            .build())
+                .services(new GreetingServiceImpl())
+                .services(
+                    ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
                         .errorMapper(ERROR_MAPPER)
-                        .build())
-            .services(new GreetingServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
-            .startAwait();
+                        .build()));
+
     gatewayAddress = gateway.gateway("WS").address();
     router = new StaticAddressRouter(gatewayAddress);
   }

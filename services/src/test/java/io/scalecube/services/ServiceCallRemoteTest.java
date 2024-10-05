@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
@@ -60,29 +61,29 @@ public class ServiceCallRemoteTest extends BaseTest {
   @AfterAll
   public static void tearDown() {
     try {
-      gateway.shutdown().block();
+      gateway.close();
     } catch (Exception ignore) {
       // no-op
     }
 
     try {
-      provider.shutdown().block();
+      provider.close();
     } catch (Exception ignore) {
       // no-op
     }
   }
 
   private static Microservices serviceProvider(Object service) {
-    return Microservices.builder()
-        .discovery(
-            endpoint ->
-                new ScalecubeServiceDiscovery()
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                    .options(opts -> opts.metadata(endpoint))
-                    .membership(cfg -> cfg.seedMembers(gateway.discoveryAddress().toString())))
-        .transport(RSocketServiceTransport::new)
-        .services(service)
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(
+                endpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(endpoint))
+                        .membership(cfg -> cfg.seedMembers(gateway.discoveryAddress().toString())))
+            .transport(RSocketServiceTransport::new)
+            .services(service));
   }
 
   @Test
@@ -241,7 +242,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(TIMEOUT);
 
     try {
-      quotesService.shutdown();
+      quotesService.close();
     } catch (Exception ignored) {
       // no-op
     }
@@ -299,13 +300,13 @@ public class ServiceCallRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .discovery(
-            serviceEndpoint ->
-                new ScalecubeServiceDiscovery()
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                    .options(opts -> opts.metadata(serviceEndpoint)))
-        .transport(RSocketServiceTransport::new)
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new));
   }
 }

@@ -3,6 +3,7 @@ package io.scalecube.services.examples.auth;
 import static io.scalecube.services.auth.Authenticator.deferSecured;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.ServiceMessage;
@@ -25,27 +26,29 @@ public class CompositeProfileAuthExample {
    */
   public static void main(String[] args) {
     Microservices service =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
-            .services(
-                call ->
-                    Collections.singletonList(
-                        ServiceInfo.fromServiceInstance(new SecuredServiceByCompositeProfileImpl())
-                            .authenticator(compositeAuthenticator())
-                            .build()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
+                .services(
+                    call ->
+                        Collections.singletonList(
+                            ServiceInfo.fromServiceInstance(
+                                    new SecuredServiceByCompositeProfileImpl())
+                                .authenticator(compositeAuthenticator())
+                                .build())));
 
     Microservices caller =
-        Microservices.builder()
-            .discovery(endpoint -> discovery(service, endpoint))
-            .transport(
-                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(endpoint -> discovery(service, endpoint))
+                .transport(
+                    () ->
+                        new RSocketServiceTransport().credentialsSupplier(credentialsSupplier())));
 
     ServiceMessage response =
         caller

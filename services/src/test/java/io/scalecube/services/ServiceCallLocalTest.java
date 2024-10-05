@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
@@ -55,7 +56,7 @@ public class ServiceCallLocalTest extends BaseTest {
 
   @AfterAll
   public static void tearDown() {
-    provider.shutdown().block();
+    provider.close();
   }
 
   @Test
@@ -73,15 +74,15 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder()
-        .discovery(
-            serviceEndpoint ->
-                new ScalecubeServiceDiscovery()
-                    .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                    .options(opts -> opts.metadata(serviceEndpoint)))
-        .transport(RSocketServiceTransport::new)
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    return Microservices.start(
+        new Context()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new)
+            .services(new GreetingServiceImpl()));
   }
 
   @Test

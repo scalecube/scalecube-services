@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import io.scalecube.services.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
@@ -28,54 +29,54 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
   @BeforeEach
   public void setUp() {
     this.gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new));
 
     final Address gatewayAddress = this.gateway.discoveryAddress();
 
     Microservices facade =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new Facade())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new Facade()));
 
     final Address facadeAddress = facade.discoveryAddress();
 
     this.ping =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services((PingService) () -> Mono.just(Thread.currentThread().getName()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services((PingService) () -> Mono.just(Thread.currentThread().getName())));
 
     this.pong =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services((PongService) () -> Mono.just(Thread.currentThread().getName()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(facadeAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services((PongService) () -> Mono.just(Thread.currentThread().getName())));
   }
 
   @Test
@@ -94,15 +95,9 @@ public class RSocketNettyColocatedEventLoopGroupTest extends BaseTest {
 
   @AfterEach
   public void tearDown() {
-    try {
-      Mono.whenDelayError(
-              Optional.ofNullable(gateway).map(Microservices::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(ping).map(Microservices::shutdown).orElse(Mono.empty()),
-              Optional.ofNullable(pong).map(Microservices::shutdown).orElse(Mono.empty()))
-          .block();
-    } catch (Throwable ignore) {
-      // no-op
-    }
+    Optional.ofNullable(gateway).ifPresent(Microservices::close);
+    Optional.ofNullable(ping).ifPresent(Microservices::close);
+    Optional.ofNullable(pong).ifPresent(Microservices::close);
   }
 
   @Service("facade")

@@ -2,10 +2,10 @@ package io.scalecube.services.examples.services;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 public class Example1 {
@@ -17,40 +17,40 @@ public class Example1 {
    */
   public static void main(String[] args) {
     Microservices gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new));
 
     final Address gatewayAddress = gateway.discoveryAddress();
 
     Microservices service2Node =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new Service2Impl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new Service2Impl()));
 
     Microservices service1Node =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new Service1Impl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new Service1Impl()));
 
     gateway
         .call()
@@ -63,7 +63,8 @@ public class Example1 {
         .log("complete    |")
         .block();
 
-    Mono.whenDelayError(gateway.shutdown(), service1Node.shutdown(), service2Node.shutdown())
-        .block();
+    gateway.close();
+    service1Node.close();
+    service2Node.close();
   }
 }

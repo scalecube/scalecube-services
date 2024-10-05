@@ -29,15 +29,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
@@ -111,7 +108,7 @@ import reactor.core.scheduler.Schedulers;
  */
 public class Microservices implements AutoCloseable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  // private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final Microservices.Context context;
   private final String id = UUID.randomUUID().toString();
@@ -120,7 +117,6 @@ public class Microservices implements AutoCloseable {
   private ClientTransport clientTransport;
   private ServerTransport serverTransport;
   private Address serviceAddress = Address.NULL_ADDRESS;
-
   private ServiceEndpoint serviceEndpoint;
   private ServiceCall serviceCall;
   private List<Object> serviceInstances;
@@ -145,13 +141,6 @@ public class Microservices implements AutoCloseable {
       microservices.createDiscovery();
       microservices.doInject();
       microservices.startListen();
-
-      // concludeDiscovery(this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-      //   .then(startGateways(new GatewayOptions().call(serviceCall)))
-      //   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-      //   .then(discoveryBootstrap.startListen())
-      //   .thenReturn(this);
-
     } catch (Exception ex) {
       microservices.close();
       throw Exceptions.propagate(ex);
@@ -244,7 +233,6 @@ public class Microservices implements AutoCloseable {
     }
 
     serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
-    discoveryAddress = serviceDiscovery.address();
   }
 
   private void doInject() {
@@ -268,6 +256,7 @@ public class Microservices implements AutoCloseable {
             .subscribe());
 
     serviceDiscovery.start();
+    discoveryAddress = serviceDiscovery.address();
   }
 
   private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
@@ -425,13 +414,11 @@ public class Microservices implements AutoCloseable {
 
     private Map<String, String> tags = new HashMap<>();
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
-    private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
-    private Authenticator<Object> defaultAuthenticator = null;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
-    private ServiceProviderErrorMapper defaultErrorMapper = DefaultErrorMapper.INSTANCE;
-    private ServiceMessageDataDecoder defaultDataDecoder =
-        Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
-            .orElse((message, dataType) -> message);
+    private ServiceRegistry serviceRegistry;
+    private Authenticator<Object> defaultAuthenticator;
+    private PrincipalMapper<Object, Object> defaultPrincipalMapper;
+    private ServiceProviderErrorMapper defaultErrorMapper;
+    private ServiceMessageDataDecoder defaultDataDecoder;
     private String externalHost;
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
@@ -506,7 +493,7 @@ public class Microservices implements AutoCloseable {
      * @return this builder with applied parameter
      */
     public Context defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.defaultErrorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
+      this.defaultErrorMapper = errorMapper;
       return this;
     }
 
@@ -519,7 +506,7 @@ public class Microservices implements AutoCloseable {
      * @return this builder with applied parameter
      */
     public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.defaultDataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
+      this.defaultDataDecoder = dataDecoder;
       return this;
     }
 
@@ -556,7 +543,19 @@ public class Microservices implements AutoCloseable {
         throw new IllegalStateException("Context is already concluded");
       }
 
-      // TODO: add validations
+      if (defaultErrorMapper == null) {
+        defaultErrorMapper = DefaultErrorMapper.INSTANCE;
+      }
+
+      if (defaultDataDecoder == null) {
+        defaultDataDecoder =
+            Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
+                .orElse((message, dataType) -> message);
+      }
+
+      if (serviceRegistry == null) {
+        serviceRegistry = new ServiceRegistryImpl();
+      }
 
       return this;
     }

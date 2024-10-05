@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
@@ -26,15 +27,16 @@ class WebsocketServerTest extends BaseTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .gateway(
-                options ->
-                    new WebsocketGateway.Builder()
-                        .options(options.id("WS"))
-                        .gatewayHandler(new TestGatewaySessionHandler())
-                        .build())
-            .services(new TestServiceImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .gateway(
+                    options ->
+                        new WebsocketGateway.Builder()
+                            .options(options.id("WS"))
+                            .gatewayHandler(new TestGatewaySessionHandler())
+                            .build())
+                .services(new TestServiceImpl()));
+
     gatewayAddress = gateway.gateway("WS").address();
   }
 

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
@@ -28,30 +29,30 @@ public class StreamingServiceTest extends BaseTest {
   @BeforeAll
   public static void setup() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .defaultDataDecoder(ServiceMessageCodec::decodeData)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .defaultDataDecoder(ServiceMessageCodec::decodeData));
 
     final Address gatewayAddress = gateway.discoveryAddress();
 
     node =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .defaultDataDecoder(ServiceMessageCodec::decodeData)
-            .services(new SimpleQuoteService())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .defaultDataDecoder(ServiceMessageCodec::decodeData)
+                .services(new SimpleQuoteService()));
   }
 
   @Test
