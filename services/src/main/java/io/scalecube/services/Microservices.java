@@ -455,7 +455,7 @@ public class Microservices implements AutoCloseable {
     private final AtomicBoolean isConcluded = new AtomicBoolean();
 
     private Map<String, String> tags;
-    private List<ServiceProvider> serviceProviders;
+    private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
     private Authenticator<Object> defaultAuthenticator;
     private PrincipalMapper<Object, Object> defaultPrincipalMapper;
@@ -465,7 +465,7 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private List<Function<GatewayOptions, Gateway>> gatewayFactories;
+    private List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
 
     public Context() {}
 
