@@ -19,20 +19,12 @@ import reactor.core.scheduler.Schedulers;
 class ServiceDiscoveryBootstrap implements AutoCloseable {
 
   private ServiceDiscovery serviceDiscovery;
-
-  // Sink
   private final Sinks.Many<ServiceDiscoveryEvent> sink =
       Sinks.many().multicast().directBestEffort();
-
   private final Disposable.Composite disposables = Disposables.composite();
   private Scheduler scheduler;
 
   ServiceDiscoveryBootstrap() {}
-
-  private ServiceDiscoveryBootstrap operator(UnaryOperator<ServiceDiscoveryOptions> op) {
-    operator = op;
-    return this;
-  }
 
   private ServiceDiscoveryBootstrap conclude(
       Microservices microservices, ServiceDiscoveryOptions options) {
@@ -74,11 +66,8 @@ class ServiceDiscoveryBootstrap implements AutoCloseable {
 
           return Mono.fromRunnable(serviceDiscovery::start)
               .then()
-              .doOnSubscribe(
-                  s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
-              .doOnSuccess(
-                  avoid ->
-                      LOGGER.info("[{}][startListen] Started", microservices.id()))
+              .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
+              .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
               .doOnError(
                   ex ->
                       LOGGER.error(

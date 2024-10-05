@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -36,9 +37,13 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -316,13 +321,17 @@ public final class Microservices implements AutoCloseable {
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
 
+    private ServiceDiscovery serviceDiscovery;
+    private final Sinks.Many<ServiceDiscoveryEvent> sink =
+        Sinks.many().multicast().directBestEffort();
+    private final Disposable.Composite disposables = Disposables.composite();
+    private Scheduler scheduler;
+
     private ServiceTransport serviceTransport;
     private ClientTransport clientTransport;
     private ServerTransport serverTransport;
     private Address transportAddress = Address.NULL_ADDRESS;
 
-    //    private final ServiceDiscoveryBootstrap discoveryBootstrap = new
-    // ServiceDiscoveryBootstrap();
     //    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
     public Context() {}
