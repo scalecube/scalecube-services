@@ -47,7 +47,9 @@ public class WebsocketGateway implements Gateway {
     WebsocketGatewayAcceptor gatewayAcceptor =
         new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
 
-    loopResources = LoopResources.create(options.id() + ":" + options.port());
+    loopResources =
+        LoopResources.create(
+            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
     try {
       prepareHttpServer(loopResources, options.port())
@@ -91,21 +93,12 @@ public class WebsocketGateway implements Gateway {
   private void shutdownServer(DisposableServer server) {
     if (server != null) {
       server.dispose();
-      try {
-        server.onDispose().toFuture().get();
-      } catch (Exception e) {
-        // TODO: log it
-      }
     }
   }
 
   private void shutdownLoopResources(LoopResources loopResources) {
     if (loopResources != null) {
-      try {
-        loopResources.disposeLater().toFuture().get();
-      } catch (Exception e) {
-        // TODO: log it
-      }
+      loopResources.dispose();
     }
   }
 

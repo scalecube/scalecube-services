@@ -189,7 +189,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // call the service.
     Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
     Throwable exception =
-        assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofSeconds(1)));
+        assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofMillis(500)));
     assertTrue(exception.getMessage().contains("Timeout on blocking read"));
   }
 

@@ -122,14 +122,11 @@ public class RSocketServiceTransportTest extends BaseTest {
         .subscribe(onNext -> latch.countDown(), System.err::println);
 
     // service node goes down
-    TimeUnit.SECONDS.sleep(3);
     serviceNode.close();
 
     if (!latch.await(20, TimeUnit.SECONDS)) {
       fail("latch.await");
     }
-
-    TimeUnit.MILLISECONDS.sleep(1000);
 
     assertEquals(0, latch.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
@@ -157,14 +154,11 @@ public class RSocketServiceTransportTest extends BaseTest {
         .subscribe(onNext -> latch.countDown(), System.err::println);
 
     // service node goes down
-    TimeUnit.SECONDS.sleep(3);
     serviceNode.close();
 
     if (!latch.await(20, TimeUnit.SECONDS)) {
       fail("latch.await");
     }
-
-    TimeUnit.MILLISECONDS.sleep(1000);
 
     assertEquals(0, latch.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());

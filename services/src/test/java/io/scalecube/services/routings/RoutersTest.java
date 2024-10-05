@@ -36,7 +36,6 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -163,15 +162,13 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_service_tags() throws Exception {
+  public void test_remote_service_tags() {
 
     CanaryService service =
         gateway
             .call()
             .router(Routers.getRouter(WeightedRandomRouter.class))
             .api(CanaryService.class);
-
-    Thread.sleep(1000);
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
@@ -262,9 +259,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_service_tags() throws Exception {
-
-    TimeUnit.SECONDS.sleep(3);
+  public void test_service_tags() {
     ServiceCall service = gateway.call().router(WeightedRandomRouter.class);
 
     ServiceMessage req =

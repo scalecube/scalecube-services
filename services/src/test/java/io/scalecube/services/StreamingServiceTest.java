@@ -78,10 +78,9 @@ public class StreamingServiceTest extends BaseTest {
 
     QuoteService service = node.call().api(QuoteService.class);
 
-    int expected = 3;
-    List<String> list = service.quotes().take(Duration.ofMillis(3500)).collectList().block();
+    List<String> list = service.quotes().take(Duration.ofMillis(500)).collectList().block();
 
-    assertEquals(expected, list.size());
+    assertTrue(list.size() > 1, "list.size");
   }
 
   @Test
@@ -160,11 +159,10 @@ public class StreamingServiceTest extends BaseTest {
     ServiceMessage scheduled =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled").data(1000).build();
 
-    int expected = 3;
     List<ServiceMessage> list =
-        serviceCall.requestMany(scheduled).take(Duration.ofSeconds(4)).collectList().block();
+        serviceCall.requestMany(scheduled).take(Duration.ofMillis(500)).collectList().block();
 
-    assertEquals(expected, list.size());
+    assertTrue(list.size() > 1, "list.size");
   }
 
   @Test

@@ -19,12 +19,12 @@ public class SimpleQuoteService implements QuoteService {
 
   @Override
   public Flux<String> scheduled(int interval) {
-    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + counter.incrementAndGet());
+    return Flux.interval(Duration.ofMillis(100)).map(s -> "quote : " + counter.incrementAndGet());
   }
 
   @Override
   public Flux<String> quotes() {
-    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + counter.incrementAndGet());
+    return Flux.interval(Duration.ofMillis(100)).map(s -> "quote : " + counter.incrementAndGet());
   }
 
   @Override

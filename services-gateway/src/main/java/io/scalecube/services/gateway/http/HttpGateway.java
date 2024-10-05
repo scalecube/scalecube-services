@@ -41,7 +41,9 @@ public class HttpGateway implements Gateway {
   public Gateway start() {
     HttpGatewayAcceptor gatewayAcceptor = new HttpGatewayAcceptor(options.call(), errorMapper);
 
-    loopResources = LoopResources.create(options.id() + ":" + options.port());
+    loopResources =
+        LoopResources.create(
+            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
     try {
       prepareHttpServer(loopResources, options.port())
@@ -89,21 +91,12 @@ public class HttpGateway implements Gateway {
   private void shutdownServer(DisposableServer server) {
     if (server != null) {
       server.dispose();
-      try {
-        server.onDispose().toFuture().get();
-      } catch (Exception e) {
-        // TODO: log it
-      }
     }
   }
 
   private void shutdownLoopResources(LoopResources loopResources) {
     if (loopResources != null) {
-      try {
-        loopResources.disposeLater().toFuture().get();
-      } catch (Exception e) {
-        // TODO: log it
-      }
+      loopResources.dispose();
     }
   }
 
@@ -169,7 +162,7 @@ public class HttpGateway implements Gateway {
     }
 
     public Builder corsConfigBuilder(Consumer<CorsConfigBuilder> consumer) {
-      consumer.accept(this.corsConfigBuilder);
+      consumer.accept(corsConfigBuilder);
       return this;
     }
 

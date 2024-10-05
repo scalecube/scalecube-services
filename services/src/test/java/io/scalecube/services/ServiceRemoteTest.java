@@ -88,7 +88,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_greeting_request_completes_before_timeout() {
-    Duration duration = Duration.ofSeconds(1);
+    Duration duration = Duration.ofMillis(500);
 
     GreetingService service = gateway.call().api(GreetingService.class);
 
@@ -107,8 +107,6 @@ public class ServiceRemoteTest extends BaseTest {
     service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
 
     System.out.println("test_remote_void_greeting done.");
-
-    Thread.sleep(1000);
   }
 
   @Test
@@ -333,7 +331,6 @@ public class ServiceRemoteTest extends BaseTest {
             InternalServiceException.class,
             () -> Mono.from(service.callGreetingTimeout("joe")).block());
     assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
-    System.out.println("done");
     ms.close();
   }
 
