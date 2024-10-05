@@ -1,11 +1,8 @@
 package io.scalecube.services;
 
-import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
-
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
-import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -25,31 +22,23 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
-import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Sinks;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -116,7 +105,7 @@ import reactor.core.scheduler.Schedulers;
  */
 public final class Microservices implements AutoCloseable {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final String id = UUID.randomUUID().toString();
   private final Map<String, String> tags;
@@ -130,39 +119,16 @@ public final class Microservices implements AutoCloseable {
   private final ServiceMessageDataDecoder defaultDataDecoder;
   private final String defaultContentType;
   private final PrincipalMapper<Object, Object> defaultPrincipalMapper;
-  private final Sinks.One<Void> shutdown = Sinks.one();
-  private final Sinks.One<Void> onShutdown = Sinks.one();
   private ServiceEndpoint serviceEndpoint;
   private final String externalHost;
   private final Integer externalPort;
 
-  private Microservices(Builder builder) {
-    this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
-    this.serviceRegistry = builder.serviceRegistry;
-    this.defaultAuthenticator = builder.defaultAuthenticator;
-    this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.discoveryBootstrap = builder.discoveryBootstrap;
-    this.transportBootstrap = builder.transportBootstrap;
-    this.defaultErrorMapper = builder.defaultErrorMapper;
-    this.defaultDataDecoder = builder.defaultDataDecoder;
-    this.defaultContentType = builder.defaultContentType;
-    this.defaultPrincipalMapper = builder.defaultPrincipalMapper;
-    this.externalHost = builder.externalHost;
-    this.externalPort = builder.externalPort;
+  private ServiceTransport serviceTransport;
+  private ClientTransport clientTransport;
+  private ServerTransport serverTransport;
+  private Address transportAddress = Address.NULL_ADDRESS;
 
-    // Setup cleanup
-    shutdown
-        .asMono()
-        .then(doShutdown())
-        .doFinally(s -> onShutdown.emitEmpty(busyLooping(Duration.ofSeconds(3))))
-        .subscribe(
-            null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
+  private Microservices() {}
 
   public String id() {
     return this.id;
@@ -302,28 +268,6 @@ public final class Microservices implements AutoCloseable {
     return discoveryBootstrap.listen();
   }
 
-  /**
-   * Shutdown instance and clear resources.
-   *
-   * @return result of shutdown
-   */
-  public Mono<Void> shutdown() {
-    return Mono.defer(
-        () -> {
-          shutdown.emitEmpty(busyLooping(Duration.ofSeconds(3)));
-          return onShutdown.asMono();
-        });
-  }
-
-  /**
-   * Returns signal of when shutdown was completed.
-   *
-   * @return signal of when shutdown completed
-   */
-  public Mono<Void> onShutdown() {
-    return onShutdown.asMono();
-  }
-
   private Mono<Void> doShutdown() {
     return Mono.whenDelayError(
             applyBeforeDestroy(),
@@ -353,44 +297,42 @@ public final class Microservices implements AutoCloseable {
     }
   }
 
-  public static final class Builder {
+  public static final class Context implements AutoCloseable {
+
+    private final AtomicBoolean isConcluded = new AtomicBoolean();
 
     private Map<String, String> tags = new HashMap<>();
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private Authenticator<Object> defaultAuthenticator = null;
-    private final ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
-    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
-    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
+    private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
     private ServiceProviderErrorMapper defaultErrorMapper = DefaultErrorMapper.INSTANCE;
     private ServiceMessageDataDecoder defaultDataDecoder =
         Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
             .orElse((message, dataType) -> message);
     private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
     private String externalHost;
     private Integer externalPort;
+    private ServiceDiscoveryFactory discoveryFactory;
+    private Supplier<ServiceTransport> transportSupplier;
 
-    public Mono<Microservices> start() {
-      return Mono.defer(() -> new Microservices(this).start());
-    }
+    private ServiceTransport serviceTransport;
+    private ClientTransport clientTransport;
+    private ServerTransport serverTransport;
+    private Address transportAddress = Address.NULL_ADDRESS;
 
-    public Microservices startAwait() {
-      return start().block();
-    }
+    //    private final ServiceDiscoveryBootstrap discoveryBootstrap = new
+    // ServiceDiscoveryBootstrap();
+    //    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
-    public Builder services(ServiceInfo... services) {
+    public Context() {}
+
+    public Context services(ServiceInfo... services) {
       serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
       return this;
     }
 
-    /**
-     * Adds service instance to microservice.
-     *
-     * @param services service instance.
-     * @return builder
-     */
-    public Builder services(Object... services) {
+    public Context services(Object... services) {
       serviceProviders.add(
           call ->
               Arrays.stream(services)
@@ -403,42 +345,42 @@ public final class Microservices implements AutoCloseable {
       return this;
     }
 
-    public Builder services(ServiceProvider serviceProvider) {
+    public Context services(ServiceProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }
 
-    public Builder externalHost(String externalHost) {
+    public Context externalHost(String externalHost) {
       this.externalHost = externalHost;
       return this;
     }
 
-    public Builder externalPort(Integer externalPort) {
+    public Context externalPort(Integer externalPort) {
       this.externalPort = externalPort;
       return this;
     }
 
-    public Builder serviceRegistry(ServiceRegistry serviceRegistry) {
+    public Context serviceRegistry(ServiceRegistry serviceRegistry) {
       this.serviceRegistry = serviceRegistry;
       return this;
     }
 
-    public Builder discovery(ServiceDiscoveryFactory discoveryFactory) {
-      this.discoveryBootstrap.operator(options -> options.discoveryFactory(discoveryFactory));
+    public Context discovery(ServiceDiscoveryFactory discoveryFactory) {
+      this.discoveryFactory = discoveryFactory;
       return this;
     }
 
-    public Builder transport(Supplier<ServiceTransport> supplier) {
-      this.transportBootstrap = new ServiceTransportBootstrap(supplier);
+    public Context transport(Supplier<ServiceTransport> transportSupplier) {
+      this.transportSupplier = transportSupplier;
       return this;
     }
 
-    public Builder tags(Map<String, String> tags) {
+    public Context tags(Map<String, String> tags) {
       this.tags = tags;
       return this;
     }
 
-    public Builder gateway(Function<GatewayOptions, Gateway> factory) {
+    public Context gateway(Function<GatewayOptions, Gateway> factory) {
       gatewayBootstrap.addFactory(factory);
       return this;
     }
@@ -450,7 +392,7 @@ public final class Microservices implements AutoCloseable {
      * @param errorMapper error mapper; not null
      * @return this builder with applied parameter
      */
-    public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
+    public Context defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.defaultErrorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
       return this;
     }
@@ -463,7 +405,7 @@ public final class Microservices implements AutoCloseable {
      * @param dataDecoder data decoder; not null
      * @return this builder with applied parameter
      */
-    public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
+    public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.defaultDataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
       return this;
     }
@@ -475,7 +417,7 @@ public final class Microservices implements AutoCloseable {
      * @param contentType contentType; not null
      * @return this builder with applied parameter
      */
-    public Builder defaultContentType(String contentType) {
+    public Context defaultContentType(String contentType) {
       this.defaultContentType = Objects.requireNonNull(contentType, "default contentType");
       return this;
     }
@@ -486,7 +428,7 @@ public final class Microservices implements AutoCloseable {
      * @param authenticator authenticator; optional
      * @return this builder with applied parameter
      */
-    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+    public <T> Context defaultAuthenticator(Authenticator<? extends T> authenticator) {
       //noinspection unchecked
       this.defaultAuthenticator = (Authenticator<Object>) authenticator;
       return this;
@@ -501,228 +443,33 @@ public final class Microservices implements AutoCloseable {
      * @param <R> principal type
      * @return this builder with applied parameter
      */
-    public <T, R> Builder defaultPrincipalMapper(
+    public <T, R> Context defaultPrincipalMapper(
         PrincipalMapper<? super T, ? extends R> principalMapper) {
       //noinspection unchecked
       this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
-  }
 
-  private static class ServiceDiscoveryBootstrap implements AutoCloseable {
-
-    private UnaryOperator<ServiceDiscoveryOptions> operator;
-    private ServiceDiscovery serviceDiscovery;
-
-    // Sink
-    private final Sinks.Many<ServiceDiscoveryEvent> sink =
-        Sinks.many().multicast().directBestEffort();
-
-    private final Disposable.Composite disposables = Disposables.composite();
-    private Scheduler scheduler;
-    private Microservices microservices;
-
-    private ServiceDiscoveryBootstrap() {}
-
-    private ServiceDiscoveryBootstrap operator(UnaryOperator<ServiceDiscoveryOptions> op) {
-      operator = op;
-      return this;
-    }
-
-    private ServiceDiscoveryBootstrap conclude(
-        Microservices microservices, ServiceDiscoveryOptions options) {
-      this.microservices = microservices;
-      this.scheduler = Schedulers.newSingle("discovery", true);
-
-      if (operator == null) {
-        return this;
+    private void conclude() {
+      if (isConcluded.compareAndSet(false, true)) {
+        throw new IllegalStateException("Context is already concluded");
       }
 
-      options = operator.apply(options);
-      final ServiceEndpoint serviceEndpoint = options.serviceEndpoint();
-      final ServiceDiscoveryFactory discoveryFactory = options.discoveryFactory();
-
-      if (discoveryFactory == null) {
-        return this;
-      }
-
-      serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
-
-      return this;
+      concludeTransport(transportSupplier, serviceRegistry);
     }
 
-    private Mono<Void> startListen() {
-      return Mono.defer(
-          () -> {
-            if (serviceDiscovery == null) {
-              return Mono.empty();
-            }
-
-            disposables.add(
-                serviceDiscovery
-                    .listen()
-                    .subscribeOn(scheduler)
-                    .publishOn(scheduler)
-                    .doOnNext(event -> onDiscoveryEvent(microservices, event))
-                    .doOnNext(event -> sink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
-                    .subscribe());
-
-            return Mono.fromRunnable(serviceDiscovery::start)
-                .then()
-                .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
-                .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
-                .doOnError(
-                    ex ->
-                        LOGGER.error(
-                            "[{}][startListen] Exception occurred: {}",
-                            microservices.id(),
-                            ex.toString()));
-          });
-    }
-
-    public Flux<ServiceDiscoveryEvent> listen() {
-      return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
-          .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(sink.asFlux().onBackpressureBuffer())
-          .subscribeOn(scheduler)
-          .publishOn(scheduler);
-    }
-
-    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
-      if (event.isEndpointAdded()) {
-        microservices.serviceRegistry.registerService(event.serviceEndpoint());
-      }
-      if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
-        microservices.serviceRegistry.unregisterService(event.serviceEndpoint().id());
-      }
-    }
-
-    @Override
-    public void close() {
-      disposables.dispose();
-
-      sink.emitComplete(busyLooping(Duration.ofSeconds(3)));
-
-      try {
-        if (serviceDiscovery != null) {
-          serviceDiscovery.shutdown();
-        }
-      } finally {
-        if (scheduler != null) {
-          scheduler.dispose();
-        }
-      }
-    }
-  }
-
-  private static class GatewayBootstrap implements AutoCloseable {
-
-    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
-    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
-
-    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
-      this.factories.add(factory);
-      return this;
-    }
-
-    private GatewayBootstrap start(Microservices microservices, GatewayOptions options) {
-      for (Function<GatewayOptions, Gateway> factory : factories) {
-        LOGGER.info("[{}][gateway][{}][start] Starting", microservices.id(), options.id());
-
-        try {
-          final Gateway gateway = factory.apply(options).start().toFuture().get();
-
-          gateways.add(gateway);
-
-          LOGGER.info(
-              "[{}][gateway][{}][start] Started, address: {}",
-              microservices.id(),
-              gateway.id(),
-              gateway.address());
-        } catch (Exception ex) {
-          LOGGER.error(
-              "[{}][gateway][{}][start] Exception occurred: {}",
-              microservices.id(),
-              options.id(),
-              ex.toString());
-          throw new RuntimeException(ex);
-        }
-      }
-
-      return this;
-    }
-
-    private List<Gateway> gateways() {
-      return new ArrayList<>(gateways);
-    }
-
-    private Gateway gateway(String id) {
-      return gateways.stream()
-          .filter(gateway -> gateway.id().equals(id))
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
-    }
-
-    @Override
-    public void close() {
-      try {
-        Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
-            .toFuture()
-            .get();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  private static class ServiceTransportBootstrap implements AutoCloseable {
-
-    private final Supplier<ServiceTransport> transportSupplier;
-
-    private ServiceTransport serviceTransport;
-    private ClientTransport clientTransport;
-    private ServerTransport serverTransport;
-    private Address transportAddress = Address.NULL_ADDRESS;
-
-    private ServiceTransportBootstrap() {
-      this(null);
-    }
-
-    private ServiceTransportBootstrap(Supplier<ServiceTransport> transportSupplier) {
-      this.transportSupplier = transportSupplier;
-    }
-
-    private ServiceTransportBootstrap start(Microservices microservices) {
+    private void concludeTransport(
+        Supplier<ServiceTransport> transportSupplier, ServiceRegistry serviceRegistry) {
       if (transportSupplier == null || (serviceTransport = transportSupplier.get()) == null) {
-        return this;
+        return;
       }
 
-      LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id());
+      Objects.requireNonNull(serviceRegistry, "serviceRegistry");
 
-      try {
-        try {
-          serviceTransport = serviceTransport.start();
-          serverTransport = serviceTransport.serverTransport(microservices.serviceRegistry).bind();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-
-        transportAddress = prepareAddress(serverTransport.address());
-        clientTransport = serviceTransport.clientTransport();
-
-        LOGGER.info(
-            "[{}][serviceTransport][start] Started, address: {}",
-            microservices.id(),
-            serverTransport.address());
-
-        return this;
-      } catch (Exception ex) {
-        LOGGER.error(
-            "[{}][serviceTransport][start] Exception occurred: {}",
-            microservices.id(),
-            ex.toString());
-        throw new RuntimeException(ex);
-      }
+      serviceTransport = serviceTransport.start();
+      serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
+      clientTransport = serviceTransport.clientTransport();
+      transportAddress = prepareAddress(serverTransport.address());
     }
 
     private static Address prepareAddress(Address address) {
@@ -745,15 +492,14 @@ public final class Microservices implements AutoCloseable {
         try {
           serverTransport.stop();
         } catch (Exception e) {
-          LOGGER.warn("[serverTransport][stop] Exception: {}", e.toString());
+          // TODO: log it
         }
       }
-
       if (serviceTransport != null) {
         try {
           serviceTransport.stop();
         } catch (Exception e) {
-          LOGGER.warn("[serviceTransport][stop] Exception: {}", e.toString());
+          // TODO: log it
         }
       }
     }
