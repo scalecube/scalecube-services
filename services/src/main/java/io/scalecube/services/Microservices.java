@@ -6,7 +6,6 @@ import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -271,10 +270,20 @@ public class Microservices implements AutoCloseable {
     }
   }
 
+  /**
+   * Returns listening address of the {@link ServerTransport}.
+   *
+   * @return address, or null (if {@link ServiceTransport} was not specified)
+   */
   public Address serviceAddress() {
     return serviceAddress;
   }
 
+  /**
+   * Returns new instance of {@link ServiceCall}.
+   *
+   * @return new instance of {@link ServiceCall}
+   */
   public ServiceCall call() {
     return new ServiceCall()
         .transport(clientTransport)
@@ -282,10 +291,22 @@ public class Microservices implements AutoCloseable {
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
+  /**
+   * Returns started gateway instances. Returned list can be empty, if {@link #gateway(String)} was
+   * not called.
+   *
+   * @return list {@link Gateway} objects, or empty list, if gateways were not specified
+   */
   public List<Gateway> gateways() {
     return gateways;
   }
 
+  /**
+   * Returns gateway by id.
+   *
+   * @param id gateway id
+   * @return {@link Gateway} instance, or throwing exception if gateway cannot be found
+   */
   public Gateway gateway(String id) {
     return gateways.stream()
         .filter(gateway -> gateway.id().equals(id))
@@ -293,37 +314,58 @@ public class Microservices implements AutoCloseable {
         .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
   }
 
+  /**
+   * Returns local {@link ServiceEndpoint} object.
+   *
+   * @return local {@link ServiceEndpoint} object
+   */
   public ServiceEndpoint serviceEndpoint() {
     return serviceEndpoint;
   }
 
+  /**
+   * Returns list of {@link ServiceEndpoint} objects. Service endpoints being landed into {@link
+   * Microservices} instance through the {@link ServiceRegistry#registerService(ServiceEndpoint)},
+   * which by turn is called by listening and handling service discovery events.
+   *
+   * @return service endpoints
+   */
   public List<ServiceEndpoint> serviceEndpoints() {
     return context.serviceRegistry.listServiceEndpoints();
   }
 
+  /**
+   * Returns service tags.
+   *
+   * @return service tags.
+   */
   public Map<String, String> tags() {
     return context.tags;
   }
 
+  /**
+   * Returns {@link ServiceRegistry}.
+   *
+   * @return service registry
+   */
   public ServiceRegistry serviceRegistry() {
     return context.serviceRegistry;
   }
 
+  /**
+   * Returns listening address of the {@link ServiceDiscovery}.
+   *
+   * @return address, or null (if {@link ServiceDiscovery} was not specified)
+   */
   public Address discoveryAddress() {
     return discoveryAddress;
   }
 
   /**
-   * Function to subscribe and listen on the stream of {@code ServiceDiscoveryEvent}\s from
-   * composite service discovery instance.
+   * Function to subscribe and listen on the stream of {@link ServiceDiscoveryEvent} objects from
+   * {@link ServiceDiscovery} instance.
    *
-   * <p>Can be called before or after composite service discovery {@code .start()} method call (i.e
-   * before of after all service discovery instances will be started). If it's called before then
-   * new events will be streamed from all service discovery instances, if it's called after then
-   * {@link ServiceRegistry#listServiceEndpoints()} will be turned to service discovery events of
-   * type {@link Type#ENDPOINT_ADDED}, and concateneted with a stream of live events.
-   *
-   * @return stream of {@code ServiceDiscoveryEvent}\s
+   * @return stream of {@link ServiceDiscoveryEvent} objects
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
     return Flux.fromStream(context.serviceRegistry.listServiceEndpoints().stream())
@@ -412,8 +454,8 @@ public class Microservices implements AutoCloseable {
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
 
-    private Map<String, String> tags = new HashMap<>();
-    private final List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private Map<String, String> tags;
+    private List<ServiceProvider> serviceProviders;
     private ServiceRegistry serviceRegistry;
     private Authenticator<Object> defaultAuthenticator;
     private PrincipalMapper<Object, Object> defaultPrincipalMapper;
@@ -423,15 +465,28 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private final List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
+    private List<Function<GatewayOptions, Gateway>> gatewayFactories;
 
     public Context() {}
 
+    /**
+     * Setter for services.
+     *
+     * @param services {@link ServiceInfo} objects
+     * @return this
+     */
     public Context services(ServiceInfo... services) {
       serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
       return this;
     }
 
+    /**
+     * Setter for services. All services that are not instance of {@link ServiceInfo} will be
+     * wrapped into {@link ServiceInfo}.
+     *
+     * @param services services
+     * @return this
+     */
     public Context services(Object... services) {
       serviceProviders.add(
           call ->
@@ -445,41 +500,91 @@ public class Microservices implements AutoCloseable {
       return this;
     }
 
+    /**
+     * Setter for {@link ServiceProvider}.
+     *
+     * @param serviceProvider serviceProvider
+     * @return this
+     */
     public Context services(ServiceProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }
 
+    /**
+     * Setter for externalHost. If specified, this host will be assgined to the host of the {@link
+     * ServiceEndpoint#address()}.
+     *
+     * @param externalHost externalHost
+     * @return this
+     */
     public Context externalHost(String externalHost) {
       this.externalHost = externalHost;
       return this;
     }
 
+    /**
+     * Setter for externalPort. If specified, this port will be assgined to the port of the {@link
+     * ServiceEndpoint#address()}.
+     *
+     * @param externalPort externalPort
+     * @return this
+     */
     public Context externalPort(Integer externalPort) {
       this.externalPort = externalPort;
       return this;
     }
 
+    /**
+     * Setter for tags.
+     *
+     * @param tags tags
+     * @return this
+     */
     public Context tags(Map<String, String> tags) {
       this.tags = tags;
       return this;
     }
 
+    /**
+     * Setter for {@link ServiceRegistry}.
+     *
+     * @param serviceRegistry serviceRegistry
+     * @return this
+     */
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
       this.serviceRegistry = serviceRegistry;
       return this;
     }
 
+    /**
+     * Setter for {@link ServiceDiscoveryFactory}.
+     *
+     * @param discoveryFactory discoveryFactory
+     * @return this
+     */
     public Context discovery(ServiceDiscoveryFactory discoveryFactory) {
       this.discoveryFactory = discoveryFactory;
       return this;
     }
 
+    /**
+     * Setter for supplier of {@link ServiceTransport} instance.
+     *
+     * @param transportSupplier supplier of {@link ServiceTransport} instance
+     * @return this
+     */
     public Context transport(Supplier<ServiceTransport> transportSupplier) {
       this.transportSupplier = transportSupplier;
       return this;
     }
 
+    /**
+     * Setter for gateway.
+     *
+     * @param factory gateway factory
+     * @return this
+     */
     public Context gateway(Function<GatewayOptions, Gateway> factory) {
       gatewayFactories.add(factory);
       return this;
@@ -555,6 +660,18 @@ public class Microservices implements AutoCloseable {
 
       if (serviceRegistry == null) {
         serviceRegistry = new ServiceRegistryImpl();
+      }
+
+      if (tags == null) {
+        tags = new HashMap<>();
+      }
+
+      if (serviceProviders == null) {
+        serviceProviders = new ArrayList<>();
+      }
+
+      if (gatewayFactories == null) {
+        gatewayFactories = new ArrayList<>();
       }
 
       return this;

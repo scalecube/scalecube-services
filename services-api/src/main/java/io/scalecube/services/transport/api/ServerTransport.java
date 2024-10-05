@@ -12,12 +12,12 @@ public interface ServerTransport {
   Address address();
 
   /**
-   * Starts {@link ServiceTransport} instance.
+   * Starts this instance.
    *
    * @return transport instance
    */
   ServerTransport bind();
 
-  /** Stops this {@link ServiceTransport} instance and release occupied resources. */
+  /** Stops this instance and release occupied resources. */
   void stop();
 }
