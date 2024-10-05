@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
+
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -21,6 +23,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,9 +42,9 @@ import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -123,10 +126,11 @@ public class Microservices implements AutoCloseable {
   private List<Object> serviceInstances;
   private final List<Gateway> gateways = new ArrayList<>();
   private ServiceDiscovery serviceDiscovery;
-  private final Sinks.Many<ServiceDiscoveryEvent> sink =
+  private final Sinks.Many<ServiceDiscoveryEvent> discoverySink =
       Sinks.many().multicast().directBestEffort();
   private final Disposable.Composite disposables = Disposables.composite();
   private Scheduler scheduler;
+  private Address discoveryAddress;
 
   private Microservices(Microservices.Context context) {
     this.context = context;
@@ -138,6 +142,16 @@ public class Microservices implements AutoCloseable {
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
       microservices.buildServiceEndpoint();
       microservices.startGateways();
+      microservices.createDiscovery();
+      microservices.doInject();
+      microservices.startListen();
+
+      // concludeDiscovery(this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
+      //   .then(startGateways(new GatewayOptions().call(serviceCall)))
+      //   .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
+      //   .then(discoveryBootstrap.startListen())
+      //   .thenReturn(this);
+
     } catch (Exception ex) {
       microservices.close();
       throw Exceptions.propagate(ex);
@@ -168,22 +182,6 @@ public class Microservices implements AutoCloseable {
     } else {
       return Address.create(inetAddress.getHostAddress(), address.port());
     }
-  }
-
-  private Mono<Microservices> start() {
-    return Mono.fromCallable(() -> transportBootstrap.start(this))
-        .flatMap(
-            transportBootstrap -> {
-              return concludeDiscovery(
-                      this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                  .then(startGateways(new GatewayOptions().call(serviceCall)))
-                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                  .then(discoveryBootstrap.startListen())
-                  .thenReturn(this);
-            })
-        .doOnSubscribe(s -> LOGGER.info("[{}][start] Starting", id))
-        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
-        .onErrorResume(ex -> Mono.defer(this::shutdown).then(Mono.error(ex)));
   }
 
   private void buildServiceEndpoint() {
@@ -237,6 +235,53 @@ public class Microservices implements AutoCloseable {
     }
   }
 
+  private void createDiscovery() {
+    scheduler = Schedulers.newSingle("discovery", true);
+
+    final ServiceDiscoveryFactory discoveryFactory = context.discoveryFactory;
+    if (discoveryFactory == null) {
+      return;
+    }
+
+    serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
+    discoveryAddress = serviceDiscovery.address();
+  }
+
+  private void doInject() {
+    Injector.inject(this, serviceInstances);
+  }
+
+  private void startListen() {
+    if (serviceDiscovery == null) {
+      return;
+    }
+
+    // TODO: add onError log
+
+    disposables.add(
+        serviceDiscovery
+            .listen()
+            .subscribeOn(scheduler)
+            .publishOn(scheduler)
+            .doOnNext(this::onDiscoveryEvent)
+            .doOnNext(event -> discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
+            .subscribe());
+
+    serviceDiscovery.start();
+  }
+
+  private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
+    final ServiceRegistry serviceRegistry = context.serviceRegistry;
+
+    if (event.isEndpointAdded()) {
+      serviceRegistry.registerService(event.serviceEndpoint());
+    }
+
+    if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+      serviceRegistry.unregisterService(event.serviceEndpoint().id());
+    }
+  }
+
   public Address serviceAddress() {
     return serviceAddress;
   }
@@ -276,9 +321,7 @@ public class Microservices implements AutoCloseable {
   }
 
   public Address discoveryAddress() {
-    return discoveryBootstrap.serviceDiscovery != null
-        ? discoveryBootstrap.serviceDiscovery.address()
-        : null;
+    return discoveryAddress;
   }
 
   /**
@@ -294,31 +337,36 @@ public class Microservices implements AutoCloseable {
    * @return stream of {@code ServiceDiscoveryEvent}\s
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return discoveryBootstrap.listen();
-  }
-
-  private Mono<Void> doShutdown() {
-    return Mono.whenDelayError(
-            applyBeforeDestroy(),
-            Mono.fromRunnable(discoveryBootstrap::close),
-            Mono.fromRunnable(gatewayBootstrap::close),
-            Mono.fromRunnable(transportBootstrap::close))
-        .doOnSubscribe(s -> LOGGER.info("[{}][doShutdown] Shutting down", id))
-        .doOnSuccess(s -> LOGGER.info("[{}][doShutdown] Shutdown", id));
-  }
-
-  private Mono<Void> applyBeforeDestroy() {
-    return Mono.defer(
-        () ->
-            Mono.whenDelayError(
-                serviceRegistry.listServices().stream()
-                    .map(ServiceInfo::serviceInstance)
-                    .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
-                    .collect(Collectors.toList())));
+    return Flux.fromStream(context.serviceRegistry.listServiceEndpoints().stream())
+        .map(ServiceDiscoveryEvent::newEndpointAdded)
+        .concatWith(discoverySink.asFlux().onBackpressureBuffer())
+        .subscribeOn(scheduler)
+        .publishOn(scheduler);
   }
 
   @Override
   public void close() {
+    invokeBeforeDestroy();
+    closeDiscovery();
+    closeGateways();
+    closeTransport();
+  }
+
+  private void invokeBeforeDestroy() {
+    context
+        .serviceRegistry
+        .listServices()
+        .forEach(
+            serviceInfo -> {
+              try {
+                Injector.processBeforeDestroy(this, serviceInfo.serviceInstance());
+              } catch (Exception ex) {
+                // TODO log it
+              }
+            });
+  }
+
+  private void closeTransport() {
     if (clientTransport != null) {
       try {
         clientTransport.close();
@@ -342,13 +390,32 @@ public class Microservices implements AutoCloseable {
         // TODO: log it
       }
     }
+  }
 
-    for (Gateway gateway : gateways) {
+  private void closeGateways() {
+    gateways.forEach(
+        gateway -> {
+          try {
+            gateway.stop();
+          } catch (Exception ex) {
+            // TODO: log it
+          }
+        });
+  }
+
+  private void closeDiscovery() {
+    disposables.dispose();
+
+    if (serviceDiscovery != null) {
       try {
-        gateway.stop();
+        serviceDiscovery.shutdown();
       } catch (Exception ex) {
         // TODO: log it
       }
+    }
+
+    if (scheduler != null) {
+      scheduler.dispose();
     }
   }
 
