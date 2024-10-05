@@ -220,13 +220,6 @@ public class Microservices implements AutoCloseable {
     return builder.address(Address.create(finalHost, finalPort)).build();
   }
 
-  private void startGateways() {
-    final GatewayOptions options = new GatewayOptions().call(serviceCall);
-    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
-      gateways.add(factory.apply(options).start());
-    }
-  }
-
   private void registerService(ServiceInfo serviceInfo) {
     context.serviceRegistry.registerService(
         ServiceInfo.from(serviceInfo)
@@ -235,6 +228,13 @@ public class Microservices implements AutoCloseable {
             .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .build());
+  }
+
+  private void startGateways() {
+    final GatewayOptions options = new GatewayOptions().call(serviceCall);
+    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
+      gateways.add(factory.apply(options).start());
+    }
   }
 
   public Address serviceAddress() {
