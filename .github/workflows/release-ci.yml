@@ -9,31 +9,30 @@ jobs:
     name: Release CI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - run: git checkout ${{ github.event.release.target_commitish }}
-      - uses: actions/cache@v1
+      - uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Set up Java for publishing to GitHub Packages
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
-          java-version: 1.8
+          java-version: 17
+          distribution: zulu
           server-id: github
           server-username: GITHUB_ACTOR
           server-password: GITHUB_TOKEN
       - name: Maven Build
-        run: mvn clean install -DskipTests=true -Ddockerfile.skip=true -B -V
+        run: mvn clean install -DskipTests=true -B -V
         env:
           GITHUB_TOKEN: ${{ secrets.ORGANIZATION_TOKEN }}
       - name: Maven Verify
-        run: |
-          sudo echo "127.0.0.1 $(eval hostname)" | sudo tee -a /etc/hosts
-          mvn verify -B
+        run: mvn verify -B
       - name: Configure git
         run: |
           git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
@@ -43,17 +42,18 @@ jobs:
         run: |
           mvn -B build-helper:parse-version release:prepare \
             -DreleaseVersion=\${parsedVersion.majorVersion}.\${parsedVersion.minorVersion}.\${parsedVersion.incrementalVersion} \
-            -Darguments="-DskipTests=true -Ddockerfile.skip=true"
+            -Darguments="-DskipTests=true"
           echo release_tag=$(git describe --tags --abbrev=0) >> $GITHUB_OUTPUT
       - name: Perform release
-        run: mvn -B release:perform -Pdeploy2Github -Darguments="-DskipTests=true -Ddockerfile.skip=true -Pdeploy2Github"
+        run: mvn -B release:perform -Pdeploy2Github -Darguments="-DskipTests=true -Pdeploy2Github"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ secrets.GITHUB_REPOSITORY }}
       - name: Set up Java for publishing to Maven Central Repository
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v4
         with:
-          java-version: 1.8
+          java-version: 17
+          distribution: zulu
           server-id: ossrh
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
