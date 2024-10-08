@@ -11,6 +11,8 @@ import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.gateway.client.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Map;
@@ -19,8 +21,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
@@ -31,7 +31,7 @@ import reactor.netty.resources.LoopResources;
 public final class WebsocketGatewayClientTransport implements ClientChannel, ClientTransport {
 
   private static final Logger LOGGER =
-      LoggerFactory.getLogger(WebsocketGatewayClientTransport.class);
+      System.getLogger(WebsocketGatewayClientTransport.class.getName());
 
   private static final String STREAM_ID = "sid";
   private static final String CONTENT_TYPE = "application/json";
@@ -97,21 +97,23 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
               connection -> {
                 final WebsocketGatewayClientSession session =
                     new WebsocketGatewayClientSession(clientCodec, connection);
-                LOGGER.info("Created session: {}", session);
+                LOGGER.log(Level.INFO, "Created session: {0}", session);
                 // setup shutdown hook
                 session
                     .onClose()
-                    .doOnTerminate(() -> LOGGER.info("Closed session: {}", session))
+                    .doOnTerminate(() -> LOGGER.log(Level.INFO, "Closed session: {0}", session))
                     .subscribe(
                         null,
                         th ->
-                            LOGGER.warn(
-                                "Exception on closing session: {}, cause: {}",
+                            LOGGER.log(
+                                Level.WARNING,
+                                "Exception on closing session: {0}, cause: {1}",
                                 session,
                                 th.toString()));
                 return session;
               })
-          .doOnError(ex -> LOGGER.warn("Failed to connect, cause: {}", ex.toString()))
+          .doOnError(
+              ex -> LOGGER.log(Level.WARNING, "Failed to connect, cause: {0}", ex.toString()))
           .toFuture()
           .get();
     } catch (Exception e) {
@@ -127,7 +129,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
           final WebsocketGatewayClientSession session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
-              .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+              .doOnSubscribe(s -> LOGGER.log(Level.DEBUG, "Sending request {0}", request))
               .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
               .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))
@@ -143,7 +145,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
           final WebsocketGatewayClientSession session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
-              .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
+              .doOnSubscribe(s -> LOGGER.log(Level.DEBUG, "Sending request {0}", request))
               .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
               .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))

@@ -8,13 +8,13 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.StringJoiner;
 import org.jctools.maps.NonBlockingHashMapLong;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
@@ -25,7 +25,8 @@ import reactor.netty.http.websocket.WebsocketOutbound;
 
 public final class WebsocketGatewayClientSession {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayClientSession.class);
+  private static final Logger LOGGER =
+      System.getLogger(WebsocketGatewayClientSession.class.getName());
 
   private static final ClosedChannelException CLOSED_CHANNEL_EXCEPTION =
       new ClosedChannelException();
@@ -61,13 +62,14 @@ public final class WebsocketGatewayClientSession {
               try {
                 message = clientCodec.decode(byteBuf);
               } catch (Exception ex) {
-                LOGGER.error("Response decoder failed:", ex);
+                LOGGER.log(Level.ERROR, "Response decoder failed", ex);
                 return;
               }
 
               // ignore messages w/o sid
               if (!message.headers().containsKey(STREAM_ID)) {
-                LOGGER.error("Ignore response: {} with null sid, session={}", message, id);
+                LOGGER.log(
+                    Level.ERROR, "Ignore response: {0} with null sid, session={1}", message, id);
                 if (message.data() != null) {
                   ReferenceCountUtil.safestRelease(message.data());
                 }
@@ -103,18 +105,18 @@ public final class WebsocketGatewayClientSession {
   }
 
   private One<Object> newMonoProcessor0(long sid) {
-    LOGGER.debug("Put sid={}, session={}", sid, id);
+    LOGGER.log(Level.DEBUG, "Put sid={0}, session={1}", sid, id);
     return Sinks.one();
   }
 
   private Many<Object> newUnicastProcessor0(long sid) {
-    LOGGER.debug("Put sid={}, session={}", sid, id);
+    LOGGER.log(Level.DEBUG, "Put sid={0}, session={1}", sid, id);
     return Sinks.many().unicast().onBackpressureBuffer();
   }
 
   void removeProcessor(long sid) {
     if (inboundProcessors.remove(sid) != null) {
-      LOGGER.debug("Removed sid={}, session={}", sid, id);
+      LOGGER.log(Level.DEBUG, "Removed sid={0}, session={1}", sid, id);
     }
   }
 
@@ -135,7 +137,11 @@ public final class WebsocketGatewayClientSession {
         .subscribe(
             null,
             th ->
-                LOGGER.error("Exception occurred on sending CANCEL signal for session={}", id, th));
+                LOGGER.log(
+                    Level.ERROR,
+                    "Exception occurred on sending CANCEL signal for session={0}",
+                    id,
+                    th));
   }
 
   /**
@@ -155,9 +161,7 @@ public final class WebsocketGatewayClientSession {
   }
 
   private void handleResponse(ServiceMessage response, Object processor) {
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Handle response: {}, session={}", response, id);
-    }
+    LOGGER.log(Level.DEBUG, "Handle response: {0}, session={1}", response, id);
 
     try {
       Signal signal = null;

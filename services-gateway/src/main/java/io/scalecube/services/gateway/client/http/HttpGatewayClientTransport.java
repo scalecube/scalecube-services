@@ -13,6 +13,8 @@ import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Map;
@@ -20,8 +22,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.NettyOutbound;
@@ -33,7 +33,7 @@ import reactor.netty.resources.LoopResources;
 
 public final class HttpGatewayClientTransport implements ClientChannel, ClientTransport {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
+  private static final Logger LOGGER = System.getLogger(HttpGatewayClientTransport.class.getName());
 
   private static final String CONTENT_TYPE = "application/json";
   private static final HttpGatewayClientCodec CLIENT_CODEC =
@@ -93,7 +93,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   private Mono<Void> send(
       ServiceMessage request, HttpClientRequest clientRequest, NettyOutbound outbound) {
-    LOGGER.debug("Sending request: {}", request);
+    LOGGER.log(Level.DEBUG, "Sending request: {0}", request);
     // prepare request headers
     request.headers().forEach(clientRequest::header);
     // send with publisher (defer buffer cleanup to netty)
@@ -127,7 +127,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
         .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
     ServiceMessage message = builder.build();
 
-    LOGGER.debug("Received response: {}", message);
+    LOGGER.log(Level.DEBUG, "Received response: {0}", message);
     return message;
   }
 

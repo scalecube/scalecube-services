@@ -18,10 +18,10 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufMono;
 import reactor.netty.http.server.HttpServerRequest;
@@ -30,7 +30,7 @@ import reactor.netty.http.server.HttpServerResponse;
 public class HttpGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
+  private static final Logger LOGGER = System.getLogger(HttpGatewayAcceptor.class.getName());
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
@@ -48,8 +48,9 @@ public class HttpGatewayAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    LOGGER.debug(
-        "Accepted request: {}, headers: {}, params: {}",
+    LOGGER.log(
+        Level.DEBUG,
+        "Accepted request: {0}, headers: {}, params: {1}",
         httpRequest,
         httpRequest.requestHeaders(),
         httpRequest.params());
@@ -132,7 +133,7 @@ public class HttpGatewayAcceptor
       DataCodec.getInstance(dataFormat).encode(new ByteBufOutputStream(byteBuf), data);
     } catch (Throwable t) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      LOGGER.error("Failed to encode data: {}", data, t);
+      LOGGER.log(Level.ERROR, "Failed to encode data: {0}", data, t);
       return Unpooled.EMPTY_BUFFER;
     }
 

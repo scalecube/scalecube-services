@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent</artifactId>
-    <version>0.2.20</version>
+    <version>0.3.1</version>
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -59,23 +59,22 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.18.rc1</scalecube-cluster.version>
-    <scalecube-security.version>1.0.32</scalecube-security.version>
+    <scalecube-cluster.version>2.6.18.RC10</scalecube-cluster.version>
+    <scalecube-security.version>1.0.33.RC1</scalecube-security.version>
 
     <reactor.version>2020.0.32</reactor.version>
-    <jackson.version>2.15.1</jackson.version>
+    <jackson.version>2.18.0</jackson.version>
     <netty.version>4.1.93.Final</netty.version>
     <rsocket.version>1.1.4</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <slf4j.version>1.7.36</slf4j.version>
-    <log4j.version>2.17.2</log4j.version>
-    <disruptor.version>3.4.2</disruptor.version>
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
 
     <mockito-junit.version>4.6.1</mockito-junit.version>
     <junit-jupiter.version>5.8.2</junit-jupiter.version>
     <hamcrest.version>1.3</hamcrest.version>
+    <log4j.version>2.17.2</log4j.version>
+    <slf4j.version>1.7.36</slf4j.version>
 
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
@@ -148,13 +147,6 @@
         <version>${log4j.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- Disruptor -->
-      <dependency>
-        <groupId>com.lmax</groupId>
-        <artifactId>disruptor</artifactId>
-        <version>${disruptor.version}</version>
       </dependency>
 
       <!-- RSocket -->

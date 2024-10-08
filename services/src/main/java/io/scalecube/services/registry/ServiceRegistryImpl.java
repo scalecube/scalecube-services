@@ -8,6 +8,8 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,12 +21,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
+  private static final Logger LOGGER = System.getLogger(ServiceRegistryImpl.class.getName());
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -65,7 +65,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
-      LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
+      LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
       serviceEndpoint
           .serviceReferences()
           .forEach(
@@ -81,7 +81,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
-      LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
+      LOGGER.log(Level.DEBUG, "ServiceEndpoint unregistered: {0}", serviceEndpoint);
 
       List<ServiceReference> serviceReferencesOfEndpoint =
           serviceReferencesByQualifier.values().stream()
@@ -144,7 +144,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private void checkMethodInvokerDoesntExist(MethodInfo methodInfo) {
     if (methodInvokers.containsKey(methodInfo.qualifier())
         || methodInvokers.containsKey(methodInfo.oldQualifier())) {
-      LOGGER.error("MethodInvoker already exists, methodInfo: {}", methodInfo);
+      LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
       throw new IllegalStateException("MethodInvoker already exists");
     }
   }
