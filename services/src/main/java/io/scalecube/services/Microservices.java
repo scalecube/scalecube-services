@@ -20,6 +20,8 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -107,10 +109,11 @@ import reactor.core.scheduler.Schedulers;
  */
 public class Microservices implements AutoCloseable {
 
-  // private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  private static final Logger LOGGER = System.getLogger(Microservices.class.getName());
 
   private final Microservices.Context context;
-  private final String id = UUID.randomUUID().toString();
+  private final UUID id = UUID.randomUUID();
+  private final String instanceId = Integer.toHexString(id.hashCode());
 
   private ServiceTransport serviceTransport;
   private ClientTransport clientTransport;
@@ -134,12 +137,14 @@ public class Microservices implements AutoCloseable {
   public static Microservices start(Microservices.Context context) {
     final Microservices microservices = new Microservices(context.conclude());
     try {
+      LOGGER.log(Level.INFO, "[{0}] Starting {1}", microservices.instanceId, microservices);
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
-      microservices.buildServiceEndpoint();
+      microservices.createServiceEndpoint();
       microservices.startGateways();
       microservices.createDiscovery();
       microservices.doInject();
       microservices.startListen();
+      LOGGER.log(Level.INFO, "[{0}] Started {1}", microservices.instanceId, microservices);
     } catch (Exception ex) {
       microservices.close();
       throw Exceptions.propagate(ex);
@@ -152,10 +157,18 @@ public class Microservices implements AutoCloseable {
     if (transportSupplier == null) {
       return;
     }
+
     serviceTransport = transportSupplier.get().start();
     serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
     clientTransport = serviceTransport.clientTransport();
     serviceAddress = prepareAddress(serverTransport.address());
+
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Started {1}, serviceAddress: {2}",
+        instanceId,
+        serviceTransport,
+        serviceAddress);
   }
 
   private static Address prepareAddress(Address address) {
@@ -172,12 +185,12 @@ public class Microservices implements AutoCloseable {
     }
   }
 
-  private void buildServiceEndpoint() {
+  private void createServiceEndpoint() {
     serviceCall = call();
 
     final ServiceEndpoint.Builder builder =
         ServiceEndpoint.builder()
-            .id(id)
+            .id(id.toString())
             .address(serviceAddress)
             .contentTypes(DataCodec.getAllContentTypes())
             .tags(context.tags);
@@ -193,6 +206,13 @@ public class Microservices implements AutoCloseable {
             .collect(Collectors.toList());
 
     serviceEndpoint = newServiceEndpoint(builder.build());
+
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Created serviceEndpoint: {1}, serviceInstances: {2}",
+        instanceId,
+        serviceEndpoint,
+        serviceInstances);
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
@@ -219,7 +239,16 @@ public class Microservices implements AutoCloseable {
   private void startGateways() {
     final GatewayOptions options = new GatewayOptions().call(serviceCall);
     for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
-      gateways.add(factory.apply(options).start());
+      final var gateway = factory.apply(options);
+      final var finalGateway = gateway.start();
+      gateways.add(finalGateway);
+      LOGGER.log(
+          Level.INFO,
+          "[{0}] Started {1}, gateway: {2}@{3}",
+          instanceId,
+          finalGateway,
+          finalGateway.id(),
+          finalGateway.address());
     }
   }
 
@@ -232,6 +261,8 @@ public class Microservices implements AutoCloseable {
     }
 
     serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
+
+    LOGGER.log(Level.INFO, "[0] Created {1}", instanceId, serviceDiscovery);
   }
 
   private void doInject() {
@@ -243,8 +274,6 @@ public class Microservices implements AutoCloseable {
       return;
     }
 
-    // TODO: add onError log
-
     disposables.add(
         serviceDiscovery
             .listen()
@@ -252,10 +281,18 @@ public class Microservices implements AutoCloseable {
             .publishOn(scheduler)
             .doOnNext(this::onDiscoveryEvent)
             .doOnNext(event -> discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
+            .doOnError(ex -> LOGGER.log(Level.ERROR, "[{0}] Exception occurred", instanceId, ex))
             .subscribe());
 
     serviceDiscovery.start();
     discoveryAddress = serviceDiscovery.address();
+
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Started {1}, discoveryAddress: {2}",
+        instanceId,
+        serviceDiscovery,
+        discoveryAddress);
   }
 
   private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
@@ -377,13 +414,15 @@ public class Microservices implements AutoCloseable {
 
   @Override
   public void close() {
-    invokeBeforeDestroy();
+    LOGGER.log(Level.INFO, "[{0}] Closing {1} ...", instanceId, this);
+    processBeforeDestroy();
     closeDiscovery();
     closeGateways();
     closeTransport();
+    LOGGER.log(Level.INFO, "[{0}] Closed {1}", instanceId, this);
   }
 
-  private void invokeBeforeDestroy() {
+  private void processBeforeDestroy() {
     context
         .serviceRegistry
         .listServices()
@@ -391,8 +430,12 @@ public class Microservices implements AutoCloseable {
             serviceInfo -> {
               try {
                 Injector.processBeforeDestroy(this, serviceInfo.serviceInstance());
-              } catch (Exception ex) {
-                // TODO log it
+              } catch (Exception e) {
+                LOGGER.log(
+                    Level.ERROR,
+                    "[{0}][processBeforeDestroy] Exception occurred: {1}",
+                    instanceId,
+                    e.toString());
               }
             });
   }
@@ -402,7 +445,11 @@ public class Microservices implements AutoCloseable {
       try {
         clientTransport.close();
       } catch (Exception e) {
-        // TODO: log it
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][clientTransport.close] Exception occurred: {1}",
+            instanceId,
+            e.toString());
       }
     }
 
@@ -410,7 +457,11 @@ public class Microservices implements AutoCloseable {
       try {
         serverTransport.stop();
       } catch (Exception e) {
-        // TODO: log it
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][serverTransport.close] Exception occurred: {1}",
+            instanceId,
+            e.toString());
       }
     }
 
@@ -418,7 +469,11 @@ public class Microservices implements AutoCloseable {
       try {
         serviceTransport.stop();
       } catch (Exception e) {
-        // TODO: log it
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][serviceTransport.stop] Exception occurred: {1}",
+            instanceId,
+            e.toString());
       }
     }
   }
@@ -428,8 +483,12 @@ public class Microservices implements AutoCloseable {
         gateway -> {
           try {
             gateway.stop();
-          } catch (Exception ex) {
-            // TODO: log it
+          } catch (Exception e) {
+            LOGGER.log(
+                Level.ERROR,
+                "[{0}][gateway.stop] Exception occurred: {1}",
+                instanceId,
+                e.toString());
           }
         });
   }
@@ -440,8 +499,9 @@ public class Microservices implements AutoCloseable {
     if (serviceDiscovery != null) {
       try {
         serviceDiscovery.shutdown();
-      } catch (Exception ex) {
-        // TODO: log it
+      } catch (Exception e) {
+        LOGGER.log(
+            Level.ERROR, "[{0}][closeDiscovery] Exception occurred: {1}", instanceId, e.toString());
       }
     }
 
