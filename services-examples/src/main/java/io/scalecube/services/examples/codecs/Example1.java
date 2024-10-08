@@ -2,6 +2,7 @@ package io.scalecube.services.examples.codecs;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
@@ -22,30 +23,31 @@ public class Example1 {
   public static void main(String[] args) {
     // ScaleCube Node with no members
     Microservices seed =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .defaultContentType(PROTOSTUFF) // set explicit default data format
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+            // .defaultContentType(PROTOSTUFF) // set explicit default data format
+            );
 
     final Address seedAddress = seed.discoveryAddress();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new GreetingServiceImpl()));
 
     seed.call()
         .api(GreetingsService.class)
@@ -64,7 +66,7 @@ public class Example1 {
         .sayHello("bob (on java native Serializable/Externalizable dataFormat)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
-    seed.onShutdown().block();
-    ms.onShutdown().block();
+    seed.close();
+    ms.close();
   }
 }

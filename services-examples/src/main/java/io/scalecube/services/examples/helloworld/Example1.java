@@ -2,12 +2,12 @@ package io.scalecube.services.examples.helloworld;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import reactor.core.publisher.Mono;
 
 /**
  * The Hello World project is a time-honored tradition in computer programming. It is a simple
@@ -27,29 +27,29 @@ public class Example1 {
   public static void main(String[] args) {
     // ScaleCube Node with no members
     Microservices seed =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new));
 
     final Address seedAddress = seed.discoveryAddress();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices ms =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(seedAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new GreetingServiceImpl()));
 
     // Create service proxy
     GreetingsService service = seed.call().api(GreetingsService.class);
@@ -57,6 +57,7 @@ public class Example1 {
     // Execute the services and subscribe to service events
     service.sayHello("joe").subscribe(consumer -> System.out.println(consumer.message()));
 
-    Mono.whenDelayError(seed.shutdown(), ms.shutdown()).block();
+    seed.close();
+    ms.close();
   }
 }

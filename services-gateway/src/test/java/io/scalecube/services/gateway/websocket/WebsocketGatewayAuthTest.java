@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
@@ -44,15 +45,15 @@ public class WebsocketGatewayAuthTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .gateway(
-                options ->
-                    new WebsocketGateway.Builder()
-                        .options(options.id("WS"))
-                        .gatewayHandler(new GatewaySessionHandlerImpl(AUTH_REGISTRY))
-                        .build())
-            .services(new SecuredServiceImpl(AUTH_REGISTRY))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .gateway(
+                    options ->
+                        new WebsocketGateway.Builder()
+                            .options(options.id("WS"))
+                            .gatewayHandler(new GatewaySessionHandlerImpl(AUTH_REGISTRY))
+                            .build())
+                .services(new SecuredServiceImpl(AUTH_REGISTRY)));
   }
 
   @BeforeEach

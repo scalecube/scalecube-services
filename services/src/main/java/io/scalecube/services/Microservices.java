@@ -2,14 +2,11 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
-import io.scalecube.services.discovery.api.ServiceDiscoveryOptions;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -23,30 +20,26 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
@@ -114,283 +107,447 @@ import reactor.core.scheduler.Schedulers;
  *
  * }</pre>
  */
-public final class Microservices implements AutoCloseable {
+public class Microservices implements AutoCloseable {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  private static final Logger LOGGER = System.getLogger(Microservices.class.getName());
 
-  private final String id = UUID.randomUUID().toString();
-  private final Map<String, String> tags;
-  private final List<ServiceProvider> serviceProviders;
-  private final ServiceRegistry serviceRegistry;
-  private final Authenticator<Object> defaultAuthenticator;
-  private final ServiceTransportBootstrap transportBootstrap;
-  private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscoveryBootstrap discoveryBootstrap;
-  private final ServiceProviderErrorMapper defaultErrorMapper;
-  private final ServiceMessageDataDecoder defaultDataDecoder;
-  private final String defaultContentType;
-  private final PrincipalMapper<Object, Object> defaultPrincipalMapper;
-  private final Sinks.One<Void> shutdown = Sinks.one();
-  private final Sinks.One<Void> onShutdown = Sinks.one();
+  private final Microservices.Context context;
+  private final UUID id = UUID.randomUUID();
+  private final String instanceId = Integer.toHexString(id.hashCode());
+
+  private ServiceTransport serviceTransport;
+  private ClientTransport clientTransport;
+  private ServerTransport serverTransport;
+  private Address serviceAddress = Address.NULL_ADDRESS;
   private ServiceEndpoint serviceEndpoint;
-  private final String externalHost;
-  private final Integer externalPort;
+  private ServiceCall serviceCall;
+  private List<Object> serviceInstances;
+  private final List<Gateway> gateways = new ArrayList<>();
+  private ServiceDiscovery serviceDiscovery;
+  private final Sinks.Many<ServiceDiscoveryEvent> discoverySink =
+      Sinks.many().multicast().directBestEffort();
+  private final Disposable.Composite disposables = Disposables.composite();
+  private Scheduler scheduler;
+  private Address discoveryAddress;
 
-  private Microservices(Builder builder) {
-    this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
-    this.serviceRegistry = builder.serviceRegistry;
-    this.defaultAuthenticator = builder.defaultAuthenticator;
-    this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.discoveryBootstrap = builder.discoveryBootstrap;
-    this.transportBootstrap = builder.transportBootstrap;
-    this.defaultErrorMapper = builder.defaultErrorMapper;
-    this.defaultDataDecoder = builder.defaultDataDecoder;
-    this.defaultContentType = builder.defaultContentType;
-    this.defaultPrincipalMapper = builder.defaultPrincipalMapper;
-    this.externalHost = builder.externalHost;
-    this.externalPort = builder.externalPort;
-
-    // Setup cleanup
-    shutdown
-        .asMono()
-        .then(doShutdown())
-        .doFinally(s -> onShutdown.emitEmpty(busyLooping(Duration.ofSeconds(3))))
-        .subscribe(
-            null, ex -> LOGGER.warn("[{}][doShutdown] Exception occurred: {}", id, ex.toString()));
+  private Microservices(Microservices.Context context) {
+    this.context = context;
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static Microservices start(Microservices.Context context) {
+    final Microservices microservices = new Microservices(context.conclude());
+    try {
+      LOGGER.log(Level.INFO, "[{0}] Starting {1}", microservices.instanceId, microservices);
+      microservices.startTransport(context.transportSupplier, context.serviceRegistry);
+      microservices.createServiceEndpoint();
+      microservices.startGateways();
+      microservices.createDiscovery();
+      microservices.doInject();
+      microservices.startListen();
+      LOGGER.log(Level.INFO, "[{0}] Started {1}", microservices.instanceId, microservices);
+    } catch (Exception ex) {
+      microservices.close();
+      throw Exceptions.propagate(ex);
+    }
+    return microservices;
   }
 
-  public String id() {
-    return this.id;
+  private void startTransport(
+      Supplier<ServiceTransport> transportSupplier, ServiceRegistry serviceRegistry) {
+    if (transportSupplier == null) {
+      return;
+    }
+
+    serviceTransport = transportSupplier.get().start();
+    serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
+    clientTransport = serviceTransport.clientTransport();
+    serviceAddress = prepareAddress(serverTransport.address());
+
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Started {1}, serviceAddress: {2}",
+        instanceId,
+        serviceTransport,
+        serviceAddress);
   }
 
-  @Override
-  public String toString() {
-    return "Microservices@" + id;
+  private static Address prepareAddress(Address address) {
+    final InetAddress inetAddress;
+    try {
+      inetAddress = InetAddress.getByName(address.host());
+    } catch (UnknownHostException e) {
+      throw Exceptions.propagate(e);
+    }
+    if (inetAddress.isAnyLocalAddress()) {
+      return Address.create(Address.getLocalIpAddress().getHostAddress(), address.port());
+    } else {
+      return Address.create(inetAddress.getHostAddress(), address.port());
+    }
   }
 
-  private Mono<Microservices> start() {
-    return Mono.fromCallable(() -> transportBootstrap.start(this))
-        .flatMap(
-            transportBootstrap -> {
-              final ServiceCall serviceCall = call();
-              final Address serviceAddress = transportBootstrap.transportAddress;
+  private void createServiceEndpoint() {
+    serviceCall = call();
 
-              final ServiceEndpoint.Builder serviceEndpointBuilder =
-                  ServiceEndpoint.builder()
-                      .id(id)
-                      .address(serviceAddress)
-                      .contentTypes(DataCodec.getAllContentTypes())
-                      .tags(tags);
+    final ServiceEndpoint.Builder builder =
+        ServiceEndpoint.builder()
+            .id(id.toString())
+            .address(serviceAddress)
+            .contentTypes(DataCodec.getAllContentTypes())
+            .tags(context.tags);
 
-              // invoke service providers and register services
-              final List<Object> serviceInstances =
-                  serviceProviders.stream()
-                      .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
-                      .peek(this::registerService)
-                      .peek(
-                          serviceInfo ->
-                              serviceEndpointBuilder.appendServiceRegistrations(
-                                  ServiceScanner.scanServiceInfo(serviceInfo)))
-                      .map(ServiceInfo::serviceInstance)
-                      .collect(Collectors.toList());
+    serviceInstances =
+        context.serviceProviders.stream()
+            .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
+            .peek(this::registerService)
+            .peek(
+                serviceInfo ->
+                    builder.appendServiceRegistrations(ServiceScanner.scanServiceInfo(serviceInfo)))
+            .map(ServiceInfo::serviceInstance)
+            .collect(Collectors.toList());
 
-              serviceEndpoint = newServiceEndpoint(serviceEndpointBuilder.build());
+    serviceEndpoint = newServiceEndpoint(builder.build());
 
-              return concludeDiscovery(
-                      this, new ServiceDiscoveryOptions().serviceEndpoint(serviceEndpoint))
-                  .then(startGateway(new GatewayOptions().call(serviceCall)))
-                  .then(Mono.fromCallable(() -> Injector.inject(this, serviceInstances)))
-                  .then(discoveryBootstrap.startListen())
-                  .thenReturn(this);
-            })
-        .doOnSubscribe(s -> LOGGER.info("[{}][start] Starting", id))
-        .doOnSuccess(m -> LOGGER.info("[{}][start] Started", id))
-        .onErrorResume(ex -> Mono.defer(this::shutdown).then(Mono.error(ex)));
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Created serviceEndpoint: {1}, serviceInstances: {2}",
+        instanceId,
+        serviceEndpoint,
+        serviceInstances);
   }
 
   private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
     final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
 
     final String finalHost =
-        Optional.ofNullable(externalHost).orElse(serviceEndpoint.address().host());
+        Optional.ofNullable(context.externalHost).orElse(serviceEndpoint.address().host());
     final int finalPort =
-        Optional.ofNullable(externalPort).orElse(serviceEndpoint.address().port());
+        Optional.ofNullable(context.externalPort).orElse(serviceEndpoint.address().port());
 
     return builder.address(Address.create(finalHost, finalPort)).build();
   }
 
-  private Mono<GatewayBootstrap> startGateway(GatewayOptions options) {
-    return Mono.fromCallable(() -> gatewayBootstrap.start(this, options));
-  }
-
-  private Mono<ServiceDiscoveryBootstrap> concludeDiscovery(
-      Microservices microservices, ServiceDiscoveryOptions options) {
-    return Mono.fromCallable(() -> discoveryBootstrap.conclude(microservices, options));
-  }
-
   private void registerService(ServiceInfo serviceInfo) {
-    serviceRegistry.registerService(
+    context.serviceRegistry.registerService(
         ServiceInfo.from(serviceInfo)
-            .errorMapperIfAbsent(defaultErrorMapper)
-            .dataDecoderIfAbsent(defaultDataDecoder)
-            .authenticatorIfAbsent(defaultAuthenticator)
-            .principalMapperIfAbsent(defaultPrincipalMapper)
+            .errorMapperIfAbsent(context.defaultErrorMapper)
+            .dataDecoderIfAbsent(context.defaultDataDecoder)
+            .authenticatorIfAbsent(context.defaultAuthenticator)
+            .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .build());
   }
 
-  public Address serviceAddress() {
-    return transportBootstrap.transportAddress;
+  private void startGateways() {
+    final GatewayOptions options = new GatewayOptions().call(serviceCall);
+    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
+      final var gateway = factory.apply(options);
+      final var finalGateway = gateway.start();
+      gateways.add(finalGateway);
+      LOGGER.log(
+          Level.INFO,
+          "[{0}] Started {1}, gateway: {2}@{3}",
+          instanceId,
+          finalGateway,
+          finalGateway.id(),
+          finalGateway.address());
+    }
   }
 
+  private void createDiscovery() {
+    scheduler = Schedulers.newSingle("discovery", true);
+
+    final ServiceDiscoveryFactory discoveryFactory = context.discoveryFactory;
+    if (discoveryFactory == null) {
+      return;
+    }
+
+    serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
+
+    LOGGER.log(Level.INFO, "[0] Created {1}", instanceId, serviceDiscovery);
+  }
+
+  private void doInject() {
+    Injector.inject(this, serviceInstances);
+  }
+
+  private void startListen() {
+    if (serviceDiscovery == null) {
+      return;
+    }
+
+    disposables.add(
+        serviceDiscovery
+            .listen()
+            .subscribeOn(scheduler)
+            .publishOn(scheduler)
+            .doOnNext(this::onDiscoveryEvent)
+            .doOnNext(event -> discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
+            .doOnError(ex -> LOGGER.log(Level.ERROR, "[{0}] Exception occurred", instanceId, ex))
+            .subscribe());
+
+    serviceDiscovery.start();
+    discoveryAddress = serviceDiscovery.address();
+
+    LOGGER.log(
+        Level.INFO,
+        "[{0}] Started {1}, discoveryAddress: {2}",
+        instanceId,
+        serviceDiscovery,
+        discoveryAddress);
+  }
+
+  private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
+    final ServiceRegistry serviceRegistry = context.serviceRegistry;
+
+    if (event.isEndpointAdded()) {
+      serviceRegistry.registerService(event.serviceEndpoint());
+    }
+
+    if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+      serviceRegistry.unregisterService(event.serviceEndpoint().id());
+    }
+  }
+
+  /**
+   * Returns listening address of the {@link ServerTransport}.
+   *
+   * @return address, or null (if {@link ServiceTransport} was not specified)
+   */
+  public Address serviceAddress() {
+    return serviceAddress;
+  }
+
+  /**
+   * Returns new instance of {@link ServiceCall}.
+   *
+   * @return new instance of {@link ServiceCall}
+   */
   public ServiceCall call() {
     return new ServiceCall()
-        .transport(transportBootstrap.clientTransport)
-        .serviceRegistry(serviceRegistry)
-        .contentType(defaultContentType)
-        .errorMapper(DefaultErrorMapper.INSTANCE)
+        .transport(clientTransport)
+        .serviceRegistry(context.serviceRegistry)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 
+  /**
+   * Returns started gateway instances. Returned list can be empty, if {@link #gateway(String)} was
+   * not called.
+   *
+   * @return list {@link Gateway} objects, or empty list, if gateways were not specified
+   */
   public List<Gateway> gateways() {
-    return gatewayBootstrap.gateways();
+    return gateways;
   }
 
+  /**
+   * Returns gateway by id.
+   *
+   * @param id gateway id
+   * @return {@link Gateway} instance, or throwing exception if gateway cannot be found
+   */
   public Gateway gateway(String id) {
-    return gatewayBootstrap.gateway(id);
+    return gateways.stream()
+        .filter(gateway -> gateway.id().equals(id))
+        .findFirst()
+        .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
   }
 
+  /**
+   * Returns local {@link ServiceEndpoint} object.
+   *
+   * @return local {@link ServiceEndpoint} object
+   */
   public ServiceEndpoint serviceEndpoint() {
     return serviceEndpoint;
   }
 
+  /**
+   * Returns list of {@link ServiceEndpoint} objects. Service endpoints being landed into {@link
+   * Microservices} instance through the {@link ServiceRegistry#registerService(ServiceEndpoint)},
+   * which by turn is called by listening and handling service discovery events.
+   *
+   * @return service endpoints
+   */
   public List<ServiceEndpoint> serviceEndpoints() {
-    return serviceRegistry.listServiceEndpoints();
-  }
-
-  public Map<String, String> tags() {
-    return tags;
-  }
-
-  public ServiceRegistry serviceRegistry() {
-    return serviceRegistry;
-  }
-
-  public Address discoveryAddress() {
-    return discoveryBootstrap.serviceDiscovery != null
-        ? discoveryBootstrap.serviceDiscovery.address()
-        : null;
+    return context.serviceRegistry.listServiceEndpoints();
   }
 
   /**
-   * Function to subscribe and listen on the stream of {@code ServiceDiscoveryEvent}\s from
-   * composite service discovery instance.
+   * Returns service tags.
    *
-   * <p>Can be called before or after composite service discovery {@code .start()} method call (i.e
-   * before of after all service discovery instances will be started). If it's called before then
-   * new events will be streamed from all service discovery instances, if it's called after then
-   * {@link ServiceRegistry#listServiceEndpoints()} will be turned to service discovery events of
-   * type {@link Type#ENDPOINT_ADDED}, and concateneted with a stream of live events.
+   * @return service tags.
+   */
+  public Map<String, String> tags() {
+    return context.tags;
+  }
+
+  /**
+   * Returns {@link ServiceRegistry}.
    *
-   * @return stream of {@code ServiceDiscoveryEvent}\s
+   * @return service registry
+   */
+  public ServiceRegistry serviceRegistry() {
+    return context.serviceRegistry;
+  }
+
+  /**
+   * Returns listening address of the {@link ServiceDiscovery}.
+   *
+   * @return address, or null (if {@link ServiceDiscovery} was not specified)
+   */
+  public Address discoveryAddress() {
+    return discoveryAddress;
+  }
+
+  /**
+   * Function to subscribe and listen on the stream of {@link ServiceDiscoveryEvent} objects from
+   * {@link ServiceDiscovery} instance.
+   *
+   * @return stream of {@link ServiceDiscoveryEvent} objects
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return discoveryBootstrap.listen();
-  }
-
-  /**
-   * Shutdown instance and clear resources.
-   *
-   * @return result of shutdown
-   */
-  public Mono<Void> shutdown() {
-    return Mono.defer(
-        () -> {
-          shutdown.emitEmpty(busyLooping(Duration.ofSeconds(3)));
-          return onShutdown.asMono();
-        });
-  }
-
-  /**
-   * Returns signal of when shutdown was completed.
-   *
-   * @return signal of when shutdown completed
-   */
-  public Mono<Void> onShutdown() {
-    return onShutdown.asMono();
-  }
-
-  private Mono<Void> doShutdown() {
-    return Mono.whenDelayError(
-            applyBeforeDestroy(),
-            Mono.fromRunnable(discoveryBootstrap::close),
-            Mono.fromRunnable(gatewayBootstrap::close),
-            Mono.fromRunnable(transportBootstrap::close))
-        .doOnSubscribe(s -> LOGGER.info("[{}][doShutdown] Shutting down", id))
-        .doOnSuccess(s -> LOGGER.info("[{}][doShutdown] Shutdown", id));
-  }
-
-  private Mono<Void> applyBeforeDestroy() {
-    return Mono.defer(
-        () ->
-            Mono.whenDelayError(
-                serviceRegistry.listServices().stream()
-                    .map(ServiceInfo::serviceInstance)
-                    .map(s -> Mono.fromRunnable(() -> Injector.processBeforeDestroy(this, s)))
-                    .collect(Collectors.toList())));
+    return Flux.fromStream(context.serviceRegistry.listServiceEndpoints().stream())
+        .map(ServiceDiscoveryEvent::newEndpointAdded)
+        .concatWith(discoverySink.asFlux().onBackpressureBuffer())
+        .subscribeOn(scheduler)
+        .publishOn(scheduler);
   }
 
   @Override
   public void close() {
-    try {
-      shutdown().toFuture().get();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    LOGGER.log(Level.INFO, "[{0}] Closing {1} ...", instanceId, this);
+    processBeforeDestroy();
+    closeDiscovery();
+    closeGateways();
+    closeTransport();
+    LOGGER.log(Level.INFO, "[{0}] Closed {1}", instanceId, this);
+  }
+
+  private void processBeforeDestroy() {
+    context
+        .serviceRegistry
+        .listServices()
+        .forEach(
+            serviceInfo -> {
+              try {
+                Injector.processBeforeDestroy(this, serviceInfo.serviceInstance());
+              } catch (Exception e) {
+                LOGGER.log(
+                    Level.ERROR,
+                    "[{0}][processBeforeDestroy] Exception occurred: {1}",
+                    instanceId,
+                    e.toString());
+              }
+            });
+  }
+
+  private void closeTransport() {
+    if (clientTransport != null) {
+      try {
+        clientTransport.close();
+      } catch (Exception e) {
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][clientTransport.close] Exception occurred: {1}",
+            instanceId,
+            e.toString());
+      }
+    }
+
+    if (serverTransport != null) {
+      try {
+        serverTransport.stop();
+      } catch (Exception e) {
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][serverTransport.close] Exception occurred: {1}",
+            instanceId,
+            e.toString());
+      }
+    }
+
+    if (serviceTransport != null) {
+      try {
+        serviceTransport.stop();
+      } catch (Exception e) {
+        LOGGER.log(
+            Level.ERROR,
+            "[{0}][serviceTransport.stop] Exception occurred: {1}",
+            instanceId,
+            e.toString());
+      }
     }
   }
 
-  public static final class Builder {
+  private void closeGateways() {
+    gateways.forEach(
+        gateway -> {
+          try {
+            gateway.stop();
+          } catch (Exception e) {
+            LOGGER.log(
+                Level.ERROR,
+                "[{0}][gateway.stop] Exception occurred: {1}",
+                instanceId,
+                e.toString());
+          }
+        });
+  }
 
-    private Map<String, String> tags = new HashMap<>();
-    private final List<ServiceProvider> serviceProviders = new ArrayList<>();
-    private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
-    private Authenticator<Object> defaultAuthenticator = null;
-    private final ServiceDiscoveryBootstrap discoveryBootstrap = new ServiceDiscoveryBootstrap();
-    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
-    private final GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
-    private ServiceProviderErrorMapper defaultErrorMapper = DefaultErrorMapper.INSTANCE;
-    private ServiceMessageDataDecoder defaultDataDecoder =
-        Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
-            .orElse((message, dataType) -> message);
-    private String defaultContentType = ServiceMessage.DEFAULT_DATA_FORMAT;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper = null;
+  private void closeDiscovery() {
+    disposables.dispose();
+
+    if (serviceDiscovery != null) {
+      try {
+        serviceDiscovery.shutdown();
+      } catch (Exception e) {
+        LOGGER.log(
+            Level.ERROR, "[{0}][closeDiscovery] Exception occurred: {1}", instanceId, e.toString());
+      }
+    }
+
+    if (scheduler != null) {
+      scheduler.dispose();
+    }
+  }
+
+  public static final class Context {
+
+    private final AtomicBoolean isConcluded = new AtomicBoolean();
+
+    private Map<String, String> tags;
+    private List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private ServiceRegistry serviceRegistry;
+    private Authenticator<Object> defaultAuthenticator;
+    private PrincipalMapper<Object, Object> defaultPrincipalMapper;
+    private ServiceProviderErrorMapper defaultErrorMapper;
+    private ServiceMessageDataDecoder defaultDataDecoder;
     private String externalHost;
     private Integer externalPort;
+    private ServiceDiscoveryFactory discoveryFactory;
+    private Supplier<ServiceTransport> transportSupplier;
+    private List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
 
-    public Mono<Microservices> start() {
-      return Mono.defer(() -> new Microservices(this).start());
-    }
+    public Context() {}
 
-    public Microservices startAwait() {
-      return start().block();
-    }
-
-    public Builder services(ServiceInfo... services) {
+    /**
+     * Setter for services.
+     *
+     * @param services {@link ServiceInfo} objects
+     * @return this
+     */
+    public Context services(ServiceInfo... services) {
       serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
       return this;
     }
 
     /**
-     * Adds service instance to microservice.
+     * Setter for services. All services that are not instance of {@link ServiceInfo} will be
+     * wrapped into {@link ServiceInfo}.
      *
-     * @param services service instance.
-     * @return builder
+     * @param services services
+     * @return this
      */
-    public Builder services(Object... services) {
+    public Context services(Object... services) {
       serviceProviders.add(
           call ->
               Arrays.stream(services)
@@ -403,43 +560,93 @@ public final class Microservices implements AutoCloseable {
       return this;
     }
 
-    public Builder services(ServiceProvider serviceProvider) {
+    /**
+     * Setter for {@link ServiceProvider}.
+     *
+     * @param serviceProvider serviceProvider
+     * @return this
+     */
+    public Context services(ServiceProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }
 
-    public Builder externalHost(String externalHost) {
+    /**
+     * Setter for externalHost. If specified, this host will be assgined to the host of the {@link
+     * ServiceEndpoint#address()}.
+     *
+     * @param externalHost externalHost
+     * @return this
+     */
+    public Context externalHost(String externalHost) {
       this.externalHost = externalHost;
       return this;
     }
 
-    public Builder externalPort(Integer externalPort) {
+    /**
+     * Setter for externalPort. If specified, this port will be assgined to the port of the {@link
+     * ServiceEndpoint#address()}.
+     *
+     * @param externalPort externalPort
+     * @return this
+     */
+    public Context externalPort(Integer externalPort) {
       this.externalPort = externalPort;
       return this;
     }
 
-    public Builder serviceRegistry(ServiceRegistry serviceRegistry) {
-      this.serviceRegistry = serviceRegistry;
-      return this;
-    }
-
-    public Builder discovery(ServiceDiscoveryFactory discoveryFactory) {
-      this.discoveryBootstrap.operator(options -> options.discoveryFactory(discoveryFactory));
-      return this;
-    }
-
-    public Builder transport(Supplier<ServiceTransport> supplier) {
-      this.transportBootstrap = new ServiceTransportBootstrap(supplier);
-      return this;
-    }
-
-    public Builder tags(Map<String, String> tags) {
+    /**
+     * Setter for tags.
+     *
+     * @param tags tags
+     * @return this
+     */
+    public Context tags(Map<String, String> tags) {
       this.tags = tags;
       return this;
     }
 
-    public Builder gateway(Function<GatewayOptions, Gateway> factory) {
-      gatewayBootstrap.addFactory(factory);
+    /**
+     * Setter for {@link ServiceRegistry}.
+     *
+     * @param serviceRegistry serviceRegistry
+     * @return this
+     */
+    public Context serviceRegistry(ServiceRegistry serviceRegistry) {
+      this.serviceRegistry = serviceRegistry;
+      return this;
+    }
+
+    /**
+     * Setter for {@link ServiceDiscoveryFactory}.
+     *
+     * @param discoveryFactory discoveryFactory
+     * @return this
+     */
+    public Context discovery(ServiceDiscoveryFactory discoveryFactory) {
+      this.discoveryFactory = discoveryFactory;
+      return this;
+    }
+
+    /**
+     * Setter for supplier of {@link ServiceTransport} instance.
+     *
+     * @param transportSupplier supplier of {@link ServiceTransport} instance
+     * @return this
+     */
+    public Context transport(Supplier<ServiceTransport> transportSupplier) {
+      this.transportSupplier = transportSupplier;
+      return this;
+    }
+
+    /**
+     * Setter for gateway.
+     *
+     * @param factory gateway factory
+     * @return this
+     */
+    public Context gateway(Function<GatewayOptions, Gateway> factory) {
+      gatewayFactories.add(factory);
       return this;
     }
 
@@ -450,8 +657,8 @@ public final class Microservices implements AutoCloseable {
      * @param errorMapper error mapper; not null
      * @return this builder with applied parameter
      */
-    public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.defaultErrorMapper = Objects.requireNonNull(errorMapper, "default errorMapper");
+    public Context defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
+      this.defaultErrorMapper = errorMapper;
       return this;
     }
 
@@ -463,20 +670,8 @@ public final class Microservices implements AutoCloseable {
      * @param dataDecoder data decoder; not null
      * @return this builder with applied parameter
      */
-    public Builder defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
-      this.defaultDataDecoder = Objects.requireNonNull(dataDecoder, "default dataDecoder");
-      return this;
-    }
-
-    /**
-     * Setter for default {@code contentType}. By default, default {@code contentType} is set to
-     * {@link ServiceMessage#DEFAULT_DATA_FORMAT}.
-     *
-     * @param contentType contentType; not null
-     * @return this builder with applied parameter
-     */
-    public Builder defaultContentType(String contentType) {
-      this.defaultContentType = Objects.requireNonNull(contentType, "default contentType");
+    public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
+      this.defaultDataDecoder = dataDecoder;
       return this;
     }
 
@@ -486,7 +681,7 @@ public final class Microservices implements AutoCloseable {
      * @param authenticator authenticator; optional
      * @return this builder with applied parameter
      */
-    public <T> Builder defaultAuthenticator(Authenticator<? extends T> authenticator) {
+    public <T> Context defaultAuthenticator(Authenticator<? extends T> authenticator) {
       //noinspection unchecked
       this.defaultAuthenticator = (Authenticator<Object>) authenticator;
       return this;
@@ -501,261 +696,45 @@ public final class Microservices implements AutoCloseable {
      * @param <R> principal type
      * @return this builder with applied parameter
      */
-    public <T, R> Builder defaultPrincipalMapper(
+    public <T, R> Context defaultPrincipalMapper(
         PrincipalMapper<? super T, ? extends R> principalMapper) {
       //noinspection unchecked
       this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
-  }
 
-  private static class ServiceDiscoveryBootstrap implements AutoCloseable {
-
-    private UnaryOperator<ServiceDiscoveryOptions> operator;
-    private ServiceDiscovery serviceDiscovery;
-
-    // Sink
-    private final Sinks.Many<ServiceDiscoveryEvent> sink =
-        Sinks.many().multicast().directBestEffort();
-
-    private final Disposable.Composite disposables = Disposables.composite();
-    private Scheduler scheduler;
-    private Microservices microservices;
-
-    private ServiceDiscoveryBootstrap() {}
-
-    private ServiceDiscoveryBootstrap operator(UnaryOperator<ServiceDiscoveryOptions> op) {
-      operator = op;
-      return this;
-    }
-
-    private ServiceDiscoveryBootstrap conclude(
-        Microservices microservices, ServiceDiscoveryOptions options) {
-      this.microservices = microservices;
-      this.scheduler = Schedulers.newSingle("discovery", true);
-
-      if (operator == null) {
-        return this;
+    private Context conclude() {
+      if (!isConcluded.compareAndSet(false, true)) {
+        throw new IllegalStateException("Context is already concluded");
       }
 
-      options = operator.apply(options);
-      final ServiceEndpoint serviceEndpoint = options.serviceEndpoint();
-      final ServiceDiscoveryFactory discoveryFactory = options.discoveryFactory();
-
-      if (discoveryFactory == null) {
-        return this;
+      if (defaultErrorMapper == null) {
+        defaultErrorMapper = DefaultErrorMapper.INSTANCE;
       }
 
-      serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
-
-      return this;
-    }
-
-    private Mono<Void> startListen() {
-      return Mono.defer(
-          () -> {
-            if (serviceDiscovery == null) {
-              return Mono.empty();
-            }
-
-            disposables.add(
-                serviceDiscovery
-                    .listen()
-                    .subscribeOn(scheduler)
-                    .publishOn(scheduler)
-                    .doOnNext(event -> onDiscoveryEvent(microservices, event))
-                    .doOnNext(event -> sink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
-                    .subscribe());
-
-            return Mono.fromRunnable(serviceDiscovery::start)
-                .then()
-                .doOnSubscribe(s -> LOGGER.info("[{}][startListen] Starting", microservices.id()))
-                .doOnSuccess(avoid -> LOGGER.info("[{}][startListen] Started", microservices.id()))
-                .doOnError(
-                    ex ->
-                        LOGGER.error(
-                            "[{}][startListen] Exception occurred: {}",
-                            microservices.id(),
-                            ex.toString()));
-          });
-    }
-
-    public Flux<ServiceDiscoveryEvent> listen() {
-      return Flux.fromStream(microservices.serviceRegistry.listServiceEndpoints().stream())
-          .map(ServiceDiscoveryEvent::newEndpointAdded)
-          .concatWith(sink.asFlux().onBackpressureBuffer())
-          .subscribeOn(scheduler)
-          .publishOn(scheduler);
-    }
-
-    private void onDiscoveryEvent(Microservices microservices, ServiceDiscoveryEvent event) {
-      if (event.isEndpointAdded()) {
-        microservices.serviceRegistry.registerService(event.serviceEndpoint());
+      if (defaultDataDecoder == null) {
+        defaultDataDecoder =
+            Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
+                .orElse((message, dataType) -> message);
       }
-      if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
-        microservices.serviceRegistry.unregisterService(event.serviceEndpoint().id());
+
+      if (serviceRegistry == null) {
+        serviceRegistry = new ServiceRegistryImpl();
       }
-    }
 
-    @Override
-    public void close() {
-      disposables.dispose();
-
-      sink.emitComplete(busyLooping(Duration.ofSeconds(3)));
-
-      try {
-        if (serviceDiscovery != null) {
-          serviceDiscovery.shutdown();
-        }
-      } finally {
-        if (scheduler != null) {
-          scheduler.dispose();
-        }
+      if (tags == null) {
+        tags = new HashMap<>();
       }
-    }
-  }
 
-  private static class GatewayBootstrap implements AutoCloseable {
+      if (serviceProviders == null) {
+        serviceProviders = new ArrayList<>();
+      }
 
-    private final List<Function<GatewayOptions, Gateway>> factories = new ArrayList<>();
-    private final List<Gateway> gateways = new CopyOnWriteArrayList<>();
-
-    private GatewayBootstrap addFactory(Function<GatewayOptions, Gateway> factory) {
-      this.factories.add(factory);
-      return this;
-    }
-
-    private GatewayBootstrap start(Microservices microservices, GatewayOptions options) {
-      for (Function<GatewayOptions, Gateway> factory : factories) {
-        LOGGER.info("[{}][gateway][{}][start] Starting", microservices.id(), options.id());
-
-        try {
-          final Gateway gateway = factory.apply(options).start().toFuture().get();
-
-          gateways.add(gateway);
-
-          LOGGER.info(
-              "[{}][gateway][{}][start] Started, address: {}",
-              microservices.id(),
-              gateway.id(),
-              gateway.address());
-        } catch (Exception ex) {
-          LOGGER.error(
-              "[{}][gateway][{}][start] Exception occurred: {}",
-              microservices.id(),
-              options.id(),
-              ex.toString());
-          throw new RuntimeException(ex);
-        }
+      if (gatewayFactories == null) {
+        gatewayFactories = new ArrayList<>();
       }
 
       return this;
-    }
-
-    private List<Gateway> gateways() {
-      return new ArrayList<>(gateways);
-    }
-
-    private Gateway gateway(String id) {
-      return gateways.stream()
-          .filter(gateway -> gateway.id().equals(id))
-          .findFirst()
-          .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
-    }
-
-    @Override
-    public void close() {
-      try {
-        Mono.whenDelayError(gateways.stream().map(Gateway::stop).toArray(Mono[]::new))
-            .toFuture()
-            .get();
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-  }
-
-  private static class ServiceTransportBootstrap implements AutoCloseable {
-
-    private final Supplier<ServiceTransport> transportSupplier;
-
-    private ServiceTransport serviceTransport;
-    private ClientTransport clientTransport;
-    private ServerTransport serverTransport;
-    private Address transportAddress = Address.NULL_ADDRESS;
-
-    private ServiceTransportBootstrap() {
-      this(null);
-    }
-
-    private ServiceTransportBootstrap(Supplier<ServiceTransport> transportSupplier) {
-      this.transportSupplier = transportSupplier;
-    }
-
-    private ServiceTransportBootstrap start(Microservices microservices) {
-      if (transportSupplier == null || (serviceTransport = transportSupplier.get()) == null) {
-        return this;
-      }
-
-      LOGGER.info("[{}][serviceTransport][start] Starting", microservices.id());
-
-      try {
-        try {
-          serviceTransport = serviceTransport.start();
-          serverTransport = serviceTransport.serverTransport(microservices.serviceRegistry).bind();
-        } catch (Exception e) {
-          throw new RuntimeException(e);
-        }
-
-        transportAddress = prepareAddress(serverTransport.address());
-        clientTransport = serviceTransport.clientTransport();
-
-        LOGGER.info(
-            "[{}][serviceTransport][start] Started, address: {}",
-            microservices.id(),
-            serverTransport.address());
-
-        return this;
-      } catch (Exception ex) {
-        LOGGER.error(
-            "[{}][serviceTransport][start] Exception occurred: {}",
-            microservices.id(),
-            ex.toString());
-        throw new RuntimeException(ex);
-      }
-    }
-
-    private static Address prepareAddress(Address address) {
-      final InetAddress inetAddress;
-      try {
-        inetAddress = InetAddress.getByName(address.host());
-      } catch (UnknownHostException e) {
-        throw Exceptions.propagate(e);
-      }
-      if (inetAddress.isAnyLocalAddress()) {
-        return Address.create(Address.getLocalIpAddress().getHostAddress(), address.port());
-      } else {
-        return Address.create(inetAddress.getHostAddress(), address.port());
-      }
-    }
-
-    @Override
-    public void close() {
-      if (serverTransport != null) {
-        try {
-          serverTransport.stop();
-        } catch (Exception e) {
-          LOGGER.warn("[serverTransport][stop] Exception: {}", e.toString());
-        }
-      }
-
-      if (serviceTransport != null) {
-        try {
-          serviceTransport.stop();
-        } catch (Exception e) {
-          LOGGER.warn("[serviceTransport][stop] Exception: {}", e.toString());
-        }
-      }
     }
   }
 }

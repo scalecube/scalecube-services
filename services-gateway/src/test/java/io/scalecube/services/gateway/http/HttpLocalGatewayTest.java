@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.Qualifier;
@@ -45,14 +46,14 @@ class HttpLocalGatewayTest extends BaseTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
-            .services(new GreetingServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
+                .services(new GreetingServiceImpl())
+                .services(
+                    ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                        .errorMapper(ERROR_MAPPER)
+                        .build()));
     gatewayAddress = gateway.gateway("HTTP").address();
     router = new StaticAddressRouter(gatewayAddress);
   }

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
@@ -28,13 +29,13 @@ public class ServiceLocalTest extends BaseTest {
 
   @BeforeEach
   public void setUp() {
-    microservices = Microservices.builder().services(new GreetingServiceImpl()).startAwait();
+    microservices = Microservices.start(new Context().services(new GreetingServiceImpl()));
   }
 
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
-      microservices.shutdown().block(timeout);
+      microservices.close();
     }
   }
 
@@ -45,8 +46,8 @@ public class ServiceLocalTest extends BaseTest {
     // call the service.
     GreetingResponse result =
         service
-            .greetingRequestTimeout(new GreetingRequest("joe", timeout))
-            .block(timeout.plusSeconds(1));
+            .greetingRequestTimeout(new GreetingRequest("joe", Duration.ofMillis(500)))
+            .block(timeout.plusMillis(500));
 
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
@@ -155,7 +156,7 @@ public class ServiceLocalTest extends BaseTest {
             RuntimeException.class,
             () ->
                 Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
-                    .timeout(Duration.ofSeconds(1))
+                    .timeout(Duration.ofMillis(500))
                     .block());
     assertTrue(
         exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));

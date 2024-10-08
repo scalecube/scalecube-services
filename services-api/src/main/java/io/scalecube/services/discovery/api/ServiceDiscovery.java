@@ -13,18 +13,15 @@ public interface ServiceDiscovery {
   Address address();
 
   /**
-   * Function to subscribe and listen on stream of {@code ServiceDiscoveryEvent}\s.
+   * Function to subscribe and listen on service discovery stream.
    *
-   * @return stream of {@code ServiceDiscoveryEvent}\s
+   * @return stream of {@code ServiceDiscoveryEvent} objects
    */
   Flux<ServiceDiscoveryEvent> listen();
 
-  /**
-   * Starts this {@link ServiceDiscovery} instance. After started - subscribers begin to receive
-   * {@code ServiceDiscoveryEvent}\s on {@link #listen()}.
-   */
+  /** Starts this instance. */
   void start();
 
-  /** Stops this {@link ServiceDiscovery} instance and release occupied resources. */
+  /** Stops this instance and release occupied resources. */
   void shutdown();
 }

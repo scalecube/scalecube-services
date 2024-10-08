@@ -21,9 +21,9 @@ public interface ServiceRegistry {
 
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
-  ServiceEndpoint unregisterService(String endpointId);
-
   void registerService(ServiceInfo serviceInfo);
+
+  ServiceEndpoint unregisterService(String endpointId);
 
   List<ServiceInfo> listServices();
 

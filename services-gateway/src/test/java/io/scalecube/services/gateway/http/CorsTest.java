@@ -9,6 +9,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.BaseTest;
@@ -37,7 +38,7 @@ public class CorsTest extends BaseTest {
   @AfterEach
   void afterEach() {
     if (gateway != null) {
-      gateway.shutdown().block();
+      gateway.close();
     }
     if (connectionProvider != null) {
       connectionProvider.dispose();
@@ -47,19 +48,19 @@ public class CorsTest extends BaseTest {
   @Test
   void testCrossOriginRequest() {
     gateway =
-        Microservices.builder()
-            .gateway(
-                opts ->
-                    new HttpGateway.Builder()
-                        .options(opts.id("http"))
-                        .corsEnabled(true)
-                        .corsConfigBuilder(
-                            builder ->
-                                builder.allowedRequestHeaders("Content-Type", "X-Correlation-ID"))
-                        .build())
-            .services(new GreetingServiceImpl())
-            .start()
-            .block(TIMEOUT);
+        Microservices.start(
+            new Context()
+                .gateway(
+                    opts ->
+                        new HttpGateway.Builder()
+                            .options(opts.id("http"))
+                            .corsEnabled(true)
+                            .corsConfigBuilder(
+                                builder ->
+                                    builder.allowedRequestHeaders(
+                                        "Content-Type", "X-Correlation-ID"))
+                            .build())
+                .services(new GreetingServiceImpl()));
 
     final HttpClient client = newClient(gateway.gateway("http").address());
 
@@ -111,11 +112,10 @@ public class CorsTest extends BaseTest {
   @Test
   void testOptionRequestCorsDisabled() {
     gateway =
-        Microservices.builder()
-            .gateway(opts -> new HttpGateway.Builder().options(opts.id("http")).build())
-            .services(new GreetingServiceImpl())
-            .start()
-            .block(TIMEOUT);
+        Microservices.start(
+            new Context()
+                .gateway(opts -> new HttpGateway.Builder().options(opts.id("http")).build())
+                .services(new GreetingServiceImpl()));
 
     final HttpClient client = newClient(gateway.gateway("http").address());
 

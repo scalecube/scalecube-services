@@ -1,6 +1,7 @@
 package io.scalecube.services.examples.auth;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.auth.Authenticator;
@@ -24,29 +25,30 @@ public class PrincipalMapperAuthExample {
    */
   public static void main(String[] args) {
     Microservices service =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
-            .services(
-                ServiceInfo.fromServiceInstance(new SecuredServiceByApiKeyImpl())
-                    .principalMapper(PrincipalMapperAuthExample::apiKeyPrincipalMapper)
-                    .build())
-            .services(
-                ServiceInfo.fromServiceInstance(new SecuredServiceByUserProfileImpl())
-                    .principalMapper(PrincipalMapperAuthExample::userProfilePrincipalMapper)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(() -> new RSocketServiceTransport().authenticator(authenticator()))
+                .services(
+                    ServiceInfo.fromServiceInstance(new SecuredServiceByApiKeyImpl())
+                        .principalMapper(PrincipalMapperAuthExample::apiKeyPrincipalMapper)
+                        .build())
+                .services(
+                    ServiceInfo.fromServiceInstance(new SecuredServiceByUserProfileImpl())
+                        .principalMapper(PrincipalMapperAuthExample::userProfilePrincipalMapper)
+                        .build()));
 
     Microservices userProfileCaller =
-        Microservices.builder()
-            .discovery(endpoint -> discovery(service, endpoint))
-            .transport(
-                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(endpoint -> discovery(service, endpoint))
+                .transport(
+                    () ->
+                        new RSocketServiceTransport().credentialsSupplier(credentialsSupplier())));
 
     String responseByUserProfile =
         userProfileCaller
@@ -58,11 +60,12 @@ public class PrincipalMapperAuthExample {
     System.err.println("### Received 'userProfileCaller' response: " + responseByUserProfile);
 
     Microservices apiKeyCaller =
-        Microservices.builder()
-            .discovery(endpoint -> discovery(service, endpoint))
-            .transport(
-                () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier()))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(endpoint -> discovery(service, endpoint))
+                .transport(
+                    () ->
+                        new RSocketServiceTransport().credentialsSupplier(credentialsSupplier())));
 
     String responseByApiKey =
         apiKeyCaller

@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.services.Address;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
@@ -35,7 +36,6 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,81 +56,81 @@ public class RoutersTest extends BaseTest {
   @BeforeAll
   public static void setup() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new));
 
     gatewayAddress = gateway.discoveryAddress();
 
     // Create microservices instance cluster.
     provider1 =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
-                    .tag("ONLYFOR", "joe")
-                    .tag("SENDER", "1")
-                    .build(),
-                ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
-                    .tag("Weight", "0.1")
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
+                        .tag("ONLYFOR", "joe")
+                        .tag("SENDER", "1")
+                        .build(),
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
+                        .tag("Weight", "0.1")
+                        .build()));
 
     // Create microservices instance cluster.
     provider2 =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
-                    .tag("ONLYFOR", "fransin")
-                    .tag("SENDER", "2")
-                    .build(),
-                ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
-                    .tag("Weight", "0.9")
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
+                        .tag("ONLYFOR", "fransin")
+                        .tag("SENDER", "2")
+                        .build(),
+                    ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
+                        .tag("Weight", "0.9")
+                        .build()));
 
     TagService tagService = input -> input.map(String::toUpperCase);
     provider3 =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(endpoint))
-                        .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(
-                ServiceInfo.fromServiceInstance(tagService)
-                    .tag("tagB", "bb")
-                    .tag("tagC", "c")
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(endpoint))
+                            .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(
+                    ServiceInfo.fromServiceInstance(tagService)
+                        .tag("tagB", "bb")
+                        .tag("tagC", "c")
+                        .build()));
   }
 
   @AfterAll
   public static void tearDown() {
-    gateway.shutdown().block();
-    provider1.shutdown().block();
-    provider2.shutdown().block();
-    provider3.shutdown().block();
+    gateway.close();
+    provider1.close();
+    provider2.close();
+    provider3.close();
   }
 
   @Test
@@ -162,15 +162,13 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_service_tags() throws Exception {
+  public void test_remote_service_tags() {
 
     CanaryService service =
         gateway
             .call()
             .router(Routers.getRouter(WeightedRandomRouter.class))
             .api(CanaryService.class);
-
-    Thread.sleep(1000);
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
@@ -261,9 +259,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_service_tags() throws Exception {
-
-    TimeUnit.SECONDS.sleep(3);
+  public void test_service_tags() {
     ServiceCall service = gateway.call().router(WeightedRandomRouter.class);
 
     ServiceMessage req =

@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.Address;
-import reactor.core.publisher.Mono;
 
 public interface Gateway {
 
@@ -20,16 +19,12 @@ public interface Gateway {
   Address address();
 
   /**
-   * Starts the gateway.
+   * Starts gateway.
    *
-   * @return mono result
+   * @return gateway instance
    */
-  Mono<Gateway> start();
+  Gateway start();
 
-  /**
-   * Stops the gateway.
-   *
-   * @return stop signal
-   */
-  Mono<Void> stop();
+  /** Stops gateway. */
+  void stop();
 }

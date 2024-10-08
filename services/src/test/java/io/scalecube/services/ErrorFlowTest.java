@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.BadRequestException;
@@ -30,28 +31,29 @@ public class ErrorFlowTest extends BaseTest {
   @BeforeAll
   public static void initNodes() throws InterruptedException {
     provider =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .transport(cfg -> cfg.port(PORT.incrementAndGet()))
-                        .options(opts -> opts.metadata(endpoint)))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .transport(cfg -> cfg.port(PORT.incrementAndGet()))
+                            .options(opts -> opts.metadata(endpoint)))
+                .transport(RSocketServiceTransport::new)
+                .services(new GreetingServiceImpl()));
 
     consumer =
-        Microservices.builder()
-            .discovery(
-                endpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .membership(cfg -> cfg.seedMembers(provider.discoveryAddress().toString()))
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .transport(cfg -> cfg.port(PORT.incrementAndGet()))
-                        .options(opts -> opts.metadata(endpoint)))
-            .transport(RSocketServiceTransport::new)
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    endpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .membership(
+                                cfg -> cfg.seedMembers(provider.discoveryAddress().toString()))
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .transport(cfg -> cfg.port(PORT.incrementAndGet()))
+                            .options(opts -> opts.metadata(endpoint)))
+                .transport(RSocketServiceTransport::new));
 
     while (consumer.serviceEndpoints().size() != 1) {
       //noinspection BusyWait
@@ -61,8 +63,8 @@ public class ErrorFlowTest extends BaseTest {
 
   @AfterAll
   public static void shutdownNodes() {
-    consumer.shutdown().block();
-    provider.shutdown().block();
+    consumer.close();
+    provider.close();
   }
 
   @Test

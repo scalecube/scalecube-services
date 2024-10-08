@@ -11,8 +11,6 @@ import io.scalecube.services.gateway.GatewayOptions;
 import java.net.InetSocketAddress;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
@@ -40,20 +38,25 @@ public class HttpGateway implements Gateway {
   }
 
   @Override
-  public Mono<Gateway> start() {
-    return Mono.defer(
-        () -> {
-          HttpGatewayAcceptor gatewayAcceptor =
-              new HttpGatewayAcceptor(options.call(), errorMapper);
+  public Gateway start() {
+    HttpGatewayAcceptor gatewayAcceptor = new HttpGatewayAcceptor(options.call(), errorMapper);
 
-          loopResources = LoopResources.create(options.id() + ":" + options.port());
+    loopResources =
+        LoopResources.create(
+            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
-          return prepareHttpServer(loopResources, options.port())
-              .handle(gatewayAcceptor)
-              .bind()
-              .doOnSuccess(server -> this.server = server)
-              .thenReturn(this);
-        });
+    try {
+      prepareHttpServer(loopResources, options.port())
+          .handle(gatewayAcceptor)
+          .bind()
+          .doOnSuccess(server -> this.server = server)
+          .toFuture()
+          .get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return this;
   }
 
   private HttpServer prepareHttpServer(LoopResources loopResources, int port) {
@@ -80,24 +83,21 @@ public class HttpGateway implements Gateway {
   }
 
   @Override
-  public Mono<Void> stop() {
-    return Flux.concatDelayError(shutdownServer(server), shutdownLoopResources(loopResources))
-        .then();
+  public void stop() {
+    shutdownServer(server);
+    shutdownLoopResources(loopResources);
   }
 
-  private Mono<Void> shutdownServer(DisposableServer server) {
-    return Mono.defer(
-        () -> {
-          if (server != null) {
-            server.dispose();
-            return server.onDispose();
-          }
-          return Mono.empty();
-        });
+  private void shutdownServer(DisposableServer server) {
+    if (server != null) {
+      server.dispose();
+    }
   }
 
-  private Mono<Void> shutdownLoopResources(LoopResources loopResources) {
-    return loopResources != null ? loopResources.disposeLater() : Mono.empty();
+  private void shutdownLoopResources(LoopResources loopResources) {
+    if (loopResources != null) {
+      loopResources.dispose();
+    }
   }
 
   @Override
@@ -162,7 +162,7 @@ public class HttpGateway implements Gateway {
     }
 
     public Builder corsConfigBuilder(Consumer<CorsConfigBuilder> consumer) {
-      consumer.accept(this.corsConfigBuilder);
+      consumer.accept(corsConfigBuilder);
       return this;
     }
 

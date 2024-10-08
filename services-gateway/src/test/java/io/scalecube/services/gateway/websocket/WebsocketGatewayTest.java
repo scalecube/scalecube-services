@@ -4,6 +4,7 @@ import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.Qualifier;
@@ -51,35 +52,36 @@ class WebsocketGatewayTest extends BaseTest {
   @BeforeAll
   static void beforeAll() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .gateway(options -> new WebsocketGateway.Builder().options(options.id("WS")).build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .gateway(
+                    options -> new WebsocketGateway.Builder().options(options.id("WS")).build()));
 
     gatewayAddress = gateway.gateway("WS").address();
     router = new StaticAddressRouter(gatewayAddress);
 
     microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(
-                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl())
-            .services(
-                ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
-                    .errorMapper(ERROR_MAPPER)
-                    .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint))
+                            .membership(
+                                opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new GreetingServiceImpl())
+                .services(
+                    ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
+                        .errorMapper(ERROR_MAPPER)
+                        .build()));
   }
 
   @BeforeEach

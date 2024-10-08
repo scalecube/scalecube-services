@@ -11,8 +11,6 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -45,21 +43,28 @@ public class WebsocketGateway implements Gateway {
   }
 
   @Override
-  public Mono<Gateway> start() {
-    return Mono.defer(
-        () -> {
-          WebsocketGatewayAcceptor gatewayAcceptor =
-              new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
+  public Gateway start() {
+    WebsocketGatewayAcceptor gatewayAcceptor =
+        new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
 
-          loopResources = LoopResources.create(options.id() + ":" + options.port());
+    loopResources =
+        LoopResources.create(
+            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
-          return prepareHttpServer(loopResources, options.port())
-              .doOnConnection(this::setupKeepAlive)
-              .handle(gatewayAcceptor)
-              .bind()
-              .doOnSuccess(server -> this.server = server)
-              .thenReturn(this);
-        });
+    try {
+      prepareHttpServer(loopResources, options.port())
+          .doOnConnection(this::setupKeepAlive)
+          .handle(gatewayAcceptor)
+          .bind()
+          .doOnSuccess(server -> this.server = server)
+          .thenReturn(this)
+          .toFuture()
+          .get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+
+    return this;
   }
 
   private HttpServer prepareHttpServer(LoopResources loopResources, int port) {
@@ -80,24 +85,21 @@ public class WebsocketGateway implements Gateway {
   }
 
   @Override
-  public Mono<Void> stop() {
-    return Flux.concatDelayError(shutdownServer(server), shutdownLoopResources(loopResources))
-        .then();
+  public void stop() {
+    shutdownServer(server);
+    shutdownLoopResources(loopResources);
   }
 
-  private Mono<Void> shutdownServer(DisposableServer server) {
-    return Mono.defer(
-        () -> {
-          if (server != null) {
-            server.dispose();
-            return server.onDispose();
-          }
-          return Mono.empty();
-        });
+  private void shutdownServer(DisposableServer server) {
+    if (server != null) {
+      server.dispose();
+    }
   }
 
-  private Mono<Void> shutdownLoopResources(LoopResources loopResources) {
-    return loopResources != null ? loopResources.disposeLater() : Mono.empty();
+  private void shutdownLoopResources(LoopResources loopResources) {
+    if (loopResources != null) {
+      loopResources.dispose();
+    }
   }
 
   private void setupKeepAlive(Connection connection) {

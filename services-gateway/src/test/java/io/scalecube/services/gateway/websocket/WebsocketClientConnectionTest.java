@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.BaseTest;
@@ -26,7 +27,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -44,46 +44,43 @@ class WebsocketClientConnectionTest extends BaseTest {
   @BeforeEach
   void beforEach() {
     gateway =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .gateway(
-                options ->
-                    new WebsocketGateway.Builder()
-                        .options(options.id("WS"))
-                        .gatewayHandler(sessionEventHandler)
-                        .build())
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint)))
+                .transport(RSocketServiceTransport::new)
+                .gateway(
+                    options ->
+                        new WebsocketGateway.Builder()
+                            .options(options.id("WS"))
+                            .gatewayHandler(sessionEventHandler)
+                            .build()));
 
     gatewayAddress = gateway.gateway("WS").address();
 
     microservices =
-        Microservices.builder()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint))
-                        .membership(
-                            opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
-            .transport(RSocketServiceTransport::new)
-            .services(new TestServiceImpl(onCloseCounter::incrementAndGet))
-            .startAwait();
+        Microservices.start(
+            new Context()
+                .discovery(
+                    serviceEndpoint ->
+                        new ScalecubeServiceDiscovery()
+                            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                            .options(opts -> opts.metadata(serviceEndpoint))
+                            .membership(
+                                opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
+                .transport(RSocketServiceTransport::new)
+                .services(new TestServiceImpl(onCloseCounter::incrementAndGet)));
 
     onCloseCounter.set(0);
   }
 
   @AfterEach
   void afterEach() {
-    Flux.concat(
-            Mono.justOrEmpty(gateway).map(Microservices::shutdown),
-            Mono.justOrEmpty(microservices).map(Microservices::shutdown))
-        .then()
-        .block();
+    gateway.close();
+    microservices.close();
   }
 
   @Test
