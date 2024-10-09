@@ -13,7 +13,6 @@
 
   <modules>
     <module>services-transport-jackson</module>
-    <module>services-transport-protostuff</module>
     <module>services-transport-rsocket</module>
   </modules>
 
