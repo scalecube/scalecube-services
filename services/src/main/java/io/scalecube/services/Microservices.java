@@ -611,17 +611,6 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for {@link ServiceRegistry}.
-     *
-     * @param serviceRegistry serviceRegistry
-     * @return this
-     */
-    public Context serviceRegistry(ServiceRegistry serviceRegistry) {
-      this.serviceRegistry = serviceRegistry;
-      return this;
-    }
-
-    /**
      * Setter for {@link ServiceDiscoveryFactory}.
      *
      * @param discoveryFactory discoveryFactory
@@ -734,15 +723,13 @@ public class Microservices implements AutoCloseable {
                 .orElse((message, dataType) -> message);
       }
 
-      if (serviceRegistry == null) {
-        serviceRegistry = new ServiceRegistryImpl();
-      }
-
       if (tags == null) {
         tags = new HashMap<>();
       }
 
       schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
+
+      serviceRegistry = new ServiceRegistryImpl(schedulers);
 
       return this;
     }

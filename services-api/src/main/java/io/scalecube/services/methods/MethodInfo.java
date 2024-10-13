@@ -4,6 +4,7 @@ import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.Qualifier;
 import java.lang.reflect.Type;
 import java.util.StringJoiner;
+import reactor.core.scheduler.Scheduler;
 
 public final class MethodInfo {
 
@@ -17,6 +18,7 @@ public final class MethodInfo {
   private final Class<?> requestType;
   private final boolean isRequestTypeServiceMessage;
   private final boolean isSecured;
+  private final Scheduler scheduler;
 
   /**
    * Create a new service info.
@@ -30,6 +32,7 @@ public final class MethodInfo {
    * @param requestType the type of the request
    * @param isRequestTypeServiceMessage is request service message
    * @param isSecured is method protected by authentication
+   * @param scheduler scheduler
    */
   public MethodInfo(
       String serviceName,
@@ -40,7 +43,8 @@ public final class MethodInfo {
       int parameterCount,
       Class<?> requestType,
       boolean isRequestTypeServiceMessage,
-      boolean isSecured) {
+      boolean isSecured,
+      Scheduler scheduler) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
@@ -51,6 +55,7 @@ public final class MethodInfo {
     this.requestType = requestType;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
     this.isSecured = isSecured;
+    this.scheduler = scheduler;
   }
 
   public String serviceName() {
@@ -101,12 +106,16 @@ public final class MethodInfo {
     return isSecured;
   }
 
+  public Scheduler scheduler() {
+    return scheduler;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
-        .add("serviceName=" + serviceName)
-        .add("methodName=" + methodName)
-        .add("qualifier=" + qualifier)
+        .add("serviceName='" + serviceName + "'")
+        .add("methodName='" + methodName + "'")
+        .add("qualifier='" + qualifier + "'")
         .add("parameterizedReturnType=" + parameterizedReturnType)
         .add("isReturnTypeServiceMessage=" + isReturnTypeServiceMessage)
         .add("communicationMode=" + communicationMode)
@@ -114,6 +123,7 @@ public final class MethodInfo {
         .add("requestType=" + requestType)
         .add("isRequestTypeServiceMessage=" + isRequestTypeServiceMessage)
         .add("isSecured=" + isSecured)
+        .add("scheduler=" + scheduler)
         .toString();
   }
 }

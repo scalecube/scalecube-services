@@ -5,6 +5,7 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
+import io.scalecube.services.annotations.ExecuteOn;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
@@ -21,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -28,6 +30,8 @@ import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public class Reflect {
 
@@ -172,7 +176,8 @@ public class Reflect {
                             method.getParameterCount(),
                             requestType(method),
                             isRequestTypeServiceMessage(method),
-                            isSecured(method)))));
+                            isSecured(method),
+                            null))));
   }
 
   /**
@@ -378,5 +383,78 @@ public class Reflect {
   public static boolean isSecured(Method method) {
     return method.isAnnotationPresent(Secured.class)
         || method.getDeclaringClass().isAnnotationPresent(Secured.class);
+  }
+
+  public static Scheduler executeOnScheduler(Method method, Map<String, Scheduler> schedulers) {
+    final Class<?> declaringClass = method.getDeclaringClass();
+
+    if (method.isAnnotationPresent(ExecuteOn.class)) {
+      final var executeOn = method.getAnnotation(ExecuteOn.class);
+      final var name = executeOn.value();
+      if (name == null || name.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Wrong @ExecuteOn definition on "
+                + declaringClass.getName()
+                + "."
+                + method.getName()
+                + " -- value is missing");
+      }
+      final var scheduler = schedulers.get(name);
+      if (scheduler == null) {
+        throw new IllegalArgumentException(
+            "Wrong @ExecuteOn definition on "
+                + declaringClass.getName()
+                + "."
+                + method.getName()
+                + " -- scheduler with name="
+                + name
+                + " cannot be found");
+      }
+      return scheduler;
+    }
+
+    // If @ExecuteOn annotation is not present on method, then find it on @Service interface
+
+    var clazz = declaringClass;
+
+    // Get all interfaces, including those inherited from superclasses
+    Set<Class<?>> allInterfaces = new HashSet<>();
+    while (clazz != null) {
+      Collections.addAll(allInterfaces, clazz.getInterfaces());
+      clazz = clazz.getSuperclass();
+    }
+
+    final var optional =
+        allInterfaces.stream()
+            .map(aClass -> aClass.getAnnotation(ExecuteOn.class))
+            .filter(Objects::nonNull)
+            .findFirst();
+
+    if (optional.isPresent()) {
+      final var executeOn = optional.get();
+      final var name = executeOn.value();
+      if (name == null || name.isEmpty()) {
+        throw new IllegalArgumentException(
+            "Wrong @ExecuteOn definition on "
+                + declaringClass.getName()
+                + "."
+                + method.getName()
+                + " -- value is missing");
+      }
+      final var scheduler = schedulers.get(name);
+      if (scheduler == null) {
+        throw new IllegalArgumentException(
+            "Wrong @ExecuteOn definition on "
+                + declaringClass.getName()
+                + "."
+                + method.getName()
+                + " -- scheduler with name="
+                + name
+                + " cannot be found");
+      }
+      return scheduler;
+    }
+
+    return Schedulers.immediate();
   }
 }
