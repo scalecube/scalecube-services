@@ -44,9 +44,7 @@ class HttpClientConnectionTest extends BaseTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .gateway(
-                    (context, call) ->
-                        new HttpGateway.Builder().id("HTTP").serviceCall(call).build()));
+                .gateway(() -> new HttpGateway.Builder().id("HTTP").build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
 

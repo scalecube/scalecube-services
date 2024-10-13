@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,8 +62,7 @@ class WebsocketGatewayTest extends BaseTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .gateway(
-                    (context, call) ->
-                        new WebsocketGateway.Builder().id("WS").serviceCall(call).build()));
+                    () -> new WebsocketGateway.Builder().id("WS").heartbeatEnabled(true).build()));
 
     gatewayAddress = gateway.gateway("WS").address();
     router = new StaticAddressRouter(gatewayAddress);
@@ -230,5 +230,13 @@ class WebsocketGatewayTest extends BaseTest {
   @Test
   void shouldReturnSomeExceptionOnMono() {
     StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldHeartbeat() {
+    final var value = System.nanoTime();
+    StepVerifier.create(serviceCall.api(HeartbeatService.class).ping(value))
+        .assertNext(pongValue -> Assertions.assertEquals(value, pongValue))
+        .verifyComplete();
   }
 }

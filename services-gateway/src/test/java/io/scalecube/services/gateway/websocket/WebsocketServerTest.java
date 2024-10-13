@@ -30,10 +30,9 @@ class WebsocketServerTest extends BaseTest {
         Microservices.start(
             new Context()
                 .gateway(
-                    (context, call) ->
+                    () ->
                         new WebsocketGateway.Builder()
                             .id("WS")
-                            .serviceCall(call)
                             .gatewayHandler(new TestGatewaySessionHandler())
                             .build())
                 .services(new TestServiceImpl()));

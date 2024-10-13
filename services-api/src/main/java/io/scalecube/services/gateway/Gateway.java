@@ -1,6 +1,8 @@
 package io.scalecube.services.gateway;
 
 import io.scalecube.services.Address;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.registry.api.ServiceRegistry;
 
 public interface Gateway {
 
@@ -21,9 +23,11 @@ public interface Gateway {
   /**
    * Starts gateway.
    *
+   * @param call {@link ServiceCall} instance
+   * @param serviceRegistry {@link ServiceRegistry} instance
    * @return gateway instance
    */
-  Gateway start();
+  Gateway start(ServiceCall call, ServiceRegistry serviceRegistry);
 
   /** Stops gateway. */
   void stop();

@@ -18,7 +18,7 @@ public interface ServiceTransport {
   /**
    * Provider for {@link ServerTransport}.
    *
-   * @param serviceRegistry serviceRegistry
+   * @param serviceRegistry {@link ServiceRegistry} instance
    * @return {@code ServerTransport} instance
    */
   ServerTransport serverTransport(ServiceRegistry serviceRegistry);

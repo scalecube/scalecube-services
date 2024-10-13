@@ -235,17 +235,16 @@ public class Microservices implements AutoCloseable {
   }
 
   private void startGateways() {
-    for (GatewayFactory factory : context.gatewayFactories) {
-      final var gateway = factory.newGateway(context, serviceCall);
-      final var finalGateway = gateway.start();
-      gateways.add(finalGateway);
+    for (var factory : context.gatewaySuppliers) {
+      final var gateway = factory.get().start(serviceCall, context.serviceRegistry);
+      gateways.add(gateway);
       LOGGER.log(
           Level.INFO,
           "[{0}] Started {1}, gateway: {2}@{3}",
           instanceId,
-          finalGateway,
-          finalGateway.id(),
-          finalGateway.address());
+          gateway,
+          gateway.id(),
+          gateway.address());
     }
   }
 
@@ -522,7 +521,7 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private List<GatewayFactory> gatewayFactories = new ArrayList<>();
+    private List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
 
     public Context() {}
 
@@ -626,9 +625,9 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for supplier of {@link ServiceTransport} instance.
+     * Setter for {@link ServiceTransport} supplier.
      *
-     * @param transportSupplier supplier of {@link ServiceTransport} instance
+     * @param transportSupplier {@link ServiceTransport} supplier
      * @return this
      */
     public Context transport(Supplier<ServiceTransport> transportSupplier) {
@@ -637,13 +636,13 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Adds {@link GatewayFactory} to the list of gateway factories.
+     * Adds {@link Gateway} supplier to the list of gateway suppliers.
      *
-     * @param gatewayFactory gatewayFactory
+     * @param gatewaySupplier gatewaySupplier
      * @return this
      */
-    public Context gateway(GatewayFactory gatewayFactory) {
-      gatewayFactories.add(gatewayFactory);
+    public Context gateway(Supplier<Gateway> gatewaySupplier) {
+      gatewaySuppliers.add(gatewaySupplier);
       return this;
     }
 
@@ -727,17 +726,11 @@ public class Microservices implements AutoCloseable {
         serviceProviders = new ArrayList<>();
       }
 
-      if (gatewayFactories == null) {
-        gatewayFactories = new ArrayList<>();
+      if (gatewaySuppliers == null) {
+        gatewaySuppliers = new ArrayList<>();
       }
 
       return this;
     }
-  }
-
-  @FunctionalInterface
-  public interface GatewayFactory {
-
-    Gateway newGateway(Context context, ServiceCall serviceCall);
   }
 }

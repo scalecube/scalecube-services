@@ -48,10 +48,9 @@ class WebsocketClientTest extends BaseTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .gateway(
-                    (context, call) ->
+                    () ->
                         new WebsocketGateway.Builder()
                             .id("WS")
-                            .serviceCall(call)
                             .gatewayHandler(new TestGatewaySessionHandler())
                             .build()));
 
