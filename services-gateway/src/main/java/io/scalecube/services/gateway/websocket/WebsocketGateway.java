@@ -10,7 +10,6 @@ import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.StringJoiner;
-import java.util.function.UnaryOperator;
 import reactor.netty.Connection;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -31,10 +30,6 @@ public class WebsocketGateway implements Gateway {
     this.gatewayHandler = builder.gatewayHandler;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.errorMapper = builder.errorMapper;
-  }
-
-  public WebsocketGateway(UnaryOperator<Builder> operator) {
-    this(operator.apply(new Builder()));
   }
 
   @Override
