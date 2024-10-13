@@ -4,20 +4,23 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
 import io.scalecube.services.Address;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayOptions;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import java.net.InetSocketAddress;
-import java.util.StringJoiner;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
 public class HttpGateway implements Gateway {
 
-  private final GatewayOptions options;
+  private final String id;
+  private final int port;
+  private final Function<ServiceCall, ServiceCall> callFactory;
   private final ServiceProviderErrorMapper errorMapper;
   private final boolean corsEnabled;
   private final CorsConfigBuilder corsConfigBuilder;
@@ -26,7 +29,9 @@ public class HttpGateway implements Gateway {
   private LoopResources loopResources;
 
   private HttpGateway(Builder builder) {
-    this.options = builder.options;
+    this.id = builder.id;
+    this.port = builder.port;
+    this.callFactory = builder.callFactory;
     this.errorMapper = builder.errorMapper;
     this.corsEnabled = builder.corsEnabled;
     this.corsConfigBuilder = builder.corsConfigBuilder;
@@ -34,20 +39,25 @@ public class HttpGateway implements Gateway {
 
   @Override
   public String id() {
-    return options.id();
+    return id;
   }
 
   @Override
-  public Gateway start() {
-    HttpGatewayAcceptor gatewayAcceptor = new HttpGatewayAcceptor(options.call(), errorMapper);
-
+  public Gateway start(ServiceCall call, ServiceRegistry serviceRegistry) {
     loopResources =
-        LoopResources.create(
-            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
+        LoopResources.create(id + ":" + port, LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
     try {
-      prepareHttpServer(loopResources, options.port())
-          .handle(gatewayAcceptor)
+      HttpServer.create()
+          .runOn(loopResources)
+          .bindAddress(() -> new InetSocketAddress(port))
+          .doOnConnection(
+              connection -> {
+                if (corsEnabled) {
+                  connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
+                }
+              })
+          .handle(new HttpGatewayAcceptor(callFactory.apply(call), errorMapper))
           .bind()
           .doOnSuccess(server -> this.server = server)
           .toFuture()
@@ -57,23 +67,6 @@ public class HttpGateway implements Gateway {
     }
 
     return this;
-  }
-
-  private HttpServer prepareHttpServer(LoopResources loopResources, int port) {
-    HttpServer httpServer = HttpServer.create();
-
-    if (loopResources != null) {
-      httpServer = httpServer.runOn(loopResources);
-    }
-
-    return httpServer
-        .bindAddress(() -> new InetSocketAddress(port))
-        .doOnConnection(
-            connection -> {
-              if (corsEnabled) {
-                connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
-              }
-            });
   }
 
   @Override
@@ -100,21 +93,11 @@ public class HttpGateway implements Gateway {
     }
   }
 
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", HttpGateway.class.getSimpleName() + "[", "]")
-        .add("options=" + options)
-        .add("errorMapper=" + errorMapper)
-        .add("corsEnabled=" + corsEnabled)
-        .add("corsConfigBuilder=" + corsConfigBuilder)
-        .add("server=" + server)
-        .add("loopResources=" + loopResources)
-        .toString();
-  }
-
   public static class Builder {
 
-    private GatewayOptions options;
+    private String id = "http@" + Integer.toHexString(hashCode());
+    private int port;
+    private Function<ServiceCall, ServiceCall> callFactory = call -> call;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private boolean corsEnabled = false;
     private CorsConfigBuilder corsConfigBuilder =
@@ -125,12 +108,26 @@ public class HttpGateway implements Gateway {
 
     public Builder() {}
 
-    public GatewayOptions options() {
-      return options;
+    public String id() {
+      return id;
     }
 
-    public Builder options(GatewayOptions options) {
-      this.options = options;
+    public Builder id(String id) {
+      this.id = id;
+      return this;
+    }
+
+    public int port() {
+      return port;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Builder serviceCall(Function<ServiceCall, ServiceCall> operator) {
+      callFactory = callFactory.andThen(operator);
       return this;
     }
 

@@ -10,7 +10,6 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import reactor.core.Disposable;
@@ -237,18 +235,16 @@ public class Microservices implements AutoCloseable {
   }
 
   private void startGateways() {
-    final GatewayOptions options = new GatewayOptions().call(serviceCall);
-    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
-      final var gateway = factory.apply(options);
-      final var finalGateway = gateway.start();
-      gateways.add(finalGateway);
+    for (var factory : context.gatewaySuppliers) {
+      final var gateway = factory.get().start(serviceCall, context.serviceRegistry);
+      gateways.add(gateway);
       LOGGER.log(
           Level.INFO,
           "[{0}] Started {1}, gateway: {2}@{3}",
           instanceId,
-          finalGateway,
-          finalGateway.id(),
-          finalGateway.address());
+          gateway,
+          gateway.id(),
+          gateway.address());
     }
   }
 
@@ -525,7 +521,7 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
+    private List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
 
     public Context() {}
 
@@ -629,9 +625,9 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for supplier of {@link ServiceTransport} instance.
+     * Setter for {@link ServiceTransport} supplier.
      *
-     * @param transportSupplier supplier of {@link ServiceTransport} instance
+     * @param transportSupplier {@link ServiceTransport} supplier
      * @return this
      */
     public Context transport(Supplier<ServiceTransport> transportSupplier) {
@@ -640,13 +636,13 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for gateway.
+     * Adds {@link Gateway} supplier to the list of gateway suppliers.
      *
-     * @param factory gateway factory
+     * @param gatewaySupplier gatewaySupplier
      * @return this
      */
-    public Context gateway(Function<GatewayOptions, Gateway> factory) {
-      gatewayFactories.add(factory);
+    public Context gateway(Supplier<Gateway> gatewaySupplier) {
+      gatewaySuppliers.add(gatewaySupplier);
       return this;
     }
 
@@ -730,8 +726,8 @@ public class Microservices implements AutoCloseable {
         serviceProviders = new ArrayList<>();
       }
 
-      if (gatewayFactories == null) {
-        gatewayFactories = new ArrayList<>();
+      if (gatewaySuppliers == null) {
+        gatewaySuppliers = new ArrayList<>();
       }
 
       return this;

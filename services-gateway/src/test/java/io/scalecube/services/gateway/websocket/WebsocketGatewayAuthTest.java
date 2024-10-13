@@ -48,9 +48,9 @@ public class WebsocketGatewayAuthTest {
         Microservices.start(
             new Context()
                 .gateway(
-                    options ->
+                    () ->
                         new WebsocketGateway.Builder()
-                            .options(options.id("WS"))
+                            .id("WS")
                             .gatewayHandler(new GatewaySessionHandlerImpl(AUTH_REGISTRY))
                             .build())
                 .services(new SecuredServiceImpl(AUTH_REGISTRY)));

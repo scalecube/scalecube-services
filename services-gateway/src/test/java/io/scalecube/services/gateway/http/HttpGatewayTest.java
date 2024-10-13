@@ -59,11 +59,7 @@ class HttpGatewayTest extends BaseTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .gateway(
-                    options ->
-                        new HttpGateway.Builder()
-                            .options(options.id("HTTP"))
-                            .errorMapper(ERROR_MAPPER)
-                            .build()));
+                    () -> new HttpGateway.Builder().id("HTTP").errorMapper(ERROR_MAPPER).build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
     router = new StaticAddressRouter(gatewayAddress);

@@ -51,9 +51,9 @@ public class CorsTest extends BaseTest {
         Microservices.start(
             new Context()
                 .gateway(
-                    opts ->
+                    () ->
                         new HttpGateway.Builder()
-                            .options(opts.id("http"))
+                            .id("http")
                             .corsEnabled(true)
                             .corsConfigBuilder(
                                 builder ->
@@ -114,7 +114,7 @@ public class CorsTest extends BaseTest {
     gateway =
         Microservices.start(
             new Context()
-                .gateway(opts -> new HttpGateway.Builder().options(opts.id("http")).build())
+                .gateway(() -> new HttpGateway.Builder().id("http").build())
                 .services(new GreetingServiceImpl()));
 
     final HttpClient client = newClient(gateway.gateway("http").address());

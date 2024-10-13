@@ -2,15 +2,17 @@ package io.scalecube.services.gateway.websocket;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.Address;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
+import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.StringJoiner;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 import reactor.netty.Connection;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
@@ -18,43 +20,52 @@ import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway implements Gateway {
 
-  private final GatewayOptions options;
+  private final String id;
+  private final int port;
+  private final Function<ServiceCall, ServiceCall> callFactory;
   private final GatewaySessionHandler gatewayHandler;
   private final Duration keepAliveInterval;
+  private final boolean heartbeatEnabled;
   private final ServiceProviderErrorMapper errorMapper;
 
   private DisposableServer server;
   private LoopResources loopResources;
 
   private WebsocketGateway(Builder builder) {
-    this.options = builder.options;
+    this.id = builder.id;
+    this.port = builder.port;
+    this.callFactory = builder.callFactory;
     this.gatewayHandler = builder.gatewayHandler;
     this.keepAliveInterval = builder.keepAliveInterval;
+    this.heartbeatEnabled = builder.heartbeatEnabled;
     this.errorMapper = builder.errorMapper;
-  }
-
-  public WebsocketGateway(UnaryOperator<Builder> operator) {
-    this(operator.apply(new Builder()));
   }
 
   @Override
   public String id() {
-    return options.id();
+    return id;
   }
 
   @Override
-  public Gateway start() {
-    WebsocketGatewayAcceptor gatewayAcceptor =
-        new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
-
+  public Gateway start(ServiceCall call, ServiceRegistry serviceRegistry) {
     loopResources =
-        LoopResources.create(
-            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
+        LoopResources.create(id + ":" + port, LoopResources.DEFAULT_IO_WORKER_COUNT, true);
+
+    if (heartbeatEnabled) {
+      serviceRegistry.registerService(
+          ServiceInfo.fromServiceInstance(new HeartbeatServiceImpl())
+              .errorMapper(DefaultErrorMapper.INSTANCE)
+              .dataDecoder(ServiceMessageDataDecoder.INSTANCE)
+              .build());
+    }
 
     try {
-      prepareHttpServer(loopResources, options.port())
+      HttpServer.create()
+          .runOn(loopResources)
+          .bindAddress(() -> new InetSocketAddress(port))
           .doOnConnection(this::setupKeepAlive)
-          .handle(gatewayAcceptor)
+          .handle(
+              new WebsocketGatewayAcceptor(callFactory.apply(call), gatewayHandler, errorMapper))
           .bind()
           .doOnSuccess(server -> this.server = server)
           .thenReturn(this)
@@ -65,17 +76,6 @@ public class WebsocketGateway implements Gateway {
     }
 
     return this;
-  }
-
-  private HttpServer prepareHttpServer(LoopResources loopResources, int port) {
-    return HttpServer.create()
-        .tcpConfiguration(
-            tcpServer -> {
-              if (loopResources != null) {
-                tcpServer = tcpServer.runOn(loopResources);
-              }
-              return tcpServer.bindAddress(() -> new InetSocketAddress(port));
-            });
   }
 
   @Override
@@ -134,33 +134,38 @@ public class WebsocketGateway implements Gateway {
             });
   }
 
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", WebsocketGateway.class.getSimpleName() + "[", "]")
-        .add("options=" + options)
-        .add("gatewayHandler=" + gatewayHandler)
-        .add("keepAliveInterval=" + keepAliveInterval)
-        .add("errorMapper=" + errorMapper)
-        .add("server=" + server)
-        .add("loopResources=" + loopResources)
-        .toString();
-  }
-
   public static class Builder {
 
-    private GatewayOptions options;
+    private String id = "websocket@" + Integer.toHexString(hashCode());
+    private int port;
+    private Function<ServiceCall, ServiceCall> callFactory = call -> call;
     private GatewaySessionHandler gatewayHandler = GatewaySessionHandler.DEFAULT_INSTANCE;
     private Duration keepAliveInterval = Duration.ZERO;
+    private boolean heartbeatEnabled = false;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
     public Builder() {}
 
-    public GatewayOptions options() {
-      return options;
+    public String id() {
+      return id;
     }
 
-    public Builder options(GatewayOptions options) {
-      this.options = options;
+    public Builder id(String id) {
+      this.id = id;
+      return this;
+    }
+
+    public int port() {
+      return port;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Builder serviceCall(Function<ServiceCall, ServiceCall> operator) {
+      callFactory = callFactory.andThen(operator);
       return this;
     }
 
@@ -179,6 +184,15 @@ public class WebsocketGateway implements Gateway {
 
     public Builder keepAliveInterval(Duration keepAliveInterval) {
       this.keepAliveInterval = keepAliveInterval;
+      return this;
+    }
+
+    public boolean heartbeatEnabled() {
+      return heartbeatEnabled;
+    }
+
+    public Builder heartbeatEnabled(boolean heartbeatEnabled) {
+      this.heartbeatEnabled = heartbeatEnabled;
       return this;
     }
 

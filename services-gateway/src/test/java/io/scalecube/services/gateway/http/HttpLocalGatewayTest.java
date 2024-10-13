@@ -48,7 +48,7 @@ class HttpLocalGatewayTest extends BaseTest {
     gateway =
         Microservices.start(
             new Context()
-                .gateway(options -> new HttpGateway.Builder().options(options.id("HTTP")).build())
+                .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

@@ -51,10 +51,10 @@ class WebsocketLocalGatewayTest extends BaseTest {
         Microservices.start(
             new Context()
                 .gateway(
-                    options ->
+                    () ->
                         new WebsocketGateway.Builder()
-                            .options(
-                                options.id("WS").call(options.call().errorMapper(ERROR_MAPPER)))
+                            .id("WS")
+                            .serviceCall(call -> call.errorMapper(ERROR_MAPPER))
                             .errorMapper(ERROR_MAPPER)
                             .build())
                 .services(new GreetingServiceImpl())

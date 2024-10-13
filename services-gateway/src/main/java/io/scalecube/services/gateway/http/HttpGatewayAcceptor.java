@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
@@ -36,10 +35,6 @@ public class HttpGatewayAcceptor
 
   private final ServiceCall serviceCall;
   private final ServiceProviderErrorMapper errorMapper;
-
-  HttpGatewayAcceptor(ServiceCall serviceCall) {
-    this(serviceCall, DefaultErrorMapper.INSTANCE);
-  }
 
   HttpGatewayAcceptor(ServiceCall serviceCall, ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
