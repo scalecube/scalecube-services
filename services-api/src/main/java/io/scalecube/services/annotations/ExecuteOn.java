@@ -18,10 +18,9 @@ import java.lang.annotation.Target;
 public @interface ExecuteOn {
 
   /**
-   * Returns {@link reactor.core.scheduler.Scheduler} spec, in the format: {@code
-   * <scheduler_name>:<scheduler_constructor_spec>}
+   * Returns scheduler name.
    *
-   * @return scheduler spec
+   * @return scheduler name
    */
   String value();
 }
