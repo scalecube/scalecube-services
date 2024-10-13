@@ -10,7 +10,6 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -33,7 +32,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import reactor.core.Disposable;
@@ -237,9 +235,8 @@ public class Microservices implements AutoCloseable {
   }
 
   private void startGateways() {
-    final GatewayOptions options = new GatewayOptions().call(serviceCall);
-    for (Function<GatewayOptions, Gateway> factory : context.gatewayFactories) {
-      final var gateway = factory.apply(options);
+    for (GatewayFactory factory : context.gatewayFactories) {
+      final var gateway = factory.newGateway(context, serviceCall);
       final var finalGateway = gateway.start();
       gateways.add(finalGateway);
       LOGGER.log(
@@ -525,7 +522,7 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private List<Function<GatewayOptions, Gateway>> gatewayFactories = new ArrayList<>();
+    private List<GatewayFactory> gatewayFactories = new ArrayList<>();
 
     public Context() {}
 
@@ -640,13 +637,13 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for gateway.
+     * Adds {@link GatewayFactory} to the list of gateway factories.
      *
-     * @param factory gateway factory
+     * @param gatewayFactory gatewayFactory
      * @return this
      */
-    public Context gateway(Function<GatewayOptions, Gateway> factory) {
-      gatewayFactories.add(factory);
+    public Context gateway(GatewayFactory gatewayFactory) {
+      gatewayFactories.add(gatewayFactory);
       return this;
     }
 
@@ -736,5 +733,11 @@ public class Microservices implements AutoCloseable {
 
       return this;
     }
+  }
+
+  @FunctionalInterface
+  public interface GatewayFactory {
+
+    Gateway newGateway(Context context, ServiceCall serviceCall);
   }
 }

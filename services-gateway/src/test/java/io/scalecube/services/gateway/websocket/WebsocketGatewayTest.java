@@ -61,7 +61,8 @@ class WebsocketGatewayTest extends BaseTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .gateway(
-                    options -> new WebsocketGateway.Builder().options(options.id("WS")).build()));
+                    (context, call) ->
+                        new WebsocketGateway.Builder().id("WS").serviceCall(call).build()));
 
     gatewayAddress = gateway.gateway("WS").address();
     router = new StaticAddressRouter(gatewayAddress);

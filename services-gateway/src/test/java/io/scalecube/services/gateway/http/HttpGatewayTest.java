@@ -59,9 +59,10 @@ class HttpGatewayTest extends BaseTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .gateway(
-                    options ->
+                    (context, call) ->
                         new HttpGateway.Builder()
-                            .options(options.id("HTTP"))
+                            .id("HTTP")
+                            .serviceCall(call)
                             .errorMapper(ERROR_MAPPER)
                             .build()));
 

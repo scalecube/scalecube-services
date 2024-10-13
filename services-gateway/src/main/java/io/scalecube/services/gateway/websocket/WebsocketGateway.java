@@ -2,10 +2,10 @@ package io.scalecube.services.gateway.websocket;
 
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.scalecube.services.Address;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
-import io.scalecube.services.gateway.GatewayOptions;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -17,7 +17,9 @@ import reactor.netty.resources.LoopResources;
 
 public class WebsocketGateway implements Gateway {
 
-  private final GatewayOptions options;
+  private final String id;
+  private final int port;
+  private final ServiceCall serviceCall;
   private final GatewaySessionHandler gatewayHandler;
   private final Duration keepAliveInterval;
   private final ServiceProviderErrorMapper errorMapper;
@@ -26,7 +28,9 @@ public class WebsocketGateway implements Gateway {
   private LoopResources loopResources;
 
   private WebsocketGateway(Builder builder) {
-    this.options = builder.options;
+    this.id = builder.id;
+    this.port = builder.port;
+    this.serviceCall = builder.serviceCall;
     this.gatewayHandler = builder.gatewayHandler;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.errorMapper = builder.errorMapper;
@@ -34,20 +38,21 @@ public class WebsocketGateway implements Gateway {
 
   @Override
   public String id() {
-    return options.id();
+    return id;
   }
 
   @Override
   public Gateway start() {
     WebsocketGatewayAcceptor gatewayAcceptor =
-        new WebsocketGatewayAcceptor(options.call(), gatewayHandler, errorMapper);
+        new WebsocketGatewayAcceptor(serviceCall, gatewayHandler, errorMapper);
 
     loopResources =
-        LoopResources.create(
-            options.id() + ":" + options.port(), LoopResources.DEFAULT_IO_WORKER_COUNT, true);
+        LoopResources.create(id + ":" + port, LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
     try {
-      prepareHttpServer(loopResources, options.port())
+      HttpServer.create()
+          .runOn(loopResources)
+          .bindAddress(() -> new InetSocketAddress(port))
           .doOnConnection(this::setupKeepAlive)
           .handle(gatewayAcceptor)
           .bind()
@@ -60,17 +65,6 @@ public class WebsocketGateway implements Gateway {
     }
 
     return this;
-  }
-
-  private HttpServer prepareHttpServer(LoopResources loopResources, int port) {
-    return HttpServer.create()
-        .tcpConfiguration(
-            tcpServer -> {
-              if (loopResources != null) {
-                tcpServer = tcpServer.runOn(loopResources);
-              }
-              return tcpServer.bindAddress(() -> new InetSocketAddress(port));
-            });
   }
 
   @Override
@@ -132,7 +126,9 @@ public class WebsocketGateway implements Gateway {
   @Override
   public String toString() {
     return new StringJoiner(", ", WebsocketGateway.class.getSimpleName() + "[", "]")
-        .add("options=" + options)
+        .add("id='" + id + "'")
+        .add("port=" + port)
+        .add("serviceCall=" + serviceCall)
         .add("gatewayHandler=" + gatewayHandler)
         .add("keepAliveInterval=" + keepAliveInterval)
         .add("errorMapper=" + errorMapper)
@@ -143,19 +139,39 @@ public class WebsocketGateway implements Gateway {
 
   public static class Builder {
 
-    private GatewayOptions options;
+    private String id = "websocket@" + Integer.toHexString(hashCode());
+    private int port;
+    private ServiceCall serviceCall;
     private GatewaySessionHandler gatewayHandler = GatewaySessionHandler.DEFAULT_INSTANCE;
     private Duration keepAliveInterval = Duration.ZERO;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
     public Builder() {}
 
-    public GatewayOptions options() {
-      return options;
+    public String id() {
+      return id;
     }
 
-    public Builder options(GatewayOptions options) {
-      this.options = options;
+    public Builder id(String id) {
+      this.id = id;
+      return this;
+    }
+
+    public int port() {
+      return port;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public ServiceCall serviceCall() {
+      return serviceCall;
+    }
+
+    public Builder serviceCall(ServiceCall serviceCall) {
+      this.serviceCall = serviceCall;
       return this;
     }
 
