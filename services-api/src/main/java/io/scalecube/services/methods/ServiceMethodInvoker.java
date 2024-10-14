@@ -70,7 +70,8 @@ public final class ServiceMethodInvoker {
         .flatMap(authData -> deferWithContextOne(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(
-            throwable -> Mono.just(errorMapper.toMessage(message.qualifier(), throwable)));
+            throwable -> Mono.just(errorMapper.toMessage(message.qualifier(), throwable)))
+        .subscribeOn(methodInfo.scheduler());
   }
 
   /**
@@ -84,7 +85,8 @@ public final class ServiceMethodInvoker {
         .flatMapMany(authData -> deferWithContextMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(
-            throwable -> Flux.just(errorMapper.toMessage(message.qualifier(), throwable)));
+            throwable -> Flux.just(errorMapper.toMessage(message.qualifier(), throwable)))
+        .subscribeOn(methodInfo.scheduler());
   }
 
   /**
@@ -104,7 +106,8 @@ public final class ServiceMethodInvoker {
                             toResponse(response, first.get().qualifier(), first.get().dataFormat()))
                     .onErrorResume(
                         throwable ->
-                            Flux.just(errorMapper.toMessage(first.get().qualifier(), throwable))));
+                            Flux.just(errorMapper.toMessage(first.get().qualifier(), throwable)))
+                    .subscribeOn(methodInfo.scheduler()));
   }
 
   private Mono<?> deferWithContextOne(ServiceMessage message, Object authData) {

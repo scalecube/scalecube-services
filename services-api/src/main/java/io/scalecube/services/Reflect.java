@@ -5,6 +5,7 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
+import io.scalecube.services.annotations.ExecuteOn;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.ResponseType;
 import io.scalecube.services.annotations.Service;
@@ -28,6 +29,8 @@ import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public class Reflect {
 
@@ -172,7 +175,8 @@ public class Reflect {
                             method.getParameterCount(),
                             requestType(method),
                             isRequestTypeServiceMessage(method),
-                            isSecured(method)))));
+                            isSecured(method),
+                            null))));
   }
 
   /**
@@ -378,5 +382,55 @@ public class Reflect {
   public static boolean isSecured(Method method) {
     return method.isAnnotationPresent(Secured.class)
         || method.getDeclaringClass().isAnnotationPresent(Secured.class);
+  }
+
+  public static Scheduler executeOnScheduler(Method method, Map<String, Scheduler> schedulers) {
+    final Class<?> declaringClass = method.getDeclaringClass();
+
+    if (method.isAnnotationPresent(ExecuteOn.class)) {
+      final var executeOn = method.getAnnotation(ExecuteOn.class);
+      final var name = executeOn.value();
+      final var scheduler = schedulers.get(name);
+      if (scheduler == null) {
+        throw new IllegalArgumentException(
+            "Wrong @ExecuteOn definition on "
+                + declaringClass.getName()
+                + "."
+                + method.getName()
+                + ": scheduler (name="
+                + name
+                + ") cannot be found");
+      }
+      return scheduler;
+    }
+
+    // If @ExecuteOn annotation is not present on service method, then find it on service class
+
+    ExecuteOn executeOn = null;
+    for (var clazz = declaringClass; clazz != null; clazz = clazz.getSuperclass()) {
+      executeOn = clazz.getAnnotation(ExecuteOn.class);
+      if (executeOn != null) {
+        break;
+      }
+    }
+
+    if (executeOn == null) {
+      return Schedulers.immediate();
+    }
+
+    final var name = executeOn.value();
+    final var scheduler = schedulers.get(name);
+    if (scheduler == null) {
+      throw new IllegalArgumentException(
+          "Wrong @ExecuteOn definition on "
+              + declaringClass.getName()
+              + "."
+              + method.getName()
+              + ": scheduler (name="
+              + name
+              + ") cannot be found");
+    }
+
+    return scheduler;
   }
 }

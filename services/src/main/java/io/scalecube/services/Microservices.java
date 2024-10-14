@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -133,8 +134,9 @@ public class Microservices implements AutoCloseable {
   }
 
   public static Microservices start(Microservices.Context context) {
-    final Microservices microservices = new Microservices(context.conclude());
+    Microservices microservices = null;
     try {
+      microservices = new Microservices(context.conclude());
       LOGGER.log(Level.INFO, "[{0}] Starting {1}", microservices.instanceId, microservices);
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
       microservices.createServiceEndpoint();
@@ -144,7 +146,10 @@ public class Microservices implements AutoCloseable {
       microservices.startListen();
       LOGGER.log(Level.INFO, "[{0}] Started {1}", microservices.instanceId, microservices);
     } catch (Exception ex) {
-      microservices.close();
+      if (microservices != null) {
+        microservices.close();
+      }
+      context.close();
       throw Exceptions.propagate(ex);
     }
     return microservices;
@@ -415,6 +420,7 @@ public class Microservices implements AutoCloseable {
     closeDiscovery();
     closeGateways();
     closeTransport();
+    context.close();
     LOGGER.log(Level.INFO, "[{0}] Closed {1}", instanceId, this);
   }
 
@@ -511,7 +517,7 @@ public class Microservices implements AutoCloseable {
     private final AtomicBoolean isConcluded = new AtomicBoolean();
 
     private Map<String, String> tags;
-    private List<ServiceProvider> serviceProviders = new ArrayList<>();
+    private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
     private Authenticator<Object> defaultAuthenticator;
     private PrincipalMapper<Object, Object> defaultPrincipalMapper;
@@ -521,7 +527,9 @@ public class Microservices implements AutoCloseable {
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
-    private List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
+    private final List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
+    private final Map<String, Supplier<Scheduler>> schedulerSuppliers = new HashMap<>();
+    private final Map<String, Scheduler> schedulers = new ConcurrentHashMap<>();
 
     public Context() {}
 
@@ -603,17 +611,6 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for {@link ServiceRegistry}.
-     *
-     * @param serviceRegistry serviceRegistry
-     * @return this
-     */
-    public Context serviceRegistry(ServiceRegistry serviceRegistry) {
-      this.serviceRegistry = serviceRegistry;
-      return this;
-    }
-
-    /**
      * Setter for {@link ServiceDiscoveryFactory}.
      *
      * @param discoveryFactory discoveryFactory
@@ -638,7 +635,7 @@ public class Microservices implements AutoCloseable {
     /**
      * Adds {@link Gateway} supplier to the list of gateway suppliers.
      *
-     * @param gatewaySupplier gatewaySupplier
+     * @param gatewaySupplier {@link Gateway} supplier
      * @return this
      */
     public Context gateway(Supplier<Gateway> gatewaySupplier) {
@@ -699,6 +696,18 @@ public class Microservices implements AutoCloseable {
       return this;
     }
 
+    /**
+     * Adds {@link Scheduler} supplier to the list of scheduler suppliers.
+     *
+     * @param name scheduler name
+     * @param schedulerSupplier {@link Scheduler} supplier
+     * @return this
+     */
+    public Context scheduler(String name, Supplier<Scheduler> schedulerSupplier) {
+      schedulerSuppliers.put(name, schedulerSupplier);
+      return this;
+    }
+
     private Context conclude() {
       if (!isConcluded.compareAndSet(false, true)) {
         throw new IllegalStateException("Context is already concluded");
@@ -714,23 +723,20 @@ public class Microservices implements AutoCloseable {
                 .orElse((message, dataType) -> message);
       }
 
-      if (serviceRegistry == null) {
-        serviceRegistry = new ServiceRegistryImpl();
-      }
-
       if (tags == null) {
         tags = new HashMap<>();
       }
 
-      if (serviceProviders == null) {
-        serviceProviders = new ArrayList<>();
-      }
+      schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
-      if (gatewaySuppliers == null) {
-        gatewaySuppliers = new ArrayList<>();
-      }
+      serviceRegistry = new ServiceRegistryImpl(schedulers);
 
       return this;
+    }
+
+    private void close() {
+      schedulers.values().forEach(Scheduler::dispose);
+      schedulers.clear();
     }
   }
 }

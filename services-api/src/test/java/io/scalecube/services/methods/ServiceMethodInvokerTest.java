@@ -18,6 +18,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 class ServiceMethodInvokerTest {
@@ -62,7 +63,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -100,7 +102,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -138,7 +141,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -177,7 +181,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -219,7 +224,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -260,7 +266,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -305,7 +312,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -347,7 +355,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -387,7 +396,8 @@ class ServiceMethodInvokerTest {
             method.getParameterCount(),
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
-            AUTH);
+            AUTH,
+            Schedulers.immediate());
 
     //noinspection unchecked,rawtypes
     Authenticator<Map> mockedAuthenticator = Mockito.mock(Authenticator.class);
