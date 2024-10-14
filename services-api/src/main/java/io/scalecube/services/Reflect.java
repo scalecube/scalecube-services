@@ -22,7 +22,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -391,14 +390,6 @@ public class Reflect {
     if (method.isAnnotationPresent(ExecuteOn.class)) {
       final var executeOn = method.getAnnotation(ExecuteOn.class);
       final var name = executeOn.value();
-      if (name == null || name.isEmpty()) {
-        throw new IllegalArgumentException(
-            "Wrong @ExecuteOn definition on "
-                + declaringClass.getName()
-                + "."
-                + method.getName()
-                + " -- value is missing");
-      }
       final var scheduler = schedulers.get(name);
       if (scheduler == null) {
         throw new IllegalArgumentException(
@@ -406,55 +397,40 @@ public class Reflect {
                 + declaringClass.getName()
                 + "."
                 + method.getName()
-                + " -- scheduler with name="
+                + ": scheduler (name="
                 + name
-                + " cannot be found");
+                + ") cannot be found");
       }
       return scheduler;
     }
 
-    // If @ExecuteOn annotation is not present on method, then find it on @Service interface
+    // If @ExecuteOn annotation is not present on service method, then find it on service class
 
-    var clazz = declaringClass;
-
-    // Get all interfaces, including those inherited from superclasses
-    Set<Class<?>> allInterfaces = new HashSet<>();
-    while (clazz != null) {
-      Collections.addAll(allInterfaces, clazz.getInterfaces());
-      clazz = clazz.getSuperclass();
+    ExecuteOn executeOn = null;
+    for (var clazz = declaringClass; clazz != null; clazz = clazz.getSuperclass()) {
+      executeOn = clazz.getAnnotation(ExecuteOn.class);
+      if (executeOn != null) {
+        break;
+      }
     }
 
-    final var optional =
-        allInterfaces.stream()
-            .map(aClass -> aClass.getAnnotation(ExecuteOn.class))
-            .filter(Objects::nonNull)
-            .findFirst();
-
-    if (optional.isPresent()) {
-      final var executeOn = optional.get();
-      final var name = executeOn.value();
-      if (name == null || name.isEmpty()) {
-        throw new IllegalArgumentException(
-            "Wrong @ExecuteOn definition on "
-                + declaringClass.getName()
-                + "."
-                + method.getName()
-                + " -- value is missing");
-      }
-      final var scheduler = schedulers.get(name);
-      if (scheduler == null) {
-        throw new IllegalArgumentException(
-            "Wrong @ExecuteOn definition on "
-                + declaringClass.getName()
-                + "."
-                + method.getName()
-                + " -- scheduler with name="
-                + name
-                + " cannot be found");
-      }
-      return scheduler;
+    if (executeOn == null) {
+      return Schedulers.immediate();
     }
 
-    return Schedulers.immediate();
+    final var name = executeOn.value();
+    final var scheduler = schedulers.get(name);
+    if (scheduler == null) {
+      throw new IllegalArgumentException(
+          "Wrong @ExecuteOn definition on "
+              + declaringClass.getName()
+              + "."
+              + method.getName()
+              + ": scheduler (name="
+              + name
+              + ") cannot be found");
+    }
+
+    return scheduler;
   }
 }
