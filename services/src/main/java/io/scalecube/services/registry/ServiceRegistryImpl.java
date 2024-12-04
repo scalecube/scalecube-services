@@ -133,7 +133,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.isSecured(method),
                                   Reflect.executeOnScheduler(serviceMethod, schedulers));
 
-                          checkMethodInvokerDoesntExist(methodInfo);
+                          checkMethodInvokerIsNotPresent(methodInfo);
 
                           ServiceMethodInvoker methodInvoker =
                               new ServiceMethodInvoker(
@@ -151,7 +151,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                         }));
   }
 
-  private void checkMethodInvokerDoesntExist(MethodInfo methodInfo) {
+  private void checkMethodInvokerIsNotPresent(MethodInfo methodInfo) {
     if (methodInvokers.containsKey(methodInfo.qualifier())) {
       LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
       throw new IllegalStateException("MethodInvoker already exists");
