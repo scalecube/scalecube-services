@@ -30,6 +30,7 @@ import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -197,6 +198,7 @@ public class ServiceCallLocalTest extends BaseTest {
   public void test_custom_error_mapper() {
     GreetingService service =
         new ServiceCall()
+            .logger("test_custom_error_mapper", Level.INFO)
             .errorMapper(
                 message -> {
                   throw new RuntimeException("custom error mapper");

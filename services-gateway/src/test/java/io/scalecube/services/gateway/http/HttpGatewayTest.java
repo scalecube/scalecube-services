@@ -25,6 +25,7 @@ import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -75,6 +76,7 @@ class HttpGatewayTest extends BaseTest {
                             .membership(
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
+                .defaultLogger("microservices", Level.INFO)
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

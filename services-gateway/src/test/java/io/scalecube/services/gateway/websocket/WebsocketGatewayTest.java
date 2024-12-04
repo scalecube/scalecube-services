@@ -25,6 +25,7 @@ import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -78,6 +79,7 @@ class WebsocketGatewayTest extends BaseTest {
                             .membership(
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
+                .defaultLogger("microservices", Level.INFO)
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

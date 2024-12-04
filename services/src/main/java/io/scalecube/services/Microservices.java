@@ -236,6 +236,7 @@ public class Microservices implements AutoCloseable {
             .dataDecoderIfAbsent(context.defaultDataDecoder)
             .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
+            .loggerIfAbsent(context.defaultLoggerName, context.defaultLoggerLevel)
             .build());
   }
 
@@ -523,6 +524,8 @@ public class Microservices implements AutoCloseable {
     private PrincipalMapper<Object, Object> defaultPrincipalMapper;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
+    private String defaultLoggerName;
+    private Level defaultLoggerLevel;
     private String externalHost;
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
@@ -647,7 +650,7 @@ public class Microservices implements AutoCloseable {
      * Setter for default {@code errorMapper}. By default, default {@code errorMapper} is set to
      * {@link DefaultErrorMapper#INSTANCE}.
      *
-     * @param errorMapper error mapper; not null
+     * @param errorMapper error mapper
      * @return this builder with applied parameter
      */
     public Context defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
@@ -660,7 +663,7 @@ public class Microservices implements AutoCloseable {
      * {@link ServiceMessageDataDecoder#INSTANCE} if it exists, otherswise to a function {@code
      * (message, dataType) -> message}
      *
-     * @param dataDecoder data decoder; not null
+     * @param dataDecoder data decoder
      * @return this builder with applied parameter
      */
     public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
@@ -671,7 +674,7 @@ public class Microservices implements AutoCloseable {
     /**
      * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
      *
-     * @param authenticator authenticator; optional
+     * @param authenticator authenticator (optional)
      * @return this builder with applied parameter
      */
     public <T> Context defaultAuthenticator(Authenticator<? extends T> authenticator) {
@@ -684,7 +687,7 @@ public class Microservices implements AutoCloseable {
      * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
      * null.
      *
-     * @param principalMapper principalMapper; optional
+     * @param principalMapper principalMapper (optional)
      * @param <T> auth data type
      * @param <R> principal type
      * @return this builder with applied parameter
@@ -697,11 +700,34 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
+     * Setter for default {@code logger}. By default, default {@code logger} is null.
+     *
+     * @param name logger name (optional)
+     * @param level logger level (optional)
+     * @return this builder with applied parameter
+     */
+    public Context defaultLogger(String name, Level level) {
+      this.defaultLoggerName = name;
+      this.defaultLoggerLevel = level;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code logger}. By default, default {@code logger} is null.
+     *
+     * @param name logger name (optional)
+     * @return this builder with applied parameter
+     */
+    public Context defaultLogger(String name) {
+      return defaultLogger(name, Level.DEBUG);
+    }
+
+    /**
      * Adds {@link Scheduler} supplier to the list of scheduler suppliers.
      *
      * @param name scheduler name
      * @param schedulerSupplier {@link Scheduler} supplier
-     * @return this
+     * @return this builder with applied parameter
      */
     public Context scheduler(String name, Supplier<Scheduler> schedulerSupplier) {
       schedulerSuppliers.put(name, schedulerSupplier);
