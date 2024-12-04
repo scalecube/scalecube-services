@@ -22,6 +22,7 @@ import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -49,6 +50,7 @@ class HttpLocalGatewayTest extends BaseTest {
         Microservices.start(
             new Context()
                 .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
+                .defaultLogger("gateway", Level.INFO)
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

@@ -22,6 +22,7 @@ import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,6 +58,7 @@ class WebsocketLocalGatewayTest extends BaseTest {
                             .serviceCall(call -> call.errorMapper(ERROR_MAPPER))
                             .errorMapper(ERROR_MAPPER)
                             .build())
+                .defaultLogger("gateway", Level.INFO)
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

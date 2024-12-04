@@ -154,6 +154,16 @@ public class ServiceInfo {
     }
 
     /**
+     * Setter for {@code logger}. Overrides default {@code Microservices.logger}.
+     *
+     * @param name logger name (optional)
+     * @return this buidler
+     */
+    public Builder logger(String name) {
+      return logger(name, Level.DEBUG);
+    }
+
+    /**
      * Setter for {@code dataDecoder}. Overrides default {@code Microservices.dataDecoder}.
      *
      * @param dataDecoder data decoder

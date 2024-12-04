@@ -713,6 +713,16 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
+     * Setter for default {@code logger}. By default, default {@code logger} is null.
+     *
+     * @param name logger name (optional)
+     * @return this builder with applied parameter
+     */
+    public Context defaultLogger(String name) {
+      return defaultLogger(name, Level.DEBUG);
+    }
+
+    /**
      * Adds {@link Scheduler} supplier to the list of scheduler suppliers.
      *
      * @param name scheduler name
