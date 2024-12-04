@@ -11,6 +11,8 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -34,6 +36,8 @@ public class ServiceCall implements AutoCloseable {
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
+  private Logger logger;
+  private Level level;
 
   public ServiceCall() {}
 
@@ -44,6 +48,8 @@ public class ServiceCall implements AutoCloseable {
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
     this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
+    this.logger = other.logger;
+    this.level = other.level;
   }
 
   /**
@@ -131,6 +137,30 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
+   * Setter for {@code logger}.
+   *
+   * @param name logger name.
+   * @param level logger level.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall logger(String name, Level level) {
+    ServiceCall target = new ServiceCall(this);
+    target.logger = System.getLogger(name);
+    target.level = level;
+    return target;
+  }
+
+  /**
+   * Setter for {@code logger}.
+   *
+   * @param name logger name.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall logger(String name) {
+    return logger(name, Level.DEBUG);
+  }
+
+  /**
    * Issues fire-and-forget request.
    *
    * @param request request message to send.
@@ -159,24 +189,41 @@ public class ServiceCall implements AutoCloseable {
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
-        () -> {
-          ServiceMethodInvoker methodInvoker;
-          if (serviceRegistry != null
-              && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
-            // local service
-            return methodInvoker.invokeOne(request).map(this::throwIfError);
-          } else {
-            // remote service
-            Objects.requireNonNull(transport, "[requestOne] transport");
-            return Mono.fromCallable(() -> serviceLookup(request))
-                .flatMap(
-                    serviceReference ->
-                        transport
-                            .create(serviceReference)
-                            .requestResponse(request, responseType)
-                            .map(this::throwIfError));
-          }
-        });
+            () -> {
+              ServiceMethodInvoker methodInvoker;
+              if (serviceRegistry != null
+                  && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
+                // local service
+                return methodInvoker.invokeOne(request).map(this::throwIfError);
+              } else {
+                // remote service
+                Objects.requireNonNull(transport, "[requestOne] transport");
+                return Mono.fromCallable(() -> serviceLookup(request))
+                    .flatMap(
+                        serviceReference ->
+                            transport
+                                .create(serviceReference)
+                                .requestResponse(request, responseType)
+                                .map(this::throwIfError));
+              }
+            })
+        .doOnSuccess(
+            response -> {
+              if (logger != null && logger.isLoggable(level)) {
+                logger.log(
+                    level,
+                    "[{0}] request: {1}, response: {2}",
+                    request.qualifier(),
+                    request,
+                    response);
+              }
+            })
+        .doOnError(
+            ex -> {
+              if (logger != null) {
+                logger.log(Level.ERROR, "[{0}] request: {1}", request.qualifier(), request, ex);
+              }
+            });
   }
 
   /**
@@ -198,24 +245,36 @@ public class ServiceCall implements AutoCloseable {
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
-        () -> {
-          ServiceMethodInvoker methodInvoker;
-          if (serviceRegistry != null
-              && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
-            // local service
-            return methodInvoker.invokeMany(request).map(this::throwIfError);
-          } else {
-            // remote service
-            Objects.requireNonNull(transport, "[requestMany] transport");
-            return Mono.fromCallable(() -> serviceLookup(request))
-                .flatMapMany(
-                    serviceReference ->
-                        transport
-                            .create(serviceReference)
-                            .requestStream(request, responseType)
-                            .map(this::throwIfError));
-          }
-        });
+            () -> {
+              ServiceMethodInvoker methodInvoker;
+              if (serviceRegistry != null
+                  && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
+                // local service
+                return methodInvoker.invokeMany(request).map(this::throwIfError);
+              } else {
+                // remote service
+                Objects.requireNonNull(transport, "[requestMany] transport");
+                return Mono.fromCallable(() -> serviceLookup(request))
+                    .flatMapMany(
+                        serviceReference ->
+                            transport
+                                .create(serviceReference)
+                                .requestStream(request, responseType)
+                                .map(this::throwIfError));
+              }
+            })
+        .doOnSubscribe(
+            s -> {
+              if (logger != null && logger.isLoggable(level)) {
+                logger.log(level, "[{0}] request: {1}", request.qualifier(), request);
+              }
+            })
+        .doOnError(
+            ex -> {
+              if (logger != null) {
+                logger.log(Level.ERROR, "[{0}] request: {1}", request.qualifier(), request, ex);
+              }
+            });
   }
 
   /**

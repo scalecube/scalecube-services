@@ -189,9 +189,9 @@ public final class ServiceMessage {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", ServiceMessage.class.getSimpleName() + "[", "]")
+    return new StringJoiner(", ", "ServiceMessage" + "[", "]")
         .add("headers(" + headers.size() + ")")
-        .add("data=" + (data != null ? data.getClass().getName() : null))
+        .add("data=" + data)
         .toString();
   }
 

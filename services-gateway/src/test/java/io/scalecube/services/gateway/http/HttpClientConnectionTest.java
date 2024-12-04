@@ -15,6 +15,7 @@ import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
+import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -101,6 +102,7 @@ class HttpClientConnectionTest extends BaseTest {
 
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
+        .logger("serviceCall", Level.INFO)
         .transport(new HttpGatewayClientTransport.Builder().address(address).build())
         .router(new StaticAddressRouter(address));
   }
