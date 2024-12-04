@@ -74,7 +74,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -113,7 +115,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -152,7 +156,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -192,7 +198,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -235,7 +243,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -277,7 +287,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -323,7 +335,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            nullPrincipalMapper);
+            nullPrincipalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -366,7 +380,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             nullAuthenticator,
-            principalMapper);
+            principalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
@@ -412,7 +428,9 @@ class ServiceMethodInvokerTest {
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
             authenticator,
-            principalMapper);
+            principalMapper,
+            null,
+            null);
 
     ServiceMessage message =
         ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();

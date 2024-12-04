@@ -205,7 +205,7 @@ public final class ServiceMessage {
     /**
      * Setter for {@code data}.
      *
-     * @param data data; optional
+     * @param data data (optional)
      * @return this builder
      */
     public Builder data(Object data) {

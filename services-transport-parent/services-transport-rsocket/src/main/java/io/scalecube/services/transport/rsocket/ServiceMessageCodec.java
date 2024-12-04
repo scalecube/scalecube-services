@@ -50,9 +50,9 @@ public final class ServiceMessageCodec {
    * here: {@link DataCodec#contentType()}), then the last one specified will be used. Client's
    * collection of data codes override data codecs from SPI.
    *
-   * @param headersCodec codec for service message headers; optional, if not set then {@link
+   * @param headersCodec codec for service message headers (optional), if not set then {@link
    *     JdkCodec} will be used.
-   * @param dataCodecs codecs for service message data; optional, if not set then {@link
+   * @param dataCodecs codecs for service message data (optional), if not set then {@link
    *     DataCodec#INSTANCES} will be used.
    */
   public ServiceMessageCodec(HeadersCodec headersCodec, Collection<DataCodec> dataCodecs) {
