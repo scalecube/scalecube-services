@@ -70,7 +70,7 @@ public class RSocketClientTransport implements ClientTransport {
             key ->
                 getCredentials(serviceReference)
                     .flatMap(creds -> connect(key, creds, monoMap))
-                    .cache()
+                    .cacheInvalidateIf(RSocket::isDisposed)
                     .doOnError(ex -> monoMap.remove(key)));
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
