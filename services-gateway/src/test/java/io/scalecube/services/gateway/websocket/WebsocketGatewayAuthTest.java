@@ -175,7 +175,7 @@ public class WebsocketGatewayAuthTest {
 
   private static ServiceMessage createSessionRequest(String username) {
     return ServiceMessage.builder()
-        .qualifier("/" + SecuredService.NAMESPACE + "/createSession")
+        .qualifier(SecuredService.NAMESPACE + "/createSession")
         .data(username)
         .build();
   }

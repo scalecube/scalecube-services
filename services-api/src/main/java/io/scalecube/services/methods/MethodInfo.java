@@ -70,10 +70,6 @@ public final class MethodInfo {
     return qualifier;
   }
 
-  public String oldQualifier() {
-    return Qualifier.DELIMITER + qualifier();
-  }
-
   public Type parameterizedReturnType() {
     return parameterizedReturnType;
   }

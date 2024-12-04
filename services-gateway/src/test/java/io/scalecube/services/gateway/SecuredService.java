@@ -19,13 +19,13 @@ public interface SecuredService {
   @RequestType(String.class)
   Mono<String> createSession(ServiceMessage request);
 
+  @Secured
   @ServiceMethod
   @RequestType(String.class)
-  @Secured
   Mono<String> requestOne(String req);
 
+  @Secured
   @ServiceMethod
   @RequestType(Integer.class)
-  @Secured
   Flux<String> requestN(Integer req);
 }

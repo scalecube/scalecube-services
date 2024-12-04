@@ -72,13 +72,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
       LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
-      serviceEndpoint
-          .serviceReferences()
-          .forEach(
-              sr -> {
-                populateServiceReferences(sr.qualifier(), sr);
-                populateServiceReferences(sr.oldQualifier(), sr);
-              });
+      serviceEndpoint.serviceReferences().forEach(this::populateServiceReferences);
     }
     return success;
   }
@@ -93,13 +87,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           serviceReferencesByQualifier.values().stream()
               .flatMap(Collection::stream)
               .filter(sr -> sr.endpointId().equals(endpointId))
-              .collect(Collectors.toList());
+              .toList();
 
-      serviceReferencesOfEndpoint.forEach(
-          sr -> {
-            computeServiceReferences(sr.qualifier(), sr);
-            computeServiceReferences(sr.oldQualifier(), sr);
-          });
+      serviceReferencesOfEndpoint.forEach(this::cleanServiceReferences);
     }
     return serviceEndpoint;
   }
@@ -158,13 +148,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   serviceInfo.level());
 
                           methodInvokers.put(methodInfo.qualifier(), methodInvoker);
-                          methodInvokers.put(methodInfo.oldQualifier(), methodInvoker);
                         }));
   }
 
   private void checkMethodInvokerDoesntExist(MethodInfo methodInfo) {
-    if (methodInvokers.containsKey(methodInfo.qualifier())
-        || methodInvokers.containsKey(methodInfo.oldQualifier())) {
+    if (methodInvokers.containsKey(methodInfo.qualifier())) {
       LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
       throw new IllegalStateException("MethodInvoker already exists");
     }
@@ -180,20 +168,20 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return serviceInfos;
   }
 
-  private void populateServiceReferences(String qualifier, ServiceReference serviceReference) {
+  private void populateServiceReferences(ServiceReference sr) {
     serviceReferencesByQualifier
-        .computeIfAbsent(qualifier, key -> new CopyOnWriteArrayList<>())
-        .add(serviceReference);
+        .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
+        .add(sr);
   }
 
-  private void computeServiceReferences(String qualifier, ServiceReference serviceReference) {
+  private void cleanServiceReferences(ServiceReference sr) {
     serviceReferencesByQualifier.compute(
-        qualifier,
+        sr.qualifier(),
         (key, list) -> {
           if (list == null || list.isEmpty()) {
             return null;
           }
-          list.remove(serviceReference);
+          list.remove(sr);
           return !list.isEmpty() ? list : null;
         });
   }
