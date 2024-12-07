@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,6 +22,7 @@ public class ServiceReference {
   private final String action;
   private final Address address;
   private final boolean isSecured;
+  private final DynamicQualifier dynamicQualifier;
 
   /**
    * Constructor for service reference.
@@ -41,6 +43,11 @@ public class ServiceReference {
     this.qualifier = Qualifier.asString(namespace, action);
     this.address = serviceEndpoint.address();
     this.isSecured = serviceMethodDefinition.isSecured();
+    if (qualifier.contains(":")) {
+      dynamicQualifier = new DynamicQualifier(qualifier);
+    } else {
+      dynamicQualifier = null;
+    }
   }
 
   public String qualifier() {
@@ -75,6 +82,10 @@ public class ServiceReference {
     return isSecured;
   }
 
+  public DynamicQualifier dynamicQualifier() {
+    return dynamicQualifier;
+  }
+
   private Map<String, String> mergeTags(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
@@ -89,12 +100,15 @@ public class ServiceReference {
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
-        .add("endpointId=" + endpointId)
-        .add("address=" + address)
-        .add("qualifier=" + qualifier)
+        .add("qualifier='" + qualifier + "'")
+        .add("endpointId='" + endpointId + "'")
+        .add("namespace='" + namespace + "'")
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
+        .add("action='" + action + "'")
+        .add("address=" + address)
         .add("isSecured=" + isSecured)
+        .add("dynamicQualifier=" + dynamicQualifier)
         .toString();
   }
 }
