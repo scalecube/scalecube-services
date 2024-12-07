@@ -74,8 +74,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     boolean putIfAbsent =
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
-      LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+      LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
     }
     return putIfAbsent;
   }
@@ -84,12 +84,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
-      LOGGER.log(Level.DEBUG, "ServiceEndpoint unregistered: {0}", serviceEndpoint);
-
       serviceReferencesByQualifier.values().stream()
           .flatMap(Collection::stream)
           .filter(sr -> sr.endpointId().equals(endpointId))
           .forEach(this::removeServiceReference);
+      LOGGER.log(Level.DEBUG, "ServiceEndpoint unregistered: {0}", serviceEndpoint);
     }
     return serviceEndpoint;
   }
@@ -169,9 +168,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private void addServiceReference(ServiceReference sr) {
-    serviceReferencesByQualifier
-        .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
-        .add(sr);
+    if (sr.hasDynamicQualifier()) {
+      // ...
+    } else {
+      serviceReferencesByQualifier
+          .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
+          .add(sr);
+    }
   }
 
   private void removeServiceReference(ServiceReference sr) {
