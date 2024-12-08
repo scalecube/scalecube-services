@@ -89,15 +89,31 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return putIfAbsent;
   }
 
-  // TODO: refactor, clean also serviceReferencesByQualifier
   @Override
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
+      // Clean exact-match service references
+
       serviceReferencesByQualifier.values().stream()
           .flatMap(Collection::stream)
           .filter(sr -> sr.endpointId().equals(endpointId))
-          .forEach(this::removeServiceReference);
+          .forEach(
+              value ->
+                  serviceReferencesByQualifier.compute(
+                      value.qualifier(), (key, list) -> removeServiceReference(value, list)));
+
+      // Clean dynamic-qualifier service references
+
+      serviceReferencesByPattern.values().stream()
+          .flatMap(Collection::stream)
+          .filter(sr -> sr.endpointId().equals(endpointId))
+          .forEach(
+              value ->
+                  serviceReferencesByPattern.compute(
+                      value.dynamicQualifier(),
+                      (key, list) -> removeServiceReference(value, list)));
+
       LOGGER.log(Level.DEBUG, "ServiceEndpoint unregistered: {0}", serviceEndpoint);
     }
     return serviceEndpoint;
@@ -217,16 +233,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     }
   }
 
-  // TODO: refactor, clean also serviceReferencesByQualifier
-  private void removeServiceReference(ServiceReference sr) {
-    serviceReferencesByQualifier.compute(
-        sr.qualifier(),
-        (key, list) -> {
-          if (list == null || list.isEmpty()) {
-            return null;
-          }
-          list.remove(sr);
-          return list.isEmpty() ? null : list;
-        });
+  private static List<ServiceReference> removeServiceReference(
+      ServiceReference value, List<ServiceReference> list) {
+    if (list == null || list.isEmpty()) {
+      return null;
+    }
+    list.remove(value);
+    return list.isEmpty() ? null : list;
   }
 }
