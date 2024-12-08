@@ -34,6 +34,18 @@ public final class DynamicQualifier {
     this.qualifier = qualifier;
   }
 
+  public String qualifier() {
+    return qualifier;
+  }
+
+  public Pattern pattern() {
+    return pattern;
+  }
+
+  public List<String> pathVariables() {
+    return pathVariables;
+  }
+
   public Map<String, String> matchQualifier(String input) {
     final var matcher = pattern.matcher(input);
     if (!matcher.matches()) {
@@ -68,6 +80,7 @@ public final class DynamicQualifier {
   @Override
   public String toString() {
     return new StringJoiner(", ", DynamicQualifier.class.getSimpleName() + "[", "]")
+        .add("qualifier='" + qualifier + "'")
         .add("pattern=" + pattern)
         .add("pathVariables=" + pathVariables)
         .toString();
