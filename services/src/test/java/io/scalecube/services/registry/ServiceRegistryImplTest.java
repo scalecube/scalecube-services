@@ -1,5 +1,6 @@
 package io.scalecube.services.registry;
 
+import static io.scalecube.services.transport.jackson.JacksonCodec.CONTENT_TYPE;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
@@ -67,7 +68,7 @@ class ServiceRegistryImplTest {
           ServiceEndpoint.builder()
               .id("endpoint" + i)
               .address(Address.create("endpoint" + i, 4848))
-              .contentTypes(Set.of("json"))
+              .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(
                   List.of(
                       new ServiceRegistration(
@@ -116,7 +117,7 @@ class ServiceRegistryImplTest {
           ServiceEndpoint.builder()
               .id("endpoint" + i)
               .address(Address.create("endpoint" + i, 4848))
-              .contentTypes(Set.of("application/json"))
+              .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(
                   List.of(
                       new ServiceRegistration(
