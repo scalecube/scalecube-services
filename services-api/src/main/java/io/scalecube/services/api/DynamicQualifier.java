@@ -14,6 +14,7 @@ public final class DynamicQualifier {
   private final String qualifier;
   private final Pattern pattern;
   private final List<String> pathVariables;
+  private final int size;
 
   public DynamicQualifier(String qualifier) {
     if (!qualifier.contains(":")) {
@@ -34,9 +35,10 @@ public final class DynamicQualifier {
     }
     sb.setLength(sb.length() - 1);
 
-    this.pattern = Pattern.compile(sb.toString());
     this.qualifier = qualifier;
+    this.pattern = Pattern.compile(sb.toString());
     this.pathVariables = Collections.unmodifiableList(pathVariables);
+    this.size = sizeOf(qualifier);
   }
 
   public String qualifier() {
@@ -51,7 +53,15 @@ public final class DynamicQualifier {
     return pathVariables;
   }
 
+  public int size() {
+    return size;
+  }
+
   public Map<String, String> matchQualifier(String input) {
+    if (size != sizeOf(input)) {
+      return null;
+    }
+
     final var matcher = pattern.matcher(input);
     if (!matcher.matches()) {
       return null;
@@ -66,6 +76,16 @@ public final class DynamicQualifier {
     }
 
     return map;
+  }
+
+  private static int sizeOf(String value) {
+    int count = 0;
+    for (int i = 0, length = value.length(); i < length; i++) {
+      if (value.charAt(i) == '/') {
+        count++;
+      }
+    }
+    return count;
   }
 
   @Override
@@ -90,6 +110,7 @@ public final class DynamicQualifier {
         .add("qualifier='" + qualifier + "'")
         .add("pattern=" + pattern)
         .add("pathVariables=" + pathVariables)
+        .add("size=" + size)
         .toString();
   }
 }

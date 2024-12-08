@@ -1,48 +1,58 @@
 package io.scalecube.services.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.util.UUID;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class DynamicQualifierTest {
 
   @Test
+  void testIllegalArgument() {
+    assertThrows(IllegalArgumentException.class, () -> new DynamicQualifier("v1/foo/bar"));
+  }
+
+  @Test
   void testNoMatches() {
     final var qualifier = new DynamicQualifier("v1/foo/:foo/bar/:bar");
-    Assertions.assertNull(qualifier.matchQualifier("v1/foo/bar"));
+    assertNull(qualifier.matchQualifier("v1/foo/bar"));
   }
 
   @Test
-  void testIllegalArgument() {
-    Assertions.assertThrows(
-        IllegalArgumentException.class, () -> new DynamicQualifier("v1/foo/bar"));
+  void testStrictMatching() {
+    final var qualifier = new DynamicQualifier("v1/foo/:foo");
+    assertNotNull(qualifier.matchQualifier("v1/foo/123"));
+    assertNull(qualifier.matchQualifier("v1/foo/123/bar/456/baz/678"));
   }
 
   @Test
-  void testQualifierEquality() {
+  void testEquality() {
     final var qualifier1 = new DynamicQualifier("v1/foo/:foo/bar/:bar");
     final var qualifier2 = new DynamicQualifier("v1/foo/:foo/bar/:bar");
-    Assertions.assertEquals(qualifier1, qualifier2);
+    assertEquals(qualifier1, qualifier2);
   }
 
   @Test
-  void testMatchQualifierSinglePathVariable() {
+  void testMatchSinglePathVariable() {
     final var userName = UUID.randomUUID().toString();
     final var qualifier = new DynamicQualifier("v1/foo/bar/:userName");
     final var map = qualifier.matchQualifier("v1/foo/bar/" + userName);
-    Assertions.assertNotNull(map);
-    Assertions.assertEquals(1, map.size());
-    Assertions.assertEquals(userName, map.get("userName"));
+    assertNotNull(map);
+    assertEquals(1, map.size());
+    assertEquals(userName, map.get("userName"));
   }
 
   @Test
-  void testMatchQualifierMultiplePathVariables() {
+  void testMatchMultiplePathVariables() {
     final var qualifier = new DynamicQualifier("v1/foo/:foo/bar/:bar/baz/:baz");
     final var map = qualifier.matchQualifier("v1/foo/123/bar/456/baz/678");
-    Assertions.assertNotNull(map);
-    Assertions.assertEquals(3, map.size());
-    Assertions.assertEquals("123", map.get("foo"));
-    Assertions.assertEquals("456", map.get("bar"));
-    Assertions.assertEquals("678", map.get("baz"));
+    assertNotNull(map);
+    assertEquals(3, map.size());
+    assertEquals("123", map.get("foo"));
+    assertEquals("456", map.get("bar"));
+    assertEquals("678", map.get("baz"));
   }
 }
