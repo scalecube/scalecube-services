@@ -1,6 +1,7 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
+import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.lang.reflect.Type;
 import java.util.StringJoiner;
@@ -11,6 +12,7 @@ public final class MethodInfo {
   private final String serviceName;
   private final String methodName;
   private final String qualifier;
+  private final DynamicQualifier dynamicQualifier;
   private final Type parameterizedReturnType;
   private final boolean isReturnTypeServiceMessage;
   private final CommunicationMode communicationMode;
@@ -51,6 +53,7 @@ public final class MethodInfo {
     this.serviceName = serviceName;
     this.methodName = methodName;
     this.qualifier = Qualifier.asString(serviceName, methodName);
+    this.dynamicQualifier = qualifier.contains(":") ? new DynamicQualifier(qualifier) : null;
     this.parameterCount = parameterCount;
     this.requestType = requestType;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
@@ -68,6 +71,10 @@ public final class MethodInfo {
 
   public String qualifier() {
     return qualifier;
+  }
+
+  public DynamicQualifier dynamicQualifier() {
+    return dynamicQualifier;
   }
 
   public Type parameterizedReturnType() {
@@ -112,6 +119,7 @@ public final class MethodInfo {
         .add("serviceName='" + serviceName + "'")
         .add("methodName='" + methodName + "'")
         .add("qualifier='" + qualifier + "'")
+        .add("dynamicQualifier=" + dynamicQualifier)
         .add("parameterizedReturnType=" + parameterizedReturnType)
         .add("isReturnTypeServiceMessage=" + isReturnTypeServiceMessage)
         .add("communicationMode=" + communicationMode)
