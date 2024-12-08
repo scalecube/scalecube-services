@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
 
@@ -51,7 +52,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> listServiceReferences() {
-    return serviceReferencesByQualifier.values().stream().flatMap(Collection::stream).toList();
+    return Stream.concat(
+            serviceReferencesByQualifier.values().stream().flatMap(Collection::stream),
+            serviceReferencesByPattern.values().stream().flatMap(Collection::stream))
+        .toList();
   }
 
   @Override
