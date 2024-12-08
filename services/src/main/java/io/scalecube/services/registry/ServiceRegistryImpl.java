@@ -4,6 +4,7 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
+import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
@@ -13,6 +14,7 @@ import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -31,9 +33,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       new NonBlockingHashMap<>();
   private final Map<String, ServiceMethodInvoker> methodInvokerByQualifier =
       new NonBlockingHashMap<>();
-  private final Map<String, List<ServiceReference>> serviceReferencesByPattern =
+  private final Map<DynamicQualifier, List<ServiceReference>> serviceReferencesByPattern =
       new NonBlockingHashMap<>();
-  private final Map<String, ServiceMethodInvoker> methodInvokerByPattern =
+  private final Map<DynamicQualifier, ServiceMethodInvoker> methodInvokerByPattern =
       new NonBlockingHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -55,14 +57,21 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public List<ServiceReference> lookupService(ServiceMessage request) {
     final var contentType = request.dataFormatOrDefault();
-    final var list = serviceReferencesByQualifier.get(request.qualifier());
+    final var qualifier = request.qualifier();
+
+    final var list = serviceReferencesByQualifier.get(qualifier);
     if (list != null) {
       return list.stream().filter(sr -> sr.contentTypes().contains(contentType)).toList();
     }
 
     for (var entry : serviceReferencesByPattern.entrySet()) {
-      final var serviceReferences = entry.getValue();
+      final var dynamicQualifier = entry.getKey();
+      if (dynamicQualifier.matchQualifier(qualifier) != null) {
+        return entry.getValue();
+      }
     }
+
+    return Collections.emptyList();
   }
 
   @Override
@@ -146,7 +155,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                           if (methodInfo.dynamicQualifier() == null) {
                             methodInvokerByQualifier.put(methodInfo.qualifier(), methodInvoker);
                           } else {
-                            methodInvokerByPattern.put(methodInfo.qualifier(), methodInvoker);
+                            methodInvokerByPattern.put(
+                                methodInfo.dynamicQualifier(), methodInvoker);
                           }
                         }));
   }
@@ -157,7 +167,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       throw new IllegalStateException("MethodInvoker already exists");
     }
     if (methodInfo.dynamicQualifier() != null) {
-      if (methodInvokerByPattern.containsKey(methodInfo.qualifier())) {
+      if (methodInvokerByPattern.containsKey(methodInfo.dynamicQualifier())) {
         LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
         throw new IllegalStateException("MethodInvoker already exists");
       }
@@ -192,7 +202,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           .add(sr);
     } else {
       serviceReferencesByPattern
-          .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
+          .computeIfAbsent(sr.dynamicQualifier(), key -> new CopyOnWriteArrayList<>())
           .add(sr);
     }
   }
