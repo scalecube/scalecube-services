@@ -59,10 +59,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     final var contentType = request.dataFormatOrDefault();
     final var qualifier = request.qualifier();
 
+    // Match by exact-match
+
     final var list = serviceReferencesByQualifier.get(qualifier);
     if (list != null) {
       return list.stream().filter(sr -> sr.contentTypes().contains(contentType)).toList();
     }
+
+    // Match by dynamic-qualifier
 
     for (var entry : serviceReferencesByPattern.entrySet()) {
       final var dynamicQualifier = entry.getKey();
@@ -176,10 +180,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public ServiceMethodInvoker getInvoker(String qualifier) {
+    // Match by exact-match
+
     final var methodInvoker = methodInvokerByQualifier.get(qualifier);
     if (methodInvoker != null) {
       return methodInvoker;
     }
+
+    // Match by dynamic-qualifier
+
     for (var entry : methodInvokerByPattern.entrySet()) {
       final var invoker = entry.getValue();
       final var dynamicQualifier = invoker.methodInfo().dynamicQualifier();
@@ -187,6 +196,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         return invoker;
       }
     }
+
     return null;
   }
 
