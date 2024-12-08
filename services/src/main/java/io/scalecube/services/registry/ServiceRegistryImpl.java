@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
@@ -34,9 +33,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       new NonBlockingHashMap<>();
   private final Map<String, ServiceMethodInvoker> methodInvokerByQualifier =
       new NonBlockingHashMap<>();
-  private final Map<Pattern, List<ServiceReference>> serviceReferencesByPattern =
+  private final Map<String, List<ServiceReference>> serviceReferencesByPattern =
       new NonBlockingHashMap<>();
-  private final Map<Pattern, ServiceMethodInvoker> methodInvokerByPattern =
+  private final Map<String, ServiceMethodInvoker> methodInvokerByPattern =
       new NonBlockingHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -80,6 +79,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return putIfAbsent;
   }
 
+  // TODO: refactor, clean also serviceReferencesByQualifier
   @Override
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
@@ -146,7 +146,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   serviceInfo.logger(),
                                   serviceInfo.level());
 
-                          methodInvokerByQualifier.put(methodInfo.qualifier(), methodInvoker);
+                          if (methodInfo.dynamicQualifier() == null) {
+                            methodInvokerByQualifier.put(methodInfo.qualifier(), methodInvoker);
+                          } else {
+                            methodInvokerByPattern.put(methodInfo.qualifier(), methodInvoker);
+                          }
                         }));
   }
 
@@ -155,28 +159,48 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
       throw new IllegalStateException("MethodInvoker already exists");
     }
+    if (methodInfo.dynamicQualifier() != null) {
+      if (methodInvokerByPattern.containsKey(methodInfo.qualifier())) {
+        LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
+        throw new IllegalStateException("MethodInvoker already exists");
+      }
+    }
   }
 
   @Override
   public ServiceMethodInvoker getInvoker(String qualifier) {
-    return methodInvokerByQualifier.get(qualifier);
+    final var methodInvoker = methodInvokerByQualifier.get(qualifier);
+    if (methodInvoker != null) {
+      return methodInvoker;
+    }
+    for (var entry : methodInvokerByPattern.entrySet()) {
+      final var invoker = entry.getValue();
+      final var dynamicQualifier = invoker.methodInfo().dynamicQualifier();
+      if (dynamicQualifier.matchQualifier(qualifier) != null) {
+        return invoker;
+      }
+    }
+    return null;
   }
 
   @Override
   public List<ServiceInfo> listServices() {
-    return serviceInfos;
+    return new ArrayList<>(serviceInfos);
   }
 
   private void addServiceReference(ServiceReference sr) {
-    if (sr.hasDynamicQualifier()) {
-      // ...
-    } else {
+    if (sr.dynamicQualifier() == null) {
       serviceReferencesByQualifier
+          .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
+          .add(sr);
+    } else {
+      serviceReferencesByPattern
           .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
           .add(sr);
     }
   }
 
+  // TODO: refactor, clean also serviceReferencesByQualifier
   private void removeServiceReference(ServiceReference sr) {
     serviceReferencesByQualifier.compute(
         sr.qualifier(),
