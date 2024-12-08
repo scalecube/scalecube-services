@@ -14,15 +14,15 @@ import java.util.StringJoiner;
  */
 public class ServiceReference {
 
-  private final String qualifier;
   private final String endpointId;
   private final String namespace;
+  private final String action;
+  private final String qualifier;
+  private final DynamicQualifier dynamicQualifier;
   private final Set<String> contentTypes;
   private final Map<String, String> tags;
-  private final String action;
   private final Address address;
   private final boolean isSecured;
-  private final DynamicQualifier dynamicQualifier;
 
   /**
    * Constructor for service reference.
@@ -37,21 +37,13 @@ public class ServiceReference {
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
     this.namespace = serviceRegistration.namespace();
-    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
-    this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
+    this.dynamicQualifier = qualifier.contains(":") ? new DynamicQualifier(qualifier) : null;
+    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
+    this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();
     this.isSecured = serviceMethodDefinition.isSecured();
-    if (qualifier.contains(":")) {
-      dynamicQualifier = new DynamicQualifier(qualifier);
-    } else {
-      dynamicQualifier = null;
-    }
-  }
-
-  public String qualifier() {
-    return qualifier;
   }
 
   public String endpointId() {
@@ -62,6 +54,18 @@ public class ServiceReference {
     return namespace;
   }
 
+  public String action() {
+    return action;
+  }
+
+  public String qualifier() {
+    return qualifier;
+  }
+
+  public DynamicQualifier dynamicQualifier() {
+    return dynamicQualifier;
+  }
+
   public Set<String> contentTypes() {
     return contentTypes;
   }
@@ -70,20 +74,12 @@ public class ServiceReference {
     return tags;
   }
 
-  public String action() {
-    return action;
-  }
-
   public Address address() {
     return this.address;
   }
 
   public boolean isSecured() {
     return isSecured;
-  }
-
-  public DynamicQualifier dynamicQualifier() {
-    return dynamicQualifier;
   }
 
   private Map<String, String> mergeTags(
@@ -100,15 +96,15 @@ public class ServiceReference {
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
-        .add("qualifier='" + qualifier + "'")
         .add("endpointId='" + endpointId + "'")
         .add("namespace='" + namespace + "'")
+        .add("action='" + action + "'")
+        .add("qualifier='" + qualifier + "'")
+        .add("dynamicQualifier=" + dynamicQualifier)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
-        .add("action='" + action + "'")
         .add("address=" + address)
         .add("isSecured=" + isSecured)
-        .add("dynamicQualifier=" + dynamicQualifier)
         .toString();
   }
 }
