@@ -13,11 +13,9 @@ import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
 
@@ -51,21 +49,20 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> listServiceReferences() {
-    return serviceReferencesByQualifier.values().stream()
-        .flatMap(Collection::stream)
-        .collect(Collectors.toList());
+    return serviceReferencesByQualifier.values().stream().flatMap(Collection::stream).toList();
   }
 
   @Override
   public List<ServiceReference> lookupService(ServiceMessage request) {
-    List<ServiceReference> list = serviceReferencesByQualifier.get(request.qualifier());
-    if (list == null || list.isEmpty()) {
-      return Collections.emptyList();
+    final var contentType = request.dataFormatOrDefault();
+    final var list = serviceReferencesByQualifier.get(request.qualifier());
+    if (list != null) {
+      return list.stream().filter(sr -> sr.contentTypes().contains(contentType)).toList();
     }
-    String contentType = request.dataFormatOrDefault();
-    return list.stream()
-        .filter(sr -> sr.contentTypes().contains(contentType))
-        .collect(Collectors.toList());
+
+    for (var entry : serviceReferencesByPattern.entrySet()) {
+      final var serviceReferences = entry.getValue();
+    }
   }
 
   @Override
