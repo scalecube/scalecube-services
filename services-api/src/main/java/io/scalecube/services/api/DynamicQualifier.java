@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 public final class DynamicQualifier {
 
+  private final String qualifier;
   private final Pattern pattern;
   private final List<String> pathVariables = new ArrayList<>();
 
@@ -29,7 +30,8 @@ public final class DynamicQualifier {
       sb.append("/");
     }
     sb.setLength(sb.length() - 1);
-    pattern = Pattern.compile(sb.toString());
+    this.pattern = Pattern.compile(sb.toString());
+    this.qualifier = qualifier;
   }
 
   public Map<String, String> matchQualifier(String input) {
@@ -45,6 +47,22 @@ public final class DynamicQualifier {
       map.put(pathVar, value);
     }
     return map;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    return Objects.equals(qualifier, ((DynamicQualifier) o).qualifier);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hashCode(qualifier);
   }
 
   @Override
