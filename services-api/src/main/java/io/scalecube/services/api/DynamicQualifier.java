@@ -1,6 +1,7 @@
 package io.scalecube.services.api;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,13 +13,15 @@ public final class DynamicQualifier {
 
   private final String qualifier;
   private final Pattern pattern;
-  private final List<String> pathVariables = new ArrayList<>();
+  private final List<String> pathVariables;
 
   public DynamicQualifier(String qualifier) {
     if (!qualifier.contains(":")) {
       throw new IllegalArgumentException("Illegal dynamic qualifier: " + qualifier);
     }
-    final StringBuilder sb = new StringBuilder();
+
+    final var pathVariables = new ArrayList<String>();
+    final var sb = new StringBuilder();
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
         final var pathVar = s.substring(1);
@@ -30,8 +33,10 @@ public final class DynamicQualifier {
       sb.append("/");
     }
     sb.setLength(sb.length() - 1);
+
     this.pattern = Pattern.compile(sb.toString());
     this.qualifier = qualifier;
+    this.pathVariables = Collections.unmodifiableList(pathVariables);
   }
 
   public String qualifier() {
@@ -51,6 +56,7 @@ public final class DynamicQualifier {
     if (!matcher.matches()) {
       return null;
     }
+
     final var map = new LinkedHashMap<String, String>();
     for (var pathVar : pathVariables) {
       final var value = matcher.group(pathVar);
@@ -58,6 +64,7 @@ public final class DynamicQualifier {
           value, "Path variable value must not be null, path variable: " + pathVar);
       map.put(pathVar, value);
     }
+
     return map;
   }
 
