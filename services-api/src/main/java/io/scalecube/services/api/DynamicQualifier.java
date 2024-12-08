@@ -17,7 +17,6 @@ public final class DynamicQualifier {
     if (!qualifier.contains(":")) {
       throw new IllegalArgumentException("Illegal dynamic qualifier: " + qualifier);
     }
-
     final StringBuilder sb = new StringBuilder();
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
@@ -29,25 +28,23 @@ public final class DynamicQualifier {
       }
       sb.append("/");
     }
-
     sb.setLength(sb.length() - 1);
     pattern = Pattern.compile(sb.toString());
   }
 
-  public Map<String, String> match(String input) {
+  public Map<String, String> matchQualifier(String input) {
     final var matcher = pattern.matcher(input);
     if (!matcher.matches()) {
       return null;
-    } else {
-      final var map = new LinkedHashMap<String, String>();
-      for (var pathVar : pathVariables) {
-        final var value = matcher.group(pathVar);
-        Objects.requireNonNull(
-            value, "Path variable value must not be null, path variable: " + pathVar);
-        map.put(pathVar, value);
-      }
-      return map;
     }
+    final var map = new LinkedHashMap<String, String>();
+    for (var pathVar : pathVariables) {
+      final var value = matcher.group(pathVar);
+      Objects.requireNonNull(
+          value, "Path variable value must not be null, path variable: " + pathVar);
+      map.put(pathVar, value);
+    }
+    return map;
   }
 
   @Override
