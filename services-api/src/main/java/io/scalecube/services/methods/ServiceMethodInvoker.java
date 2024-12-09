@@ -95,7 +95,8 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(context, authData));
+        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        .contextWrite(context -> enhanceWithRequestAttributes(context, message));
   }
 
   /**
@@ -132,7 +133,8 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(context, authData));
+        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        .contextWrite(context -> enhanceWithRequestAttributes(context, message));
   }
 
   /**
@@ -158,7 +160,7 @@ public final class ServiceMethodInvoker {
 
   private Flux<?> invokeBidirectional(Flux<ServiceMessage> messages, Object authData) {
     return Flux.deferContextual(context -> messages.map(this::toRequest).transform(this::invoke))
-        .contextWrite(context -> enhanceContext(context, authData));
+        .contextWrite(context -> enhanceWithAuthContext(context, authData));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -206,19 +208,18 @@ public final class ServiceMethodInvoker {
     return authenticator
         .apply(message.headers())
         .switchIfEmpty(Mono.just(NULL_AUTH_CONTEXT))
-        .onErrorMap(this::toUnauthorizedException);
+        .onErrorMap(ServiceMethodInvoker::toUnauthorizedException);
   }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
+  private static UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException e) {
       return new UnauthorizedException(e.errorCode(), e.getMessage());
     } else {
       return new UnauthorizedException(th);
     }
   }
 
-  private Context enhanceContext(Context context, Object authData) {
+  private Context enhanceWithAuthContext(Context context, Object authData) {
     if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
       return context.put(AUTH_CONTEXT_KEY, authData);
     }
@@ -227,6 +228,10 @@ public final class ServiceMethodInvoker {
     final var authContext = mappedData != null ? mappedData : NULL_AUTH_CONTEXT;
 
     return context.put(AUTH_CONTEXT_KEY, authContext);
+  }
+
+  private Context enhanceWithRequestAttributes(Context context, ServiceMessage message) {
+    return null; // TODO WIP
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -247,9 +252,8 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
-    if (response instanceof ServiceMessage) {
-      ServiceMessage message = (ServiceMessage) response;
+  private static ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+    if (response instanceof ServiceMessage message) {
       if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
         return ServiceMessage.from(message).qualifier(qualifier).dataFormat(dataFormat).build();
       }
