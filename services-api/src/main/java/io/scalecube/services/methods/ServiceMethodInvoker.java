@@ -95,7 +95,7 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(authData, context));
+        .contextWrite(context -> enhanceContext(context, authData));
   }
 
   /**
@@ -132,7 +132,7 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(authData, context));
+        .contextWrite(context -> enhanceContext(context, authData));
   }
 
   /**
@@ -158,7 +158,7 @@ public final class ServiceMethodInvoker {
 
   private Flux<?> invokeBidirectional(Flux<ServiceMessage> messages, Object authData) {
     return Flux.deferContextual(context -> messages.map(this::toRequest).transform(this::invoke))
-        .contextWrite(context -> enhanceContext(authData, context));
+        .contextWrite(context -> enhanceContext(context, authData));
   }
 
   private Publisher<?> invoke(Object request) {
@@ -218,14 +218,15 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  private Context enhanceContext(Object authData, Context context) {
+  private Context enhanceContext(Context context, Object authData) {
     if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
       return context.put(AUTH_CONTEXT_KEY, authData);
     }
 
-    Object mappedData = principalMapper.apply(authData);
+    final var mappedData = principalMapper.apply(authData);
+    final var authContext = mappedData != null ? mappedData : NULL_AUTH_CONTEXT;
 
-    return context.put(AUTH_CONTEXT_KEY, mappedData != null ? mappedData : NULL_AUTH_CONTEXT);
+    return context.put(AUTH_CONTEXT_KEY, authContext);
   }
 
   private Object toRequest(ServiceMessage message) {
