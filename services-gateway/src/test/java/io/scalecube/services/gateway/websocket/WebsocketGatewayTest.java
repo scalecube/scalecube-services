@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.websocket;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -239,6 +240,18 @@ class WebsocketGatewayTest extends BaseTest {
     final var value = System.nanoTime();
     StepVerifier.create(serviceCall.api(HeartbeatService.class).ping(value))
         .assertNext(pongValue -> Assertions.assertEquals(value, pongValue))
+        .verifyComplete();
+  }
+
+  @Test
+  void shouldWorkWithDynamicQualifier() {
+    final var value = "12345";
+    final var data = System.currentTimeMillis();
+    final var request =
+        ServiceMessage.builder().qualifier("greeting/hello/" + value).data(data).build();
+
+    StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
+        .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
   }
 }
