@@ -46,6 +46,7 @@ import reactor.test.StepVerifier;
 public class ServiceCallLocalTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
+
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private static Microservices provider;
