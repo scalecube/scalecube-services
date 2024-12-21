@@ -38,7 +38,6 @@ import reactor.test.StepVerifier;
 public class ServiceRemoteTest extends BaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
-  public static final Duration TIMEOUT2 = Duration.ofSeconds(6);
 
   private static Microservices gateway;
   private static Address gatewayAddress;
@@ -203,7 +202,7 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   @Test
-  void test_remote_greeting_message() {
+  public void test_remote_greeting_message() {
     GreetingService service = createProxy();
 
     ServiceMessage request = ServiceMessage.builder().data(new GreetingRequest("joe")).build();
@@ -559,6 +558,18 @@ public class ServiceRemoteTest extends BaseTest {
       long first = service.manyStream(30L).filter(k -> k != 0).take(1).blockFirst();
       assertEquals(1, first);
     }
+  }
+
+  @Test
+  public void test_dynamic_qualifier() {
+    final var value = "12345";
+    final var data = System.currentTimeMillis();
+    final var request =
+        ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
+
+    StepVerifier.create(gateway.call().requestOne(request, String.class).map(ServiceMessage::data))
+        .assertNext(result -> assertEquals(value + "@" + data, result))
+        .verifyComplete();
   }
 
   private GreetingService createProxy() {

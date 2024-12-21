@@ -15,6 +15,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
@@ -76,7 +77,7 @@ public final class ServiceMethodInvoker {
             context -> {
               final var request = toRequest(message);
               final var qualifier = message.qualifier();
-              return Mono.from(invoke(request))
+              return Mono.from(invokeRequest(request))
                   .doOnSuccess(
                       response -> {
                         if (logger != null && logger.isLoggable(level)) {
@@ -95,7 +96,8 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(authData, context));
+        .contextWrite(context -> enhanceWithRequestContext(context, message))
+        .contextWrite(context -> enhanceWithAuthContext(context, authData));
   }
 
   /**
@@ -118,7 +120,7 @@ public final class ServiceMethodInvoker {
             context -> {
               final var request = toRequest(message);
               final var qualifier = message.qualifier();
-              return Flux.from(invoke(request))
+              return Flux.from(invokeRequest(request))
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isLoggable(level)) {
@@ -132,7 +134,8 @@ public final class ServiceMethodInvoker {
                         }
                       });
             })
-        .contextWrite(context -> enhanceContext(authData, context));
+        .contextWrite(context -> enhanceWithRequestContext(context, message))
+        .contextWrite(context -> enhanceWithAuthContext(context, authData));
   }
 
   /**
@@ -157,11 +160,12 @@ public final class ServiceMethodInvoker {
   }
 
   private Flux<?> invokeBidirectional(Flux<ServiceMessage> messages, Object authData) {
-    return Flux.deferContextual(context -> messages.map(this::toRequest).transform(this::invoke))
-        .contextWrite(context -> enhanceContext(authData, context));
+    return Flux.deferContextual(
+            context -> messages.map(this::toRequest).transform(this::invokeRequest))
+        .contextWrite(context -> enhanceWithAuthContext(context, authData));
   }
 
-  private Publisher<?> invoke(Object request) {
+  private Publisher<?> invokeRequest(Object request) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
@@ -206,26 +210,37 @@ public final class ServiceMethodInvoker {
     return authenticator
         .apply(message.headers())
         .switchIfEmpty(Mono.just(NULL_AUTH_CONTEXT))
-        .onErrorMap(this::toUnauthorizedException);
+        .onErrorMap(ServiceMethodInvoker::toUnauthorizedException);
   }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
+  private static UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException e) {
       return new UnauthorizedException(e.errorCode(), e.getMessage());
     } else {
       return new UnauthorizedException(th);
     }
   }
 
-  private Context enhanceContext(Object authData, Context context) {
+  private Context enhanceWithAuthContext(Context context, Object authData) {
     if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
       return context.put(AUTH_CONTEXT_KEY, authData);
+    } else {
+      final var principal = principalMapper.apply(authData);
+      return context.put(AUTH_CONTEXT_KEY, principal != null ? principal : NULL_AUTH_CONTEXT);
+    }
+  }
+
+  private Context enhanceWithRequestContext(Context context, ServiceMessage message) {
+    final var headers = message.headers();
+    final var principal = context.get(AUTH_CONTEXT_KEY);
+    final var dynamicQualifier = methodInfo.dynamicQualifier();
+
+    Map<String, String> pathVars = null;
+    if (dynamicQualifier != null) {
+      pathVars = dynamicQualifier.matchQualifier(message.qualifier());
     }
 
-    Object mappedData = principalMapper.apply(authData);
-
-    return context.put(AUTH_CONTEXT_KEY, mappedData != null ? mappedData : NULL_AUTH_CONTEXT);
+    return context.put(RequestContext.class, new RequestContext(headers, principal, pathVars));
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -246,9 +261,8 @@ public final class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
-    if (response instanceof ServiceMessage) {
-      ServiceMessage message = (ServiceMessage) response;
+  private static ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+    if (response instanceof ServiceMessage message) {
       if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
         return ServiceMessage.from(message).qualifier(qualifier).dataFormat(dataFormat).build();
       }

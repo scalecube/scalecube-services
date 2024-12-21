@@ -88,4 +88,9 @@ public class GreetingServiceCancelCallback implements GreetingService {
   public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
     return greetingService.emptyGreetingMessage(request).doOnCancel(onCancel);
   }
+
+  @Override
+  public Mono<String> helloDynamicQualifier(Long value) {
+    return greetingService.helloDynamicQualifier(value).doOnCancel(onCancel);
+  }
 }

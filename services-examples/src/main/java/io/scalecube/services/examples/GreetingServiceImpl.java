@@ -1,6 +1,7 @@
 package io.scalecube.services.examples;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.methods.RequestContext;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -94,9 +95,14 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
-    EmptyGreetingRequest greetingRequest = request.data();
     ServiceMessage response =
         ServiceMessage.from(request).data(new EmptyGreetingResponse()).build();
     return Mono.just(response);
+  }
+
+  @Override
+  public Mono<String> helloDynamicQualifier(Long value) {
+    return RequestContext.deferContextual()
+        .map(context -> context.pathVar("someVar") + "@" + value);
   }
 }

@@ -1,5 +1,7 @@
 package io.scalecube.services.methods;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import io.scalecube.services.auth.Authenticator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,5 +41,19 @@ public class StubServiceImpl implements StubService {
   @Override
   public Mono<Void> helloAuthContext() {
     return Authenticator.deferSecured(StubServicePrincipal.class).then();
+  }
+
+  @Override
+  public Mono<Void> helloRequestContextWithDynamicQualifier() {
+    return RequestContext.deferContextual()
+        .doOnNext(
+            requestContext -> {
+              assertNotNull(requestContext.headers(), "requestContext.headers");
+              assertNotNull(requestContext.principal(), "requestContext.principal");
+              assertNotNull(requestContext.pathVars(), "requestContext.pathVars");
+              assertNotNull(requestContext.pathVar("foo"), "foo");
+              assertNotNull(requestContext.pathVar("bar"), "bar");
+            })
+        .then();
   }
 }
