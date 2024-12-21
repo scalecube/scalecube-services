@@ -5,8 +5,10 @@ import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service
+@Service(StubService.NAMESPACE)
 public interface StubService {
+
+  String NAMESPACE = "v1/stubService";
 
   @ServiceMethod
   Mono<String> returnNull();
@@ -28,4 +30,7 @@ public interface StubService {
 
   @ServiceMethod
   Mono<Void> helloAuthContext();
+
+  @ServiceMethod("hello/:foo/dynamic/:bar")
+  Mono<Void> helloRequestContextWithDynamicQualifier();
 }
