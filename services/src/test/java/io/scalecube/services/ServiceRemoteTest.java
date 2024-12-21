@@ -567,9 +567,9 @@ public class ServiceRemoteTest extends BaseTest {
     final var request =
         ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
 
-    StepVerifier.create(gateway.call().requestOne(request).map(ServiceMessage::data))
+    StepVerifier.create(gateway.call().requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
-        .expectComplete();
+        .verifyComplete();
   }
 
   private GreetingService createProxy() {

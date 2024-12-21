@@ -60,4 +60,7 @@ public interface GreetingService {
   @RequestType(EmptyGreetingRequest.class)
   @ResponseType(EmptyGreetingResponse.class)
   Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
+
+  @ServiceMethod("hello/:someVar")
+  Mono<String> helloDynamicQualifier(Long value);
 }

@@ -199,7 +199,7 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Mono<String> helloDynamicQualifier(String value) {
+  public Mono<String> helloDynamicQualifier(Long value) {
     return RequestContext.deferContextual()
         .map(context -> context.pathVar("someVar") + "@" + value);
   }

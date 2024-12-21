@@ -102,5 +102,5 @@ public interface GreetingService {
   Flux<Long> manyStream(Long cnt);
 
   @ServiceMethod("hello/:someVar")
-  Mono<String> helloDynamicQualifier(String value);
+  Mono<String> helloDynamicQualifier(Long value);
 }

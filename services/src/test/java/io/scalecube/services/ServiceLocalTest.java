@@ -386,9 +386,10 @@ public class ServiceLocalTest extends BaseTest {
     final var request =
         ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
 
-    StepVerifier.create(microservices.call().requestOne(request).map(ServiceMessage::data))
+    StepVerifier.create(
+            microservices.call().requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
-        .expectComplete();
+        .verifyComplete();
   }
 
   private static GreetingService createProxy(Microservices gateway) {
