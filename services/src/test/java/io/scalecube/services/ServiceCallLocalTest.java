@@ -75,18 +75,6 @@ public class ServiceCallLocalTest extends BaseTest {
         GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
   }
 
-  private static Microservices serviceProvider() {
-    return Microservices.start(
-        new Context()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl()));
-  }
-
   @Test
   public void test_local_void_greeting() {
     // WHEN
@@ -215,6 +203,18 @@ public class ServiceCallLocalTest extends BaseTest {
               Assertions.assertEquals("custom error mapper", throwable.getMessage());
             })
         .verify(timeout);
+  }
+
+  private static Microservices serviceProvider() {
+    return Microservices.start(
+        new Context()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new)
+            .services(new GreetingServiceImpl()));
   }
 
   private static Optional<ServiceReference> route(

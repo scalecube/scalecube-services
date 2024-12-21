@@ -4,6 +4,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
+import io.scalecube.services.methods.RequestContext;
 import java.util.stream.LongStream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -15,8 +16,6 @@ public final class GreetingServiceImpl implements GreetingService {
   @Inject Microservices ms;
 
   private int instanceId;
-
-  private boolean ci = System.getenv("TRAVIS") != null;
 
   public GreetingServiceImpl() {}
 
@@ -46,7 +45,8 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
-    print("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
     return Mono.delay(request.getDuration())
         .flatMap(
             i ->
@@ -57,7 +57,7 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<String> greetingNoParams() {
-    print(
+    System.out.println(
         "[greetingNoParams] Hello... i am a service an just recived "
             + "a call bu i dont know from who.");
     return Mono.just("hello unknown");
@@ -65,7 +65,7 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<GreetingResponse> greetingRequest(GreetingRequest request) {
-    print(
+    System.out.println(
         instanceId
             + ":[greetingRequest] Hello... i am a service an just recived a message:"
             + request);
@@ -123,7 +123,8 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<ServiceMessage> greetingMessage(ServiceMessage request) {
-    print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingRequest data = request.data();
     GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
     return Mono.just(ServiceMessage.builder().data(resp).build());
@@ -131,7 +132,8 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<GreetingResponse> greetingMessage2(ServiceMessage request) {
-    print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingRequest data = request.data();
     GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
     return Mono.just(resp);
@@ -139,51 +141,55 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<Void> greetingVoid(GreetingRequest request) {
-    print("[greetingVoid] Hello... i am a service an just recived a message:" + request);
-    print(" hello to: " + request.getName());
+    System.out.println(
+        "[greetingVoid] Hello... i am a service an just recived a message:" + request);
+    System.out.println(" hello to: " + request.getName());
     return Mono.empty();
   }
 
   @Override
   public Mono<Void> failingVoid(GreetingRequest request) {
-    print("[failingVoid] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[failingVoid] Hello... i am a service an just recived a message:" + request);
     return Mono.error(new IllegalArgumentException(request.toString()));
   }
 
   @Override
   public Mono<Void> throwingVoid(GreetingRequest request) {
-    print("[failingVoid] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[failingVoid] Hello... i am a service an just recived a message:" + request);
     throw new IllegalArgumentException(request.toString());
   }
 
   @Override
   public Mono<GreetingResponse> failingRequest(GreetingRequest request) {
-    print("[failingRequest] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[failingRequest] Hello... i am a service an just recived a message:" + request);
     return Mono.error(new IllegalArgumentException(request.toString()));
   }
 
   @Override
   public Mono<GreetingResponse> exceptionRequest(GreetingRequest request) {
-    print("[exceptionRequest] Hello... i am a service an just recived a message:" + request);
+    System.out.println(
+        "[exceptionRequest] Hello... i am a service an just recived a message:" + request);
     throw new IllegalArgumentException(request.toString());
   }
 
   @Override
   public Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request) {
-    print("[emptyGreeting] service received a message:" + request);
+    System.out.println("[emptyGreeting] service received a message:" + request);
     return Mono.just(new EmptyGreetingResponse());
   }
 
   @Override
   public Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request) {
-    print("[emptyGreetingMessage] service received a message:" + request);
-    EmptyGreetingRequest request1 = request.data();
+    System.out.println("[emptyGreetingMessage] service received a message:" + request);
     return Mono.just(ServiceMessage.from(request).data(new EmptyGreetingResponse()).build());
   }
 
   @Override
   public void notifyGreeting() {
-    print("[notifyGreeting] Hello... i am a service and i just notefied");
+    System.out.println("[notifyGreeting] Hello... i am a service and i just notefied");
   }
 
   @Override
@@ -192,9 +198,9 @@ public final class GreetingServiceImpl implements GreetingService {
         () -> Flux.fromStream(LongStream.range(0, cnt).boxed()).publishOn(Schedulers.parallel()));
   }
 
-  private void print(String message) {
-    if (!ci) {
-      System.out.println(message);
-    }
+  @Override
+  public Mono<String> helloDynamicQualifier(String value) {
+    return RequestContext.deferContextual()
+        .map(context -> context.pathVar("someVar") + "@" + value);
   }
 }

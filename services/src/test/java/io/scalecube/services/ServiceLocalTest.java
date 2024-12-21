@@ -23,7 +23,7 @@ import reactor.test.StepVerifier;
 
 public class ServiceLocalTest extends BaseTest {
 
-  private static final Duration timeout = Duration.ofSeconds(3);
+  private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   private Microservices microservices;
 
@@ -47,7 +47,7 @@ public class ServiceLocalTest extends BaseTest {
     GreetingResponse result =
         service
             .greetingRequestTimeout(new GreetingRequest("joe", Duration.ofMillis(500)))
-            .block(timeout.plusMillis(500));
+            .block(TIMEOUT.plusMillis(500));
 
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
@@ -95,7 +95,7 @@ public class ServiceLocalTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    service.greetingVoid(new GreetingRequest("joe")).block(timeout);
+    service.greetingVoid(new GreetingRequest("joe")).block(TIMEOUT);
 
     System.out.println("test_local_void_greeting done.");
   }
@@ -155,7 +155,7 @@ public class ServiceLocalTest extends BaseTest {
         assertThrows(
             RuntimeException.class,
             () ->
-                Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
+                Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", TIMEOUT)))
                     .timeout(Duration.ofMillis(500))
                     .block());
     assertTrue(
@@ -182,7 +182,7 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   @Test
-  void test_local_greeting_message() {
+  public void test_local_greeting_message() {
     GreetingService service = createProxy(microservices);
 
     ServiceMessage request = ServiceMessage.builder().data(new GreetingRequest("joe")).build();
@@ -199,7 +199,7 @@ public class ServiceLocalTest extends BaseTest {
               assertEquals("hello to: joe", resp.getResult());
             })
         .expectComplete()
-        .verify(timeout);
+        .verify(TIMEOUT);
 
     StepVerifier.create(service.greetingMessage2(request))
         .assertNext(
@@ -208,7 +208,7 @@ public class ServiceLocalTest extends BaseTest {
               assertEquals("hello to: joe", resp.getResult());
             })
         .expectComplete()
-        .verify(timeout);
+        .verify(TIMEOUT);
 
     // using serviceCall directly
     ServiceCall serviceCall = microservices.call();
@@ -227,7 +227,7 @@ public class ServiceLocalTest extends BaseTest {
               assertEquals("hello to: joe", resp.getResult());
             })
         .expectComplete()
-        .verify(timeout);
+        .verify(TIMEOUT);
 
     StepVerifier.create(
             serviceCall.requestOne(
@@ -243,7 +243,7 @@ public class ServiceLocalTest extends BaseTest {
               assertEquals("hello to: joe", resp.getResult());
             })
         .expectComplete()
-        .verify(timeout);
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -379,7 +379,19 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
   }
 
-  private GreetingService createProxy(Microservices gateway) {
+  @Test
+  public void test_dynamic_qualifier() {
+    final var value = "12345";
+    final var data = System.currentTimeMillis();
+    final var request =
+        ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
+
+    StepVerifier.create(microservices.call().requestOne(request).map(ServiceMessage::data))
+        .assertNext(result -> assertEquals(value + "@" + data, result))
+        .expectComplete();
+  }
+
+  private static GreetingService createProxy(Microservices gateway) {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
   }
 }
