@@ -46,6 +46,7 @@ import reactor.test.StepVerifier;
 public class ServiceCallLocalTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
+
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private static Microservices provider;
@@ -72,18 +73,6 @@ public class ServiceCallLocalTest extends BaseTest {
 
     assertEquals(
         GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
-  }
-
-  private static Microservices serviceProvider() {
-    return Microservices.start(
-        new Context()
-            .discovery(
-                serviceEndpoint ->
-                    new ScalecubeServiceDiscovery()
-                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
-                        .options(opts -> opts.metadata(serviceEndpoint)))
-            .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl()));
   }
 
   @Test
@@ -214,6 +203,18 @@ public class ServiceCallLocalTest extends BaseTest {
               Assertions.assertEquals("custom error mapper", throwable.getMessage());
             })
         .verify(timeout);
+  }
+
+  private static Microservices serviceProvider() {
+    return Microservices.start(
+        new Context()
+            .discovery(
+                serviceEndpoint ->
+                    new ScalecubeServiceDiscovery()
+                        .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+                        .options(opts -> opts.metadata(serviceEndpoint)))
+            .transport(RSocketServiceTransport::new)
+            .services(new GreetingServiceImpl()));
   }
 
   private static Optional<ServiceReference> route(

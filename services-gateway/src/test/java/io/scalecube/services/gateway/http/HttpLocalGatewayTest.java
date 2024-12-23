@@ -181,4 +181,16 @@ class HttpLocalGatewayTest extends BaseTest {
   void shouldReturnSomeException() {
     StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
   }
+
+  @Test
+  void shouldWorkWithDynamicQualifier() {
+    final var value = "12345";
+    final var data = System.currentTimeMillis();
+    final var request =
+        ServiceMessage.builder().qualifier("greeting/hello/" + value).data(data).build();
+
+    StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
+        .assertNext(result -> assertEquals(value + "@" + data, result))
+        .verifyComplete();
+  }
 }

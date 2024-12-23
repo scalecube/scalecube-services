@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,12 +14,13 @@ import java.util.StringJoiner;
  */
 public class ServiceReference {
 
-  private final String qualifier;
   private final String endpointId;
   private final String namespace;
+  private final String action;
+  private final String qualifier;
+  private final DynamicQualifier dynamicQualifier;
   private final Set<String> contentTypes;
   private final Map<String, String> tags;
-  private final String action;
   private final Address address;
   private final boolean isSecured;
 
@@ -35,16 +37,13 @@ public class ServiceReference {
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
     this.namespace = serviceRegistration.namespace();
-    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
-    this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
+    this.dynamicQualifier = qualifier.contains(":") ? new DynamicQualifier(qualifier) : null;
+    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
+    this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();
     this.isSecured = serviceMethodDefinition.isSecured();
-  }
-
-  public String qualifier() {
-    return qualifier;
   }
 
   public String endpointId() {
@@ -55,16 +54,24 @@ public class ServiceReference {
     return namespace;
   }
 
+  public String action() {
+    return action;
+  }
+
+  public String qualifier() {
+    return qualifier;
+  }
+
+  public DynamicQualifier dynamicQualifier() {
+    return dynamicQualifier;
+  }
+
   public Set<String> contentTypes() {
     return contentTypes;
   }
 
   public Map<String, String> tags() {
     return tags;
-  }
-
-  public String action() {
-    return action;
   }
 
   public Address address() {
@@ -89,11 +96,14 @@ public class ServiceReference {
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
-        .add("endpointId=" + endpointId)
-        .add("address=" + address)
-        .add("qualifier=" + qualifier)
+        .add("endpointId='" + endpointId + "'")
+        .add("namespace='" + namespace + "'")
+        .add("action='" + action + "'")
+        .add("qualifier='" + qualifier + "'")
+        .add("dynamicQualifier=" + dynamicQualifier)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
+        .add("address=" + address)
         .add("isSecured=" + isSecured)
         .toString();
   }

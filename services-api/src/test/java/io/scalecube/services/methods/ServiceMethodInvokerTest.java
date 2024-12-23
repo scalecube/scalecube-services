@@ -23,7 +23,7 @@ import reactor.test.StepVerifier;
 
 class ServiceMethodInvokerTest {
 
-  private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
+  private static final String QUALIFIER_PREFIX = StubService.NAMESPACE + "/";
 
   private static final boolean AUTH = true;
   public static final boolean IS_RETURN_TYPE_SERVICE_MESSAGE = false;
@@ -50,12 +50,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeOne should return empty response when service returns null")
   void testInvokeOneWhenReturnNull() throws Exception {
     final String methodName = "returnNull";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -79,7 +78,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     StepVerifier.create(
             Mono.deferContextual(context -> serviceMethodInvoker.invokeOne(message))
@@ -91,12 +90,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeMany should return empty response when service returns null")
   void testInvokeManyWhenReturnNull() throws Exception {
     final String methodName = "returnNull2";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -120,7 +118,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     StepVerifier.create(
             Flux.deferContextual(context -> serviceMethodInvoker.invokeMany(message))
@@ -132,12 +130,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeBidirectional should return empty response when service returns null")
   void testInvokeBidirectionalWhenReturnNull() throws Exception {
     final String methodName = "returnNull3";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName, Flux.class);
+    final Method method = stubService.getClass().getMethod(methodName, Flux.class);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -161,7 +158,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     StepVerifier.create(
             Flux.deferContextual(
@@ -174,12 +171,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeOne should return error response when service throws exception")
   void testInvokeOneWhenThrowException() throws Exception {
     final String methodName = "throwException";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -203,7 +199,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     // invokeOne
     final Mono<ServiceMessage> invokeOne =
@@ -219,12 +215,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeMany should return error response when service throws exception")
   void testInvokeManyWhenThrowException() throws Exception {
     final String methodName = "throwException2";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -248,7 +243,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     final Flux<ServiceMessage> invokeOne =
         Flux.deferContextual(context -> serviceMethodInvoker.invokeMany(message))
@@ -263,12 +258,11 @@ class ServiceMethodInvokerTest {
   @DisplayName("invokeBidirectional should return error response when service throws exception")
   void testInvokeBidirectionalWhenThrowException() throws Exception {
     final String methodName = "throwException3";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName, Flux.class);
+    final Method method = stubService.getClass().getMethod(methodName, Flux.class);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -292,7 +286,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
@@ -307,16 +301,15 @@ class ServiceMethodInvokerTest {
 
   @Test
   @DisplayName(
-      "invocation of auth method should return error "
+      "invocation of secured method should return error "
           + "if there're no auth.context and no authenticator")
   void testAuthMethodWhenNoContextAndNoAuthenticator() throws Exception {
     final String methodName = "helloAuthContext";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -340,7 +333,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     // invokeOne
     final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message);
@@ -352,16 +345,15 @@ class ServiceMethodInvokerTest {
 
   @Test
   @DisplayName(
-      "invocation of auth method should return empty response "
+      "invocation of secured method should return successfull response "
           + "if auth.context exists and no authenticator")
   void testAuthMethodWhenThereIsContextAndNoAuthenticator() throws Exception {
     final String methodName = "helloAuthContext";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -385,7 +377,7 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
 
     StepVerifier.create(
             Mono.deferContextual(context -> serviceMethodInvoker.invokeOne(message))
@@ -395,16 +387,15 @@ class ServiceMethodInvokerTest {
 
   @Test
   @DisplayName(
-      "invocation of auth method should return empty response "
+      "invocation of secured method should return successfull response "
           + "if there're no auth.context but authenticator exists")
   void testAuthMethodWhenNoContextButThereIsAuthenticator() throws Exception {
     final String methodName = "helloAuthContext";
-    final Class<? extends StubService> serviceClass = stubService.getClass();
-    final Method method = serviceClass.getMethod(methodName);
+    final Method method = stubService.getClass().getMethod(methodName);
 
     final MethodInfo methodInfo =
         new MethodInfo(
-            serviceClass.getName(),
+            StubService.NAMESPACE,
             methodName,
             method.getReturnType(),
             IS_RETURN_TYPE_SERVICE_MESSAGE,
@@ -433,7 +424,51 @@ class ServiceMethodInvokerTest {
             null);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + methodName).build();
+
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
+  }
+
+  @Test
+  @DisplayName("invocation of secured method should contain RequestConext with all fields")
+  void testRequestContextWithDynamicQualifier() throws Exception {
+    final String methodName = "helloRequestContextWithDynamicQualifier";
+    final String actionName = "hello/:foo/dynamic/:bar";
+    final String actualActionName = "hello/foo123/dynamic/bar456";
+    final Method method = stubService.getClass().getMethod(methodName);
+
+    final MethodInfo methodInfo =
+        new MethodInfo(
+            StubService.NAMESPACE,
+            actionName,
+            method.getReturnType(),
+            IS_RETURN_TYPE_SERVICE_MESSAGE,
+            CommunicationMode.REQUEST_RESPONSE,
+            method.getParameterCount(),
+            Void.TYPE,
+            IS_REQUEST_TYPE_SERVICE_MESSAGE,
+            AUTH,
+            Schedulers.immediate());
+
+    //noinspection unchecked,rawtypes
+    Authenticator<Map> mockedAuthenticator = Mockito.mock(Authenticator.class);
+    Mockito.when(mockedAuthenticator.apply(ArgumentMatchers.anyMap()))
+        .thenReturn(Mono.just(AUTH_DATA));
+
+    serviceMethodInvoker =
+        new ServiceMethodInvoker(
+            method,
+            stubService,
+            methodInfo,
+            DefaultErrorMapper.INSTANCE,
+            dataDecoder,
+            authenticator,
+            principalMapper,
+            null,
+            null);
+
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(QUALIFIER_PREFIX + actualActionName).build();
 
     StepVerifier.create(serviceMethodInvoker.invokeOne(message)).verifyComplete();
   }
