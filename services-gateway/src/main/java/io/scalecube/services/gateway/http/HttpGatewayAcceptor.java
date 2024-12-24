@@ -22,7 +22,6 @@ import java.lang.System.Logger.Level;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
-import reactor.netty.ByteBufMono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
@@ -57,7 +56,7 @@ public class HttpGatewayAcceptor
     return httpRequest
         .receive()
         .aggregate()
-        .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
+        .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .map(ByteBuf::retain)
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .onErrorResume(t -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, t)));
@@ -75,7 +74,7 @@ public class HttpGatewayAcceptor
 
     final var request =
         builder
-            .header("http.method", httpRequest.method().name())
+            .header("httpMethod", httpRequest.method().name())
             .qualifier(qualifier)
             .data(content)
             .build();
