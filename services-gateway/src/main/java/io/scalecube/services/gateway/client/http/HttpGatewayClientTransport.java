@@ -77,15 +77,18 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request, Type responseType) {
-    return httpClientReference
-        .get()
-        .post()
-        .uri("/" + request.qualifier())
-        .send((clientRequest, outbound) -> send(request, clientRequest, outbound))
-        .responseSingle(
-            (clientResponse, mono) ->
-                mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
-        .map(msg -> decodeData(msg, responseType));
+    return Mono.defer(
+        () -> {
+          final HttpClient httpClient = httpClientReference.get();
+          return httpClient
+              .post()
+              .uri("/" + request.qualifier())
+              .send((clientRequest, outbound) -> send(request, clientRequest, outbound))
+              .responseSingle(
+                  (clientResponse, mono) ->
+                      mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
+              .map(msg -> decodeData(msg, responseType));
+        });
   }
 
   private Mono<Void> send(
