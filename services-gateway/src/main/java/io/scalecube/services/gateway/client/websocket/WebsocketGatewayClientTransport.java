@@ -125,8 +125,8 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   public Mono<ServiceMessage> requestResponse(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
-          long sid = sidCounter.incrementAndGet();
-          final WebsocketGatewayClientSession session = clientSessionReference.get();
+          final var sid = sidCounter.incrementAndGet();
+          final var session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.log(Level.DEBUG, "Sending request {0}", request))
@@ -141,8 +141,8 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   public Flux<ServiceMessage> requestStream(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
-          long sid = sidCounter.incrementAndGet();
-          final WebsocketGatewayClientSession session = clientSessionReference.get();
+          final var sid = sidCounter.incrementAndGet();
+          final var session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.log(Level.DEBUG, "Sending request {0}", request))
