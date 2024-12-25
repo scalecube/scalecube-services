@@ -48,13 +48,13 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   private final AtomicReference<HttpClient> httpClientReference = new AtomicReference<>();
 
   private HttpGatewayClientTransport(Builder builder) {
-    clientCodec = builder.clientCodec;
-    operator = builder.operator;
-    loopResources =
+    this.clientCodec = builder.clientCodec;
+    this.operator = builder.operator;
+    this.loopResources =
         builder.loopResources == null
             ? LoopResources.create("http-gateway-client", 1, true)
             : builder.loopResources;
-    ownsLoopResources = builder.loopResources == null;
+    this.ownsLoopResources = builder.loopResources == null;
   }
 
   @Override
