@@ -49,14 +49,14 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
       new AtomicReference<>();
 
   private WebsocketGatewayClientTransport(Builder builder) {
-    clientCodec = builder.clientCodec;
-    keepAliveInterval = builder.keepAliveInterval;
-    operator = builder.operator;
-    loopResources =
+    this.clientCodec = builder.clientCodec;
+    this.keepAliveInterval = builder.keepAliveInterval;
+    this.operator = builder.operator;
+    this.loopResources =
         builder.loopResources == null
             ? LoopResources.create("websocket-gateway-client", 1, true)
             : builder.loopResources;
-    ownsLoopResources = builder.loopResources == null;
+    this.ownsLoopResources = builder.loopResources == null;
   }
 
   @Override
