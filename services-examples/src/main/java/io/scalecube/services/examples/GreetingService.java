@@ -56,13 +56,11 @@ public interface GreetingService {
   @ServiceMethod("empty/pojo")
   Mono<EmptyGreetingResponse> emptyGreeting(EmptyGreetingRequest request);
 
-  @RestMethod(qaulifier = "hello/:someVar", method = "POST")
   @ServiceMethod("empty/wrappedPojo")
   @RequestType(EmptyGreetingRequest.class)
   @ResponseType(EmptyGreetingResponse.class)
   Mono<ServiceMessage> emptyGreetingMessage(ServiceMessage request);
 
-  @RestMethod(method = "POST")
-  @ServiceMethod("hello/:someVar/:foo")
+  @ServiceMethod("hello/:someVar")
   Mono<String> helloDynamicQualifier(Long value);
 }
