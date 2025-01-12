@@ -30,7 +30,4 @@ public interface RestService {
 
   @ServiceMethod("trace/:foo")
   Mono<SomeResponse> trace();
-
-  @ServiceMethod("connect/:foo")
-  Mono<SomeResponse> connect(SomeRequest request);
 }

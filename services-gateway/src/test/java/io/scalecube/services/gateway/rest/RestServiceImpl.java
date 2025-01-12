@@ -116,17 +116,4 @@ public class RestServiceImpl implements RestService {
               return new SomeResponse().name(foo);
             });
   }
-
-  @Override
-  public Mono<SomeResponse> connect(SomeRequest request) {
-    return RequestContext.deferContextual()
-        .map(
-            context -> {
-              assertNotNull(context.pathVar("foo"));
-              assertNotNull(context.headers());
-              assertTrue(context.headers().size() > 0);
-              assertEquals("CONNECT", context.method());
-              return new SomeResponse().name(request.name());
-            });
-  }
 }
