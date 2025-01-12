@@ -28,6 +28,9 @@ public final class ServiceMessage {
   /** Error type header. */
   public static final String HEADER_ERROR_TYPE = "errorType";
 
+  /** Http method header. */
+  public static final String HEADER_HTTP_METHOD = "scalecube.httpMethod";
+
   /** Null value for error type. */
   public static final int NULL_ERROR_TYPE = -1;
 

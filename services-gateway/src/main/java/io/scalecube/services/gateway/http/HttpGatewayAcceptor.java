@@ -1,10 +1,8 @@
 package io.scalecube.services.gateway.http;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
-import static io.netty.handler.codec.http.HttpMethod.POST;
-import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.scalecube.services.api.ServiceMessage.HEADER_HTTP_METHOD;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -49,10 +47,6 @@ public class HttpGatewayAcceptor
         httpRequest.requestHeaders(),
         httpRequest.params());
 
-    if (httpRequest.method() != POST) {
-      return methodNotAllowed(httpResponse);
-    }
-
     return httpRequest
         .receive()
         .aggregate()
@@ -74,7 +68,7 @@ public class HttpGatewayAcceptor
 
     final var request =
         builder
-            .header("httpMethod", httpRequest.method().name())
+            .header(HEADER_HTTP_METHOD, httpRequest.method().name())
             .qualifier(qualifier)
             .data(content)
             .build();
@@ -98,10 +92,6 @@ public class HttpGatewayAcceptor
 
   private static String getQualifier(HttpServerRequest httpRequest) {
     return httpRequest.uri().substring(1);
-  }
-
-  private static Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
-    return httpResponse.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
   private static Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {

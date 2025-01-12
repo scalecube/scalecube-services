@@ -1,5 +1,7 @@
 package io.scalecube.services.methods;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_HTTP_METHOD;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +36,10 @@ public class RequestContext {
     return headers.get(name);
   }
 
+  public String method() {
+    return headers.get(HEADER_HTTP_METHOD);
+  }
+
   public <T> T principal() {
     //noinspection unchecked
     return (T) principal;
@@ -54,7 +60,7 @@ public class RequestContext {
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
-        .add("headers=" + headers)
+        .add("headers(" + headers.size() + ")")
         .add("principal=" + principal)
         .add("pathVars=" + pathVars)
         .toString();
