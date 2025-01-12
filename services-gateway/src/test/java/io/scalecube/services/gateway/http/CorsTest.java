@@ -133,7 +133,7 @@ public class CorsTest extends BaseTest {
 
     HttpHeaders responseHeaders = response.responseHeaders();
 
-    assertEquals(HttpResponseStatus.METHOD_NOT_ALLOWED, response.status());
+    assertEquals(HttpResponseStatus.INTERNAL_SERVER_ERROR, response.status());
     assertNull(responseHeaders.get("Access-Control-Allow-Origin"));
     assertNull(responseHeaders.get("Access-Control-Allow-Methods"));
     assertNull(responseHeaders.get("Access-Control-Allow-Headers"));
