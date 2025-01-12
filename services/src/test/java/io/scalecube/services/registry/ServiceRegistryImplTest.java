@@ -9,6 +9,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
+import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
@@ -151,6 +152,22 @@ class ServiceRegistryImplTest {
             .size());
   }
 
+  @Test
+  void testRegisterRestMethodsWithDifferentMethods() {
+    final var restOne =
+        ServiceInfo.fromServiceInstance(new RestServiceOneImpl())
+            .errorMapper(errorMapper)
+            .dataDecoder(dataDecoder)
+            .build();
+    final var restTwo =
+        ServiceInfo.fromServiceInstance(new RestServiceTwoImpl())
+            .errorMapper(errorMapper)
+            .dataDecoder(dataDecoder)
+            .build();
+    serviceRegistry.registerService(restOne);
+    serviceRegistry.registerService(restTwo);
+  }
+
   @Service(HelloOne.NAMESPACE)
   interface HelloOne {
 
@@ -158,6 +175,14 @@ class ServiceRegistryImplTest {
 
     @ServiceMethod
     Mono<String> hello();
+  }
+
+  static class HelloOneImpl implements HelloOne {
+
+    @Override
+    public Mono<String> hello() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
   }
 
   @Service(HelloTwo.NAMESPACE)
@@ -169,18 +194,46 @@ class ServiceRegistryImplTest {
     Mono<String> helloPathVar();
   }
 
-  static class HelloOneImpl implements HelloOne {
-
-    @Override
-    public Mono<String> hello() {
-      return Mono.just("" + System.currentTimeMillis());
-    }
-  }
-
   static class HelloTwoImpl implements HelloTwo {
 
     @Override
     public Mono<String> helloPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
+  }
+
+  @Service(RestServiceOne.NAMESPACE)
+  interface RestServiceOne {
+
+    String NAMESPACE = "v1/api";
+
+    @RestMethod("POST")
+    @ServiceMethod("foo/:pathVar")
+    Mono<String> update();
+  }
+
+  static class RestServiceOneImpl implements RestServiceOne {
+
+    @Override
+    public Mono<String> update() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
+  }
+
+  @Service(RestServiceTwo.NAMESPACE)
+  interface RestServiceTwo {
+
+    String NAMESPACE = "v1/api";
+
+    @RestMethod("PUT")
+    @ServiceMethod("foo/:pathVar")
+    Mono<String> update();
+  }
+
+  static class RestServiceTwoImpl implements RestServiceTwo {
+
+    @Override
+    public Mono<String> update() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }

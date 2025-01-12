@@ -125,9 +125,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceInfo serviceInfo) {
-    serviceInfos.add(serviceInfo);
-
     final var serviceInstance = serviceInfo.serviceInstance();
+    final var serviceInstanceClass = serviceInstance.getClass();
+
     Reflect.serviceInterfaces(serviceInstance)
         .forEach(
             serviceInterface ->
@@ -142,9 +142,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                           Method serviceMethod;
                           try {
                             serviceMethod =
-                                serviceInstance
-                                    .getClass()
-                                    .getMethod(method.getName(), method.getParameterTypes());
+                                serviceInstanceClass.getMethod(
+                                    method.getName(), method.getParameterTypes());
                           } catch (NoSuchMethodException e) {
                             throw new RuntimeException(e);
                           }
@@ -160,7 +159,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isSecured(method),
-                                  Reflect.executeOnScheduler(serviceMethod, schedulers));
+                                  Reflect.executeOnScheduler(serviceMethod, schedulers),
+                                  Reflect.restMethod(method));
 
                           checkMethodInvokerIsNotPresent(methodInfo);
 
@@ -183,6 +183,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                 methodInfo.dynamicQualifier(), methodInvoker);
                           }
                         }));
+
+    serviceInfos.add(serviceInfo);
   }
 
   private void checkMethodInvokerIsNotPresent(MethodInfo methodInfo) {
