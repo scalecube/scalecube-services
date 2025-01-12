@@ -63,7 +63,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -103,7 +104,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -143,7 +145,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -184,7 +187,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -228,7 +232,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -271,7 +276,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -318,7 +324,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -362,7 +369,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     serviceMethodInvoker =
         new ServiceMethodInvoker(
@@ -404,7 +412,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     //noinspection unchecked,rawtypes
     Authenticator<Map> mockedAuthenticator = Mockito.mock(Authenticator.class);
@@ -448,7 +457,8 @@ class ServiceMethodInvokerTest {
             Void.TYPE,
             IS_REQUEST_TYPE_SERVICE_MESSAGE,
             AUTH,
-            Schedulers.immediate());
+            Schedulers.immediate(),
+            null);
 
     //noinspection unchecked,rawtypes
     Authenticator<Map> mockedAuthenticator = Mockito.mock(Authenticator.class);
