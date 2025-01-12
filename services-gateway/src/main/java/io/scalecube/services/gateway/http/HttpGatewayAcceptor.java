@@ -1,13 +1,17 @@
 package io.scalecube.services.gateway.http;
 
+import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.scalecube.services.api.ServiceMessage.HEADER_HTTP_METHOD;
+import static io.scalecube.services.gateway.http.HttpGateway.SUPPORTED_METHODS;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
@@ -46,6 +50,10 @@ public class HttpGatewayAcceptor
         httpRequest,
         httpRequest.requestHeaders(),
         httpRequest.params());
+
+    if (!SUPPORTED_METHODS.contains(httpRequest.method())) {
+      return methodNotAllowed(httpResponse);
+    }
 
     return httpRequest
         .receive()
@@ -92,6 +100,16 @@ public class HttpGatewayAcceptor
 
   private static String getQualifier(HttpServerRequest httpRequest) {
     return httpRequest.uri().substring(1);
+  }
+
+  private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
+    return httpResponse
+        .addHeader(
+            ALLOW,
+            String.join(
+                ", ", SUPPORTED_METHODS.stream().map(HttpMethod::name).toArray(String[]::new)))
+        .status(METHOD_NOT_ALLOWED)
+        .send();
   }
 
   private static Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {

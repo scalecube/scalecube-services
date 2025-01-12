@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -14,6 +15,8 @@ import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.BaseTest;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,10 +83,14 @@ public class CorsTest extends BaseTest {
 
     assertEquals(HttpResponseStatus.OK, response.status());
     assertEquals("*", responseHeaders.get("Access-Control-Allow-Origin"));
-    assertEquals("POST", responseHeaders.get("Access-Control-Allow-Methods"));
     assertThat(responseHeaders.get("Access-Control-Allow-Headers"), containsString("Content-Type"));
     assertThat(
         responseHeaders.get("Access-Control-Allow-Headers"), containsString("X-Correlation-ID"));
+    final var allowedMethodsHeader = responseHeaders.get("Access-Control-Allow-Methods");
+    assertEquals(
+        HttpGateway.SUPPORTED_METHODS.stream().map(HttpMethod::name).collect(Collectors.toSet()),
+        Arrays.stream(allowedMethodsHeader.split(",")).collect(Collectors.toSet()),
+        "allowedMethods");
 
     response =
         client

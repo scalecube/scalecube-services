@@ -1,5 +1,14 @@
 package io.scalecube.services.gateway.http;
 
+import static io.netty.handler.codec.http.HttpMethod.DELETE;
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpMethod.HEAD;
+import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
+import static io.netty.handler.codec.http.HttpMethod.PATCH;
+import static io.netty.handler.codec.http.HttpMethod.POST;
+import static io.netty.handler.codec.http.HttpMethod.PUT;
+import static io.netty.handler.codec.http.HttpMethod.TRACE;
+
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.cors.CorsConfigBuilder;
 import io.netty.handler.codec.http.cors.CorsHandler;
@@ -10,6 +19,7 @@ import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import reactor.netty.DisposableServer;
@@ -17,6 +27,9 @@ import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
 public class HttpGateway implements Gateway {
+
+  public static final List<HttpMethod> SUPPORTED_METHODS =
+      List.of(GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS, TRACE);
 
   private final String id;
   private final int port;
@@ -102,9 +115,9 @@ public class HttpGateway implements Gateway {
     private boolean corsEnabled = false;
     private CorsConfigBuilder corsConfigBuilder =
         CorsConfigBuilder.forAnyOrigin()
+            .allowedRequestMethods(SUPPORTED_METHODS.toArray(HttpMethod[]::new))
             .allowNullOrigin()
-            .maxAge(3600)
-            .allowedRequestMethods(HttpMethod.POST);
+            .maxAge(3600);
 
     public Builder() {}
 
