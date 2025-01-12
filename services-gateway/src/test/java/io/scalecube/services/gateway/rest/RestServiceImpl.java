@@ -18,7 +18,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("OPTIONS", context.method());
+              assertEquals("OPTIONS", context.requestMethod());
               return new SomeResponse().name(foo);
             });
   }
@@ -32,7 +32,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("GET", context.method());
+              assertEquals("GET", context.requestMethod());
               return new SomeResponse().name(foo);
             });
   }
@@ -46,7 +46,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("HEAD", context.method());
+              assertEquals("HEAD", context.requestMethod());
               return new SomeResponse().name(foo);
             });
   }
@@ -59,7 +59,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("POST", context.method());
+              assertEquals("POST", context.requestMethod());
               return new SomeResponse().name(request.name());
             });
   }
@@ -72,7 +72,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("PUT", context.method());
+              assertEquals("PUT", context.requestMethod());
               return new SomeResponse().name(request.name());
             });
   }
@@ -85,7 +85,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("PATCH", context.method());
+              assertEquals("PATCH", context.requestMethod());
               return new SomeResponse().name(request.name());
             });
   }
@@ -98,7 +98,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("DELETE", context.method());
+              assertEquals("DELETE", context.requestMethod());
               return new SomeResponse().name(request.name());
             });
   }
@@ -112,7 +112,7 @@ public class RestServiceImpl implements RestService {
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
-              assertEquals("TRACE", context.method());
+              assertEquals("TRACE", context.requestMethod());
               return new SomeResponse().name(foo);
             });
   }

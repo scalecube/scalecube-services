@@ -28,8 +28,8 @@ public final class ServiceMessage {
   /** Error type header. */
   public static final String HEADER_ERROR_TYPE = "errorType";
 
-  /** Http method header. */
-  public static final String HEADER_HTTP_METHOD = "scalecube.httpMethod";
+  /** Request method header. */
+  public static final String HEADER_REQUEST_METHOD = "requestMethod";
 
   /** Null value for error type. */
   public static final int NULL_ERROR_TYPE = -1;
@@ -167,7 +167,7 @@ public final class ServiceMessage {
   /**
    * Describes whether the message is an error.
    *
-   * @return <code>true</code> if error, otherwise <code>false</code>.
+   * @return result
    */
   public boolean isError() {
     return headers.containsKey(HEADER_ERROR_TYPE);
@@ -188,6 +188,15 @@ public final class ServiceMessage {
     } catch (NumberFormatException e) {
       throw new IllegalStateException("Error type must be a number");
     }
+  }
+
+  /**
+   * Returns request method header.
+   *
+   * @return request method, or null if such header doesn't exist.
+   */
+  public String requestMethod() {
+    return headers.get(HEADER_REQUEST_METHOD);
   }
 
   @Override

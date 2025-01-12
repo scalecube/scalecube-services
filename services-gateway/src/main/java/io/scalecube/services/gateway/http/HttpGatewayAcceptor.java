@@ -4,7 +4,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
-import static io.scalecube.services.api.ServiceMessage.HEADER_HTTP_METHOD;
+import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 import static io.scalecube.services.gateway.http.HttpGateway.SUPPORTED_METHODS;
 
 import io.netty.buffer.ByteBuf;
@@ -76,7 +76,7 @@ public class HttpGatewayAcceptor
 
     final var request =
         builder
-            .header(HEADER_HTTP_METHOD, httpRequest.method().name())
+            .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
             .qualifier(qualifier)
             .data(content)
             .build();

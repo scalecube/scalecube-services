@@ -104,10 +104,17 @@ class ServiceRegistryImplTest {
             .errorMapper(errorMapper)
             .dataDecoder(dataDecoder)
             .build());
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello"));
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello/12345"));
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello/67890"));
-    assertNull(serviceRegistry.getInvoker("greeting/hola/that/not/exist"));
+    assertNotNull(
+        serviceRegistry.getInvoker(ServiceMessage.builder().qualifier("greeting/hello").build()));
+    assertNotNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hello/12345").build()));
+    assertNotNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hello/67890").build()));
+    assertNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hola/that/not/exist").build()));
   }
 
   @Test
@@ -174,13 +181,7 @@ class ServiceRegistryImplTest {
     String NAMESPACE = "greeting";
 
     @ServiceMethod
-    Mono<String> hello();
-  }
-
-  static class HelloOneImpl implements HelloOne {
-
-    @Override
-    public Mono<String> hello() {
+    default Mono<String> hello() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
@@ -191,16 +192,14 @@ class ServiceRegistryImplTest {
     String NAMESPACE = "greeting";
 
     @ServiceMethod("hello/:pathVar")
-    Mono<String> helloPathVar();
-  }
-
-  static class HelloTwoImpl implements HelloTwo {
-
-    @Override
-    public Mono<String> helloPathVar() {
+    default Mono<String> helloPathVar() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
+
+  static class HelloOneImpl implements HelloOne {}
+
+  static class HelloTwoImpl implements HelloTwo {}
 
   @Service(RestServiceOne.NAMESPACE)
   interface RestServiceOne {
@@ -209,13 +208,13 @@ class ServiceRegistryImplTest {
 
     @RestMethod("POST")
     @ServiceMethod("foo/:pathVar")
-    Mono<String> update();
-  }
+    default Mono<String> updateWithPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
 
-  static class RestServiceOneImpl implements RestServiceOne {
-
-    @Override
-    public Mono<String> update() {
+    @RestMethod("POST")
+    @ServiceMethod("foo/update")
+    default Mono<String> updateWithoutPathVar() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
@@ -227,14 +226,18 @@ class ServiceRegistryImplTest {
 
     @RestMethod("PUT")
     @ServiceMethod("foo/:pathVar")
-    Mono<String> update();
-  }
+    default Mono<String> updateWithPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
 
-  static class RestServiceTwoImpl implements RestServiceTwo {
-
-    @Override
-    public Mono<String> update() {
+    @RestMethod("PUT")
+    @ServiceMethod("foo/update")
+    default Mono<String> updateWithoutPathVar() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
+
+  static class RestServiceOneImpl implements RestServiceOne {}
+
+  static class RestServiceTwoImpl implements RestServiceTwo {}
 }

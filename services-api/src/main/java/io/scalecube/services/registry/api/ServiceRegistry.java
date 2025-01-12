@@ -27,5 +27,5 @@ public interface ServiceRegistry {
 
   List<ServiceInfo> listServices();
 
-  ServiceMethodInvoker getInvoker(String qualifier);
+  ServiceMethodInvoker getInvoker(ServiceMessage request);
 }
