@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.rest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.methods.RequestContext;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,7 @@ public class RestServiceImpl implements RestService {
               final var foo = context.pathVar("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("OPTIONS", context.method());
               return new SomeResponse().name(foo);
             });
@@ -29,6 +31,7 @@ public class RestServiceImpl implements RestService {
               final var foo = context.pathVar("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("GET", context.method());
               return new SomeResponse().name(foo);
             });
@@ -42,6 +45,7 @@ public class RestServiceImpl implements RestService {
               final var foo = context.pathVar("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("HEAD", context.method());
               return new SomeResponse().name(foo);
             });
@@ -54,7 +58,7 @@ public class RestServiceImpl implements RestService {
             context -> {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
-              assertNotNull(request);
+              assertTrue(context.headers().size() > 0);
               assertEquals("POST", context.method());
               return new SomeResponse().name(request.name());
             });
@@ -67,7 +71,7 @@ public class RestServiceImpl implements RestService {
             context -> {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
-              assertNotNull(request);
+              assertTrue(context.headers().size() > 0);
               assertEquals("PUT", context.method());
               return new SomeResponse().name(request.name());
             });
@@ -80,7 +84,7 @@ public class RestServiceImpl implements RestService {
             context -> {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
-              assertNotNull(request);
+              assertTrue(context.headers().size() > 0);
               assertEquals("PATCH", context.method());
               return new SomeResponse().name(request.name());
             });
@@ -93,6 +97,7 @@ public class RestServiceImpl implements RestService {
             context -> {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("DELETE", context.method());
               return new SomeResponse().name(request.name());
             });
@@ -106,6 +111,7 @@ public class RestServiceImpl implements RestService {
               final var foo = context.pathVar("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("TRACE", context.method());
               return new SomeResponse().name(foo);
             });
@@ -118,6 +124,7 @@ public class RestServiceImpl implements RestService {
             context -> {
               assertNotNull(context.pathVar("foo"));
               assertNotNull(context.headers());
+              assertTrue(context.headers().size() > 0);
               assertEquals("CONNECT", context.method());
               return new SomeResponse().name(request.name());
             });
