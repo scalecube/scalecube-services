@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
@@ -72,22 +73,30 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> lookupService(ServiceMessage request) {
-    final var contentType = request.dataFormatOrDefault();
+    final var dataFormat = request.dataFormatOrDefault();
     final var qualifier = request.qualifier();
+    final var requestMethod = request.requestMethod();
 
     // Match by exact-match
 
     final var list = serviceReferencesByQualifier.get(qualifier);
     if (list != null) {
-      return list.stream().filter(sr -> sr.contentTypes().contains(contentType)).toList();
+      return list.stream()
+          .filter(byDataFormat(dataFormat))
+          .filter(byRequestMethod(requestMethod))
+          .toList();
     }
 
     // Match by dynamic-qualifier
 
     for (var entry : serviceReferencesByPattern.entrySet()) {
       final var dynamicQualifier = entry.getKey();
+      final var serviceReferences = entry.getValue();
       if (dynamicQualifier.matchQualifier(qualifier) != null) {
-        return entry.getValue();
+        return serviceReferences.stream()
+            .filter(byDataFormat(dataFormat))
+            .filter(byRequestMethod(requestMethod))
+            .toList();
       }
     }
 
@@ -285,5 +294,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     }
     list.remove(value);
     return list.isEmpty() ? null : list;
+  }
+
+  private static Predicate<ServiceReference> byDataFormat(String dataFormat) {
+    return serviceReference -> serviceReference.contentTypes().contains(dataFormat);
+  }
+
+  private static Predicate<ServiceReference> byRequestMethod(String requestMethod) {
+    return serviceReference -> {
+      final var restMethod = serviceReference.restMethod();
+      return restMethod == null || restMethod.equals(requestMethod);
+    };
   }
 }

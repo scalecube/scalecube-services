@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.StringJoiner;
 
 public final class ServiceMessage {
@@ -129,7 +128,8 @@ public final class ServiceMessage {
    * @return data format of the data or default one
    */
   public String dataFormatOrDefault() {
-    return Optional.ofNullable(dataFormat()).orElse(DEFAULT_DATA_FORMAT);
+    final var dataFormat = dataFormat();
+    return dataFormat != null ? dataFormat : DEFAULT_DATA_FORMAT;
   }
 
   /**

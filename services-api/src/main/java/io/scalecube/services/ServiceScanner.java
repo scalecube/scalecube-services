@@ -39,12 +39,7 @@ public class ServiceScanner {
               List<ServiceMethodDefinition> actions =
                   Arrays.stream(serviceInterface.getMethods())
                       .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-                      .map(
-                          method ->
-                              new ServiceMethodDefinition(
-                                  Reflect.methodName(method),
-                                  Reflect.serviceMethodTags(method),
-                                  Reflect.isSecured(method)))
+                      .map(ServiceMethodDefinition::fromMethod)
                       .collect(Collectors.toList());
               return new ServiceRegistration(namespace, serviceTags, actions);
             })

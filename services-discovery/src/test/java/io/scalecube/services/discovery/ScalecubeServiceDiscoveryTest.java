@@ -76,7 +76,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
                             new ServiceMethodDefinition(
-                                "action0", Collections.singletonMap("KKK0", "VVV"), true)))))
+                                "action0", Collections.singletonMap("KKK0", "VVV"), true, null)))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
@@ -84,7 +84,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
                             new ServiceMethodDefinition(
-                                "action1", Collections.singletonMap("KKK1", "VVV"), true)))))
+                                "action1", Collections.singletonMap("KKK1", "VVV"), true, null)))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
@@ -92,7 +92,7 @@ class ScalecubeServiceDiscoveryTest extends BaseTest {
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
                             new ServiceMethodDefinition(
-                                "action2", Collections.singletonMap("KKK2", "VVV"), true)))))
+                                "action2", Collections.singletonMap("KKK2", "VVV"), true, null)))))
             .build();
 
     ByteBuffer buffer = metadataCodec.serialize(serviceEndpoint);

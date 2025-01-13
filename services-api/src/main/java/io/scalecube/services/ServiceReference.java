@@ -23,6 +23,7 @@ public class ServiceReference {
   private final Map<String, String> tags;
   private final Address address;
   private final boolean isSecured;
+  private final String restMethod;
 
   /**
    * Constructor for service reference.
@@ -44,6 +45,7 @@ public class ServiceReference {
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();
     this.isSecured = serviceMethodDefinition.isSecured();
+    this.restMethod = serviceMethodDefinition.restMethod();
   }
 
   public String endpointId() {
@@ -82,6 +84,10 @@ public class ServiceReference {
     return isSecured;
   }
 
+  public String restMethod() {
+    return restMethod;
+  }
+
   private Map<String, String> mergeTags(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
@@ -105,6 +111,7 @@ public class ServiceReference {
         .add("tags=" + tags)
         .add("address=" + address)
         .add("isSecured=" + isSecured)
+        .add("restMethod='" + restMethod + "'")
         .toString();
   }
 }

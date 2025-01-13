@@ -4,6 +4,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class ServiceMethodDefinition implements Externalizable {
   private String action;
   private Map<String, String> tags;
   private boolean isSecured;
+  private String restMethod;
 
   /**
    * Constructor for de/serialization purpose.
@@ -32,25 +34,42 @@ public class ServiceMethodDefinition implements Externalizable {
   public ServiceMethodDefinition() {}
 
   /**
-   * Create a new Service Method Definition.
+   * Constructor.
    *
    * @param action method name
    */
   public ServiceMethodDefinition(String action) {
-    this(action, Collections.emptyMap(), false);
+    this(action, Collections.emptyMap(), false, null);
   }
 
   /**
-   * Create a new Service Method Definition.
+   * Constructor.
    *
    * @param action method name
    * @param tags tags of this method
    * @param isSecured is method protected by authentication
+   * @param restMethod REST method (optional)
    */
-  public ServiceMethodDefinition(String action, Map<String, String> tags, boolean isSecured) {
+  public ServiceMethodDefinition(
+      String action, Map<String, String> tags, boolean isSecured, String restMethod) {
     this.action = Objects.requireNonNull(action, "ServiceMethodDefinition.action is required");
     this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
     this.isSecured = isSecured;
+    this.restMethod = restMethod;
+  }
+
+  /**
+   * Factory method that creates {@link ServiceMethodDefinition} instance from the service method.
+   *
+   * @param method servuce method
+   * @return {@link ServiceMethodDefinition} instance
+   */
+  public static ServiceMethodDefinition fromMethod(Method method) {
+    return new ServiceMethodDefinition(
+        Reflect.methodName(method),
+        Reflect.serviceMethodTags(method),
+        Reflect.isSecured(method),
+        Reflect.restMethod(method));
   }
 
   public String action() {
@@ -65,12 +84,17 @@ public class ServiceMethodDefinition implements Externalizable {
     return isSecured;
   }
 
+  public String restMethod() {
+    return restMethod;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceMethodDefinition.class.getSimpleName() + "[", "]")
-        .add("action=" + action)
+        .add("action='" + action + "'")
         .add("tags=" + tags)
         .add("isSecured=" + isSecured)
+        .add("restMethod='" + restMethod + "'")
         .toString();
   }
 
@@ -88,6 +112,9 @@ public class ServiceMethodDefinition implements Externalizable {
 
     // auth
     out.writeBoolean(isSecured);
+
+    // rest method
+    out.writeUTF(restMethod != null ? restMethod : "");
   }
 
   @Override
@@ -107,5 +134,9 @@ public class ServiceMethodDefinition implements Externalizable {
 
     // auth
     this.isSecured = in.readBoolean();
+
+    // rest method
+    final var restMethod = in.readUTF();
+    this.restMethod = !restMethod.isEmpty() ? restMethod : null;
   }
 }
