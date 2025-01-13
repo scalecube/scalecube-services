@@ -21,6 +21,7 @@ public final class MethodInfo {
   private final boolean isRequestTypeServiceMessage;
   private final boolean isSecured;
   private final Scheduler scheduler;
+  private final String restMethod;
 
   /**
    * Create a new service info.
@@ -35,6 +36,7 @@ public final class MethodInfo {
    * @param isRequestTypeServiceMessage is request service message
    * @param isSecured is method protected by authentication
    * @param scheduler scheduler
+   * @param restMethod restMethod
    */
   public MethodInfo(
       String serviceName,
@@ -46,7 +48,8 @@ public final class MethodInfo {
       Class<?> requestType,
       boolean isRequestTypeServiceMessage,
       boolean isSecured,
-      Scheduler scheduler) {
+      Scheduler scheduler,
+      String restMethod) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
@@ -59,6 +62,7 @@ public final class MethodInfo {
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
     this.isSecured = isSecured;
     this.scheduler = scheduler;
+    this.restMethod = restMethod;
   }
 
   public String serviceName() {
@@ -113,6 +117,10 @@ public final class MethodInfo {
     return scheduler;
   }
 
+  public String restMethod() {
+    return restMethod;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
@@ -128,6 +136,7 @@ public final class MethodInfo {
         .add("isRequestTypeServiceMessage=" + isRequestTypeServiceMessage)
         .add("isSecured=" + isSecured)
         .add("scheduler=" + scheduler)
+        .add("restMethod=" + restMethod)
         .toString();
   }
 }

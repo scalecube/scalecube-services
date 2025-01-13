@@ -8,6 +8,7 @@ import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import io.scalecube.services.annotations.ExecuteOn;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.ResponseType;
+import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
@@ -176,7 +177,8 @@ public class Reflect {
                             requestType(method),
                             isRequestTypeServiceMessage(method),
                             isSecured(method),
-                            null))));
+                            null,
+                            restMethod(method)))));
   }
 
   /**
@@ -275,6 +277,11 @@ public class Reflect {
   public static String methodName(Method method) {
     ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
     return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
+  }
+
+  public static String restMethod(Method method) {
+    RestMethod methodAnnotation = method.getAnnotation(RestMethod.class);
+    return methodAnnotation != null ? methodAnnotation.value() : null;
   }
 
   /**

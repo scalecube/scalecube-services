@@ -17,7 +17,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
@@ -30,16 +32,27 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
+  private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
+
+  // remote service references by static and dynamic qualifiers
+
   private final Map<String, List<ServiceReference>> serviceReferencesByQualifier =
-      new NonBlockingHashMap<>();
-  private final Map<String, ServiceMethodInvoker> methodInvokerByQualifier =
       new NonBlockingHashMap<>();
   private final Map<DynamicQualifier, List<ServiceReference>> serviceReferencesByPattern =
       new NonBlockingHashMap<>();
-  private final Map<DynamicQualifier, ServiceMethodInvoker> methodInvokerByPattern =
-      new NonBlockingHashMap<>();
-  private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
+  // local service method invokers by static and dynamic qualifiers
+
+  private final Map<String, List<ServiceMethodInvoker>> methodInvokersByQualifier =
+      new NonBlockingHashMap<>();
+  private final Map<DynamicQualifier, List<ServiceMethodInvoker>> methodInvokersByPattern =
+      new NonBlockingHashMap<>();
+
+  /**
+   * Constructor
+   *
+   * @param schedulers schedulers (optiona)
+   */
   public ServiceRegistryImpl(Map<String, Scheduler> schedulers) {
     this.schedulers = schedulers;
   }
@@ -60,22 +73,30 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> lookupService(ServiceMessage request) {
-    final var contentType = request.dataFormatOrDefault();
+    final var dataFormat = request.dataFormatOrDefault();
     final var qualifier = request.qualifier();
+    final var requestMethod = request.requestMethod();
 
     // Match by exact-match
 
     final var list = serviceReferencesByQualifier.get(qualifier);
     if (list != null) {
-      return list.stream().filter(sr -> sr.contentTypes().contains(contentType)).toList();
+      return list.stream()
+          .filter(byDataFormat(dataFormat))
+          .filter(byRequestMethod(requestMethod))
+          .toList();
     }
 
     // Match by dynamic-qualifier
 
     for (var entry : serviceReferencesByPattern.entrySet()) {
       final var dynamicQualifier = entry.getKey();
+      final var serviceReferences = entry.getValue();
       if (dynamicQualifier.matchQualifier(qualifier) != null) {
-        return entry.getValue();
+        return serviceReferences.stream()
+            .filter(byDataFormat(dataFormat))
+            .filter(byRequestMethod(requestMethod))
+            .toList();
       }
     }
 
@@ -125,16 +146,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceInfo serviceInfo) {
-    serviceInfos.add(serviceInfo);
-
     final var serviceInstance = serviceInfo.serviceInstance();
+    final var serviceInstanceClass = serviceInstance.getClass();
+
     Reflect.serviceInterfaces(serviceInstance)
         .forEach(
             serviceInterface ->
                 Reflect.serviceMethods(serviceInterface)
                     .forEach(
                         (key, method) -> {
-
                           // validate method
                           Reflect.validateMethodOrThrow(method);
 
@@ -142,14 +162,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                           Method serviceMethod;
                           try {
                             serviceMethod =
-                                serviceInstance
-                                    .getClass()
-                                    .getMethod(method.getName(), method.getParameterTypes());
+                                serviceInstanceClass.getMethod(
+                                    method.getName(), method.getParameterTypes());
                           } catch (NoSuchMethodException e) {
                             throw new RuntimeException(e);
                           }
 
-                          MethodInfo methodInfo =
+                          final var methodInfo =
                               new MethodInfo(
                                   Reflect.serviceName(serviceInterface),
                                   Reflect.methodName(method),
@@ -160,11 +179,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isSecured(method),
-                                  Reflect.executeOnScheduler(serviceMethod, schedulers));
+                                  Reflect.executeOnScheduler(serviceMethod, schedulers),
+                                  Reflect.restMethod(method));
 
-                          checkMethodInvokerIsNotPresent(methodInfo);
+                          checkMethodInfo(methodInfo);
 
-                          ServiceMethodInvoker methodInvoker =
+                          final var methodInvoker =
                               new ServiceMethodInvoker(
                                   method,
                                   serviceInstance,
@@ -176,44 +196,74 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   serviceInfo.logger(),
                                   serviceInfo.level());
 
+                          final List<ServiceMethodInvoker> methodInvokers;
                           if (methodInfo.dynamicQualifier() == null) {
-                            methodInvokerByQualifier.put(methodInfo.qualifier(), methodInvoker);
+                            methodInvokers =
+                                methodInvokersByQualifier.computeIfAbsent(
+                                    methodInfo.qualifier(), s -> new ArrayList<>());
                           } else {
-                            methodInvokerByPattern.put(
-                                methodInfo.dynamicQualifier(), methodInvoker);
+                            methodInvokers =
+                                methodInvokersByPattern.computeIfAbsent(
+                                    methodInfo.dynamicQualifier(), s -> new ArrayList<>());
                           }
+                          methodInvokers.add(methodInvoker);
                         }));
+
+    serviceInfos.add(serviceInfo);
   }
 
-  private void checkMethodInvokerIsNotPresent(MethodInfo methodInfo) {
-    if (methodInvokerByQualifier.containsKey(methodInfo.qualifier())) {
-      LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
-      throw new IllegalStateException("MethodInvoker already exists");
+  private void checkMethodInfo(MethodInfo methodInfo) {
+    final var restMethod = methodInfo.restMethod(); // nullable
+
+    if (methodInfo.qualifier() != null) {
+      final var hasMethodInvokerByQualifier =
+          methodInvokersByQualifier.getOrDefault(methodInfo.qualifier(), List.of()).stream()
+              .filter(smi -> Objects.equals(smi.methodInfo().restMethod(), restMethod))
+              .findAny();
+      if (hasMethodInvokerByQualifier.isPresent()) {
+        throw new IllegalStateException("MethodInvoker already exists, methodInfo: " + methodInfo);
+      }
     }
+
     if (methodInfo.dynamicQualifier() != null) {
-      if (methodInvokerByPattern.containsKey(methodInfo.dynamicQualifier())) {
-        LOGGER.log(Level.ERROR, "MethodInvoker already exists, methodInfo: {0}", methodInfo);
-        throw new IllegalStateException("MethodInvoker already exists");
+      final var hasMethodInvokerByDynamicQualifier =
+          methodInvokersByPattern.getOrDefault(methodInfo.dynamicQualifier(), List.of()).stream()
+              .filter(smi -> Objects.equals(smi.methodInfo().restMethod(), restMethod))
+              .findAny();
+      if (hasMethodInvokerByDynamicQualifier.isPresent()) {
+        throw new IllegalStateException("MethodInvoker already exists, methodInfo: " + methodInfo);
       }
     }
   }
 
   @Override
-  public ServiceMethodInvoker getInvoker(String qualifier) {
+  public ServiceMethodInvoker getInvoker(ServiceMessage request) {
+    final var qualifier = request.qualifier();
+    final var requestMethod = request.requestMethod();
+
     // Match by exact-match
 
-    final var methodInvoker = methodInvokerByQualifier.get(qualifier);
-    if (methodInvoker != null) {
-      return methodInvoker;
+    final var methodInvokers = methodInvokersByQualifier.get(qualifier);
+    if (methodInvokers != null) {
+      for (var methodInvoker : methodInvokers) {
+        final var restMethod = methodInvoker.methodInfo().restMethod();
+        if (restMethod == null || restMethod.equals(requestMethod)) {
+          return methodInvoker;
+        }
+      }
     }
 
     // Match by dynamic-qualifier
 
-    for (var entry : methodInvokerByPattern.entrySet()) {
-      final var invoker = entry.getValue();
-      final var dynamicQualifier = invoker.methodInfo().dynamicQualifier();
-      if (dynamicQualifier.matchQualifier(qualifier) != null) {
-        return invoker;
+    for (var entry : methodInvokersByPattern.entrySet()) {
+      for (var methodInvoker : entry.getValue()) {
+        final var methodInfo = methodInvoker.methodInfo();
+        final var restMethod = methodInfo.restMethod();
+        if (restMethod == null || restMethod.equals(requestMethod)) {
+          if (methodInfo.dynamicQualifier().matchQualifier(qualifier) != null) {
+            return methodInvoker;
+          }
+        }
       }
     }
 
@@ -244,5 +294,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     }
     list.remove(value);
     return list.isEmpty() ? null : list;
+  }
+
+  private static Predicate<ServiceReference> byDataFormat(String dataFormat) {
+    return serviceReference -> serviceReference.contentTypes().contains(dataFormat);
+  }
+
+  private static Predicate<ServiceReference> byRequestMethod(String requestMethod) {
+    return serviceReference -> {
+      final var restMethod = serviceReference.restMethod();
+      return restMethod == null || restMethod.equals(requestMethod);
+    };
   }
 }

@@ -94,7 +94,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
             ex ->
                 LOGGER.error(
                     "[rsocket][authenticate][{}][error] cause: {}", rsocket, ex.toString()))
-        .onErrorMap(this::toUnauthorizedException);
+        .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
   }
 
   private RSocket newRSocket(Object authData) {
@@ -102,15 +102,15 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
         authData, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
   }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
+  private static UnauthorizedException toUnauthorizedException(Throwable th) {
+    if (th instanceof ServiceException e) {
       return new UnauthorizedException(e.errorCode(), e.getMessage());
     } else {
       return new UnauthorizedException(th);
     }
   }
 
+  @SuppressWarnings("ClassCanBeRecord")
   private static class RSocketImpl implements RSocket {
 
     private final Object authData;
@@ -127,11 +127,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
       return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
-          .doOnNext(this::validateRequest)
+          .doOnNext(RSocketImpl::validateRequest)
           .flatMap(
               message -> {
-                ServiceMethodInvoker methodInvoker =
-                    serviceRegistry.getInvoker(message.qualifier());
+                final var methodInvoker = serviceRegistry.getInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeOne(message)
@@ -145,11 +144,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     @Override
     public Flux<Payload> requestStream(Payload payload) {
       return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
-          .doOnNext(this::validateRequest)
+          .doOnNext(RSocketImpl::validateRequest)
           .flatMapMany(
               message -> {
-                ServiceMethodInvoker methodInvoker =
-                    serviceRegistry.getInvoker(message.qualifier());
+                final var methodInvoker = serviceRegistry.getInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeMany(message)
@@ -167,10 +165,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .switchOnFirst(
               (first, messages) -> {
                 if (first.hasValue()) {
-                  ServiceMessage message = first.get();
+                  final var message = first.get();
                   validateRequest(message);
-                  ServiceMethodInvoker methodInvoker =
-                      serviceRegistry.getInvoker(message.qualifier());
+                  final var methodInvoker = serviceRegistry.getInvoker(message);
                   validateMethodInvoker(methodInvoker, message);
                   return methodInvoker
                       .invokeBidirectional(messages)
@@ -199,15 +196,18 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       return authData != null ? Context.of(AUTH_CONTEXT_KEY, authData) : context;
     }
 
-    private void validateRequest(ServiceMessage message) throws ServiceException {
+    private static void validateRequest(ServiceMessage message) throws ServiceException {
+      if (message == null) {
+        throw new BadRequestException("Message is null, invocation failed");
+      }
       if (message.qualifier() == null) {
         releaseRequest(message);
-        LOGGER.error("Qualifier is null, invocation failed for {}", message);
-        throw new BadRequestException("Qualifier is null");
+        throw new BadRequestException("Qualifier is null, invocation failed for " + message);
       }
     }
 
-    private void validateMethodInvoker(ServiceMethodInvoker methodInvoker, ServiceMessage message) {
+    private static void validateMethodInvoker(
+        ServiceMethodInvoker methodInvoker, ServiceMessage message) {
       if (methodInvoker == null) {
         releaseRequest(message);
         LOGGER.error("No service invoker found, invocation failed for {}", message);
@@ -215,11 +215,11 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
     }
 
-    private void releaseRequest(ServiceMessage request) {
+    private static void releaseRequest(ServiceMessage request) {
       ReferenceCountUtil.safestRelease(request.data());
     }
 
-    private void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
+    private static void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
       if (response.isError()) {
         releaseRequest(request);
       }

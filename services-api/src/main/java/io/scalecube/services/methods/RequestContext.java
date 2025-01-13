@@ -1,5 +1,9 @@
 package io.scalecube.services.methods;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +38,10 @@ public class RequestContext {
     return headers.get(name);
   }
 
+  public String requestMethod() {
+    return headers.get(HEADER_REQUEST_METHOD);
+  }
+
   public <T> T principal() {
     //noinspection unchecked
     return (T) principal;
@@ -47,6 +55,36 @@ public class RequestContext {
     return pathVars != null ? pathVars.get(name) : null;
   }
 
+  public <T> T pathVar(String name, Class<T> clazz) {
+    final var s = pathVar(name);
+    if (s == null) {
+      return null;
+    }
+
+    if (clazz == String.class) {
+      //noinspection unchecked
+      return (T) s;
+    }
+    if (clazz == Integer.class) {
+      //noinspection unchecked
+      return (T) Integer.valueOf(s);
+    }
+    if (clazz == Long.class) {
+      //noinspection unchecked
+      return (T) Long.valueOf(s);
+    }
+    if (clazz == BigDecimal.class) {
+      //noinspection unchecked
+      return (T) new BigDecimal(s);
+    }
+    if (clazz == BigInteger.class) {
+      //noinspection unchecked
+      return (T) new BigInteger(s);
+    }
+
+    throw new IllegalArgumentException("Wrong pathVar class: " + clazz.getName());
+  }
+
   public static Mono<RequestContext> deferContextual() {
     return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)));
   }
@@ -54,7 +92,7 @@ public class RequestContext {
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
-        .add("headers=" + headers)
+        .add("headers(" + headers.size() + ")")
         .add("principal=" + principal)
         .add("pathVars=" + pathVars)
         .toString();

@@ -9,6 +9,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
+import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
@@ -103,10 +104,17 @@ class ServiceRegistryImplTest {
             .errorMapper(errorMapper)
             .dataDecoder(dataDecoder)
             .build());
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello"));
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello/12345"));
-    assertNotNull(serviceRegistry.getInvoker("greeting/hello/67890"));
-    assertNull(serviceRegistry.getInvoker("greeting/hola/that/not/exist"));
+    assertNotNull(
+        serviceRegistry.getInvoker(ServiceMessage.builder().qualifier("greeting/hello").build()));
+    assertNotNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hello/12345").build()));
+    assertNotNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hello/67890").build()));
+    assertNull(
+        serviceRegistry.getInvoker(
+            ServiceMessage.builder().qualifier("greeting/hola/that/not/exist").build()));
   }
 
   @Test
@@ -151,13 +159,31 @@ class ServiceRegistryImplTest {
             .size());
   }
 
+  @Test
+  void testRegisterRestMethodsWithDifferentMethods() {
+    final var restOne =
+        ServiceInfo.fromServiceInstance(new RestServiceOneImpl())
+            .errorMapper(errorMapper)
+            .dataDecoder(dataDecoder)
+            .build();
+    final var restTwo =
+        ServiceInfo.fromServiceInstance(new RestServiceTwoImpl())
+            .errorMapper(errorMapper)
+            .dataDecoder(dataDecoder)
+            .build();
+    serviceRegistry.registerService(restOne);
+    serviceRegistry.registerService(restTwo);
+  }
+
   @Service(HelloOne.NAMESPACE)
   interface HelloOne {
 
     String NAMESPACE = "greeting";
 
     @ServiceMethod
-    Mono<String> hello();
+    default Mono<String> hello() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
   }
 
   @Service(HelloTwo.NAMESPACE)
@@ -166,22 +192,52 @@ class ServiceRegistryImplTest {
     String NAMESPACE = "greeting";
 
     @ServiceMethod("hello/:pathVar")
-    Mono<String> helloPathVar();
-  }
-
-  static class HelloOneImpl implements HelloOne {
-
-    @Override
-    public Mono<String> hello() {
+    default Mono<String> helloPathVar() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
 
-  static class HelloTwoImpl implements HelloTwo {
+  static class HelloOneImpl implements HelloOne {}
 
-    @Override
-    public Mono<String> helloPathVar() {
+  static class HelloTwoImpl implements HelloTwo {}
+
+  @Service(RestServiceOne.NAMESPACE)
+  interface RestServiceOne {
+
+    String NAMESPACE = "v1/api";
+
+    @RestMethod("POST")
+    @ServiceMethod("foo/:pathVar")
+    default Mono<String> updateWithPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
+
+    @RestMethod("POST")
+    @ServiceMethod("foo/update")
+    default Mono<String> updateWithoutPathVar() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
+
+  @Service(RestServiceTwo.NAMESPACE)
+  interface RestServiceTwo {
+
+    String NAMESPACE = "v1/api";
+
+    @RestMethod("PUT")
+    @ServiceMethod("foo/:pathVar")
+    default Mono<String> updateWithPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
+
+    @RestMethod("PUT")
+    @ServiceMethod("foo/update")
+    default Mono<String> updateWithoutPathVar() {
+      return Mono.just("" + System.currentTimeMillis());
+    }
+  }
+
+  static class RestServiceOneImpl implements RestServiceOne {}
+
+  static class RestServiceTwoImpl implements RestServiceTwo {}
 }

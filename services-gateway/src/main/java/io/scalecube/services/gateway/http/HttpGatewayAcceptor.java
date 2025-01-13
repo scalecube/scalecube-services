@@ -1,15 +1,17 @@
 package io.scalecube.services.gateway.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
-import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+import static io.scalecube.services.gateway.http.HttpGateway.SUPPORTED_METHODS;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
@@ -22,7 +24,6 @@ import java.lang.System.Logger.Level;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
-import reactor.netty.ByteBufMono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
@@ -36,7 +37,7 @@ public class HttpGatewayAcceptor
   private final ServiceCall serviceCall;
   private final ServiceProviderErrorMapper errorMapper;
 
-  HttpGatewayAcceptor(ServiceCall serviceCall, ServiceProviderErrorMapper errorMapper) {
+  public HttpGatewayAcceptor(ServiceCall serviceCall, ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
     this.errorMapper = errorMapper;
   }
@@ -50,14 +51,14 @@ public class HttpGatewayAcceptor
         httpRequest.requestHeaders(),
         httpRequest.params());
 
-    if (httpRequest.method() != POST) {
+    if (!SUPPORTED_METHODS.contains(httpRequest.method())) {
       return methodNotAllowed(httpResponse);
     }
 
     return httpRequest
         .receive()
         .aggregate()
-        .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
+        .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .map(ByteBuf::retain)
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .onErrorResume(t -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, t)));
@@ -65,13 +66,24 @@ public class HttpGatewayAcceptor
 
   private Mono<Void> handleRequest(
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+    final var builder = ServiceMessage.builder();
 
-    ServiceMessage request =
-        ServiceMessage.builder().qualifier(getQualifier(httpRequest)).data(content).build();
+    for (var httpHeader : httpRequest.requestHeaders()) {
+      builder.header(httpHeader.getKey(), httpHeader.getValue());
+    }
+
+    final var qualifier = getQualifier(httpRequest);
+
+    final var request =
+        builder
+            .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
+            .qualifier(qualifier)
+            .data(content)
+            .build();
 
     return serviceCall
         .requestOne(request)
-        .switchIfEmpty(Mono.defer(() -> emptyMessage(httpRequest)))
+        .switchIfEmpty(Mono.defer(() -> emptyMessage(qualifier)))
         .doOnError(th -> releaseRequestOnError(request))
         .flatMap(
             response ->
@@ -82,8 +94,8 @@ public class HttpGatewayAcceptor
                         : noContent(httpResponse));
   }
 
-  private Mono<ServiceMessage> emptyMessage(HttpServerRequest httpRequest) {
-    return Mono.just(ServiceMessage.builder().qualifier(getQualifier(httpRequest)).build());
+  private static Mono<ServiceMessage> emptyMessage(final String qualifier) {
+    return Mono.just(ServiceMessage.builder().qualifier(qualifier).build());
   }
 
   private static String getQualifier(HttpServerRequest httpRequest) {
@@ -91,10 +103,16 @@ public class HttpGatewayAcceptor
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
-    return httpResponse.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
+    return httpResponse
+        .addHeader(
+            ALLOW,
+            String.join(
+                ", ", SUPPORTED_METHODS.stream().map(HttpMethod::name).toArray(String[]::new)))
+        .status(METHOD_NOT_ALLOWED)
+        .send();
   }
 
-  private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
+  private static Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
     int code = response.errorType();
     HttpResponseStatus status = HttpResponseStatus.valueOf(code);
 
@@ -107,11 +125,11 @@ public class HttpGatewayAcceptor
     return httpResponse.status(status).send(Mono.just(content)).then();
   }
 
-  private Mono<Void> noContent(HttpServerResponse httpResponse) {
+  private static Mono<Void> noContent(HttpServerResponse httpResponse) {
     return httpResponse.status(NO_CONTENT).send();
   }
 
-  private Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
+  private static Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
     ByteBuf content =
         response.hasData(ByteBuf.class)
             ? ((ByteBuf) response.data())
@@ -121,7 +139,7 @@ public class HttpGatewayAcceptor
     return httpResponse.status(OK).send(Mono.just(content)).then();
   }
 
-  private ByteBuf encodeData(Object data, String dataFormat) {
+  private static ByteBuf encodeData(Object data, String dataFormat) {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
 
     try {
@@ -135,7 +153,7 @@ public class HttpGatewayAcceptor
     return byteBuf;
   }
 
-  private void releaseRequestOnError(ServiceMessage request) {
+  private static void releaseRequestOnError(ServiceMessage request) {
     ReferenceCountUtil.safestRelease(request.data());
   }
 }

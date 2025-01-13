@@ -192,7 +192,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
+                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeOne(request).map(this::throwIfError);
               } else {
@@ -248,7 +248,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
+                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeMany(request).map(this::throwIfError);
               } else {
@@ -303,7 +303,7 @@ public class ServiceCall implements AutoCloseable {
                 ServiceMessage request = first.get();
                 ServiceMethodInvoker methodInvoker;
                 if (serviceRegistry != null
-                    && (methodInvoker = serviceRegistry.getInvoker(request.qualifier())) != null) {
+                    && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
                   // local service
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
@@ -412,10 +412,7 @@ public class ServiceCall implements AutoCloseable {
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     return new ServiceUnavailableException(
-        "No reachable member with such service: "
-            + request.qualifier()
-            + ", failed request: "
-            + request);
+        "No reachable member with such service: " + request.qualifier());
   }
 
   /**
