@@ -2,6 +2,8 @@ package io.scalecube.services.methods;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,6 +53,36 @@ public class RequestContext {
 
   public String pathVar(String name) {
     return pathVars != null ? pathVars.get(name) : null;
+  }
+
+  public <T> T pathVar(String name, Class<T> clazz) {
+    final var s = pathVar(name);
+    if (s == null) {
+      return null;
+    }
+
+    if (clazz == String.class) {
+      //noinspection unchecked
+      return (T) s;
+    }
+    if (clazz == Integer.class) {
+      //noinspection unchecked
+      return (T) Integer.valueOf(s);
+    }
+    if (clazz == Long.class) {
+      //noinspection unchecked
+      return (T) Long.valueOf(s);
+    }
+    if (clazz == BigDecimal.class) {
+      //noinspection unchecked
+      return (T) new BigDecimal(s);
+    }
+    if (clazz == BigInteger.class) {
+      //noinspection unchecked
+      return (T) new BigInteger(s);
+    }
+
+    throw new IllegalArgumentException("Wrong pathVar class: " + clazz.getName());
   }
 
   public static Mono<RequestContext> deferContextual() {
