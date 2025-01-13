@@ -412,10 +412,7 @@ public class ServiceCall implements AutoCloseable {
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     return new ServiceUnavailableException(
-        "No reachable member with such service: "
-            + request.qualifier()
-            + ", failed request: "
-            + request);
+        "No reachable member with such service: " + request.qualifier());
   }
 
   /**
