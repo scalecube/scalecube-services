@@ -83,16 +83,14 @@ public final class ServiceMethodInvoker {
                         if (logger != null && logger.isLoggable(level)) {
                           logger.log(
                               level,
-                              "[{0}] request: {1}, response: {2}",
-                              qualifier,
-                              request,
-                              response);
+                              "[{0}] request: " + request + ", response: " + response,
+                              qualifier);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.log(Level.ERROR, "[{0}] request: {1}", qualifier, request, ex);
+                          logger.log(Level.ERROR, "[{0}] request: " + request, qualifier, ex);
                         }
                       });
             })
@@ -124,13 +122,13 @@ public final class ServiceMethodInvoker {
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isLoggable(level)) {
-                          logger.log(level, "[{0}] request: {1}", qualifier, request);
+                          logger.log(level, "[{0}] request: " + request, qualifier);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.log(Level.ERROR, "[{0}] request: {1}", qualifier, request, ex);
+                          logger.log(Level.ERROR, "[{0}] request: " + request, qualifier, ex);
                         }
                       });
             })
