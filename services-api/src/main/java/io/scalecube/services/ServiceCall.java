@@ -212,16 +212,14 @@ public class ServiceCall implements AutoCloseable {
               if (logger != null && logger.isLoggable(level)) {
                 logger.log(
                     level,
-                    "[{0}] request: {1}, response: {2}",
-                    request.qualifier(),
-                    request,
-                    response);
+                    "[{0}] request: " + request + ", response: " + response,
+                    request.qualifier());
               }
             })
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.log(Level.ERROR, "[{0}] request: {1}", request.qualifier(), request, ex);
+                logger.log(Level.ERROR, "[{0}] request: " + request, request.qualifier(), ex);
               }
             });
   }
@@ -266,13 +264,13 @@ public class ServiceCall implements AutoCloseable {
         .doOnSubscribe(
             s -> {
               if (logger != null && logger.isLoggable(level)) {
-                logger.log(level, "[{0}] request: {1}", request.qualifier(), request);
+                logger.log(level, "[{0}] request: " + request, request.qualifier());
               }
             })
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.log(Level.ERROR, "[{0}] request: {1}", request.qualifier(), request, ex);
+                logger.log(Level.ERROR, "[{0}] request: " + request, request.qualifier(), ex);
               }
             });
   }
