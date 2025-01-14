@@ -15,10 +15,10 @@ public class ServiceScanner {
   }
 
   /**
-   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration}-s.
+   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration} objects.
    *
    * @param serviceInfo service info instance
-   * @return list of {@code ServiceRegistration}-s
+   * @return list of {@code ServiceRegistration} objects
    */
   public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
     return Reflect.serviceInterfaces(serviceInfo.serviceInstance())
@@ -46,14 +46,5 @@ public class ServiceScanner {
         .collect(Collectors.toList());
   }
 
-  /** Tuple class. Contains service interface along with tags map. */
-  private static class InterfaceInfo {
-    private final Class<?> serviceInterface;
-    private final Map<String, String> tags;
-
-    private InterfaceInfo(Class<?> serviceInterface, Map<String, String> tags) {
-      this.serviceInterface = serviceInterface;
-      this.tags = tags;
-    }
-  }
+  private record InterfaceInfo(Class<?> serviceInterface, Map<String, String> tags) {}
 }

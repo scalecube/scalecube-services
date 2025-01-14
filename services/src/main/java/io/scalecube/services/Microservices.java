@@ -354,6 +354,15 @@ public class Microservices implements AutoCloseable {
   }
 
   /**
+   * Returns local {@link ServiceEndpoint#id()}.
+   *
+   * @return local {@link ServiceEndpoint#id()}
+   */
+  public String id() {
+    return id.toString();
+  }
+
+  /**
    * Returns local {@link ServiceEndpoint} object.
    *
    * @return local {@link ServiceEndpoint} object
