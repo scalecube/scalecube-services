@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.ServiceScanner.scanServiceInfo;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.scalecube.services.auth.Authenticator;
@@ -203,7 +202,10 @@ public class Microservices implements AutoCloseable {
         context.serviceProviders.stream()
             .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
             .peek(this::registerService)
-            .peek(serviceInfo -> builder.appendServiceRegistrations(scanServiceInfo(serviceInfo)))
+            .peek(
+                serviceInfo ->
+                    builder.appendServiceRegistrations(
+                        ServiceScanner.toServiceRegistrations(serviceInfo)))
             .map(ServiceInfo::serviceInstance)
             .collect(Collectors.toList());
 

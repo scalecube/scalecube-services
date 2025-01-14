@@ -2,10 +2,8 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.ServiceMethod;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ServiceScanner {
@@ -14,37 +12,25 @@ public class ServiceScanner {
     // Do not instantiate
   }
 
-  /**
-   * Scans {@code ServiceInfo} and builds list of {@code ServiceRegistration} objects.
-   *
-   * @param serviceInfo service info instance
-   * @return list of {@code ServiceRegistration} objects
-   */
-  public static List<ServiceRegistration> scanServiceInfo(ServiceInfo serviceInfo) {
+  public static List<ServiceRegistration> toServiceRegistrations(ServiceInfo serviceInfo) {
     return Reflect.serviceInterfaces(serviceInfo.serviceInstance())
         .map(
             serviceInterface -> {
-              Map<String, String> serviceInfoTags = serviceInfo.tags();
-              Map<String, String> apiTags = Reflect.serviceTags(serviceInterface);
-              Map<String, String> buffer = new HashMap<>(apiTags);
+              final var serviceInfoTags = serviceInfo.tags();
+              final var apiTags = Reflect.serviceTags(serviceInterface);
+              final var tags = new HashMap<>(apiTags);
               // service tags override tags from @Service
-              buffer.putAll(serviceInfoTags);
-              return new InterfaceInfo(serviceInterface, Collections.unmodifiableMap(buffer));
-            })
-        .map(
-            interfaceInfo -> {
-              Class<?> serviceInterface = interfaceInfo.serviceInterface;
-              Map<String, String> serviceTags = interfaceInfo.tags;
-              String namespace = Reflect.serviceName(serviceInterface);
-              List<ServiceMethodDefinition> actions =
+              tags.putAll(serviceInfoTags);
+
+              final var namespace = Reflect.serviceName(serviceInterface);
+              final var actions =
                   Arrays.stream(serviceInterface.getMethods())
                       .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
                       .map(ServiceMethodDefinition::fromMethod)
-                      .collect(Collectors.toList());
-              return new ServiceRegistration(namespace, serviceTags, actions);
+                      .toList();
+
+              return new ServiceRegistration(namespace, tags, actions);
             })
         .collect(Collectors.toList());
   }
-
-  private record InterfaceInfo(Class<?> serviceInterface, Map<String, String> tags) {}
 }
