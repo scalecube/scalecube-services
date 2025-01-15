@@ -1,16 +1,20 @@
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 public class ServiceInfo {
 
@@ -72,6 +76,28 @@ public class ServiceInfo {
 
   public Level level() {
     return level;
+  }
+
+  public List<ServiceRegistration> toServiceRegistrations() {
+    return Reflect.serviceInterfaces(serviceInstance)
+        .map(
+            serviceInterface -> {
+              final var serviceInfoTags = tags();
+              final var apiTags = Reflect.serviceTags(serviceInterface);
+              final var tags = new HashMap<>(apiTags);
+              // service tags override tags from @Service
+              tags.putAll(serviceInfoTags);
+
+              final var namespace = Reflect.serviceName(serviceInterface);
+              final var actions =
+                  Arrays.stream(serviceInterface.getMethods())
+                      .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+                      .map(ServiceMethodDefinition::fromMethod)
+                      .toList();
+
+              return new ServiceRegistration(namespace, tags, actions);
+            })
+        .collect(Collectors.toList());
   }
 
   @Override

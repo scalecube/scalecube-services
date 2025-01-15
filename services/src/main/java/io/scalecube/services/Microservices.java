@@ -204,8 +204,7 @@ public class Microservices implements AutoCloseable {
             .peek(this::registerService)
             .peek(
                 serviceInfo ->
-                    builder.appendServiceRegistrations(
-                        ServiceScanner.toServiceRegistrations(serviceInfo)))
+                    builder.appendServiceRegistrations(serviceInfo.toServiceRegistrations()))
             .map(ServiceInfo::serviceInstance)
             .toList();
 
