@@ -12,7 +12,6 @@ import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
@@ -282,17 +281,6 @@ public class Reflect {
   public static String restMethod(Method method) {
     RestMethod methodAnnotation = method.getAnnotation(RestMethod.class);
     return methodAnnotation != null ? methodAnnotation.value() : null;
-  }
-
-  /**
-   * Handy method to get qualifier String from service's interface and method.
-   *
-   * @param serviceInterface service interface to get qualifier for
-   * @param method service's method to get qualifier for
-   * @return qualifier string
-   */
-  public static String qualifier(Class<?> serviceInterface, Method method) {
-    return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
   }
 
   /**
