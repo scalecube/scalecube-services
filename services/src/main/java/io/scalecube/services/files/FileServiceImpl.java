@@ -7,7 +7,7 @@ import java.time.Duration;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class FileManager implements FileService, FileStreamer {
+public class FileServiceImpl implements FileService, FileStreamer {
 
   private String serviceEndpointId;
 
