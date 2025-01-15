@@ -207,7 +207,7 @@ public class Microservices implements AutoCloseable {
                     builder.appendServiceRegistrations(
                         ServiceScanner.toServiceRegistrations(serviceInfo)))
             .map(ServiceInfo::serviceInstance)
-            .collect(Collectors.toList());
+            .toList();
 
     serviceEndpoint = newServiceEndpoint(builder.build());
 
