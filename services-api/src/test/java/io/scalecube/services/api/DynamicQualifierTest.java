@@ -1,19 +1,58 @@
 package io.scalecube.services.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class DynamicQualifierTest {
 
-  @Test
-  void testIllegalArgument() {
-    assertThrows(
-        IllegalArgumentException.class, () -> new DynamicQualifier("v1/this.is.namespace/foo/bar"));
+  @ValueSource(
+      strings = {
+        "",
+        "v1",
+        "v1/:/:",
+        "v1/:param:/endpoints",
+        "v1/namespace",
+        "v1/namespace/:",
+        "v1/namespace/p:",
+        "v1/namespace/:::",
+        "v1/this.is.namespace/foo/bar",
+        "v1/this:is:namespace/foo/bar",
+        "v1/namespace/f:oo/:b:ar",
+        "v1/namespace/foo/:",
+        "v1/namespace/:/bar",
+        "v1/:bar:/${microservices:id}",
+        "v1/${microservices:id}/:/bar",
+        "v1/${microservices:id}/:b:a:r",
+        "v1/${microservices:id}/foo/bar",
+      })
+  @ParameterizedTest
+  void testIsNotDynamicQualifier(String input) {
+    assertFalse(DynamicQualifier.isDynamicQualifier(input), "isNotDynamicQualifier");
+  }
+
+  @ValueSource(
+      strings = {
+        "v1/:p",
+        "v1/:param",
+        "v1/heart.beat/:param",
+        "v1/:name/files",
+        "v1/:name/endpoint.files",
+        "v1/api/:name/:param",
+        "v1/api/${microservices:id}/:param",
+        "v1/api/:param/${microservices:id}",
+        "v1/api/:name/${microservices:id}/:param"
+      })
+  @ParameterizedTest
+  void testIsDynamicQualifier(String input) {
+    assertTrue(DynamicQualifier.isDynamicQualifier(input), "isDynamicQualifier");
   }
 
   @Test

@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
+
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
@@ -40,7 +42,7 @@ public class ServiceReference {
     this.namespace = serviceRegistration.namespace();
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
-    this.dynamicQualifier = qualifier.contains(":") ? new DynamicQualifier(qualifier) : null;
+    this.dynamicQualifier = isDynamicQualifier(qualifier) ? new DynamicQualifier(qualifier) : null;
     this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();

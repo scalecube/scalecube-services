@@ -18,7 +18,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
 
   @Override
   public Mono<String> addFile(File file, Duration duration) {
-    // TODO: v1/endpoints/$serviceEndpointId/files/$filename
+    // TODO: v1/scalecube.endpoints/$serviceEndpointId/files/$filename
     return null;
   }
 

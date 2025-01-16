@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 @Service(FileStreamer.NAMESPACE)
 public interface FileStreamer {
 
-  String NAMESPACE = "v1/endpoints";
+  String NAMESPACE = "v1/scalecube.endpoints";
 
   @Tag(key = "Content-Type", value = "application/scalecube-file")
   @RestMethod("GET")

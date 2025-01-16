@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
@@ -146,6 +147,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceInfo serviceInfo) {
+    registerService(serviceInfo, s -> s);
+  }
+
+  @Override
+  public void registerService(ServiceInfo serviceInfo, UnaryOperator<String> qualifierOperator) {
     final var serviceInstance = serviceInfo.serviceInstance();
     final var serviceInstanceClass = serviceInstance.getClass();
 
@@ -168,10 +174,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                             throw new RuntimeException(e);
                           }
 
-                          final var methodInfo =
+                          MethodInfo methodInfo =
                               new MethodInfo(
                                   Reflect.serviceName(serviceInterface),
-                                  Reflect.methodName(method),
+                                  qualifierOperator.apply(Reflect.methodName(method)),
                                   Reflect.parameterizedReturnType(method),
                                   Reflect.isReturnTypeServiceMessage(method),
                                   Reflect.communicationMode(method),

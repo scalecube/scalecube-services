@@ -11,23 +11,21 @@ import java.util.regex.Pattern;
 
 public final class DynamicQualifier {
 
+  private static final Pattern DYNAMIC_QUALIFIER_PATTERN = Pattern.compile("(^|/):\\w+(?:/|$)");
+
   private final String qualifier;
   private final Pattern pattern;
   private final List<String> pathVariables;
   private final int size;
 
   public DynamicQualifier(String qualifier) {
-    if (!qualifier.contains(":")) {
-      throw new IllegalArgumentException("Illegal dynamic qualifier: " + qualifier);
-    }
-
-    final var pathVariables = new ArrayList<String>();
+    final var pathVars = new ArrayList<String>();
     final var sb = new StringBuilder();
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
         final var pathVar = s.substring(1);
         sb.append("(?<").append(pathVar).append(">.*?)");
-        pathVariables.add(pathVar);
+        pathVars.add(pathVar);
       } else {
         sb.append(s);
       }
@@ -37,8 +35,12 @@ public final class DynamicQualifier {
 
     this.qualifier = qualifier;
     this.pattern = Pattern.compile(sb.toString());
-    this.pathVariables = Collections.unmodifiableList(pathVariables);
+    this.pathVariables = Collections.unmodifiableList(pathVars);
     this.size = sizeOf(qualifier);
+  }
+
+  public static boolean isDynamicQualifier(String input) {
+    return DYNAMIC_QUALIFIER_PATTERN.matcher(input).find();
   }
 
   public String qualifier() {

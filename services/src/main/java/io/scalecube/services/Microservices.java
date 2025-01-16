@@ -191,7 +191,7 @@ public class Microservices implements AutoCloseable {
   private void createServiceEndpoint() {
     serviceCall = call();
 
-    final ServiceEndpoint.Builder builder =
+    final var builder =
         ServiceEndpoint.builder()
             .id(id.toString())
             .address(serviceAddress)
@@ -200,15 +200,13 @@ public class Microservices implements AutoCloseable {
 
     serviceInstances =
         context.serviceProviders.stream()
-            .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
+            .flatMap(sp -> sp.provide(serviceCall).stream())
             .peek(this::registerService)
-            .peek(
-                serviceInfo ->
-                    builder.appendServiceRegistrations(serviceInfo.toServiceRegistrations()))
+            .peek(s -> builder.appendServiceRegistrations(ServiceScanner.toServiceRegistrations(s)))
             .map(ServiceInfo::serviceInstance)
             .toList();
 
-    serviceEndpoint = newServiceEndpoint(builder.build());
+    serviceEndpoint = enhanceServiceEndpoint(builder.build());
 
     LOGGER.log(
         Level.INFO,
@@ -218,15 +216,17 @@ public class Microservices implements AutoCloseable {
         serviceInstances);
   }
 
-  private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
-    final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
-
-    final String finalHost =
-        Optional.ofNullable(context.externalHost).orElse(serviceEndpoint.address().host());
-    final int finalPort =
-        Optional.ofNullable(context.externalPort).orElse(serviceEndpoint.address().port());
-
-    return builder.address(Address.create(finalHost, finalPort)).build();
+  private ServiceEndpoint enhanceServiceEndpoint(ServiceEndpoint serviceEndpoint) {
+    final var address = serviceEndpoint.address();
+    return ServiceEndpoint.from(serviceEndpoint)
+        .address(
+            Address.create(
+                Optional.ofNullable(context.externalHost).orElse(address.host()),
+                Optional.ofNullable(context.externalPort).orElse(address.port())))
+        .serviceRegistrations(
+            ServiceScanner.processServiceRegistrations(
+                serviceEndpoint.serviceRegistrations(), this))
+        .build();
   }
 
   private void registerService(ServiceInfo serviceInfo) {
@@ -237,7 +237,8 @@ public class Microservices implements AutoCloseable {
             .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .loggerIfAbsent(context.defaultLoggerName, context.defaultLoggerLevel)
-            .build());
+            .build(),
+        qualifier -> ServiceScanner.replacePlaceholders(qualifier, this));
   }
 
   private void startGateways() {

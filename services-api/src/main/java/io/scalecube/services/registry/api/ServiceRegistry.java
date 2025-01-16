@@ -6,6 +6,7 @@ import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import java.util.List;
+import java.util.function.UnaryOperator;
 
 /**
  * Service registry interface provides API to register/unregister services in the system and make
@@ -22,6 +23,8 @@ public interface ServiceRegistry {
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
   void registerService(ServiceInfo serviceInfo);
+
+  void registerService(ServiceInfo serviceInfo, UnaryOperator<String> qualifierOperator);
 
   ServiceEndpoint unregisterService(String endpointId);
 
