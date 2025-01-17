@@ -7,7 +7,7 @@ import reactor.core.publisher.Mono;
 @Service(HeartbeatService.NAMESPACE)
 public interface HeartbeatService {
 
-  String NAMESPACE = "v1/scalecube.websocket";
+  String NAMESPACE = "v1/scalecube.websocket.heartbeat";
 
   @ServiceMethod
   Mono<Long> ping(long value);
