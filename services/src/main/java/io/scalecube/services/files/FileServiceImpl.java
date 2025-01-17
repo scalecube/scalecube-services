@@ -79,11 +79,11 @@ public class FileServiceImpl implements FileService, FileStreamer {
               if (!isPathValid(filePath)) {
                 return Flux.error(new FileNotFoundException("File not found: " + name));
               }
-              return flux(filePath, ByteBuffer.allocate(maxChunkSize));
+              return fluxFrom(filePath, ByteBuffer.allocate(maxChunkSize));
             });
   }
 
-  private static Flux<byte[]> flux(Path filePath, ByteBuffer chunkBuffer) {
+  private static Flux<byte[]> fluxFrom(Path filePath, ByteBuffer chunkBuffer) {
     return Flux.generate(
         () -> FileChannel.open(filePath),
         (channel, sink) -> {
