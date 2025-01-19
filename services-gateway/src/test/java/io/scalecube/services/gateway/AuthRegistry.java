@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentMap;
 /** So called "guess username" authentication. All preconfigured users can be authenticated. */
 public class AuthRegistry {
 
-  static final String SESSION_ID = "SESSION_ID";
+  public static final String SESSION_ID = "SESSION_ID";
 
   /** Preconfigured userName-s that are allowed to be authenticated. */
   private final Set<String> allowedUsers;

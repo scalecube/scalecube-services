@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway;
+package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
