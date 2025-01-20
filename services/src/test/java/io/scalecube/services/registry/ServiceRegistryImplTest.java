@@ -23,7 +23,7 @@ import reactor.core.publisher.Mono;
 
 class ServiceRegistryImplTest {
 
-  private final ServiceRegistryImpl serviceRegistry = new ServiceRegistryImpl(null);
+  private final ServiceRegistryImpl serviceRegistry = new ServiceRegistryImpl();
   private final ServiceProviderErrorMapper errorMapper = mock(ServiceProviderErrorMapper.class);
   private final ServiceMessageDataDecoder dataDecoder = mock(ServiceMessageDataDecoder.class);
 

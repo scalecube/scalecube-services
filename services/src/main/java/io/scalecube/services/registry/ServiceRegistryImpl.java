@@ -29,8 +29,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private static final Logger LOGGER = System.getLogger(ServiceRegistryImpl.class.getName());
 
-  private final Map<String, Scheduler> schedulers;
-
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
@@ -49,14 +47,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Map<DynamicQualifier, List<ServiceMethodInvoker>> methodInvokersByPattern =
       new NonBlockingHashMap<>();
 
-  /**
-   * Constructor
-   *
-   * @param schedulers schedulers (optiona)
-   */
-  public ServiceRegistryImpl(Map<String, Scheduler> schedulers) {
-    this.schedulers = schedulers;
-  }
+  public ServiceRegistryImpl() {}
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -147,11 +138,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceInfo serviceInfo) {
-    registerService(serviceInfo, s -> s);
+    registerService(serviceInfo, null, null);
   }
 
   @Override
-  public void registerService(ServiceInfo serviceInfo, UnaryOperator<String> qualifierOperator) {
+  public void registerService(
+      ServiceInfo serviceInfo,
+      Map<String, Scheduler> schedulers,
+      UnaryOperator<String> qualifierOperator) {
     final var serviceInstance = serviceInfo.serviceInstance();
     final var serviceInstanceClass = serviceInstance.getClass();
 
@@ -177,7 +171,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                           MethodInfo methodInfo =
                               new MethodInfo(
                                   Reflect.serviceName(serviceInterface),
-                                  qualifierOperator.apply(Reflect.methodName(method)),
+                                  qualifierOperator != null
+                                      ? qualifierOperator.apply(Reflect.methodName(method))
+                                      : Reflect.methodName(method),
                                   Reflect.parameterizedReturnType(method),
                                   Reflect.isReturnTypeServiceMessage(method),
                                   Reflect.communicationMode(method),
@@ -185,7 +181,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isSecured(method),
-                                  Reflect.executeOnScheduler(serviceMethod, schedulers),
+                                  schedulers != null
+                                      ? Reflect.executeOnScheduler(serviceMethod, schedulers)
+                                      : null,
                                   Reflect.restMethod(method));
 
                           checkMethodInfo(methodInfo);
