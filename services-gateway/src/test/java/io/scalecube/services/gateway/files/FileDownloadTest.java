@@ -2,16 +2,18 @@ package io.scalecube.services.gateway.files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.files.FileServiceImpl;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
-import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
@@ -32,9 +34,10 @@ public class FileDownloadTest extends BaseTest {
 
   private static Microservices gateway;
   private static Microservices microservices;
+  private static Address httpAddress;
+  private static Address wsAddress;
 
-  private ServiceCall httpCall;
-  private ServiceCall wsCall;
+  private ServiceCall serviceCall;
 
   @BeforeAll
   static void beforeAll() {
@@ -62,7 +65,11 @@ public class FileDownloadTest extends BaseTest {
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
                 .defaultLogger("microservices", Level.INFO)
+                .services(new FileServiceImpl()) // "system level" service
                 .services(new ReportServiceImpl()));
+
+    httpAddress = gateway.gateway("HTTP").address();
+    wsAddress = gateway.gateway("WS").address();
   }
 
   @AfterAll
@@ -77,15 +84,7 @@ public class FileDownloadTest extends BaseTest {
 
   @BeforeEach
   void beforeEach() {
-    final var httpAddress = gateway.gateway("HTTP").address();
-    final var wsAddress = gateway.gateway("WS").address();
-
-    httpCall =
-        new ServiceCall()
-            .router(new StaticAddressRouter(httpAddress))
-            .transport(new HttpGatewayClientTransport.Builder().address(httpAddress).build());
-
-    wsCall =
+    serviceCall =
         new ServiceCall()
             .router(new StaticAddressRouter(wsAddress))
             .transport(new WebsocketGatewayClientTransport.Builder().address(wsAddress).build());
@@ -93,11 +92,8 @@ public class FileDownloadTest extends BaseTest {
 
   @AfterEach
   void afterEach() {
-    if (httpCall != null) {
-      httpCall.close();
-    }
-    if (wsCall != null) {
-      wsCall.close();
+    if (serviceCall != null) {
+      serviceCall.close();
     }
   }
 
@@ -106,7 +102,7 @@ public class FileDownloadTest extends BaseTest {
 
   @Test
   void testAddWrongFile() {
-    StepVerifier.create(wsCall.api(ReportService.class).exportReportWrongFile())
+    StepVerifier.create(serviceCall.api(ReportService.class).exportReportWrongFile())
         .expectSubscription()
         .verifyErrorSatisfies(
             ex -> {
@@ -118,7 +114,20 @@ public class FileDownloadTest extends BaseTest {
   }
 
   @Test
-  void testFileNotFound() {}
+  void testFileNotFound() {
+    final var reportResponse =
+        serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
+    assertNotNull(reportResponse, "reportResponse");
+    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+    assertTrue(reportResponse.reportPath().matches("v1/scalecube.endpoints/.*/files/.*"));
+
+    final var reportPath = reportResponse.reportPath();
+    final var s = reportPath.substring(reportPath.lastIndexOf("/"));
+    final var wrongReportPath =
+        reportPath.replace(s, "/file_must_not_be_found_" + System.currentTimeMillis());
+
+    // ...
+  }
 
   @Test
   void testFileExpired() {}

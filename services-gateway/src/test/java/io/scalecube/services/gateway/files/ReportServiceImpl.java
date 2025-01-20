@@ -25,8 +25,10 @@ public class ReportServiceImpl implements ReportService {
         () -> {
           try {
             // Generate file under correct baseDir (java.io.tmpdir)
+            final var numOfLines = request.numOfLines() != null ? request.numOfLines() : 10000;
             final var file =
-                generateFile(Files.createTempFile("export_report_" + System.nanoTime(), null));
+                generateFile(
+                    Files.createTempFile("export_report_" + System.nanoTime(), null), numOfLines);
             return fileService
                 .addFile(new AddFileRequest(file, request.duration()))
                 .map(s -> new ReportResponse().reportPath(s));
@@ -45,9 +47,11 @@ public class ReportServiceImpl implements ReportService {
         .map(s -> new ReportResponse().reportPath(s));
   }
 
-  private static File generateFile(final Path file) throws IOException {
+  private static File generateFile(final Path file, final int numOfLines) throws IOException {
     final var list =
-        IntStream.range(0, 10000).mapToObj(i -> "export report @ " + System.nanoTime()).toList();
+        IntStream.range(0, numOfLines)
+            .mapToObj(i -> "export report @ " + System.nanoTime())
+            .toList();
     Files.write(file, list);
     return file.toFile();
   }
