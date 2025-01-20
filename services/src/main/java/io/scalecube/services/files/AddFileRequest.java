@@ -6,36 +6,24 @@ import java.util.StringJoiner;
 
 public class AddFileRequest {
 
-  private File file;
-  private Duration ttl;
+  private final File file;
+  private final Duration ttl;
 
-  public AddFileRequest() {}
+  public AddFileRequest(File file) {
+    this(file, null);
+  }
 
   public AddFileRequest(File file, Duration ttl) {
     this.file = file;
     this.ttl = ttl;
   }
 
-  public AddFileRequest(File file) {
-    this.file = file;
-  }
-
   public File file() {
     return file;
   }
 
-  public AddFileRequest file(File file) {
-    this.file = file;
-    return this;
-  }
-
   public Duration ttl() {
     return ttl;
-  }
-
-  public AddFileRequest ttl(Duration ttl) {
-    this.ttl = ttl;
-    return this;
   }
 
   @Override

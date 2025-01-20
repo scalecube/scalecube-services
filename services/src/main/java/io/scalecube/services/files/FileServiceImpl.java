@@ -48,8 +48,16 @@ public class FileServiceImpl implements FileService, FileStreamer {
   public Mono<String> addFile(AddFileRequest request) {
     return Mono.fromCallable(
         () -> {
+          if (request == null) {
+            throw new IllegalArgumentException("Wrong request");
+          }
+
           final var file = request.file();
           final var ttl = request.ttl();
+
+          if (file == null) {
+            throw new IllegalArgumentException("Wrong file");
+          }
 
           if (!isPathValid(file.toPath())) {
             throw new IllegalArgumentException("Wrong file: " + file);
