@@ -9,6 +9,7 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.files.FileServiceImpl;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -766,6 +767,9 @@ public class Microservices implements AutoCloseable {
       schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
       serviceRegistry = new ServiceRegistryImpl(schedulers);
+
+      serviceProviders.add(
+          call -> List.of(ServiceInfo.fromServiceInstance(new FileServiceImpl()).build()));
 
       return this;
     }

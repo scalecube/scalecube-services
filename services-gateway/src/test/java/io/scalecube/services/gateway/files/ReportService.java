@@ -11,5 +11,5 @@ public interface ReportService {
   Mono<ReportResponse> exportReport(ExportReportRequest request);
 
   @ServiceMethod
-  Mono<ReportResponse> exportReportFileNotFound();
+  Mono<ReportResponse> exportReportWrongFile();
 }

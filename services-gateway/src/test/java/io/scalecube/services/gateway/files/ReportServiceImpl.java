@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.files;
 
 import io.scalecube.services.annotations.AfterConstruct;
+import io.scalecube.services.files.AddFileRequest;
 import io.scalecube.services.files.FileService;
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +28,7 @@ public class ReportServiceImpl implements ReportService {
             final var file =
                 generateFile(Files.createTempFile("export_report_" + System.nanoTime(), null));
             return fileService
-                .addFile(file, request.duration())
+                .addFile(new AddFileRequest(file, request.duration()))
                 .map(s -> new ReportResponse().reportPath(s));
           } catch (Exception ex) {
             throw new RuntimeException(ex);
@@ -36,10 +37,11 @@ public class ReportServiceImpl implements ReportService {
   }
 
   @Override
-  public Mono<ReportResponse> exportReportFileNotFound() {
+  public Mono<ReportResponse> exportReportWrongFile() {
     // Try create file under wrong baseDir ("target")
+    final var file = Path.of("target", "export_report_" + System.nanoTime()).toFile();
     return fileService
-        .addFile(Path.of("target", "export_report_" + System.nanoTime()).toFile(), null)
+        .addFile(new AddFileRequest(file))
         .map(s -> new ReportResponse().reportPath(s));
   }
 

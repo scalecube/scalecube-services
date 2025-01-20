@@ -1,9 +1,14 @@
 package io.scalecube.services.gateway.files;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
@@ -19,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.test.StepVerifier;
 
 public class FileDownloadTest extends BaseTest {
 
@@ -27,8 +33,8 @@ public class FileDownloadTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices microservices;
 
-  private ServiceCall httpServiceCall;
-  private ServiceCall wsServiceCall;
+  private ServiceCall httpCall;
+  private ServiceCall wsCall;
 
   @BeforeAll
   static void beforeAll() {
@@ -74,12 +80,12 @@ public class FileDownloadTest extends BaseTest {
     final var httpAddress = gateway.gateway("HTTP").address();
     final var wsAddress = gateway.gateway("WS").address();
 
-    httpServiceCall =
+    httpCall =
         new ServiceCall()
             .router(new StaticAddressRouter(httpAddress))
             .transport(new HttpGatewayClientTransport.Builder().address(httpAddress).build());
 
-    wsServiceCall =
+    wsCall =
         new ServiceCall()
             .router(new StaticAddressRouter(wsAddress))
             .transport(new WebsocketGatewayClientTransport.Builder().address(wsAddress).build());
@@ -87,11 +93,11 @@ public class FileDownloadTest extends BaseTest {
 
   @AfterEach
   void afterEach() {
-    if (httpServiceCall != null) {
-      httpServiceCall.close();
+    if (httpCall != null) {
+      httpCall.close();
     }
-    if (wsServiceCall != null) {
-      wsServiceCall.close();
+    if (wsCall != null) {
+      wsCall.close();
     }
   }
 
@@ -99,7 +105,17 @@ public class FileDownloadTest extends BaseTest {
   void testExportReport() {}
 
   @Test
-  void testAddWrongFile() {}
+  void testAddWrongFile() {
+    StepVerifier.create(wsCall.api(ReportService.class).exportReportWrongFile())
+        .expectSubscription()
+        .verifyErrorSatisfies(
+            ex -> {
+              assertInstanceOf(InternalServiceException.class, ex, "exceptionType");
+              final var serviceException = (InternalServiceException) ex;
+              assertEquals(500, serviceException.errorCode());
+              assertTrue(serviceException.getMessage().startsWith("Wrong file: target"));
+            });
+  }
 
   @Test
   void testFileNotFound() {}
