@@ -53,15 +53,15 @@ public class FileServiceImpl implements FileService, FileStreamer {
           }
 
           if (ttl != null && ttl != Duration.ZERO) {
-            Schedulers.single()
-                .schedule(
-                    () -> {
-                      if (!file.delete()) {
-                        LOGGER.log(Level.WARNING, "Cannot delete file: {0}", file);
-                      }
-                    },
-                    ttl.toMillis(),
-                    TimeUnit.MILLISECONDS);
+            final var scheduler = Schedulers.single();
+            scheduler.schedule(
+                () -> {
+                  if (!file.delete()) {
+                    LOGGER.log(Level.WARNING, "Cannot delete file: {0}", file);
+                  }
+                },
+                ttl.toMillis(),
+                TimeUnit.MILLISECONDS);
           }
 
           return String.join(
@@ -78,8 +78,9 @@ public class FileServiceImpl implements FileService, FileStreamer {
               final var filePath = baseDir.resolve(name);
               if (!isPathValid(filePath)) {
                 return Flux.error(new FileNotFoundException("File not found: " + name));
+              } else {
+                return fluxFrom(filePath, ByteBuffer.allocate(maxChunkSize));
               }
-              return fluxFrom(filePath, ByteBuffer.allocate(maxChunkSize));
             });
   }
 
