@@ -390,14 +390,14 @@ public class ServiceCall implements AutoCloseable {
           .headers(credentials)
           .dataFormatIfAbsent(contentType)
           .build();
-    } else {
-      return ServiceMessage.builder()
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .headers(credentials)
-          .data(request)
-          .dataFormatIfAbsent(contentType)
-          .build();
     }
+
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+        .headers(credentials)
+        .data(request)
+        .dataFormatIfAbsent(contentType)
+        .build();
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
