@@ -191,7 +191,7 @@ public class Microservices implements AutoCloseable {
   private void createServiceEndpoint() {
     serviceCall = call();
 
-    final var builder =
+    final ServiceEndpoint.Builder builder =
         ServiceEndpoint.builder()
             .id(id.toString())
             .address(serviceAddress)
@@ -200,7 +200,7 @@ public class Microservices implements AutoCloseable {
 
     serviceInstances =
         context.serviceProviders.stream()
-            .flatMap(sp -> sp.provide(serviceCall).stream())
+            .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
             .peek(this::registerService)
             .peek(s -> builder.appendServiceRegistrations(ServiceScanner.toServiceRegistrations(s)))
             .map(ServiceInfo::serviceInstance)
