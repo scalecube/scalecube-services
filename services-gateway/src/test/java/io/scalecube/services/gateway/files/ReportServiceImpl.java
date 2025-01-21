@@ -26,9 +26,7 @@ public class ReportServiceImpl implements ReportService {
           try {
             // Generate file under correct baseDir (java.io.tmpdir)
             final var numOfLines = request.numOfLines() != null ? request.numOfLines() : 10000;
-            final var file =
-                generateFile(
-                    Files.createTempFile("export_report_" + System.nanoTime(), null), numOfLines);
+            final var file = generateFile(Files.createTempFile("export_report_", null), numOfLines);
             return fileService
                 .addFile(new AddFileRequest(file, request.duration()))
                 .map(s -> new ReportResponse().reportPath(s));

@@ -29,6 +29,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
@@ -109,18 +110,63 @@ public class FileDownloadTest extends BaseTest {
   }
 
   @Test
-  void testExportReport() {
-    fail();
+  void testExportReport() throws IOException {
+    final var numOfLines = 1000;
+    final var reportResponse =
+        serviceCall
+            .api(ReportService.class)
+            .exportReport(new ExportReportRequest().numOfLines(numOfLines))
+            .block(TIMEOUT);
+    assertNotNull(reportResponse, "reportResponse");
+    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+
+    final var file =
+        downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
+    final var list = Files.readAllLines(file);
+
+    assertEquals(numOfLines, list.size(), "numOfLines");
+    for (String s : list) {
+      assertTrue(s.startsWith("export report @"), "line: " + s);
+    }
   }
 
   @Test
-  void testFileExpired() {
-    fail();
-  }
+  void testFileExpired() throws InterruptedException {
+    final var numOfLines = 1000;
+    final var ttl = 500;
+    final var reportResponse =
+        serviceCall
+            .api(ReportService.class)
+            .exportReport(new ExportReportRequest().numOfLines(numOfLines).ttl(ttl))
+            .block(TIMEOUT);
+    assertNotNull(reportResponse, "reportResponse");
+    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
 
-  @Test
-  void testFileIsNotExpired() {
-    fail();
+    // Download file first time
+
+    downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
+
+    // Await file expiration
+
+    Thread.sleep(ttl * 3);
+
+    // Verify that file is expired
+
+    try {
+      downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
+      fail("Expected exception");
+    } catch (Exception e) {
+      final var cause = getRootCause(e);
+      assertInstanceOf(IOException.class, cause);
+      final var ex = (IOException) cause;
+      final var errorType = InternalServiceException.ERROR_TYPE;
+      final var message = ex.getMessage();
+      assertTrue(
+          message.startsWith("No Content-Disposition header in response [" + errorType),
+          "message: " + message);
+    }
   }
 
   @Test
@@ -151,6 +197,7 @@ public class FileDownloadTest extends BaseTest {
 
     try {
       downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+      fail("Expected exception");
     } catch (Exception e) {
       final var cause = getRootCause(e);
       assertInstanceOf(IOException.class, cause);
@@ -177,6 +224,7 @@ public class FileDownloadTest extends BaseTest {
 
     try {
       downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+      fail("Expected exception");
     } catch (Exception e) {
       final var cause = getRootCause(e);
       assertInstanceOf(IOException.class, cause);
@@ -203,6 +251,7 @@ public class FileDownloadTest extends BaseTest {
 
     try {
       downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+      fail("Expected exception");
     } catch (Exception e) {
       final var cause = getRootCause(e);
       assertInstanceOf(IOException.class, cause);

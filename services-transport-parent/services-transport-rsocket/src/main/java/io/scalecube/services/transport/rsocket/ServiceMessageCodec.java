@@ -86,13 +86,18 @@ public final class ServiceMessageCodec {
   public <T> T encodeAndTransform(
       ServiceMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer)
       throws MessageCodecException {
+    final var bufAllocator = ByteBufAllocator.DEFAULT;
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
     if (message.hasData(ByteBuf.class)) {
       dataBuffer = message.data();
+    } else if (message.hasData(byte[].class)) {
+      final var bytes = (byte[]) message.data();
+      dataBuffer = bufAllocator.buffer(bytes.length);
+      dataBuffer.writeBytes(bytes);
     } else if (message.hasData()) {
-      dataBuffer = ByteBufAllocator.DEFAULT.buffer();
+      dataBuffer = bufAllocator.buffer();
       try {
         DataCodec dataCodec = getDataCodec(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
@@ -105,7 +110,7 @@ public final class ServiceMessageCodec {
     }
 
     if (!message.headers().isEmpty()) {
-      headersBuffer = ByteBufAllocator.DEFAULT.buffer();
+      headersBuffer = bufAllocator.buffer();
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
