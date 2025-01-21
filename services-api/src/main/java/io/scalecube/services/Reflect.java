@@ -380,7 +380,11 @@ public class Reflect {
   }
 
   public static Scheduler executeOnScheduler(Method method, Map<String, Scheduler> schedulers) {
-    final Class<?> declaringClass = method.getDeclaringClass();
+    if (schedulers == null) {
+      return Schedulers.immediate();
+    }
+
+    final var declaringClass = method.getDeclaringClass();
 
     if (method.isAnnotationPresent(ExecuteOn.class)) {
       final var executeOn = method.getAnnotation(ExecuteOn.class);

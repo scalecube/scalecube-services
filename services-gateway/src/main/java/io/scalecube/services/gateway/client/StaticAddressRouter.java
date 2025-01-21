@@ -16,7 +16,7 @@ import java.util.UUID;
  * Syntethic router for returning pre-constructed {@link ServiceReference} instance with given
  * address.
  */
-public final class StaticAddressRouter implements Router {
+public class StaticAddressRouter implements Router {
 
   private final ServiceReference serviceReference;
 

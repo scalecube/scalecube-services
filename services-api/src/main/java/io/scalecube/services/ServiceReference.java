@@ -42,7 +42,7 @@ public class ServiceReference {
     this.namespace = serviceRegistration.namespace();
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
-    this.dynamicQualifier = isDynamicQualifier(qualifier) ? new DynamicQualifier(qualifier) : null;
+    this.dynamicQualifier = isDynamicQualifier(qualifier) ? DynamicQualifier.from(qualifier) : null;
     this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();

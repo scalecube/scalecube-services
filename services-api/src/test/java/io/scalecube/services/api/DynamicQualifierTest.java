@@ -57,28 +57,34 @@ class DynamicQualifierTest {
 
   @Test
   void testNoMatches() {
-    final var qualifier = new DynamicQualifier("v1/this.is.namespace/foo/:foo/bar/:bar");
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
     assertNull(qualifier.matchQualifier("v1/this.is.namespace/foo/bar"));
   }
 
   @Test
+  void testNoMatchesForEmptyValues() {
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo");
+    assertNull(qualifier.matchQualifier("v1/this.is.namespace/foo/"));
+  }
+
+  @Test
   void testStrictMatching() {
-    final var qualifier = new DynamicQualifier("v1/this.is.namespace/foo/:foo");
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo");
     assertNotNull(qualifier.matchQualifier("v1/this.is.namespace/foo/123"));
     assertNull(qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456/baz/678"));
   }
 
   @Test
   void testEquality() {
-    final var qualifier1 = new DynamicQualifier("v1/this.is.namespace/foo/:foo/bar/:bar");
-    final var qualifier2 = new DynamicQualifier("v1/this.is.namespace/foo/:foo/bar/:bar");
+    final var qualifier1 = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
+    final var qualifier2 = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
     assertEquals(qualifier1, qualifier2);
   }
 
   @Test
   void testMatchSinglePathVariable() {
     final var userName = UUID.randomUUID().toString();
-    final var qualifier = new DynamicQualifier("v1/this.is.namespace/foo/bar/:userName");
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/bar/:userName");
     final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/bar/" + userName);
     assertNotNull(map);
     assertEquals(1, map.size());
@@ -87,7 +93,7 @@ class DynamicQualifierTest {
 
   @Test
   void testMatchMultiplePathVariables() {
-    final var qualifier = new DynamicQualifier("v1/this.is.namespace/foo/:foo/bar/:bar/baz/:baz");
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar/baz/:baz");
     final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456/baz/678");
     assertNotNull(map);
     assertEquals(3, map.size());

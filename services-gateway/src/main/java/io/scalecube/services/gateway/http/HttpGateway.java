@@ -70,7 +70,7 @@ public class HttpGateway implements Gateway {
                   connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
                 }
               })
-          .handle(new HttpGatewayAcceptor(callFactory.apply(call), errorMapper))
+          .handle(new HttpGatewayAcceptor(callFactory.apply(call), serviceRegistry, errorMapper))
           .bind()
           .doOnSuccess(server -> this.server = server)
           .toFuture()

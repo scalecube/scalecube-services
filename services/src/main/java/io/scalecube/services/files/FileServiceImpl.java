@@ -131,6 +131,8 @@ public class FileServiceImpl implements FileService, FileStreamer {
   }
 
   private boolean isPathValid(Path filePath) {
-    return Files.exists(filePath) && filePath.normalize().startsWith(baseDir.normalize());
+    return Files.exists(filePath)
+        && !Files.isDirectory(filePath)
+        && filePath.normalize().startsWith(baseDir.normalize());
   }
 }

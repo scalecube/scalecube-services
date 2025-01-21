@@ -181,9 +181,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
                                   Reflect.isSecured(method),
-                                  schedulers != null
-                                      ? Reflect.executeOnScheduler(serviceMethod, schedulers)
-                                      : null,
+                                  Reflect.executeOnScheduler(serviceMethod, schedulers),
                                   Reflect.restMethod(method));
 
                           checkMethodInfo(methodInfo);

@@ -18,13 +18,13 @@ public final class DynamicQualifier {
   private final List<String> pathVariables;
   private final int size;
 
-  public DynamicQualifier(String qualifier) {
+  private DynamicQualifier(String qualifier) {
     final var pathVars = new ArrayList<String>();
     final var sb = new StringBuilder();
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
         final var pathVar = s.substring(1);
-        sb.append("(?<").append(pathVar).append(">.*?)");
+        sb.append("(?<").append(pathVar).append(">.+)");
         pathVars.add(pathVar);
       } else {
         sb.append(s);
@@ -37,6 +37,10 @@ public final class DynamicQualifier {
     this.pattern = Pattern.compile(sb.toString());
     this.pathVariables = Collections.unmodifiableList(pathVars);
     this.size = sizeOf(qualifier);
+  }
+
+  public static DynamicQualifier from(String input) {
+    return new DynamicQualifier(input);
   }
 
   public static boolean isDynamicQualifier(String input) {

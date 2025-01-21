@@ -8,7 +8,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.DataCodec;
 import java.lang.reflect.Type;
 
-public final class ServiceMessageCodec {
+public class ServiceMessageCodec {
 
   private ServiceMessageCodec() {}
 
