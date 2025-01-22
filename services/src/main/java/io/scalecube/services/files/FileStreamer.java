@@ -6,6 +6,10 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
 import reactor.core.publisher.Flux;
 
+/**
+ * System service interface for streaming files after they have been added locally with {@link
+ * FileService#addFile(AddFileRequest)}.
+ */
 @Service(FileStreamer.NAMESPACE)
 public interface FileStreamer {
 

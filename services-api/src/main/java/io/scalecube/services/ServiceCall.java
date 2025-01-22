@@ -190,7 +190,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeOne(request).map(this::throwIfError);
               } else {
@@ -244,7 +244,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeMany(request).map(this::throwIfError);
               } else {
@@ -299,7 +299,7 @@ public class ServiceCall implements AutoCloseable {
                 ServiceMessage request = first.get();
                 ServiceMethodInvoker methodInvoker;
                 if (serviceRegistry != null
-                    && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                    && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                   // local service
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {

@@ -96,14 +96,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public boolean registerService(ServiceEndpoint serviceEndpoint) {
+  public void registerService(ServiceEndpoint serviceEndpoint) {
     boolean putIfAbsent =
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
       LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
     }
-    return putIfAbsent;
   }
 
   @Override
@@ -239,7 +238,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public ServiceMethodInvoker getInvoker(ServiceMessage request) {
+  public ServiceMethodInvoker lookupInvoker(ServiceMessage request) {
     final var qualifier = request.qualifier();
     final var requestMethod = request.requestMethod();
 

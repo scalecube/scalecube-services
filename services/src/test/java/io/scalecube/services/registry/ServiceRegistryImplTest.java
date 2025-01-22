@@ -93,7 +93,7 @@ class ServiceRegistryImplTest {
   }
 
   @Test
-  void testGetInvoker() {
+  void testLookupInvoker() {
     serviceRegistry.registerService(
         ServiceInfo.fromServiceInstance(new HelloOneImpl())
             .errorMapper(errorMapper)
@@ -105,15 +105,16 @@ class ServiceRegistryImplTest {
             .dataDecoder(dataDecoder)
             .build());
     assertNotNull(
-        serviceRegistry.getInvoker(ServiceMessage.builder().qualifier("greeting/hello").build()));
+        serviceRegistry.lookupInvoker(
+            ServiceMessage.builder().qualifier("greeting/hello").build()));
     assertNotNull(
-        serviceRegistry.getInvoker(
+        serviceRegistry.lookupInvoker(
             ServiceMessage.builder().qualifier("greeting/hello/12345").build()));
     assertNotNull(
-        serviceRegistry.getInvoker(
+        serviceRegistry.lookupInvoker(
             ServiceMessage.builder().qualifier("greeting/hello/67890").build()));
     assertNull(
-        serviceRegistry.getInvoker(
+        serviceRegistry.lookupInvoker(
             ServiceMessage.builder().qualifier("greeting/hola/that/not/exist").build()));
   }
 

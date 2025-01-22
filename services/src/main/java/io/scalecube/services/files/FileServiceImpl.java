@@ -30,10 +30,20 @@ public class FileServiceImpl implements FileService, FileStreamer {
 
   private String serviceEndpointId;
 
+  /**
+   * Default constructor. {@code baseDir} will be {@code java.io.tmpdir}, {@code maxChunkSize} will
+   * be {@code 64k}.
+   */
   public FileServiceImpl() {
     this(new File(TEMP_DIR), DEFAULT_MAX_CHUNK_SIZE);
   }
 
+  /**
+   * Constructor.
+   *
+   * @param baseDir baseDir for storing files
+   * @param maxChunkSize maximum buffer size for reading file and publishing by flux
+   */
   public FileServiceImpl(File baseDir, int maxChunkSize) {
     this.baseDir = baseDir.toPath();
     this.maxChunkSize = maxChunkSize;
