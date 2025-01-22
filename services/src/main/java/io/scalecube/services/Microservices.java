@@ -202,13 +202,11 @@ public class Microservices implements AutoCloseable {
         context.serviceProviders.stream()
             .flatMap(serviceProvider -> serviceProvider.provide(serviceCall).stream())
             .peek(this::registerService)
-            .peek(
-                serviceInfo ->
-                    builder.appendServiceRegistrations(ServiceScanner.scanServiceInfo(serviceInfo)))
+            .peek(s -> builder.appendServiceRegistrations(ServiceScanner.toServiceRegistrations(s)))
             .map(ServiceInfo::serviceInstance)
-            .collect(Collectors.toList());
+            .toList();
 
-    serviceEndpoint = newServiceEndpoint(builder.build());
+    serviceEndpoint = enhanceServiceEndpoint(builder.build());
 
     LOGGER.log(
         Level.INFO,
@@ -218,15 +216,17 @@ public class Microservices implements AutoCloseable {
         serviceInstances);
   }
 
-  private ServiceEndpoint newServiceEndpoint(ServiceEndpoint serviceEndpoint) {
-    final ServiceEndpoint.Builder builder = ServiceEndpoint.from(serviceEndpoint);
-
-    final String finalHost =
-        Optional.ofNullable(context.externalHost).orElse(serviceEndpoint.address().host());
-    final int finalPort =
-        Optional.ofNullable(context.externalPort).orElse(serviceEndpoint.address().port());
-
-    return builder.address(Address.create(finalHost, finalPort)).build();
+  private ServiceEndpoint enhanceServiceEndpoint(ServiceEndpoint serviceEndpoint) {
+    final var address = serviceEndpoint.address();
+    return ServiceEndpoint.from(serviceEndpoint)
+        .address(
+            Address.create(
+                Optional.ofNullable(context.externalHost).orElse(address.host()),
+                Optional.ofNullable(context.externalPort).orElse(address.port())))
+        .serviceRegistrations(
+            ServiceScanner.processServiceRegistrations(
+                serviceEndpoint.serviceRegistrations(), this))
+        .build();
   }
 
   private void registerService(ServiceInfo serviceInfo) {
@@ -237,7 +237,9 @@ public class Microservices implements AutoCloseable {
             .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .loggerIfAbsent(context.defaultLoggerName, context.defaultLoggerLevel)
-            .build());
+            .build(),
+        context.schedulers,
+        qualifier -> ServiceScanner.replacePlaceholders(qualifier, this));
   }
 
   private void startGateways() {
@@ -351,6 +353,15 @@ public class Microservices implements AutoCloseable {
         .filter(gateway -> gateway.id().equals(id))
         .findFirst()
         .orElseThrow(() -> new IllegalArgumentException("Cannot find gateway by id=" + id));
+  }
+
+  /**
+   * Returns local {@link ServiceEndpoint#id()}.
+   *
+   * @return local {@link ServiceEndpoint#id()}
+   */
+  public String id() {
+    return id.toString();
   }
 
   /**
@@ -614,6 +625,17 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
+     * Setter for custom {@link ServiceRegistry} instance.
+     *
+     * @param serviceRegistry serviceRegistry
+     * @return this
+     */
+    public Context serviceRegistry(ServiceRegistry serviceRegistry) {
+      this.serviceRegistry = serviceRegistry;
+      return this;
+    }
+
+    /**
      * Setter for {@link ServiceDiscoveryFactory}.
      *
      * @param discoveryFactory discoveryFactory
@@ -726,11 +748,11 @@ public class Microservices implements AutoCloseable {
      * Adds {@link Scheduler} supplier to the list of scheduler suppliers.
      *
      * @param name scheduler name
-     * @param schedulerSupplier {@link Scheduler} supplier
+     * @param supplier {@link Scheduler} supplier
      * @return this builder with applied parameter
      */
-    public Context scheduler(String name, Supplier<Scheduler> schedulerSupplier) {
-      schedulerSuppliers.put(name, schedulerSupplier);
+    public Context scheduler(String name, Supplier<Scheduler> supplier) {
+      schedulerSuppliers.put(name, supplier);
       return this;
     }
 
@@ -753,9 +775,11 @@ public class Microservices implements AutoCloseable {
         tags = new HashMap<>();
       }
 
-      schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
+      if (serviceRegistry == null) {
+        serviceRegistry = new ServiceRegistryImpl();
+      }
 
-      serviceRegistry = new ServiceRegistryImpl(schedulers);
+      schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
       return this;
     }

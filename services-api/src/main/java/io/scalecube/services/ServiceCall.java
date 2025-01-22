@@ -13,8 +13,6 @@ import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -192,7 +190,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeOne(request).map(this::throwIfError);
               } else {
@@ -246,7 +244,7 @@ public class ServiceCall implements AutoCloseable {
             () -> {
               ServiceMethodInvoker methodInvoker;
               if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
                 return methodInvoker.invokeMany(request).map(this::throwIfError);
               } else {
@@ -301,7 +299,7 @@ public class ServiceCall implements AutoCloseable {
                 ServiceMessage request = first.get();
                 ServiceMethodInvoker methodInvoker;
                 if (serviceRegistry != null
-                    && (methodInvoker = serviceRegistry.getInvoker(request)) != null) {
+                    && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                   // local service
                   return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
                 } else {
@@ -328,59 +326,53 @@ public class ServiceCall implements AutoCloseable {
    */
   @SuppressWarnings("unchecked")
   public <T> T api(Class<T> serviceInterface) {
-
-    final ServiceCall serviceCall = this;
-    final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
-
-    // noinspection unchecked,Convert2Lambda
     return (T)
         Proxy.newProxyInstance(
             getClass().getClassLoader(),
             new Class[] {serviceInterface},
-            new InvocationHandler() {
-              @Override
-              public Object invoke(Object proxy, Method method, Object[] params) {
-                Optional<Object> check =
-                    toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
-                if (check.isPresent()) {
-                  return check.get(); // toString, hashCode was invoked.
-                }
+            (proxy, method, params) -> {
+              Optional<Object> check =
+                  toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
+              if (check.isPresent()) {
+                return check.get(); // toString, hashCode was invoked.
+              }
 
-                final MethodInfo methodInfo = genericReturnTypes.get(method);
-                final Type returnType = methodInfo.parameterizedReturnType();
-                final boolean isServiceMessage = methodInfo.isReturnTypeServiceMessage();
+              final var serviceCall = ServiceCall.this;
+              final var genericReturnTypes = Reflect.methodsInfo(serviceInterface);
+              final var methodInfo = genericReturnTypes.get(method);
+              final var returnType = methodInfo.parameterizedReturnType();
+              final var isServiceMessage = methodInfo.isReturnTypeServiceMessage();
+              final var request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
-                Object request = methodInfo.requestType() == Void.TYPE ? null : params[0];
+              //noinspection EnhancedSwitchMigration
+              switch (methodInfo.communicationMode()) {
+                case FIRE_AND_FORGET:
+                  return serviceCall.oneWay(toServiceMessage(methodInfo, request));
 
-                switch (methodInfo.communicationMode()) {
-                  case FIRE_AND_FORGET:
-                    return serviceCall.oneWay(toServiceMessage(methodInfo, request));
+                case REQUEST_RESPONSE:
+                  return serviceCall
+                      .requestOne(toServiceMessage(methodInfo, request), returnType)
+                      .transform(asMono(isServiceMessage));
 
-                  case REQUEST_RESPONSE:
-                    return serviceCall
-                        .requestOne(toServiceMessage(methodInfo, request), returnType)
-                        .transform(asMono(isServiceMessage));
+                case REQUEST_STREAM:
+                  return serviceCall
+                      .requestMany(toServiceMessage(methodInfo, request), returnType)
+                      .transform(asFlux(isServiceMessage));
 
-                  case REQUEST_STREAM:
-                    return serviceCall
-                        .requestMany(toServiceMessage(methodInfo, request), returnType)
-                        .transform(asFlux(isServiceMessage));
+                case REQUEST_CHANNEL:
+                  // this is REQUEST_CHANNEL so it means params[0] must
+                  // be a publisher - its safe to cast.
+                  //noinspection rawtypes
+                  return serviceCall
+                      .requestBidirectional(
+                          Flux.from((Publisher) request)
+                              .map(data -> toServiceMessage(methodInfo, data)),
+                          returnType)
+                      .transform(asFlux(isServiceMessage));
 
-                  case REQUEST_CHANNEL:
-                    // this is REQUEST_CHANNEL so it means params[0] must
-                    // be a publisher - its safe to cast.
-                    //noinspection rawtypes
-                    return serviceCall
-                        .requestBidirectional(
-                            Flux.from((Publisher) request)
-                                .map(data -> toServiceMessage(methodInfo, data)),
-                            returnType)
-                        .transform(asFlux(isServiceMessage));
-
-                  default:
-                    throw new IllegalArgumentException(
-                        "Communication mode is not supported: " + method);
-                }
+                default:
+                  throw new IllegalArgumentException(
+                      "Communication mode is not supported: " + method);
               }
             });
   }

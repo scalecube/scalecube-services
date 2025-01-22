@@ -14,16 +14,24 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.gateway.client.StaticAddressRouter;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.List;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Signal;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
@@ -35,10 +43,15 @@ public class HttpGatewayAcceptor
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
   private final ServiceCall serviceCall;
+  private final ServiceRegistry serviceRegistry;
   private final ServiceProviderErrorMapper errorMapper;
 
-  public HttpGatewayAcceptor(ServiceCall serviceCall, ServiceProviderErrorMapper errorMapper) {
+  public HttpGatewayAcceptor(
+      ServiceCall serviceCall,
+      ServiceRegistry serviceRegistry,
+      ServiceProviderErrorMapper errorMapper) {
     this.serviceCall = serviceCall;
+    this.serviceRegistry = serviceRegistry;
     this.errorMapper = errorMapper;
   }
 
@@ -66,25 +79,21 @@ public class HttpGatewayAcceptor
 
   private Mono<Void> handleRequest(
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    final var builder = ServiceMessage.builder();
+    final var message = toMessage(httpRequest, content);
 
-    for (var httpHeader : httpRequest.requestHeaders()) {
-      builder.header(httpHeader.getKey(), httpHeader.getValue());
+    // Match and handle file request
+
+    final var serviceReference = matchFileRequest(serviceRegistry.lookupService(message));
+    if (serviceReference != null) {
+      return handleFileRequest(serviceReference, message, httpResponse);
     }
 
-    final var qualifier = getQualifier(httpRequest);
-
-    final var request =
-        builder
-            .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
-            .qualifier(qualifier)
-            .data(content)
-            .build();
+    // Handle normal service request
 
     return serviceCall
-        .requestOne(request)
-        .switchIfEmpty(Mono.defer(() -> emptyMessage(qualifier)))
-        .doOnError(th -> releaseRequestOnError(request))
+        .requestOne(message)
+        .switchIfEmpty(Mono.defer(() -> emptyMessage(message)))
+        .doOnError(th -> releaseRequestOnError(message))
         .flatMap(
             response ->
                 response.isError() // check error
@@ -94,15 +103,29 @@ public class HttpGatewayAcceptor
                         : noContent(httpResponse));
   }
 
-  private static Mono<ServiceMessage> emptyMessage(final String qualifier) {
-    return Mono.just(ServiceMessage.builder().qualifier(qualifier).build());
+  private static ServiceMessage toMessage(HttpServerRequest httpRequest, ByteBuf content) {
+    final var builder = ServiceMessage.builder();
+
+    // Copy http headers to service message
+
+    for (var httpHeader : httpRequest.requestHeaders()) {
+      builder.header(httpHeader.getKey(), httpHeader.getValue());
+    }
+
+    // Add http method to service message (used by REST services)
+
+    return builder
+        .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
+        .qualifier(httpRequest.uri().substring(1))
+        .data(content)
+        .build();
   }
 
-  private static String getQualifier(HttpServerRequest httpRequest) {
-    return httpRequest.uri().substring(1);
+  private static Mono<ServiceMessage> emptyMessage(ServiceMessage message) {
+    return Mono.just(ServiceMessage.builder().qualifier(message.qualifier()).build());
   }
 
-  private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
+  private static Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
     return httpResponse
         .addHeader(
             ALLOW,
@@ -155,5 +178,100 @@ public class HttpGatewayAcceptor
 
   private static void releaseRequestOnError(ServiceMessage request) {
     ReferenceCountUtil.safestRelease(request.data());
+  }
+
+  private static ServiceReference matchFileRequest(List<ServiceReference> list) {
+    if (list.size() != 1) {
+      return null;
+    }
+    final var sr = list.get(0);
+    if ("application/scalecube-file".equals(sr.tags().get("Content-Type"))) {
+      return sr;
+    } else {
+      return null;
+    }
+  }
+
+  private Mono<Void> handleFileRequest(
+      ServiceReference service, ServiceMessage message, HttpServerResponse response) {
+    return serviceCall
+        .router(new StaticAddressRouter(service.address()))
+        .requestMany(message)
+        .switchOnFirst(
+            (signal, flux) -> {
+              final var qualifier = message.qualifier();
+              final var map =
+                  DynamicQualifier.from("v1/scalecube.endpoints/:endpointId/files/:name")
+                      .matchQualifier(qualifier);
+              if (map == null) {
+                throw new RuntimeException("Wrong qualifier: " + qualifier);
+              }
+
+              final var fileName = map.get("name");
+              final var statusCode = toStatusCode(signal);
+
+              if (statusCode != HttpResponseStatus.OK.code()) {
+                return response
+                    .status(statusCode)
+                    .sendString(Mono.just(errorMessage(statusCode, fileName)))
+                    .then();
+              }
+
+              final Flux<ByteBuf> responseFlux =
+                  flux.map(
+                      sm -> {
+                        if (sm.isError()) {
+                          throw new RuntimeException("File stream was interrupted");
+                        }
+                        return sm.data();
+                      });
+
+              return response
+                  .header("Content-Type", "application/octet-stream")
+                  .header("Content-Disposition", "attachment; filename=" + fileName)
+                  .send(responseFlux)
+                  .then();
+            })
+        .then();
+  }
+
+  private static int toStatusCode(Signal<? extends ServiceMessage> signal) {
+    if (signal.hasError()) {
+      return toStatusCode(signal.getThrowable());
+    }
+
+    if (!signal.hasValue()) {
+      return HttpResponseStatus.NO_CONTENT.code();
+    }
+
+    return toStatusCode(signal.get());
+  }
+
+  private static int toStatusCode(Throwable throwable) {
+    if (throwable instanceof ServiceException e) {
+      return e.errorCode();
+    } else {
+      return HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+    }
+  }
+
+  private static int toStatusCode(ServiceMessage serviceMessage) {
+    if (serviceMessage == null || !serviceMessage.hasData()) {
+      return HttpResponseStatus.NO_CONTENT.code();
+    }
+
+    if (serviceMessage.isError()) {
+      return HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
+    }
+
+    return HttpResponseStatus.OK.code();
+  }
+
+  private static String errorMessage(int statusCode, String fileName) {
+    if (statusCode == 500) {
+      return "File not found: " + fileName;
+    } else {
+      return HttpResponseStatus.valueOf(statusCode).reasonPhrase();
+    }
   }
 }

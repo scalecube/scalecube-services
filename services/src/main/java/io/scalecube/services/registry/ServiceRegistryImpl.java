@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
@@ -27,8 +28,6 @@ import reactor.core.scheduler.Scheduler;
 public class ServiceRegistryImpl implements ServiceRegistry {
 
   private static final Logger LOGGER = System.getLogger(ServiceRegistryImpl.class.getName());
-
-  private final Map<String, Scheduler> schedulers;
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -48,14 +47,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Map<DynamicQualifier, List<ServiceMethodInvoker>> methodInvokersByPattern =
       new NonBlockingHashMap<>();
 
-  /**
-   * Constructor
-   *
-   * @param schedulers schedulers (optiona)
-   */
-  public ServiceRegistryImpl(Map<String, Scheduler> schedulers) {
-    this.schedulers = schedulers;
-  }
+  public ServiceRegistryImpl() {}
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -104,14 +96,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public boolean registerService(ServiceEndpoint serviceEndpoint) {
+  public void registerService(ServiceEndpoint serviceEndpoint) {
     boolean putIfAbsent =
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
       LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
     }
-    return putIfAbsent;
   }
 
   @Override
@@ -146,6 +137,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceInfo serviceInfo) {
+    registerService(serviceInfo, null, null);
+  }
+
+  @Override
+  public void registerService(
+      ServiceInfo serviceInfo,
+      Map<String, Scheduler> schedulers,
+      UnaryOperator<String> qualifierOperator) {
     final var serviceInstance = serviceInfo.serviceInstance();
     final var serviceInstanceClass = serviceInstance.getClass();
 
@@ -168,10 +167,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                             throw new RuntimeException(e);
                           }
 
-                          final var methodInfo =
+                          MethodInfo methodInfo =
                               new MethodInfo(
                                   Reflect.serviceName(serviceInterface),
-                                  Reflect.methodName(method),
+                                  qualifierOperator != null
+                                      ? qualifierOperator.apply(Reflect.methodName(method))
+                                      : Reflect.methodName(method),
                                   Reflect.parameterizedReturnType(method),
                                   Reflect.isReturnTypeServiceMessage(method),
                                   Reflect.communicationMode(method),
@@ -237,7 +238,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public ServiceMethodInvoker getInvoker(ServiceMessage request) {
+  public ServiceMethodInvoker lookupInvoker(ServiceMessage request) {
     final var qualifier = request.qualifier();
     final var requestMethod = request.requestMethod();
 

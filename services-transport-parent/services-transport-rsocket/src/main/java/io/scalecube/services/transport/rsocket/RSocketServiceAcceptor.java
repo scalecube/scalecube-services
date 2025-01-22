@@ -130,7 +130,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .doOnNext(RSocketImpl::validateRequest)
           .flatMap(
               message -> {
-                final var methodInvoker = serviceRegistry.getInvoker(message);
+                final var methodInvoker = serviceRegistry.lookupInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeOne(message)
@@ -147,7 +147,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           .doOnNext(RSocketImpl::validateRequest)
           .flatMapMany(
               message -> {
-                final var methodInvoker = serviceRegistry.getInvoker(message);
+                final var methodInvoker = serviceRegistry.lookupInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
                 return methodInvoker
                     .invokeMany(message)
@@ -167,7 +167,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 if (first.hasValue()) {
                   final var message = first.get();
                   validateRequest(message);
-                  final var methodInvoker = serviceRegistry.getInvoker(message);
+                  final var methodInvoker = serviceRegistry.lookupInvoker(message);
                   validateMethodInvoker(methodInvoker, message);
                   return methodInvoker
                       .invokeBidirectional(messages)

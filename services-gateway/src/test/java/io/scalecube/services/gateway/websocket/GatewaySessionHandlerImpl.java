@@ -1,8 +1,11 @@
-package io.scalecube.services.gateway;
+package io.scalecube.services.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.gateway.AuthRegistry;
+import io.scalecube.services.gateway.GatewaySession;
+import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.lang.System.Logger.Level;
 import java.util.Optional;
 import reactor.util.context.Context;

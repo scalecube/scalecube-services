@@ -7,7 +7,6 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.gateway.BaseTest;
-import io.scalecube.services.gateway.TestGatewaySessionHandler;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import java.time.Duration;

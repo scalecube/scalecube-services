@@ -12,7 +12,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.AuthRegistry;
-import io.scalecube.services.gateway.GatewaySessionHandlerImpl;
 import io.scalecube.services.gateway.SecuredService;
 import io.scalecube.services.gateway.SecuredServiceImpl;
 import io.scalecube.services.gateway.client.StaticAddressRouter;

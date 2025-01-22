@@ -12,7 +12,6 @@ import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
@@ -285,17 +284,6 @@ public class Reflect {
   }
 
   /**
-   * Handy method to get qualifier String from service's interface and method.
-   *
-   * @param serviceInterface service interface to get qualifier for
-   * @param method service's method to get qualifier for
-   * @return qualifier string
-   */
-  public static String qualifier(Class<?> serviceInterface, Method method) {
-    return Qualifier.asString(Reflect.serviceName(serviceInterface), Reflect.methodName(method));
-  }
-
-  /**
    * Util function to perform basic validation of service message request.
    *
    * @param method service method.
@@ -392,7 +380,11 @@ public class Reflect {
   }
 
   public static Scheduler executeOnScheduler(Method method, Map<String, Scheduler> schedulers) {
-    final Class<?> declaringClass = method.getDeclaringClass();
+    if (schedulers == null) {
+      return Schedulers.immediate();
+    }
+
+    final var declaringClass = method.getDeclaringClass();
 
     if (method.isAnnotationPresent(ExecuteOn.class)) {
       final var executeOn = method.getAnnotation(ExecuteOn.class);

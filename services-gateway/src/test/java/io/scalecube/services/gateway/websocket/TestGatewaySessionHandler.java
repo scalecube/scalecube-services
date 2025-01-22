@@ -1,6 +1,8 @@
-package io.scalecube.services.gateway;
+package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.gateway.GatewaySession;
+import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import reactor.util.context.Context;

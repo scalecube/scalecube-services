@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway;
+package io.scalecube.services.gateway.websocket;
 
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Flux;

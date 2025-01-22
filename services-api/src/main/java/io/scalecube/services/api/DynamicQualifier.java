@@ -9,60 +9,115 @@ import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.regex.Pattern;
 
+/**
+ * Representation of dynamic qualifier. Being used in service method definitions along with normal
+ * qualifiers. Typical example of dynamic qualifiers:
+ *
+ * <ul>
+ *   <li>v1/api/users/:userId
+ *   <li>v1/api/orders/:orderId/
+ *   <li>v1/api/categories/:categoryId/products/:productId
+ * </ul>
+ */
 public final class DynamicQualifier {
+
+  private static final Pattern DYNAMIC_QUALIFIER_PATTERN = Pattern.compile("(^|/):\\w+(?:/|$)");
 
   private final String qualifier;
   private final Pattern pattern;
   private final List<String> pathVariables;
   private final int size;
 
-  public DynamicQualifier(String qualifier) {
-    if (!qualifier.contains(":")) {
-      throw new IllegalArgumentException("Illegal dynamic qualifier: " + qualifier);
-    }
+  private DynamicQualifier(String qualifier) {
+    final var list = new ArrayList<String>();
+    final var builder = new StringBuilder();
 
-    final var pathVariables = new ArrayList<String>();
-    final var sb = new StringBuilder();
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
         final var pathVar = s.substring(1);
-        sb.append("(?<").append(pathVar).append(">.*?)");
-        pathVariables.add(pathVar);
+        builder.append("(?<").append(pathVar).append(">.+)");
+        list.add(pathVar);
       } else {
-        sb.append(s);
+        builder.append(s);
       }
-      sb.append("/");
+      builder.append("/");
     }
-    sb.setLength(sb.length() - 1);
+    builder.setLength(builder.length() - 1);
 
     this.qualifier = qualifier;
-    this.pattern = Pattern.compile(sb.toString());
-    this.pathVariables = Collections.unmodifiableList(pathVariables);
+    this.pattern = Pattern.compile(builder.toString());
+    this.pathVariables = Collections.unmodifiableList(list);
     this.size = sizeOf(qualifier);
   }
 
+  /**
+   * Creates new {@link DynamicQualifier} instance.
+   *
+   * @param qualifier qualifier
+   * @return {@link DynamicQualifier} instance
+   */
+  public static DynamicQualifier from(String qualifier) {
+    return new DynamicQualifier(qualifier);
+  }
+
+  /**
+   * Returns whether given qualifier is dynamic qualifier or not.
+   *
+   * @param qualifier qualifier
+   * @return result
+   */
+  public static boolean isDynamicQualifier(String qualifier) {
+    return DYNAMIC_QUALIFIER_PATTERN.matcher(qualifier).find();
+  }
+
+  /**
+   * Original qualifier.
+   *
+   * @return result
+   */
   public String qualifier() {
     return qualifier;
   }
 
+  /**
+   * Compiled pattern.
+   *
+   * @return result
+   */
   public Pattern pattern() {
     return pattern;
   }
 
+  /**
+   * Returns path variable names.
+   *
+   * @return path variable names
+   */
   public List<String> pathVariables() {
     return pathVariables;
   }
 
+  /**
+   * Size of qualifier. This is a number of {@code /} symbols.
+   *
+   * @return result
+   */
   public int size() {
     return size;
   }
 
-  public Map<String, String> matchQualifier(String input) {
-    if (size != sizeOf(input)) {
+  /**
+   * Matches input qualifier against this dynamic qualifier.
+   *
+   * @param qualifier qualifier
+   * @return matched path variables key-value map, or null if no matching occurred
+   */
+  public Map<String, String> matchQualifier(String qualifier) {
+    if (size != sizeOf(qualifier)) {
       return null;
     }
 
-    final var matcher = pattern.matcher(input);
+    final var matcher = pattern.matcher(qualifier);
     if (!matcher.matches()) {
       return null;
     }
@@ -70,8 +125,9 @@ public final class DynamicQualifier {
     final var map = new LinkedHashMap<String, String>();
     for (var pathVar : pathVariables) {
       final var value = matcher.group(pathVar);
-      Objects.requireNonNull(
-          value, "Path variable value must not be null, path variable: " + pathVar);
+      if (value == null || value.isEmpty()) {
+        throw new IllegalArgumentException("Wrong path variable: " + pathVar);
+      }
       map.put(pathVar, value);
     }
 

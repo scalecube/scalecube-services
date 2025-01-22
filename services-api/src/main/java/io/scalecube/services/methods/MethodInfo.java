@@ -1,5 +1,7 @@
 package io.scalecube.services.methods;
 
+import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
+
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
@@ -56,7 +58,7 @@ public final class MethodInfo {
     this.serviceName = serviceName;
     this.methodName = methodName;
     this.qualifier = Qualifier.asString(serviceName, methodName);
-    this.dynamicQualifier = qualifier.contains(":") ? new DynamicQualifier(qualifier) : null;
+    this.dynamicQualifier = isDynamicQualifier(qualifier) ? DynamicQualifier.from(qualifier) : null;
     this.parameterCount = parameterCount;
     this.requestType = requestType;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
