@@ -5,7 +5,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Mono;
 
 /**
- * System service interface for adding files locally, those added files will be accessible by {@link
+ * Service interface for adding files locally, those added files will be accessible by {@link
  * FileStreamer}. Typical usage: client generates a file in the app service, then calls {@link
  * #addFile(AddFileRequest)}, then returns result (file path qualifier) all the way back to the
  * caller of app service. On the caller side file path qualifier gets combined with http-gateway
