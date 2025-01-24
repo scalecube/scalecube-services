@@ -14,7 +14,7 @@ import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.StringJoiner;
-import org.jctools.maps.NonBlockingHashMapLong;
+import java.util.concurrent.ConcurrentHashMap;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
@@ -39,7 +39,7 @@ public final class WebsocketGatewayClientSession {
   private final Connection connection;
 
   // processor by sid mapping
-  private final Map<Long, Object> inboundProcessors = new NonBlockingHashMapLong<>(1024);
+  private final Map<Long, Object> inboundProcessors = new ConcurrentHashMap<>(1024);
 
   WebsocketGatewayClientSession(GatewayClientCodec clientCodec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));

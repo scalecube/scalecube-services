@@ -2,7 +2,7 @@ package io.scalecube.services.security;
 
 import io.scalecube.services.auth.Authenticator;
 import java.util.Map;
-import org.jctools.maps.NonBlockingHashMapLong;
+import java.util.concurrent.ConcurrentHashMap;
 import reactor.core.publisher.Mono;
 
 /**
@@ -18,7 +18,7 @@ public final class RegistryBasedAuthenticator<T> implements Authenticator<T> {
 
   private final Authenticator<T> authenticator;
 
-  private final Map<Long, T> registry = new NonBlockingHashMapLong<>();
+  private final Map<Long, T> registry = new ConcurrentHashMap<>();
 
   public RegistryBasedAuthenticator(Authenticator<T> authenticator) {
     this.authenticator = authenticator;

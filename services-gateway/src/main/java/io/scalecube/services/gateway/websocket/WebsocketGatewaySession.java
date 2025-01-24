@@ -10,8 +10,8 @@ import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import org.jctools.maps.NonBlockingHashMapLong;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,7 +25,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
 
   private static final Predicate<Object> SEND_PREDICATE = f -> true;
 
-  private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
+  private final Map<Long, Disposable> subscriptions = new ConcurrentHashMap<>(1024);
 
   private final GatewaySessionHandler gatewayHandler;
 
