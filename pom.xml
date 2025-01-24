@@ -78,7 +78,6 @@
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
     <checkstyle.skip>true</checkstyle.skip>
-
   </properties>
 
   <modules>
