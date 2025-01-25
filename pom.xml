@@ -65,7 +65,6 @@
     <reactor.version>2020.0.32</reactor.version>
     <jackson.version>2.18.2</jackson.version>
     <netty.version>4.1.117.Final</netty.version>
-    <reactor-netty.version>1.2.2</reactor-netty.version>
     <rsocket.version>1.1.4</rsocket.version>
     <jsr305.version>3.0.2</jsr305.version>
 
@@ -132,11 +131,6 @@
         <version>${netty.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
       </dependency>
 
       <!-- Logging -->
