@@ -18,11 +18,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
-import org.jctools.maps.NonBlockingHashMap;
 import reactor.core.scheduler.Scheduler;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
@@ -30,22 +30,22 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private static final Logger LOGGER = System.getLogger(ServiceRegistryImpl.class.getName());
 
   // todo how to remove it (tags problem)?
-  private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
+  private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
   // remote service references by static and dynamic qualifiers
 
   private final Map<String, List<ServiceReference>> serviceReferencesByQualifier =
-      new NonBlockingHashMap<>();
+      new ConcurrentHashMap<>();
   private final Map<DynamicQualifier, List<ServiceReference>> serviceReferencesByPattern =
-      new NonBlockingHashMap<>();
+      new ConcurrentHashMap<>();
 
   // local service method invokers by static and dynamic qualifiers
 
   private final Map<String, List<ServiceMethodInvoker>> methodInvokersByQualifier =
-      new NonBlockingHashMap<>();
+      new ConcurrentHashMap<>();
   private final Map<DynamicQualifier, List<ServiceMethodInvoker>> methodInvokersByPattern =
-      new NonBlockingHashMap<>();
+      new ConcurrentHashMap<>();
 
   public ServiceRegistryImpl() {}
 

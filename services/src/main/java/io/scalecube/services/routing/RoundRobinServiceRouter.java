@@ -6,12 +6,12 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.jctools.maps.NonBlockingHashMap;
 
 public class RoundRobinServiceRouter implements Router {
 
-  private final Map<String, AtomicInteger> counterByServiceName = new NonBlockingHashMap<>();
+  private final Map<String, AtomicInteger> counterByServiceName = new ConcurrentHashMap<>();
 
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {

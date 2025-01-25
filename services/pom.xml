@@ -20,15 +20,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.jctools</groupId>
-      <artifactId>jctools-core</artifactId>
-    </dependency>
-
     <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
@@ -43,7 +34,6 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>

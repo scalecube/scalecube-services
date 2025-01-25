@@ -59,15 +59,14 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.6.18.RC10</scalecube-cluster.version>
-    <scalecube-security.version>1.0.33.RC1</scalecube-security.version>
+    <scalecube-cluster.version>2.6.18.RC11</scalecube-cluster.version>
+    <scalecube-security.version>1.0.33.RC2</scalecube-security.version>
 
     <reactor.version>2020.0.32</reactor.version>
-    <jackson.version>2.18.0</jackson.version>
-    <netty.version>4.1.93.Final</netty.version>
+    <jackson.version>2.18.2</jackson.version>
+    <netty.version>4.1.117.Final</netty.version>
     <rsocket.version>1.1.4</rsocket.version>
     <jsr305.version>3.0.2</jsr305.version>
-    <jctools.version>2.1.2</jctools.version>
 
     <mockito-junit.version>4.6.1</mockito-junit.version>
     <junit-jupiter.version>5.8.2</junit-jupiter.version>
@@ -125,7 +124,7 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- Reactor -->
+      <!-- Netty -->
       <dependency>
         <groupId>io.netty</groupId>
         <artifactId>netty-bom</artifactId>
@@ -164,13 +163,6 @@
         <version>${jackson.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- JCTools -->
-      <dependency>
-        <groupId>org.jctools</groupId>
-        <artifactId>jctools-core</artifactId>
-        <version>${jctools.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
