@@ -3,9 +3,9 @@ package io.scalecube.services.security;
 import io.scalecube.security.tokens.jwt.JwtTokenResolver;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -16,7 +16,7 @@ import reactor.util.retry.Retry;
  */
 public final class ServiceTokenAuthenticator<T> implements Authenticator<T> {
 
-  private static final Logger LOGGER = System.getLogger(ServiceTokenAuthenticator.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceTokenAuthenticator.class);
 
   private JwtTokenResolver tokenResolver;
   private ServiceTokenMapper tokenMapper;
@@ -98,9 +98,7 @@ public final class ServiceTokenAuthenticator<T> implements Authenticator<T> {
               .resolve(serviceToken)
               .map(authDataMapper::map)
               .retryWhen(retryStrategy)
-              .doOnError(
-                  th ->
-                      LOGGER.log(Level.ERROR, "Failed to authenticate, cause: {0}", th.toString()))
+              .doOnError(th -> LOGGER.error("Failed to authenticate, cause: {}", th.toString()))
               .onErrorMap(th -> new UnauthorizedException("Authentication failed"))
               .switchIfEmpty(Mono.error(new UnauthorizedException("Authentication failed")));
         });

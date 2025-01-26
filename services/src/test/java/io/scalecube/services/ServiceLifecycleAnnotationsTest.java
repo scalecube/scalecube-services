@@ -13,7 +13,7 @@ import org.apache.logging.log4j.core.util.Throwables;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-public class ServiceLifecycleAnnotationsTest extends BaseTest {
+public class ServiceLifecycleAnnotationsTest {
 
   private final AfterConstructHandle afterConstruct = Mockito.mock(AfterConstructHandle.class);
   private final BeforeDestroyHandle beforeDestroy = Mockito.mock(BeforeDestroyHandle.class);

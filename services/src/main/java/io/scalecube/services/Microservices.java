@@ -19,8 +19,6 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -35,6 +33,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.Disposables;
 import reactor.core.Exceptions;
@@ -108,7 +108,7 @@ import reactor.core.scheduler.Schedulers;
  */
 public class Microservices implements AutoCloseable {
 
-  private static final Logger LOGGER = System.getLogger(Microservices.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final Microservices.Context context;
   private final UUID id = UUID.randomUUID();
@@ -137,14 +137,14 @@ public class Microservices implements AutoCloseable {
     Microservices microservices = null;
     try {
       microservices = new Microservices(context.conclude());
-      LOGGER.log(Level.INFO, "[{0}] Starting {1}", microservices.instanceId, microservices);
+      LOGGER.info("[{}] Starting {}", microservices.instanceId, microservices);
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
       microservices.createServiceEndpoint();
       microservices.startGateways();
       microservices.createDiscovery();
       microservices.doInject();
       microservices.startListen();
-      LOGGER.log(Level.INFO, "[{0}] Started {1}", microservices.instanceId, microservices);
+      LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
     } catch (Exception ex) {
       if (microservices != null) {
         microservices.close();
@@ -166,12 +166,8 @@ public class Microservices implements AutoCloseable {
     clientTransport = serviceTransport.clientTransport();
     serviceAddress = prepareAddress(serverTransport.address());
 
-    LOGGER.log(
-        Level.INFO,
-        "[{0}] Started {1}, serviceAddress: {2}",
-        instanceId,
-        serviceTransport,
-        serviceAddress);
+    LOGGER.info(
+        "[{}] Started {}, serviceAddress: {}", instanceId, serviceTransport, serviceAddress);
   }
 
   private static Address prepareAddress(Address address) {
@@ -208,9 +204,8 @@ public class Microservices implements AutoCloseable {
 
     serviceEndpoint = enhanceServiceEndpoint(builder.build());
 
-    LOGGER.log(
-        Level.INFO,
-        "[{0}] Created serviceEndpoint: {1}, serviceInstances: {2}",
+    LOGGER.info(
+        "[{}] Created serviceEndpoint: {}, serviceInstances: {}",
         instanceId,
         serviceEndpoint,
         serviceInstances);
@@ -236,7 +231,7 @@ public class Microservices implements AutoCloseable {
             .dataDecoderIfAbsent(context.defaultDataDecoder)
             .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
-            .loggerIfAbsent(context.defaultLoggerName, context.defaultLoggerLevel)
+            .loggerIfAbsent(context.defaultLogger)
             .build(),
         context.schedulers,
         qualifier -> ServiceScanner.replacePlaceholders(qualifier, this));
@@ -246,13 +241,8 @@ public class Microservices implements AutoCloseable {
     for (var factory : context.gatewaySuppliers) {
       final var gateway = factory.get().start(serviceCall, context.serviceRegistry);
       gateways.add(gateway);
-      LOGGER.log(
-          Level.INFO,
-          "[{0}] Started {1}, gateway: {2}@{3}",
-          instanceId,
-          gateway,
-          gateway.id(),
-          gateway.address());
+      LOGGER.info(
+          "[{}] Started {}, gateway: {}@{}", instanceId, gateway, gateway.id(), gateway.address());
     }
   }
 
@@ -266,7 +256,7 @@ public class Microservices implements AutoCloseable {
 
     serviceDiscovery = discoveryFactory.createServiceDiscovery(serviceEndpoint);
 
-    LOGGER.log(Level.INFO, "[0] Created {1}", instanceId, serviceDiscovery);
+    LOGGER.info("[{}] Created {}", instanceId, serviceDiscovery);
   }
 
   private void doInject() {
@@ -285,18 +275,14 @@ public class Microservices implements AutoCloseable {
             .publishOn(scheduler)
             .doOnNext(this::onDiscoveryEvent)
             .doOnNext(event -> discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
-            .doOnError(ex -> LOGGER.log(Level.ERROR, "[{0}] Exception occurred", instanceId, ex))
+            .doOnError(ex -> LOGGER.error("[{}] Exception occurred", instanceId, ex))
             .subscribe());
 
     serviceDiscovery.start();
     discoveryAddress = serviceDiscovery.address();
 
-    LOGGER.log(
-        Level.INFO,
-        "[{0}] Started {1}, discoveryAddress: {2}",
-        instanceId,
-        serviceDiscovery,
-        discoveryAddress);
+    LOGGER.info(
+        "[{}] Started {}, discoveryAddress: {}", instanceId, serviceDiscovery, discoveryAddress);
   }
 
   private void onDiscoveryEvent(ServiceDiscoveryEvent event) {
@@ -427,13 +413,13 @@ public class Microservices implements AutoCloseable {
 
   @Override
   public void close() {
-    LOGGER.log(Level.INFO, "[{0}] Closing {1} ...", instanceId, this);
+    LOGGER.info("[{}] Closing {} ...", instanceId, this);
     processBeforeDestroy();
     closeDiscovery();
     closeGateways();
     closeTransport();
     context.close();
-    LOGGER.log(Level.INFO, "[{0}] Closed {1}", instanceId, this);
+    LOGGER.info("[{}] Closed {}", instanceId, this);
   }
 
   private void processBeforeDestroy() {
@@ -445,11 +431,8 @@ public class Microservices implements AutoCloseable {
               try {
                 Injector.processBeforeDestroy(this, serviceInfo.serviceInstance());
               } catch (Exception e) {
-                LOGGER.log(
-                    Level.ERROR,
-                    "[{0}][processBeforeDestroy] Exception occurred: {1}",
-                    instanceId,
-                    e.toString());
+                LOGGER.error(
+                    "[{}][processBeforeDestroy] Exception occurred: {}", instanceId, e.toString());
               }
             });
   }
@@ -459,11 +442,8 @@ public class Microservices implements AutoCloseable {
       try {
         clientTransport.close();
       } catch (Exception e) {
-        LOGGER.log(
-            Level.ERROR,
-            "[{0}][clientTransport.close] Exception occurred: {1}",
-            instanceId,
-            e.toString());
+        LOGGER.error(
+            "[{}][clientTransport.close] Exception occurred: {}", instanceId, e.toString());
       }
     }
 
@@ -471,11 +451,8 @@ public class Microservices implements AutoCloseable {
       try {
         serverTransport.stop();
       } catch (Exception e) {
-        LOGGER.log(
-            Level.ERROR,
-            "[{0}][serverTransport.close] Exception occurred: {1}",
-            instanceId,
-            e.toString());
+        LOGGER.error(
+            "[{}][serverTransport.close] Exception occurred: {}", instanceId, e.toString());
       }
     }
 
@@ -483,11 +460,8 @@ public class Microservices implements AutoCloseable {
       try {
         serviceTransport.stop();
       } catch (Exception e) {
-        LOGGER.log(
-            Level.ERROR,
-            "[{0}][serviceTransport.stop] Exception occurred: {1}",
-            instanceId,
-            e.toString());
+        LOGGER.error(
+            "[{}][serviceTransport.stop] Exception occurred: {}", instanceId, e.toString());
       }
     }
   }
@@ -498,11 +472,7 @@ public class Microservices implements AutoCloseable {
           try {
             gateway.stop();
           } catch (Exception e) {
-            LOGGER.log(
-                Level.ERROR,
-                "[{0}][gateway.stop] Exception occurred: {1}",
-                instanceId,
-                e.toString());
+            LOGGER.error("[{}][gateway.stop] Exception occurred: {}", instanceId, e.toString());
           }
         });
   }
@@ -514,8 +484,7 @@ public class Microservices implements AutoCloseable {
       try {
         serviceDiscovery.shutdown();
       } catch (Exception e) {
-        LOGGER.log(
-            Level.ERROR, "[{0}][closeDiscovery] Exception occurred: {1}", instanceId, e.toString());
+        LOGGER.error("[{}][closeDiscovery] Exception occurred: {}", instanceId, e.toString());
       }
     }
 
@@ -535,8 +504,7 @@ public class Microservices implements AutoCloseable {
     private PrincipalMapper<Object, Object> defaultPrincipalMapper;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
-    private String defaultLoggerName;
-    private Level defaultLoggerLevel;
+    private Logger defaultLogger;
     private String externalHost;
     private Integer externalPort;
     private ServiceDiscoveryFactory discoveryFactory;
@@ -673,7 +641,7 @@ public class Microservices implements AutoCloseable {
      * {@link DefaultErrorMapper#INSTANCE}.
      *
      * @param errorMapper error mapper
-     * @return this builder with applied parameter
+     * @return this
      */
     public Context defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
       this.defaultErrorMapper = errorMapper;
@@ -686,7 +654,7 @@ public class Microservices implements AutoCloseable {
      * (message, dataType) -> message}
      *
      * @param dataDecoder data decoder
-     * @return this builder with applied parameter
+     * @return this
      */
     public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.defaultDataDecoder = dataDecoder;
@@ -697,7 +665,7 @@ public class Microservices implements AutoCloseable {
      * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
      *
      * @param authenticator authenticator (optional)
-     * @return this builder with applied parameter
+     * @return this
      */
     public <T> Context defaultAuthenticator(Authenticator<? extends T> authenticator) {
       //noinspection unchecked
@@ -712,7 +680,7 @@ public class Microservices implements AutoCloseable {
      * @param principalMapper principalMapper (optional)
      * @param <T> auth data type
      * @param <R> principal type
-     * @return this builder with applied parameter
+     * @return this
      */
     public <T, R> Context defaultPrincipalMapper(
         PrincipalMapper<? super T, ? extends R> principalMapper) {
@@ -722,26 +690,36 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for default {@code logger}. By default, default {@code logger} is null.
+     * Setter for default {@code logger}.
      *
      * @param name logger name (optional)
-     * @param level logger level (optional)
-     * @return this builder with applied parameter
+     * @return this
      */
-    public Context defaultLogger(String name, Level level) {
-      this.defaultLoggerName = name;
-      this.defaultLoggerLevel = level;
+    public Context defaultLogger(String name) {
+      this.defaultLogger = name != null ? LoggerFactory.getLogger(name) : null;
       return this;
     }
 
     /**
-     * Setter for default {@code logger}. By default, default {@code logger} is null.
+     * Setter for default {@code logger}.
      *
-     * @param name logger name (optional)
-     * @return this builder with applied parameter
+     * @param clazz logger name (optional)
+     * @return this
      */
-    public Context defaultLogger(String name) {
-      return defaultLogger(name, Level.DEBUG);
+    public Context defaultLogger(Class<?> clazz) {
+      this.defaultLogger = clazz != null ? LoggerFactory.getLogger(clazz) : null;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code logger}.
+     *
+     * @param logger logger (optional)
+     * @return this
+     */
+    public Context defaultLogger(Logger logger) {
+      this.defaultLogger = logger;
+      return this;
     }
 
     /**
@@ -749,7 +727,7 @@ public class Microservices implements AutoCloseable {
      *
      * @param name scheduler name
      * @param supplier {@link Scheduler} supplier
-     * @return this builder with applied parameter
+     * @return this
      */
     public Context scheduler(String name, Supplier<Scheduler> supplier) {
       schedulerSuppliers.put(name, supplier);

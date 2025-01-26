@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-public class ExecuteOnTest extends BaseTest {
+public class ExecuteOnTest {
 
   private static final String SCHEDULER1_NAME = "scheduler@1";
   private static final String SCHEDULER2_NAME = "scheduler@2";

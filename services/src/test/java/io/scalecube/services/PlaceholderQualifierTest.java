@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 
-public class PlaceholderQualifierTest extends BaseTest {
+public class PlaceholderQualifierTest {
 
   private static Microservices gateway;
   private static Microservices providerFoo1;

@@ -30,7 +30,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-final class ServiceAuthRemoteTest extends BaseTest {
+final class ServiceAuthRemoteTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 

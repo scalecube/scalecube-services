@@ -27,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-public class ServiceRegistryTest extends BaseTest {
+public class ServiceRegistryTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(30);
 

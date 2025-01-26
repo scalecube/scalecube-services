@@ -18,19 +18,19 @@ import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
 public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
-  private static final Logger LOGGER = System.getLogger(ServiceDiscovery.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
   private ClusterConfig clusterConfig;
   private Cluster cluster;
@@ -107,18 +107,17 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private void onMembershipEvent(MembershipEvent membershipEvent) {
-    LOGGER.log(Level.DEBUG, "onMembershipEvent: {0}", membershipEvent);
+    LOGGER.debug("onMembershipEvent: {}", membershipEvent);
 
     ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
     if (discoveryEvent == null) {
-      LOGGER.log(
-          Level.WARNING,
-          "DiscoveryEvent is null, cannot publish it (corresponding membershipEvent: {0})",
+      LOGGER.warn(
+          "DiscoveryEvent is null, cannot publish it (corresponding membershipEvent: {})",
           membershipEvent);
       return;
     }
 
-    LOGGER.log(Level.DEBUG, "Publish discoveryEvent: {0}", discoveryEvent);
+    LOGGER.debug("Publish discoveryEvent: {}", discoveryEvent);
     sink.emitNext(discoveryEvent, busyLooping(Duration.ofSeconds(3)));
   }
 
@@ -142,7 +141,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     try {
       return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer.duplicate());
     } catch (Exception e) {
-      LOGGER.log(Level.ERROR, "Failed to read metadata", e);
+      LOGGER.error("Failed to read metadata", e);
       throw Exceptions.propagate(e);
     }
   }

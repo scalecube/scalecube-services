@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Subscription;
 import reactor.core.publisher.BaseSubscriber;
 
-public class ServiceDiscoverySubscriberTest extends BaseTest {
+public class ServiceDiscoverySubscriberTest {
 
   @Test
   void testRegisterNonDiscoveryCoreSubscriber() {

@@ -6,21 +6,21 @@ import io.scalecube.services.methods.RequestContext;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 public class FileServiceImpl implements FileService, FileStreamer {
 
-  private static final Logger LOGGER = System.getLogger(FileServiceImpl.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileServiceImpl.class);
 
   private static final int DEFAULT_MAX_CHUNK_SIZE = 64 * 1024;
   private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
@@ -78,7 +78,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
             scheduler.schedule(
                 () -> {
                   if (!file.delete()) {
-                    LOGGER.log(Level.WARNING, "Cannot delete file: {0}", file);
+                    LOGGER.warn("Cannot delete file: {}", file);
                   }
                 },
                 ttl.toMillis(),
@@ -135,7 +135,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
           try {
             channel.close();
           } catch (Throwable e) {
-            LOGGER.log(Level.WARNING, "Cannot close file: {0}", filePath);
+            LOGGER.warn("Cannot close file: {}", filePath);
           }
         });
   }

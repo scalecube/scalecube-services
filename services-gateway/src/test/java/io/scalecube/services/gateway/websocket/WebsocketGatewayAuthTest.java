@@ -16,7 +16,6 @@ import io.scalecube.services.gateway.SecuredService;
 import io.scalecube.services.gateway.SecuredServiceImpl;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,7 +52,7 @@ public class WebsocketGatewayAuthTest {
                             .id("WS")
                             .gatewayHandler(new GatewaySessionHandlerImpl(AUTH_REGISTRY))
                             .build())
-                .defaultLogger("gateway", Level.INFO)
+                .defaultLogger("gateway")
                 .services(new SecuredServiceImpl(AUTH_REGISTRY)));
   }
 

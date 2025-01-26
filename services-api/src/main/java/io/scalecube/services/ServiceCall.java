@@ -11,8 +11,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -22,6 +20,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -35,7 +35,6 @@ public class ServiceCall implements AutoCloseable {
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
   private Logger logger;
-  private Level level;
 
   public ServiceCall() {}
 
@@ -47,7 +46,6 @@ public class ServiceCall implements AutoCloseable {
     this.contentType = other.contentType;
     this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
     this.logger = other.logger;
-    this.level = other.level;
   }
 
   /**
@@ -135,41 +133,53 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
-   * Setter for {@code logger}.
+   * Setter for {@link ServiceCall} {@code logger}.
    *
-   * @param name logger name.
-   * @param level logger level.
+   * @param name logger name (optional)
    * @return new {@link ServiceCall} instance.
    */
-  public ServiceCall logger(String name, Level level) {
+  public ServiceCall logger(String name) {
     ServiceCall target = new ServiceCall(this);
-    target.logger = System.getLogger(name);
-    target.level = level;
+    target.logger = name != null ? LoggerFactory.getLogger(name) : null;
     return target;
   }
 
   /**
-   * Setter for {@code logger}.
+   * Setter for {@link ServiceCall} {@code logger}.
    *
-   * @param name logger name.
+   * @param clazz logger name (optional)
    * @return new {@link ServiceCall} instance.
    */
-  public ServiceCall logger(String name) {
-    return logger(name, Level.DEBUG);
+  public ServiceCall logger(Class<?> clazz) {
+    ServiceCall target = new ServiceCall(this);
+    target.logger = clazz != null ? LoggerFactory.getLogger(clazz) : null;
+    return target;
   }
 
   /**
-   * Issues fire-and-forget request.
+   * Setter for {@link ServiceCall} {@code logger}.
+   *
+   * @param logger logger (optional)
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall logger(Logger logger) {
+    ServiceCall target = new ServiceCall(this);
+    target.logger = logger;
+    return target;
+  }
+
+  /**
+   * Invokes fire-and-forget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return Mono.defer(() -> requestOne(request, Void.class).then());
+    return requestOne(request, Void.class).then();
   }
 
   /**
-   * Issues request-and-reply request.
+   * Invokes request-and-reply request.
    *
    * @param request request message to send.
    * @return mono publisher completing with single response message or with error.
@@ -179,7 +189,7 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
-   * Issues request-and-reply request.
+   * Invokes request-and-reply request.
    *
    * @param request request message to send.
    * @param responseType type of response (optional).
@@ -207,17 +217,15 @@ public class ServiceCall implements AutoCloseable {
             })
         .doOnSuccess(
             response -> {
-              if (logger != null && logger.isLoggable(level)) {
-                logger.log(
-                    level,
-                    "[{0}] request: " + request + ", response: " + response,
-                    request.qualifier());
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug(
+                    "[{}] request: {}, response: {}", request.qualifier(), request, response);
               }
             })
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.log(Level.ERROR, "[{0}] request: " + request, request.qualifier(), ex);
+                logger.error("[{}] request: {}", request.qualifier(), request, ex);
               }
             });
   }
@@ -261,14 +269,14 @@ public class ServiceCall implements AutoCloseable {
             })
         .doOnSubscribe(
             s -> {
-              if (logger != null && logger.isLoggable(level)) {
-                logger.log(level, "[{0}] request: " + request, request.qualifier());
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug("[{}] request: {}", request.qualifier(), request);
               }
             })
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.log(Level.ERROR, "[{0}] request: " + request, request.qualifier(), ex);
+                logger.error("[{}] request: {}", request.qualifier(), request, ex);
               }
             });
   }

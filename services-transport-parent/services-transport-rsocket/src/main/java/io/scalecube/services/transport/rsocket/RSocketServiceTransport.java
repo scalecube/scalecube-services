@@ -26,7 +26,7 @@ import reactor.netty.resources.LoopResources;
 
 public class RSocketServiceTransport implements ServiceTransport {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
 
   static {
     Hooks.onErrorDropped(

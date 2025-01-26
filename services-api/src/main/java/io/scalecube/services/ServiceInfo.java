@@ -4,13 +4,13 @@ import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringJoiner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceInfo {
 
@@ -21,7 +21,6 @@ public class ServiceInfo {
   private final Authenticator<Object> authenticator;
   private final PrincipalMapper<Object, Object> principalMapper;
   private final Logger logger;
-  private final Level level;
 
   private ServiceInfo(Builder builder) {
     this.serviceInstance = builder.serviceInstance;
@@ -31,7 +30,6 @@ public class ServiceInfo {
     this.authenticator = builder.authenticator;
     this.principalMapper = builder.principalMapper;
     this.logger = builder.logger;
-    this.level = builder.level;
   }
 
   public static Builder from(ServiceInfo serviceInfo) {
@@ -70,10 +68,6 @@ public class ServiceInfo {
     return logger;
   }
 
-  public Level level() {
-    return level;
-  }
-
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceInfo.class.getSimpleName() + "[", "]")
@@ -84,7 +78,6 @@ public class ServiceInfo {
         .add("authenticator=" + authenticator)
         .add("principalMapper=" + principalMapper)
         .add("logger=" + logger)
-        .add("level=" + level)
         .toString();
   }
 
@@ -97,7 +90,6 @@ public class ServiceInfo {
     private Authenticator<Object> authenticator;
     private PrincipalMapper<Object, Object> principalMapper;
     private Logger logger;
-    private Level level;
 
     private Builder(ServiceInfo serviceInfo) {
       this.serviceInstance = serviceInfo.serviceInstance;
@@ -107,7 +99,6 @@ public class ServiceInfo {
       this.authenticator = serviceInfo.authenticator;
       this.principalMapper = serviceInfo.principalMapper;
       this.logger = serviceInfo.logger;
-      this.level = serviceInfo.level;
     }
 
     private Builder(Object serviceInstance) {
@@ -120,7 +111,7 @@ public class ServiceInfo {
      *
      * @param key tag key
      * @param value tag value
-     * @return this builder
+     * @return this
      */
     public Builder tag(String key, String value) {
       Objects.requireNonNull(key, "tag key");
@@ -133,7 +124,7 @@ public class ServiceInfo {
      * Setter for {@code errorMapper}. Overrides default {@code Microservices.errorMapper}.
      *
      * @param errorMapper error mapper
-     * @return this buidler
+     * @return this
      */
     public Builder errorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
@@ -144,30 +135,40 @@ public class ServiceInfo {
      * Setter for {@code logger}. Overrides default {@code Microservices.logger}.
      *
      * @param name logger name (optional)
-     * @param level logger level (optional)
-     * @return this buidler
+     * @return this
      */
-    public Builder logger(String name, Level level) {
-      this.logger = name != null ? System.getLogger(name) : null;
-      this.level = level;
+    public Builder logger(String name) {
+      this.logger = name != null ? LoggerFactory.getLogger(name) : null;
       return this;
     }
 
     /**
      * Setter for {@code logger}. Overrides default {@code Microservices.logger}.
      *
-     * @param name logger name (optional)
-     * @return this buidler
+     * @param clazz logger name (optional)
+     * @return this
      */
-    public Builder logger(String name) {
-      return logger(name, Level.DEBUG);
+    public Builder logger(Class<?> clazz) {
+      this.logger = clazz != null ? LoggerFactory.getLogger(clazz) : null;
+      return this;
+    }
+
+    /**
+     * Setter for {@code logger}. Overrides default {@code Microservices.logger}.
+     *
+     * @param logger logger (optional)
+     * @return this
+     */
+    public Builder logger(Logger logger) {
+      this.logger = logger;
+      return this;
     }
 
     /**
      * Setter for {@code dataDecoder}. Overrides default {@code Microservices.dataDecoder}.
      *
      * @param dataDecoder data decoder
-     * @return this builder
+     * @return this
      */
     public Builder dataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
@@ -179,7 +180,7 @@ public class ServiceInfo {
      *
      * @param authenticator authenticator (optional)
      * @param <T> type of auth data returned by authenticator
-     * @return this builder
+     * @return this
      */
     public <T> Builder authenticator(Authenticator<? extends T> authenticator) {
       //noinspection unchecked
@@ -193,7 +194,7 @@ public class ServiceInfo {
      * @param principalMapper principalMapper (optional)
      * @param <T> auth data type
      * @param <R> principal type
-     * @return this builder
+     * @return this
      */
     public <T, R> Builder principalMapper(PrincipalMapper<? super T, ? extends R> principalMapper) {
       //noinspection unchecked
@@ -229,9 +230,9 @@ public class ServiceInfo {
       return this;
     }
 
-    Builder loggerIfAbsent(String name, Level level) {
+    Builder loggerIfAbsent(Logger logger) {
       if (this.logger == null) {
-        return logger(name, level);
+        return logger(logger);
       }
       return this;
     }

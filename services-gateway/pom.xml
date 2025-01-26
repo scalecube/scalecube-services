@@ -11,13 +11,17 @@
   </parent>
 
   <artifactId>scalecube-services-gateway</artifactId>
-  <packaging>jar</packaging>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.parent.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
 
     <dependency>
@@ -41,6 +45,12 @@
     <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-testlib</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-examples</artifactId>
       <version>${project.parent.version}</version>
       <scope>test</scope>
@@ -61,21 +71,6 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${project.parent.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-jpl</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

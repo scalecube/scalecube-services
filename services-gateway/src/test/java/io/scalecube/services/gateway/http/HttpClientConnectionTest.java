@@ -9,13 +9,11 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -24,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class HttpClientConnectionTest extends BaseTest {
+class HttpClientConnectionTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
@@ -102,7 +100,7 @@ class HttpClientConnectionTest extends BaseTest {
 
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
-        .logger("serviceCall", Level.INFO)
+        .logger("serviceCall")
         .transport(new HttpGatewayClientTransport.Builder().address(address).build())
         .router(new StaticAddressRouter(address));
   }

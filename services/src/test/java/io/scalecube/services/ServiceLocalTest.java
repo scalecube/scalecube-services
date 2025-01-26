@@ -21,7 +21,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-public class ServiceLocalTest extends BaseTest {
+public class ServiceLocalTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 

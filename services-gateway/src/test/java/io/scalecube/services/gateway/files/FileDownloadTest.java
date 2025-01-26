@@ -16,7 +16,6 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.files.FileServiceImpl;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
@@ -24,7 +23,6 @@ import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
-import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -40,7 +38,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.Exceptions;
 import reactor.test.StepVerifier;
 
-public class FileDownloadTest extends BaseTest {
+public class FileDownloadTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -76,7 +74,7 @@ public class FileDownloadTest extends BaseTest {
                             .membership(
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
-                .defaultLogger("microservices", Level.INFO)
+                .defaultLogger("microservices")
                 .services(new FileServiceImpl()) // "system level" service
                 .services(new ReportServiceImpl()));
 

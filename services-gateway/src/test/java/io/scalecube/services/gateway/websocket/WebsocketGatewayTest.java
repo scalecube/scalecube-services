@@ -18,7 +18,6 @@ import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
@@ -26,7 +25,6 @@ import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,7 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-class WebsocketGatewayTest extends BaseTest {
+class WebsocketGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -80,7 +78,7 @@ class WebsocketGatewayTest extends BaseTest {
                             .membership(
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
-                .defaultLogger("microservices", Level.INFO)
+                .defaultLogger("microservices")
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

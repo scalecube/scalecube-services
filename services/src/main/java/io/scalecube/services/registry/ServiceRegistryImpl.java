@@ -9,8 +9,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -23,11 +21,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Scheduler;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
-  private static final Logger LOGGER = System.getLogger(ServiceRegistryImpl.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
@@ -101,7 +101,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
-      LOGGER.log(Level.DEBUG, "ServiceEndpoint registered: {0}", serviceEndpoint);
+      LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
     }
   }
 
@@ -130,7 +130,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                       value.dynamicQualifier(),
                       (key, list) -> removeServiceReference(value, list)));
 
-      LOGGER.log(Level.DEBUG, "ServiceEndpoint unregistered: {0}", serviceEndpoint);
+      LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
     }
     return serviceEndpoint;
   }
@@ -194,8 +194,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   serviceInfo.dataDecoder(),
                                   serviceInfo.authenticator(),
                                   serviceInfo.principalMapper(),
-                                  serviceInfo.logger(),
-                                  serviceInfo.level());
+                                  serviceInfo.logger());
 
                           final List<ServiceMethodInvoker> methodInvokers;
                           if (methodInfo.dynamicQualifier() == null) {

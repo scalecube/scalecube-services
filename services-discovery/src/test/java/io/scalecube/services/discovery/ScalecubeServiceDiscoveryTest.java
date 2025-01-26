@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-class ScalecubeServiceDiscoveryTest extends BaseTest {
+class ScalecubeServiceDiscoveryTest {
 
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
   public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);

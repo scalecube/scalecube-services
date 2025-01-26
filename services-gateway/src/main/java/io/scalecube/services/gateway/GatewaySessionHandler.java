@@ -2,15 +2,15 @@ package io.scalecube.services.gateway;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public interface GatewaySessionHandler {
 
-  Logger LOGGER = System.getLogger(GatewaySessionHandler.class.getName());
+  Logger LOGGER = LoggerFactory.getLogger(GatewaySessionHandler.class);
 
   GatewaySessionHandler DEFAULT_INSTANCE = new GatewaySessionHandler() {};
 
@@ -59,9 +59,8 @@ public interface GatewaySessionHandler {
    * @param context subscriber context
    */
   default void onError(GatewaySession session, Throwable throwable, Context context) {
-    LOGGER.log(
-        Level.ERROR,
-        "Exception occurred on session: {0,number,#}, on context: {1}",
+    LOGGER.error(
+        "Exception occurred on session: {}, on context: {}",
         session.sessionId(),
         context,
         throwable);
@@ -74,8 +73,7 @@ public interface GatewaySessionHandler {
    * @param throwable an exception that occurred (not null)
    */
   default void onSessionError(GatewaySession session, Throwable throwable) {
-    LOGGER.log(
-        Level.ERROR, "Exception occurred on session: {0,number,#}", session.sessionId(), throwable);
+    LOGGER.error("Exception occurred on session: {}", session.sessionId(), throwable);
   }
 
   /**
@@ -88,11 +86,8 @@ public interface GatewaySessionHandler {
   default Mono<Void> onConnectionOpen(long sessionId, Map<String, String> headers) {
     return Mono.fromRunnable(
         () ->
-            LOGGER.log(
-                Level.DEBUG,
-                "Connection opened, sessionId: {0,number,#}, headers({1})",
-                sessionId,
-                headers.size()));
+            LOGGER.debug(
+                "Connection opened, sessionId: {}, headers({})", sessionId, headers.size()));
   }
 
   /**
@@ -101,7 +96,7 @@ public interface GatewaySessionHandler {
    * @param session websocket session (not null)
    */
   default void onSessionOpen(GatewaySession session) {
-    LOGGER.log(Level.INFO, "Session opened: {0}", session);
+    LOGGER.info("Session opened: {}", session);
   }
 
   /**
@@ -110,6 +105,6 @@ public interface GatewaySessionHandler {
    * @param session websocket session (not null)
    */
   default void onSessionClose(GatewaySession session) {
-    LOGGER.log(Level.INFO, "Session closed: {0}", session);
+    LOGGER.info("Session closed: {}", session);
   }
 }

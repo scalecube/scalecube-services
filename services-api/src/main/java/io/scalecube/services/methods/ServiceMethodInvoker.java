@@ -11,8 +11,6 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -20,6 +18,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -34,7 +33,6 @@ public final class ServiceMethodInvoker {
   private final Authenticator<Object> authenticator;
   private final PrincipalMapper<Object, Object> principalMapper;
   private final Logger logger;
-  private final Level level;
 
   public ServiceMethodInvoker(
       Method method,
@@ -44,8 +42,7 @@ public final class ServiceMethodInvoker {
       ServiceMessageDataDecoder dataDecoder,
       Authenticator<Object> authenticator,
       PrincipalMapper<Object, Object> principalMapper,
-      Logger logger,
-      Level level) {
+      Logger logger) {
     this.method = Objects.requireNonNull(method, "method");
     this.service = Objects.requireNonNull(service, "service");
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
@@ -54,7 +51,6 @@ public final class ServiceMethodInvoker {
     this.authenticator = authenticator;
     this.principalMapper = principalMapper;
     this.logger = logger;
-    this.level = level;
   }
 
   /**
@@ -80,17 +76,15 @@ public final class ServiceMethodInvoker {
               return Mono.from(invokeRequest(request))
                   .doOnSuccess(
                       response -> {
-                        if (logger != null && logger.isLoggable(level)) {
-                          logger.log(
-                              level,
-                              "[{0}] request: " + request + ", response: " + response,
-                              qualifier);
+                        if (logger != null && logger.isDebugEnabled()) {
+                          logger.debug(
+                              "[{}] request: {}, response: {}", qualifier, request, response);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.log(Level.ERROR, "[{0}] request: " + request, qualifier, ex);
+                          logger.error("[{}] request: {}", qualifier, request, ex);
                         }
                       });
             })
@@ -121,14 +115,14 @@ public final class ServiceMethodInvoker {
               return Flux.from(invokeRequest(request))
                   .doOnSubscribe(
                       s -> {
-                        if (logger != null && logger.isLoggable(level)) {
-                          logger.log(level, "[{0}] request: " + request, qualifier);
+                        if (logger != null && logger.isDebugEnabled()) {
+                          logger.debug("[{}] request: {}", qualifier, request);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.log(Level.ERROR, "[{0}] request: " + request, qualifier, ex);
+                          logger.error("[{}] request: {}", qualifier, request, ex);
                         }
                       });
             })
@@ -292,7 +286,6 @@ public final class ServiceMethodInvoker {
         .add("authenticator=" + authenticator)
         .add("principalMapper=" + principalMapper)
         .add("logger=" + logger)
-        .add("level=" + level)
         .toString();
   }
 }

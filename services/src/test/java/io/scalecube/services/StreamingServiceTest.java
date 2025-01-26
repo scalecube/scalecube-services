@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
-public class StreamingServiceTest extends BaseTest {
+public class StreamingServiceTest {
 
   private static Microservices gateway;
   private static Microservices node;

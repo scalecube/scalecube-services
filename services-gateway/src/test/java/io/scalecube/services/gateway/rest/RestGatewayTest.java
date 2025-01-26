@@ -19,14 +19,12 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport.Builder;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -39,7 +37,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-public class RestGatewayTest extends BaseTest {
+public class RestGatewayTest {
 
   private static Microservices gateway;
   private static Microservices microservices;
@@ -59,7 +57,7 @@ public class RestGatewayTest extends BaseTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .defaultLogger("gateway", Level.INFO)
+                .defaultLogger("gateway")
                 .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
                 .gateway(() -> new WebsocketGateway.Builder().id("WS").build()));
 
@@ -76,7 +74,7 @@ public class RestGatewayTest extends BaseTest {
                             .membership(
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
-                .defaultLogger("microservices", Level.INFO)
+                .defaultLogger("microservices")
                 .services(new GreetingServiceImpl())
                 .services(ServiceInfo.fromServiceInstance(new RestServiceImpl()).build())
                 .services(ServiceInfo.fromServiceInstance(new RoutingServiceImpl()).build()));
