@@ -199,7 +199,7 @@ public class ServiceEndpoint implements Externalizable {
      * Adds {@code serviceRegistrations} to collection of {@code serviceRegistrations}.
      *
      * @param serviceRegistrations serviceRegistrations
-     * @return this builder
+     * @return this
      */
     public Builder appendServiceRegistrations(
         Collection<ServiceRegistration> serviceRegistrations) {
@@ -212,7 +212,7 @@ public class ServiceEndpoint implements Externalizable {
      * Setter for {@code serviceRegistrations}.
      *
      * @param serviceRegistrations serviceRegistrations
-     * @return this builder
+     * @return this
      */
     public Builder serviceRegistrations(Collection<ServiceRegistration> serviceRegistrations) {
       this.serviceRegistrations =

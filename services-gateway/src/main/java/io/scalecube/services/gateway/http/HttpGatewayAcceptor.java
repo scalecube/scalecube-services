@@ -24,11 +24,11 @@ import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.List;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Signal;
@@ -38,7 +38,7 @@ import reactor.netty.http.server.HttpServerResponse;
 public class HttpGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  private static final Logger LOGGER = System.getLogger(HttpGatewayAcceptor.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
@@ -57,12 +57,13 @@ public class HttpGatewayAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    LOGGER.log(
-        Level.DEBUG,
-        "Accepted request: {0}, headers: {}, params: {1}",
-        httpRequest,
-        httpRequest.requestHeaders(),
-        httpRequest.params());
+    if (LOGGER.isDebugEnabled()) {
+      LOGGER.debug(
+          "Accepted request: {}, headers: {}, params: {}",
+          httpRequest,
+          httpRequest.requestHeaders(),
+          httpRequest.params());
+    }
 
     if (!SUPPORTED_METHODS.contains(httpRequest.method())) {
       return methodNotAllowed(httpResponse);
@@ -169,7 +170,7 @@ public class HttpGatewayAcceptor
       DataCodec.getInstance(dataFormat).encode(new ByteBufOutputStream(byteBuf), data);
     } catch (Throwable t) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      LOGGER.log(Level.ERROR, "Failed to encode data: {0}", data, t);
+      LOGGER.error("Failed to encode data: {}", data, t);
       return Unpooled.EMPTY_BUFFER;
     }
 

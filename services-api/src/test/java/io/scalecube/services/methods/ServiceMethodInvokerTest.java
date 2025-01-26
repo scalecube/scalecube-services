@@ -75,7 +75,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -116,7 +115,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -157,7 +155,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -199,7 +196,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -244,7 +240,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -288,7 +283,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -336,7 +330,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             nullPrincipalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -381,7 +374,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             nullAuthenticator,
             principalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -429,7 +421,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             authenticator,
             principalMapper,
-            null,
             null);
 
     ServiceMessage message =
@@ -474,7 +465,6 @@ class ServiceMethodInvokerTest {
             dataDecoder,
             authenticator,
             principalMapper,
-            null,
             null);
 
     ServiceMessage message =

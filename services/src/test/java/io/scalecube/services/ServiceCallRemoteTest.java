@@ -31,7 +31,6 @@ import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -46,7 +45,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class ServiceCallRemoteTest extends BaseTest {
+public class ServiceCallRemoteTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -271,7 +270,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   public void test_custom_error_mapper() {
     GreetingService service =
         new ServiceCall()
-            .logger("test_custom_error_mapper", Level.INFO)
+            .logger("test_custom_error_mapper")
             .errorMapper(
                 message -> {
                   throw new RuntimeException("custom error mapper");

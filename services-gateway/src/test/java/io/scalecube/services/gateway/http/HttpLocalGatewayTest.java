@@ -16,13 +16,11 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -32,7 +30,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-class HttpLocalGatewayTest extends BaseTest {
+class HttpLocalGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -50,7 +48,7 @@ class HttpLocalGatewayTest extends BaseTest {
         Microservices.start(
             new Context()
                 .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
-                .defaultLogger("gateway", Level.INFO)
+                .defaultLogger("gateway")
                 .services(new GreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())

@@ -218,7 +218,7 @@ public final class ServiceMessage {
      * Setter for {@code data}.
      *
      * @param data data (optional)
-     * @return this builder
+     * @return this
      */
     public Builder data(Object data) {
       this.data = data;
@@ -230,7 +230,7 @@ public final class ServiceMessage {
      *
      * @deprecated in future releases will be dropped without replacement
      * @param dataType data type; no null
-     * @return this builder
+     * @return this
      */
     @Deprecated
     public Builder dataType(Class<?> dataType) {
@@ -243,7 +243,7 @@ public final class ServiceMessage {
      * Setter for {@code dataFormat}.
      *
      * @param dataFormat data format
-     * @return this builder
+     * @return this
      */
     public Builder dataFormat(String dataFormat) {
       headers.put(HEADER_DATA_FORMAT, dataFormat);
@@ -278,7 +278,7 @@ public final class ServiceMessage {
      * Setter for {@code headers}.
      *
      * @param headers headers; not null
-     * @return this builder
+     * @return this
      */
     public Builder headers(Map<String, String> headers) {
       Objects.requireNonNull(headers, "headers").forEach(this::header);
@@ -290,7 +290,7 @@ public final class ServiceMessage {
      *
      * @param key header name; not null
      * @param value header value; not null
-     * @return this builder
+     * @return this
      */
     public Builder header(String key, String value) {
       Objects.requireNonNull(key, "header name");
@@ -304,7 +304,7 @@ public final class ServiceMessage {
      *
      * @param key header name; not null
      * @param value header value; not null
-     * @return this builder
+     * @return this
      */
     public Builder header(String key, Object value) {
       Objects.requireNonNull(key, "header name");
@@ -317,7 +317,7 @@ public final class ServiceMessage {
      * Setter for {@code qualifier}.
      *
      * @param qualifier qualifier; not null
-     * @return this builder
+     * @return this
      */
     public Builder qualifier(String qualifier) {
       return header(HEADER_QUALIFIER, Objects.requireNonNull(qualifier, "qualifier"));
@@ -328,7 +328,7 @@ public final class ServiceMessage {
      *
      * @param namespace namespace; not null
      * @param action action; not null
-     * @return this builder
+     * @return this
      */
     public Builder qualifier(String namespace, String action) {
       return qualifier(

@@ -6,7 +6,6 @@ import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.gateway.AuthRegistry;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
-import java.lang.System.Logger.Level;
 import java.util.Optional;
 import reactor.util.context.Context;
 
@@ -33,13 +32,8 @@ public class GatewaySessionHandlerImpl implements GatewaySessionHandler {
   }
 
   @Override
-  public void onSessionOpen(GatewaySession s) {
-    LOGGER.log(Level.INFO, "Session opened: {0}", s);
-  }
-
-  @Override
   public void onSessionClose(GatewaySession session) {
-    LOGGER.log(Level.INFO, "Session removed: {0}", session);
     authRegistry.removeAuth(session.sessionId());
+    LOGGER.info("Session removed: {}", session);
   }
 }

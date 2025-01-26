@@ -30,7 +30,6 @@ import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.lang.System.Logger.Level;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
@@ -43,7 +42,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class ServiceCallLocalTest extends BaseTest {
+public class ServiceCallLocalTest {
 
   public static final int TIMEOUT = 3;
 
@@ -187,7 +186,7 @@ public class ServiceCallLocalTest extends BaseTest {
   public void test_custom_error_mapper() {
     GreetingService service =
         new ServiceCall()
-            .logger("test_custom_error_mapper", Level.INFO)
+            .logger("test_custom_error_mapper")
             .errorMapper(
                 message -> {
                   throw new RuntimeException("custom error mapper");

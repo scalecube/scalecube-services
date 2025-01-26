@@ -5,13 +5,13 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -21,7 +21,7 @@ import reactor.util.context.Context;
 
 public final class WebsocketGatewaySession implements GatewaySession {
 
-  private static final Logger LOGGER = System.getLogger(WebsocketGatewaySession.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewaySession.class);
 
   private static final Predicate<Object> SEND_PREDICATE = f -> true;
 
@@ -174,11 +174,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
       Disposable disposable = subscriptions.remove(streamId);
       result = disposable != null;
       if (result) {
-        LOGGER.log(
-            Level.DEBUG,
-            "Dispose subscription by sid={0,number,#}, session={1,number,#}",
-            streamId,
-            sessionId);
+        LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, sessionId);
         disposable.dispose();
       }
     }
@@ -202,16 +198,12 @@ public final class WebsocketGatewaySession implements GatewaySession {
       result = subscriptions.putIfAbsent(streamId, disposable) == null;
     }
     if (result) {
-      LOGGER.log(
-          Level.DEBUG,
-          "Registered subscription by sid={0,number,#}, session={1,number,#}",
-          streamId,
-          sessionId);
+      LOGGER.debug("Registered subscription by sid={}, session={}", streamId, sessionId);
     }
   }
 
   private void clearSubscriptions() {
-    LOGGER.log(Level.DEBUG, "Clear subscriptions on session={0,number,#}", sessionId);
+    LOGGER.debug("Clear subscriptions on session={}", sessionId);
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
   }

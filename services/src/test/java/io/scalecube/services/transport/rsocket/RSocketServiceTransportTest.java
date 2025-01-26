@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.Address;
-import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
@@ -27,7 +26,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
-public class RSocketServiceTransportTest extends BaseTest {
+public class RSocketServiceTransportTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();

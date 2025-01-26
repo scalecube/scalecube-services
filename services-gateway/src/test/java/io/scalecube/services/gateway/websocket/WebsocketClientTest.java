@@ -10,7 +10,6 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
@@ -27,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-class WebsocketClientTest extends BaseTest {
+class WebsocketClientTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 

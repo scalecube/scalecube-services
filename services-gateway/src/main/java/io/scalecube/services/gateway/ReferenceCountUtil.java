@@ -1,12 +1,12 @@
 package io.scalecube.services.gateway;
 
 import io.netty.util.ReferenceCounted;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class ReferenceCountUtil {
 
-  private static final Logger LOGGER = System.getLogger(ReferenceCountUtil.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ReferenceCountUtil.class);
 
   private ReferenceCountUtil() {
     // Do not instantiate
@@ -24,11 +24,7 @@ public final class ReferenceCountUtil {
           && ((ReferenceCounted) msg).refCnt() > 0
           && ((ReferenceCounted) msg).release();
     } catch (Throwable t) {
-      LOGGER.log(
-          Level.WARNING,
-          "Failed to release reference counted object: {0}, cause: {1}",
-          msg,
-          t.toString());
+      LOGGER.warn("Failed to release reference counted object: {}, cause: {}", msg, t.toString());
       return false;
     }
   }

@@ -6,7 +6,6 @@ import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.gateway.BaseTest;
 import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import java.time.Duration;
@@ -18,7 +17,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-class WebsocketServerTest extends BaseTest {
+class WebsocketServerTest {
 
   private static Microservices gateway;
   private static Address gatewayAddress;

@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.test.StepVerifier;
 
-public class ServiceRemoteTest extends BaseTest {
+public class ServiceRemoteTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
