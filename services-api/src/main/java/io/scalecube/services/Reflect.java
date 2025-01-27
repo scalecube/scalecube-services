@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-public class Reflect {
+public final class Reflect {
 
   private Reflect() {
     // Do not instantiate
