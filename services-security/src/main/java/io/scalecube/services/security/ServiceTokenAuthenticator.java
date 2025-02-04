@@ -21,7 +21,7 @@ public final class ServiceTokenAuthenticator<T> implements Authenticator<T> {
   private JwtTokenResolver tokenResolver;
   private ServiceTokenMapper tokenMapper;
   private AuthDataMapper<T> authDataMapper;
-  private Retry retryStrategy = RetryStrategies.noRetriesRetryStrategy();
+  private Retry retryStrategy = Retry.max(0);
 
   public ServiceTokenAuthenticator() {}
 
@@ -88,15 +88,14 @@ public final class ServiceTokenAuthenticator<T> implements Authenticator<T> {
   public Mono<T> apply(Map<String, String> credentials) {
     return Mono.defer(
         () -> {
-          String serviceToken = tokenMapper.map(credentials);
+          final var serviceToken = tokenMapper.map(credentials);
 
           if (serviceToken == null) {
             throw new UnauthorizedException("Authentication failed");
           }
 
-          return tokenResolver
-              .resolve(serviceToken)
-              .map(authDataMapper::map)
+          return Mono.fromFuture(tokenResolver.resolve(serviceToken))
+              .map(token -> authDataMapper.map(token.payload()))
               .retryWhen(retryStrategy)
               .doOnError(th -> LOGGER.error("Failed to authenticate, cause: {}", th.toString()))
               .onErrorMap(th -> new UnauthorizedException("Authentication failed"))
