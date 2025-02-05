@@ -7,11 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -20,6 +24,7 @@ import io.scalecube.services.gateway.client.StaticAddressRouter;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
+import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -36,6 +41,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.Exceptions;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 public class FileDownloadTest {
@@ -46,11 +52,16 @@ public class FileDownloadTest {
   private static Microservices microservices;
   private static Address httpAddress;
   private static Address wsAddress;
+  private static CredentialsSupplier credentialsSupplier;
 
   private ServiceCall serviceCall;
 
   @BeforeAll
   static void beforeAll() {
+    credentialsSupplier = mock(CredentialsSupplier.class);
+    when(credentialsSupplier.apply(any(ServiceReference.class)))
+        .thenReturn(Mono.never());
+
     gateway =
         Microservices.start(
             new Context()
@@ -59,7 +70,8 @@ public class FileDownloadTest {
                         new ScalecubeServiceDiscovery()
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
-                .transport(RSocketServiceTransport::new)
+                .transport(
+                    () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier))
                 .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
                 .gateway(() -> new WebsocketGateway.Builder().id("WS").build()));
 

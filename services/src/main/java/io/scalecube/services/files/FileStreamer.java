@@ -8,7 +8,8 @@ import reactor.core.publisher.Flux;
 
 /**
  * System service interface for streaming files after they have been added locally with {@link
- * FileService#addFile(AddFileRequest)}.
+ * FileService#addFile(AddFileRequest)}. NOTE: this is system service inerface, clients are not
+ * supposed to inject it into their app services and call it directly.
  */
 @Service(FileStreamer.NAMESPACE)
 public interface FileStreamer {
