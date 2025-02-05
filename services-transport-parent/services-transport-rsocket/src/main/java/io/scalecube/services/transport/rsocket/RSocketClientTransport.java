@@ -81,6 +81,11 @@ public class RSocketClientTransport implements ClientTransport {
           if (credentialsSupplier == null) {
             return Mono.just(Collections.emptyMap());
           }
+
+          if (!serviceReference.isSecured()) {
+            return Mono.just(Collections.emptyMap());
+          }
+
           return credentialsSupplier
               .apply(serviceReference)
               .switchIfEmpty(Mono.just(Collections.emptyMap()))
@@ -140,8 +145,7 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException) {
-      ServiceException e = (ServiceException) th;
+    if (th instanceof ServiceException e) {
       return new UnauthorizedException(e.errorCode(), e.getMessage());
     } else {
       return new UnauthorizedException(th);
