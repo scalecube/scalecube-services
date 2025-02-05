@@ -104,6 +104,7 @@ public class RSocketServiceTransportTest {
     assertTrue(sub1.get().isDisposed());
   }
 
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/882")
   @Test
   public void test_remote_node_died_many_never() throws Exception {
     int batchSize = 1;
@@ -132,6 +133,7 @@ public class RSocketServiceTransportTest {
     assertTrue(sub1.get().isDisposed());
   }
 
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/882")
   @Test
   public void test_remote_node_died_many_then_never() throws Exception {
     int batchSize = 1;

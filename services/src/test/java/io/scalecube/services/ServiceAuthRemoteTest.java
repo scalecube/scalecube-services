@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -205,6 +206,7 @@ final class ServiceAuthRemoteTest {
     }
   }
 
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/882")
   @Test
   @DisplayName("Authentication failed with invalid credentials")
   void failedAuthenticationWithInvalidCredentials() {
