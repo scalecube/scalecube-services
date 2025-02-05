@@ -757,6 +757,10 @@ public class Microservices implements AutoCloseable {
         serviceRegistry = new ServiceRegistryImpl();
       }
 
+      schedulers.put("parallel", Schedulers.parallel());
+      schedulers.put("single", Schedulers.single());
+      schedulers.put("boundedElastic", Schedulers.boundedElastic());
+      schedulers.put("immediate", Schedulers.immediate());
       schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
       return this;

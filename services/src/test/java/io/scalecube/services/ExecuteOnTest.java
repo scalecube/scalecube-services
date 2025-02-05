@@ -52,70 +52,70 @@ public class ExecuteOnTest {
 
   @Test
   void testExecuteOnClass() {
-    final var executeOnClass = new HelloServiceV1();
+    final var serviceV1 = new HelloServiceV1();
     try (final var microservices =
         Microservices.start(
             new Context()
                 .scheduler(SCHEDULER1_NAME, () -> schedulers.get(SCHEDULER1_NAME))
                 .scheduler(SCHEDULER2_NAME, () -> schedulers.get(SCHEDULER2_NAME))
-                .services(executeOnClass))) {
+                .services(serviceV1))) {
 
       final var api = microservices.call().api(HelloService.class);
 
       api.hello().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV1.threadName.get(), "threadName");
 
       api.hola().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV1.threadName.get(), "threadName");
 
       api.arigato().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV1.threadName.get(), "threadName");
     }
   }
 
   @Test
   void testExecuteOnMethod() {
-    final var executeOnClass = new HelloServiceV2();
+    final var serviceV2 = new HelloServiceV2();
     try (final var microservices =
         Microservices.start(
             new Context()
                 .scheduler(SCHEDULER1_NAME, () -> schedulers.get(SCHEDULER1_NAME))
                 .scheduler(SCHEDULER2_NAME, () -> schedulers.get(SCHEDULER2_NAME))
-                .services(executeOnClass))) {
+                .services(serviceV2))) {
 
       final var api = microservices.call().api(HelloService.class);
 
       api.hello().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV2.threadName.get(), "threadName");
 
       api.hola().block();
-      assertEquals(SCHEDULER2_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER2_NAME, serviceV2.threadName.get(), "threadName");
 
       api.arigato().block();
-      assertEquals("main", executeOnClass.threadName.get(), "threadName");
+      assertEquals("main", serviceV2.threadName.get(), "threadName");
     }
   }
 
   @Test
   void testExecuteOnMixedDefinition() {
-    final var executeOnClass = new HelloServiceV3();
+    final var serviceV3 = new HelloServiceV3();
     try (final var microservices =
         Microservices.start(
             new Context()
                 .scheduler(SCHEDULER1_NAME, () -> schedulers.get(SCHEDULER1_NAME))
                 .scheduler(SCHEDULER2_NAME, () -> schedulers.get(SCHEDULER2_NAME))
-                .services(executeOnClass))) {
+                .services(serviceV3))) {
 
       final var api = microservices.call().api(HelloService.class);
 
       api.hello().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV3.threadName.get(), "threadName");
 
       api.hola().block();
-      assertEquals(SCHEDULER1_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER1_NAME, serviceV3.threadName.get(), "threadName");
 
       api.arigato().block();
-      assertEquals(SCHEDULER2_NAME, executeOnClass.threadName.get(), "threadName");
+      assertEquals(SCHEDULER2_NAME, serviceV3.threadName.get(), "threadName");
     }
   }
 
@@ -153,6 +153,39 @@ public class ExecuteOnTest {
     assertTrue(s3.isDisposed(), "s3.isDisposed");
   }
 
+  @Test
+  void testDefaultSchedulersOnMethods() {
+    final var service = new DefaultSchedulerOnServiceMethodImpl();
+    try (final var microservices = Microservices.start(new Context().services(service))) {
+
+      final var api = microservices.call().api(DefaultSchedulerOnServiceMethod.class);
+
+      api.parallel().block();
+      assertEquals("parallel-1", service.threadName.get(), "threadName");
+
+      api.single().block();
+      assertEquals("single-1", service.threadName.get(), "threadName");
+
+      api.boundedElastic().block();
+      assertEquals("boundedElastic-1", service.threadName.get(), "threadName");
+
+      api.immediate().block();
+      assertEquals("main", service.threadName.get(), "threadName");
+    }
+  }
+
+  @Test
+  void testDefaultSchedulersOnService() {
+    final var service = new DefaultSchedulerOnServiceImpl();
+    try (final var microservices = Microservices.start(new Context().services(service))) {
+
+      final var api = microservices.call().api(DefaultSchedulerOnService.class);
+
+      api.hello().block();
+      assertEquals("single-1", service.threadName.get(), "threadName");
+    }
+  }
+
   @Service("v1/greeting")
   public interface HelloService {
 
@@ -164,6 +197,29 @@ public class ExecuteOnTest {
 
     @ServiceMethod
     Mono<String> arigato();
+  }
+
+  @Service("v1/defaultSchedulerOnServiceMethod")
+  public interface DefaultSchedulerOnServiceMethod {
+
+    @ServiceMethod
+    Mono<String> parallel();
+
+    @ServiceMethod
+    Mono<String> single();
+
+    @ServiceMethod
+    Mono<String> boundedElastic();
+
+    @ServiceMethod
+    Mono<String> immediate();
+  }
+
+  @Service("v1/defaultSchedulerOnService")
+  public interface DefaultSchedulerOnService {
+
+    @ServiceMethod
+    Mono<String> hello();
   }
 
   // All methods must be executed in scheduler@1
@@ -246,7 +302,7 @@ public class ExecuteOnTest {
     }
   }
 
-  // All methods must be executed in scheduler@3@that-was-not-declared
+  // This service will not be registered due to scheduler@3@that-was-not-declared
   @ExecuteOn(SCHEDULER3_NAME)
   public static class HelloServiceV4 implements HelloService {
 
@@ -268,6 +324,53 @@ public class ExecuteOnTest {
     public Mono<String> arigato() {
       threadName.set(Thread.currentThread().getName());
       return Mono.just("Arigato | " + System.currentTimeMillis());
+    }
+  }
+
+  // Service that executes method calls in the system default schedulers
+  public static class DefaultSchedulerOnServiceMethodImpl
+      implements DefaultSchedulerOnServiceMethod {
+
+    final AtomicReference<String> threadName = new AtomicReference<>();
+
+    @ExecuteOn("parallel")
+    @Override
+    public Mono<String> parallel() {
+      threadName.set(Thread.currentThread().getName());
+      return Mono.just("parallel | " + System.currentTimeMillis());
+    }
+
+    @ExecuteOn("single")
+    @Override
+    public Mono<String> single() {
+      threadName.set(Thread.currentThread().getName());
+      return Mono.just("single | " + System.currentTimeMillis());
+    }
+
+    @ExecuteOn("boundedElastic")
+    @Override
+    public Mono<String> boundedElastic() {
+      threadName.set(Thread.currentThread().getName());
+      return Mono.just("boundedElastic | " + System.currentTimeMillis());
+    }
+
+    @ExecuteOn("immediate")
+    @Override
+    public Mono<String> immediate() {
+      threadName.set(Thread.currentThread().getName());
+      return Mono.just("immediate | " + System.currentTimeMillis());
+    }
+  }
+
+  @ExecuteOn("single")
+  public static class DefaultSchedulerOnServiceImpl implements DefaultSchedulerOnService {
+
+    final AtomicReference<String> threadName = new AtomicReference<>();
+
+    @Override
+    public Mono<String> hello() {
+      threadName.set(Thread.currentThread().getName());
+      return Mono.just("hello | " + System.currentTimeMillis());
     }
   }
 }
