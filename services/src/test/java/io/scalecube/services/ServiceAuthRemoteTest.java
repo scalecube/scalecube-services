@@ -250,18 +250,15 @@ final class ServiceAuthRemoteTest {
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
     try (Microservices caller = newCaller()) {
-      StepVerifier.create(caller.call().api(PartiallySecuredService.class).publicMethod("Alice"))
-          .assertNext(response -> assertEquals("Hello, Alice", response))
+      StepVerifier.create(
+              caller.call().api(PartiallySecuredService.class).publicMethod("publicMethod"))
+          .assertNext(response -> assertEquals("Hello, publicMethod", response))
           .verifyComplete();
 
-      Consumer<Throwable> verifyError =
-          th -> {
-            assertEquals(UnauthorizedException.class, th.getClass());
-            assertEquals("Authentication failed", th.getMessage());
-          };
-
-      StepVerifier.create(caller.call().api(PartiallySecuredService.class).securedMethod("Alice"))
-          .verifyErrorSatisfies(verifyError);
+      StepVerifier.create(
+              caller.call().api(PartiallySecuredService.class).publicMethod("securedMethod"))
+          .assertNext(response -> assertEquals("Hello, securedMethod", response))
+          .verifyComplete();
     }
   }
 

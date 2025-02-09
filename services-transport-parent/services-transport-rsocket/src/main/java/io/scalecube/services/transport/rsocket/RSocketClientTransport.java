@@ -21,6 +21,7 @@ import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +31,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final Map<Address, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
+  private final Map<AddressKey, Mono<RSocket>> rsocketMap = new ConcurrentHashMap<>();
 
   private final CredentialsSupplier credentialsSupplier;
   private final ConnectionSetupCodec connectionSetupCodec;
@@ -62,16 +63,17 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    final Map<Address, Mono<RSocket>> monoMap = this.rsockets; // keep reference for threadsafety
-    final Address address = serviceReference.address();
+    final Map<AddressKey, Mono<RSocket>> monoMap = rsocketMap;
+
     Mono<RSocket> mono =
         monoMap.computeIfAbsent(
-            address,
+            new AddressKey(serviceReference.address(), serviceReference.qualifier()),
             key ->
                 getCredentials(serviceReference)
-                    .flatMap(creds -> connect(key, creds, monoMap))
+                    .flatMap(credentials -> connect(key, credentials, monoMap))
                     .cacheInvalidateIf(RSocket::isDisposed)
                     .doOnError(ex -> monoMap.remove(key)));
+
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
 
@@ -101,34 +103,38 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(
-      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
+      AddressKey addressKey,
+      Map<String, String> credentials,
+      Map<AddressKey, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
-        .connect(() -> clientTransportFactory.clientTransport(address))
+        .setupPayload(encodeConnectionSetup(new ConnectionSetup(credentials)))
+        .connect(() -> clientTransportFactory.clientTransport(addressKey.address))
         .doOnSuccess(
             rsocket -> {
-              LOGGER.debug("[rsocket][client][{}] Connected successfully", address);
+              LOGGER.debug("[rsocket][client] Connected successfully ({})", addressKey);
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doFinally(
                       s -> {
-                        monoMap.remove(address);
-                        LOGGER.debug("[rsocket][client][{}] Connection closed", address);
+                        monoMap.remove(addressKey);
+                        LOGGER.debug("[rsocket][client] Connection closed ({})", addressKey);
                       })
                   .doOnError(
                       th ->
                           LOGGER.warn(
-                              "[rsocket][client][{}][onClose] Exception occurred: {}",
-                              address,
+                              "[rsocket][client][onClose] Exception occurred ({}), cause: {}",
+                              addressKey,
                               th.toString()))
                   .subscribe();
             })
         .doOnError(
             th ->
                 LOGGER.warn(
-                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
+                    "[rsocket][client] Failed to connect ({}), cause: {}",
+                    addressKey,
+                    th.toString()));
   }
 
   private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
@@ -154,13 +160,24 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public void close() {
-    rsockets.forEach(
+    rsocketMap.forEach(
         (address, socketMono) ->
             socketMono.subscribe(
                 RSocket::dispose,
                 throwable -> {
                   // no-op
                 }));
-    rsockets.clear();
+    rsocketMap.clear();
+  }
+
+  private record AddressKey(Address address, String qualifier) {
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", AddressKey.class.getSimpleName() + "[", "]")
+          .add("address=" + address)
+          .add("qualifier='" + qualifier + "'")
+          .toString();
+    }
   }
 }

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class RSocketNettyColocatedEventLoopGroupTest {
+public class RSocketColocatedEventLoopTest {
 
   private Microservices ping;
   private Microservices pong;
