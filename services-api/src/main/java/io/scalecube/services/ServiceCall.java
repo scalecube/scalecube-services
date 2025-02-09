@@ -225,7 +225,7 @@ public class ServiceCall implements AutoCloseable {
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.error("[{}] request: {}", request.qualifier(), request, ex);
+                logger.error("[{}][error] request: {}", request.qualifier(), request, ex);
               }
             });
   }
@@ -270,13 +270,19 @@ public class ServiceCall implements AutoCloseable {
         .doOnSubscribe(
             s -> {
               if (logger != null && logger.isDebugEnabled()) {
-                logger.debug("[{}] request: {}", request.qualifier(), request);
+                logger.debug("[{}][subscribe] request: {}", request.qualifier(), request);
+              }
+            })
+        .doOnComplete(
+          () -> {
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug("[{}][complete] request: {}", request.qualifier(), request);
               }
             })
         .doOnError(
             ex -> {
               if (logger != null) {
-                logger.error("[{}] request: {}", request.qualifier(), request, ex);
+                logger.error("[{}][error] request: {}", request.qualifier(), request, ex);
               }
             });
   }

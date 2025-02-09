@@ -84,7 +84,7 @@ public final class ServiceMethodInvoker {
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", qualifier, request, ex);
                         }
                       });
             })
@@ -116,13 +116,19 @@ public final class ServiceMethodInvoker {
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}] request: {}", qualifier, request);
+                          logger.debug("[{}][subscribe] request: {}", qualifier, request);
+                        }
+                      })
+                  .doOnComplete(
+                      () -> {
+                        if (logger != null && logger.isDebugEnabled()) {
+                          logger.debug("[{}][complete] request: {}", qualifier, request);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", qualifier, request, ex);
                         }
                       });
             })
