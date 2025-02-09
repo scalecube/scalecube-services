@@ -274,7 +274,7 @@ public class ServiceCall implements AutoCloseable {
               }
             })
         .doOnComplete(
-          () -> {
+            () -> {
               if (logger != null && logger.isDebugEnabled()) {
                 logger.debug("[{}][complete] request: {}", request.qualifier(), request);
               }
@@ -360,9 +360,6 @@ public class ServiceCall implements AutoCloseable {
 
               //noinspection EnhancedSwitchMigration
               switch (methodInfo.communicationMode()) {
-                case FIRE_AND_FORGET:
-                  return serviceCall.oneWay(toServiceMessage(methodInfo, request));
-
                 case REQUEST_RESPONSE:
                   return serviceCall
                       .requestOne(toServiceMessage(methodInfo, request), returnType)

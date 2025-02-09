@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
 import static io.scalecube.services.auth.Authenticator.NULL_AUTH_CONTEXT;
 
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
@@ -99,6 +100,9 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
+    if (methodInfo.communicationMode() == CommunicationMode.REQUEST_RESPONSE) {
+      return Flux.from(invokeOne(message));
+    }
     return Mono.deferContextual(context -> authenticate(message, (Context) context))
         .flatMapMany(authData -> invokeMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))

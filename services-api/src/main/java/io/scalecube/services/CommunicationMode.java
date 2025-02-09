@@ -1,12 +1,15 @@
 package io.scalecube.services;
 
 public enum CommunicationMode {
-  /** Corresponds to <code>Mono&lt;Void&gt; action(REQ)</code>. */
-  FIRE_AND_FORGET,
-  /** Corresponds to <code>Mono&lt;RESP&gt; action(REQ)</code>. */
+
+  /**
+   * Corresponds to {@code Mono<Response> action(Request)} or {@code Mono<Void> action(Request)}.
+   */
   REQUEST_RESPONSE,
-  /** Corresponds to <code>Flux&lt;RESP&gt; action(REQ)</code>. */
+
+  /** Corresponds to {@code Flux<OutputData> action(Request)}. */
   REQUEST_STREAM,
-  /** Corresponds to <code>Flux&lt;RESP&gt; action(Flux&lt;REQ&gt;)</code>. */
+
+  /** Corresponds to {@code Flux<OutputData> action(Flux<InputData>)}. */
   REQUEST_CHANNEL;
 }

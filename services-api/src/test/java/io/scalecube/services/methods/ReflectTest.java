@@ -1,6 +1,5 @@
 package io.scalecube.services.methods;
 
-import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
 import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
@@ -45,12 +44,12 @@ public class ReflectTest {
 
   static Stream<Arguments> argsCommunicationModeProvider() {
     return Stream.of(
-        Arguments.of("fireAndForget", FIRE_AND_FORGET),
+        Arguments.of("fireAndForget", REQUEST_RESPONSE),
         Arguments.of("emptyResponse", REQUEST_RESPONSE),
         Arguments.of("requestResponse", REQUEST_RESPONSE),
         Arguments.of("requestStream", REQUEST_STREAM),
         Arguments.of("requestChannel", REQUEST_CHANNEL),
-        Arguments.of("fireAndForgetMessage", FIRE_AND_FORGET),
+        Arguments.of("fireAndForgetMessage", REQUEST_RESPONSE),
         Arguments.of("emptyResponseMessage", REQUEST_RESPONSE),
         Arguments.of("requestResponseMessage", REQUEST_RESPONSE),
         Arguments.of("requestStreamMessage", REQUEST_STREAM),
