@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
 import static io.scalecube.services.auth.Authenticator.NULL_AUTH_CONTEXT;
 
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
@@ -84,7 +85,7 @@ public final class ServiceMethodInvoker {
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", qualifier, request, ex);
                         }
                       });
             })
@@ -99,6 +100,9 @@ public final class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeMany(ServiceMessage message) {
+    if (methodInfo.communicationMode() == CommunicationMode.REQUEST_RESPONSE) {
+      return Flux.from(invokeOne(message));
+    }
     return Mono.deferContextual(context -> authenticate(message, (Context) context))
         .flatMapMany(authData -> invokeMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
@@ -116,13 +120,19 @@ public final class ServiceMethodInvoker {
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}] request: {}", qualifier, request);
+                          logger.debug("[{}][subscribe] request: {}", qualifier, request);
+                        }
+                      })
+                  .doOnComplete(
+                      () -> {
+                        if (logger != null && logger.isDebugEnabled()) {
+                          logger.debug("[{}][complete] request: {}", qualifier, request);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", qualifier, request, ex);
                         }
                       });
             })

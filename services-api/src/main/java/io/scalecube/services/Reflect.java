@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
 import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
@@ -335,17 +334,16 @@ public final class Reflect {
    * <p>The following modes are supported:
    *
    * <ul>
-   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter,and the
-   *       first parameter is either of type return type {@link Flux} or {@link Publisher};
-   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service's return type is {@link Flux}, and
-   *       parameter is not {@link Flux};
-   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service's return type is Mono;
-   *   <li>{@link CommunicationMode#FIRE_AND_FORGET} - service returns void;
+   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter, and the
+   *       first parameter is either of {@link Flux} or {@link Publisher}.
+   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service return type is {@link Flux}, and
+   *       parameter is not {@link Flux}.
+   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service return type is either {@code
+   *       Mono<Pojo>} or {@code Mono<Void>}.
    * </ul>
    *
-   * @param method - Service method to be analyzed.
-   * @return - {@link CommunicationMode} of service method. If method does not correspond to any of
-   *     supported modes, throws {@link IllegalArgumentException}
+   * @param method service method
+   * @return {@link CommunicationMode} of service method, or throws {@link IllegalArgumentException}
    */
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
@@ -353,10 +351,8 @@ public final class Reflect {
       return REQUEST_CHANNEL;
     } else if (returnType.isAssignableFrom(Flux.class)) {
       return REQUEST_STREAM;
-    } else if (returnType.isAssignableFrom(Mono.class)) {
+    } else if (returnType.isAssignableFrom(Mono.class) || returnType.isAssignableFrom(Void.TYPE)) {
       return REQUEST_RESPONSE;
-    } else if (returnType.isAssignableFrom(Void.TYPE)) {
-      return FIRE_AND_FORGET;
     } else {
       throw new IllegalArgumentException(
           "Service method is not supported (check return type or parameter type): " + method);
