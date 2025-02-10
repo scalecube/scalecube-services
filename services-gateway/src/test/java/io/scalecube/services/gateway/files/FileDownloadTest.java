@@ -129,7 +129,7 @@ public class FileDownloadTest {
             .block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
     final var file =
         downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
@@ -152,7 +152,7 @@ public class FileDownloadTest {
             .block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
     // Download file first time
 
@@ -198,7 +198,7 @@ public class FileDownloadTest {
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
     final var reportPath = reportResponse.reportPath();
     final var s = reportPath.substring(reportPath.lastIndexOf("/"));
@@ -226,7 +226,7 @@ public class FileDownloadTest {
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
     final var reportPath = reportResponse.reportPath();
     final var s = reportPath.substring(reportPath.lastIndexOf("/"));
@@ -253,7 +253,7 @@ public class FileDownloadTest {
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/scalecube.endpoints/.*/files/.*$"));
+    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
     final var reportPath = reportResponse.reportPath();
     final var s = reportPath.substring(reportPath.lastIndexOf("/"));

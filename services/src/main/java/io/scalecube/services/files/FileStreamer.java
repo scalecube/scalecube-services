@@ -8,15 +8,15 @@ import reactor.core.publisher.Flux;
 
 /**
  * System service interface for streaming files after they have been added locally with {@link
- * FileService#addFile(AddFileRequest)}. NOTE: this is system service inerface, clients are not
+ * FileService#addFile(AddFileRequest)}. NOTE: this is system service interface, clients are not
  * supposed to inject it into their app services and call it directly.
  */
 @Service(FileStreamer.NAMESPACE)
 public interface FileStreamer {
 
-  String NAMESPACE = "v1/scalecube.endpoints";
+  String NAMESPACE = "v1/endpoints";
 
-  @Tag(key = "Content-Type", value = "application/scalecube-file")
+  @Tag(key = "Content-Type", value = "application/file")
   @RestMethod("GET")
   @ServiceMethod("${microservices:id}/files/:name")
   Flux<byte[]> streamFile();
