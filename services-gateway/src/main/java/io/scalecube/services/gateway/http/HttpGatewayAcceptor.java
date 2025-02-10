@@ -186,7 +186,7 @@ public class HttpGatewayAcceptor
       return null;
     }
     final var sr = list.get(0);
-    if ("application/scalecube-file".equals(sr.tags().get("Content-Type"))) {
+    if ("application/file".equals(sr.tags().get("Content-Type"))) {
       return sr;
     } else {
       return null;
@@ -202,7 +202,7 @@ public class HttpGatewayAcceptor
             (signal, flux) -> {
               final var qualifier = message.qualifier();
               final var map =
-                  DynamicQualifier.from("v1/scalecube.endpoints/:endpointId/files/:name")
+                  DynamicQualifier.from("v1/endpoints/:endpointId/files/:name")
                       .matchQualifier(qualifier);
               if (map == null) {
                 throw new RuntimeException("Wrong qualifier: " + qualifier);
