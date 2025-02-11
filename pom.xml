@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.12.3-SNAPSHOT</version>
+  <version>2.12.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>ScaleCube-Services</name>
 
@@ -57,12 +57,12 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.7.0</scalecube-cluster.version>
+    <scalecube-cluster.version>2.7.1</scalecube-cluster.version>
     <scalecube-security.version>1.1.0</scalecube-security.version>
 
     <reactor.version>2020.0.32</reactor.version>
     <jackson.version>2.18.2</jackson.version>
-    <netty.version>4.1.117.Final</netty.version>
+    <netty.version>4.1.118.Final</netty.version>
     <rsocket.version>1.1.4</rsocket.version>
     <jsr305.version>3.0.2</jsr305.version>
     <slf4j.version>1.7.36</slf4j.version>
