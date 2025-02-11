@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.client;
+package io.scalecube.services.routing;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
@@ -7,7 +7,6 @@ import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.Router;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
@@ -16,7 +15,7 @@ import java.util.UUID;
  * Syntethic router for returning pre-constructed {@link ServiceReference} instance with given
  * address.
  */
-public final class StaticAddressRouter implements Router {
+public class StaticAddressRouter implements Router {
 
   private final ServiceReference serviceReference;
 
