@@ -97,6 +97,13 @@
         <version>${scalecube-security.version}</version>
       </dependency>
 
+      <!-- Scalecube security Vault -->
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-security-vault</artifactId>
+        <version>${scalecube-security.version}</version>
+      </dependency>
+
       <!-- Scalecube cluster -->
       <dependency>
         <groupId>io.scalecube</groupId>
