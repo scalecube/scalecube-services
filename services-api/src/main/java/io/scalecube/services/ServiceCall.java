@@ -441,12 +441,14 @@ public class ServiceCall implements AutoCloseable {
     }
   }
 
-  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
+  private static Function<Flux<ServiceMessage>, Flux<Object>> asFlux(
+      boolean isReturnTypeServiceMessage) {
     return flux ->
         isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(ServiceMessage::data);
   }
 
-  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
+  private static Function<Mono<ServiceMessage>, Mono<Object>> asMono(
+      boolean isReturnTypeServiceMessage) {
     return mono ->
         isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(ServiceMessage::data);
   }
