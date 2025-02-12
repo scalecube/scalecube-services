@@ -355,7 +355,7 @@ public class ServiceCall implements AutoCloseable {
               final var methodsInfo = Reflect.methodsInfo(serviceInterface);
               final var methodInfo = methodsInfo.get(method);
               final var returnType = methodInfo.parameterizedReturnType();
-              final var isServiceMessage = methodInfo.isReturnTypeServiceMessage();
+              final var isReturnTypeServiceMessage = methodInfo.isReturnTypeServiceMessage();
               final var request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
               //noinspection EnhancedSwitchMigration
@@ -363,12 +363,12 @@ public class ServiceCall implements AutoCloseable {
                 case REQUEST_RESPONSE:
                   return serviceCall
                       .requestOne(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asMono(isServiceMessage));
+                      .transform(asMono(isReturnTypeServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
                       .requestMany(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(asFlux(isReturnTypeServiceMessage));
 
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must
@@ -379,7 +379,7 @@ public class ServiceCall implements AutoCloseable {
                           Flux.from((Publisher) request)
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(asFlux(isReturnTypeServiceMessage));
 
                 default:
                   throw new IllegalArgumentException(
