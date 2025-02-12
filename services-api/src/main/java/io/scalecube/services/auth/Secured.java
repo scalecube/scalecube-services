@@ -15,4 +15,19 @@ import java.lang.annotation.Target;
 @Documented
 @Target({METHOD, TYPE})
 @Retention(RUNTIME)
-public @interface Secured {}
+public @interface Secured {
+
+  /**
+   * Allowed roles.
+   *
+   * @return roles.
+   */
+  String[] roles();
+
+  /**
+   * Allowed permissions.
+   *
+   * @return permissions.
+   */
+  String[] permissions() default {};
+}
