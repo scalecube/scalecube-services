@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 import reactor.test.StepVerifier;
 
-final class ServiceAuthTest {
+final class LocalAuthTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
   private static final LoopResources LOOP_RESOURCE = LoopResources.create("exberry-service-call");
@@ -51,8 +51,7 @@ final class ServiceAuthTest {
         Microservices.start(
             new Context()
                 .transport(
-                    () ->
-                        new RSocketServiceTransport().authenticator(ServiceAuthTest::authenticate))
+                    () -> new RSocketServiceTransport().authenticator(LocalAuthTest::authenticate))
                 .services(
                     ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
                         .principalMapper(p -> mapPrincipal((Map<String, String>) p))
@@ -75,7 +74,7 @@ final class ServiceAuthTest {
   @Test
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
-    try (var caller = serviceCall(ServiceAuthTest::credentials)) {
+    try (var caller = serviceCall(LocalAuthTest::credentials)) {
       SecuredService securedService = caller.api(SecuredService.class);
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -147,7 +146,7 @@ final class ServiceAuthTest {
   @Test
   @DisplayName("Authentication failed with invalid credentials")
   void failedAuthenticationWithInvalidCredentials() {
-    try (var caller = serviceCall(ServiceAuthTest::invalidCredentials)) {
+    try (var caller = serviceCall(LocalAuthTest::invalidCredentials)) {
       SecuredService securedService = caller.api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
@@ -173,7 +172,7 @@ final class ServiceAuthTest {
   @Test
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
-    try (var caller = serviceCall(ServiceAuthTest::credentials)) {
+    try (var caller = serviceCall(LocalAuthTest::credentials)) {
       StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("Alice"))
           .assertNext(response -> assertEquals("Hello, Alice", response))
           .verifyComplete();
@@ -187,7 +186,7 @@ final class ServiceAuthTest {
   @Test
   @DisplayName("Successful call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
-    try (var caller = serviceCall(ServiceAuthTest::credentials)) {
+    try (var caller = serviceCall(LocalAuthTest::credentials)) {
       StepVerifier.create(caller.api(PartiallySecuredService.class).publicMethod("publicMethod"))
           .assertNext(response -> assertEquals("Hello, publicMethod", response))
           .verifyComplete();
