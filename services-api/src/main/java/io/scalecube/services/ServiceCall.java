@@ -352,8 +352,8 @@ public class ServiceCall implements AutoCloseable {
               }
 
               final var serviceCall = ServiceCall.this;
-              final var genericReturnTypes = Reflect.methodsInfo(serviceInterface);
-              final var methodInfo = genericReturnTypes.get(method);
+              final var methodsInfo = Reflect.methodsInfo(serviceInterface);
+              final var methodInfo = methodsInfo.get(method);
               final var returnType = methodInfo.parameterizedReturnType();
               final var isServiceMessage = methodInfo.isReturnTypeServiceMessage();
               final var request = methodInfo.requestType() == Void.TYPE ? null : params[0];
