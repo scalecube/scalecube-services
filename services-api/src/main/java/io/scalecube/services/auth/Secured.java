@@ -22,7 +22,7 @@ public @interface Secured {
    *
    * @return roles.
    */
-  String[] roles();
+  String[] roles() default {};
 
   /**
    * Allowed permissions.
