@@ -75,24 +75,35 @@ class ScalecubeServiceDiscoveryTest {
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action0", Collections.singletonMap("KKK0", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action0")
+                                .tags(Collections.singletonMap("KKK0", "VVV"))
+                                .isSecured(true)
+                                .allowedRoles(List.of("read", "write"))
+                                .build()))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action1", Collections.singletonMap("KKK1", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action1")
+                                .tags(Collections.singletonMap("KKK1", "VVV"))
+                                .isSecured(true)
+                                .allowedRoles(List.of("replay", "archive"))
+                                .build()))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action2", Collections.singletonMap("KKK2", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action2")
+                                .tags(Collections.singletonMap("KKK2", "VVV"))
+                                .isSecured(true)
+                                .build()))))
             .build();
 
     ByteBuffer buffer = metadataCodec.serialize(serviceEndpoint);

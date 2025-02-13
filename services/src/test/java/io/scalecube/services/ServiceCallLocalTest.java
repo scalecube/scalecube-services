@@ -220,7 +220,7 @@ public class ServiceCallLocalTest {
       ServiceRegistry serviceRegistry, ServiceMessage request) {
     return Optional.of(
         new ServiceReference(
-            new ServiceMethodDefinition("dummy"),
+            ServiceMethodDefinition.fromAction("dummy"),
             new ServiceRegistration("ns", Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder()
                 .id(UUID.randomUUID().toString())

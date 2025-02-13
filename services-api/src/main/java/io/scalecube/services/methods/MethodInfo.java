@@ -6,6 +6,7 @@ import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.StringJoiner;
 import reactor.core.scheduler.Scheduler;
 
@@ -24,6 +25,7 @@ public final class MethodInfo {
   private final boolean isSecured;
   private final Scheduler scheduler;
   private final String restMethod;
+  private final List<String> allowedRoles;
 
   /**
    * Create a new service info.
@@ -39,6 +41,7 @@ public final class MethodInfo {
    * @param isSecured is method protected by authentication
    * @param scheduler scheduler
    * @param restMethod restMethod
+   * @param allowedRoles allowedRoles
    */
   public MethodInfo(
       String serviceName,
@@ -51,7 +54,8 @@ public final class MethodInfo {
       boolean isRequestTypeServiceMessage,
       boolean isSecured,
       Scheduler scheduler,
-      String restMethod) {
+      String restMethod,
+      List<String> allowedRoles) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
@@ -65,6 +69,7 @@ public final class MethodInfo {
     this.isSecured = isSecured;
     this.scheduler = scheduler;
     this.restMethod = restMethod;
+    this.allowedRoles = allowedRoles;
   }
 
   public String serviceName() {
@@ -123,6 +128,10 @@ public final class MethodInfo {
     return restMethod;
   }
 
+  public List<String> allowedRoles() {
+    return allowedRoles;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
@@ -139,6 +148,7 @@ public final class MethodInfo {
         .add("isSecured=" + isSecured)
         .add("scheduler=" + scheduler)
         .add("restMethod=" + restMethod)
+        .add("allowedRoles=" + allowedRoles)
         .toString();
   }
 }

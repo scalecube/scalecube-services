@@ -76,8 +76,8 @@ class ServiceRegistryImplTest {
                           "greeting",
                           new HashMap<>(),
                           List.of(
-                              new ServiceMethodDefinition("hello"),
-                              new ServiceMethodDefinition("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello"),
+                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
               .build());
     }
 
@@ -133,8 +133,8 @@ class ServiceRegistryImplTest {
                           "greeting",
                           new HashMap<>(),
                           List.of(
-                              new ServiceMethodDefinition("hello"),
-                              new ServiceMethodDefinition("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello"),
+                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
               .build());
     }
     assertEquals(

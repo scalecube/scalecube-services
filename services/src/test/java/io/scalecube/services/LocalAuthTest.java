@@ -266,8 +266,10 @@ final class LocalAuthTest {
 
               final var serviceReference =
                   new ServiceReference(
-                      new ServiceMethodDefinition(
-                          action, Collections.emptyMap(), credentialsSupplier != null, null),
+                      ServiceMethodDefinition.builder()
+                          .action(action)
+                          .isSecured(credentialsSupplier != null)
+                          .build(),
                       new ServiceRegistration(ns, Collections.emptyMap(), Collections.emptyList()),
                       ServiceEndpoint.builder()
                           .id(UUID.randomUUID().toString())

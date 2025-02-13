@@ -5,11 +5,12 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.StringJoiner;
 
 /**
@@ -22,54 +23,37 @@ public class ServiceMethodDefinition implements Externalizable {
 
   private String action;
   private Map<String, String> tags;
-  private boolean isSecured;
   private String restMethod;
+  private boolean isSecured;
+  private List<String> allowedRoles;
 
-  /**
-   * Constructor for de/serialization purpose.
-   *
-   * @deprecated exposed only for de/serialization purpose.
-   */
   @Deprecated
   public ServiceMethodDefinition() {}
 
-  /**
-   * Constructor.
-   *
-   * @param action method name
-   */
-  public ServiceMethodDefinition(String action) {
-    this(action, Collections.emptyMap(), false, null);
+  private ServiceMethodDefinition(Builder builder) {
+    this.action = builder.action;
+    this.tags = Collections.unmodifiableMap(builder.tags);
+    this.restMethod = builder.restMethod;
+    this.isSecured = builder.isSecured;
+    this.allowedRoles = Collections.unmodifiableList(builder.allowedRoles);
   }
 
-  /**
-   * Constructor.
-   *
-   * @param action method name
-   * @param tags tags of this method
-   * @param isSecured is method protected by authentication
-   * @param restMethod REST method (optional)
-   */
-  public ServiceMethodDefinition(
-      String action, Map<String, String> tags, boolean isSecured, String restMethod) {
-    this.action = Objects.requireNonNull(action, "ServiceMethodDefinition.action is required");
-    this.tags = Collections.unmodifiableMap(new HashMap<>(tags));
-    this.isSecured = isSecured;
-    this.restMethod = restMethod;
+  public static Builder builder() {
+    return new Builder();
   }
 
-  /**
-   * Factory method that creates {@link ServiceMethodDefinition} instance from the service method.
-   *
-   * @param method servuce method
-   * @return {@link ServiceMethodDefinition} instance
-   */
+  public static ServiceMethodDefinition fromAction(String action) {
+    return new ServiceMethodDefinition.Builder().action(action).build();
+  }
+
   public static ServiceMethodDefinition fromMethod(Method method) {
-    return new ServiceMethodDefinition(
-        Reflect.methodName(method),
-        Reflect.serviceMethodTags(method),
-        Reflect.isSecured(method),
-        Reflect.restMethod(method));
+    return new Builder()
+        .action(Reflect.methodName(method))
+        .tags(Reflect.serviceMethodTags(method))
+        .restMethod(Reflect.restMethod(method))
+        .isSecured(Reflect.isSecured(method))
+        .allowedRoles(Reflect.allowedRoles(method))
+        .build();
   }
 
   public String action() {
@@ -80,12 +64,16 @@ public class ServiceMethodDefinition implements Externalizable {
     return tags;
   }
 
+  public String restMethod() {
+    return restMethod;
+  }
+
   public boolean isSecured() {
     return isSecured;
   }
 
-  public String restMethod() {
-    return restMethod;
+  public List<String> allowedRoles() {
+    return allowedRoles;
   }
 
   @Override
@@ -93,8 +81,9 @@ public class ServiceMethodDefinition implements Externalizable {
     return new StringJoiner(", ", ServiceMethodDefinition.class.getSimpleName() + "[", "]")
         .add("action='" + action + "'")
         .add("tags=" + tags)
-        .add("isSecured=" + isSecured)
         .add("restMethod='" + restMethod + "'")
+        .add("isSecured=" + isSecured)
+        .add("allowedRoles=" + allowedRoles)
         .toString();
   }
 
@@ -110,11 +99,17 @@ public class ServiceMethodDefinition implements Externalizable {
       out.writeObject(entry.getValue());
     }
 
+    // rest method
+    out.writeUTF(restMethod != null ? restMethod : "");
+
     // auth
     out.writeBoolean(isSecured);
 
-    // rest method
-    out.writeUTF(restMethod != null ? restMethod : "");
+    // roles
+    out.writeInt(allowedRoles.size());
+    for (String role : allowedRoles) {
+      out.writeUTF(role);
+    }
   }
 
   @Override
@@ -123,7 +118,7 @@ public class ServiceMethodDefinition implements Externalizable {
     action = in.readUTF();
 
     // tags
-    int tagsSize = in.readInt();
+    final var tagsSize = in.readInt();
     Map<String, String> tags = new HashMap<>(tagsSize);
     for (int i = 0; i < tagsSize; i++) {
       String key = in.readUTF();
@@ -132,11 +127,59 @@ public class ServiceMethodDefinition implements Externalizable {
     }
     this.tags = Collections.unmodifiableMap(tags);
 
-    // auth
-    this.isSecured = in.readBoolean();
-
     // rest method
     final var restMethod = in.readUTF();
     this.restMethod = !restMethod.isEmpty() ? restMethod : null;
+
+    // auth
+    this.isSecured = in.readBoolean();
+
+    // roles
+    final var allowedRolesSize = in.readInt();
+    List<String> allowedRoles = new ArrayList<>(allowedRolesSize);
+    for (int i = 0; i < allowedRolesSize; i++) {
+      allowedRoles.add(in.readUTF());
+    }
+    this.allowedRoles = Collections.unmodifiableList(allowedRoles);
+  }
+
+  public static class Builder {
+
+    private String action;
+    private Map<String, String> tags = new HashMap<>();
+    private String restMethod;
+    private boolean isSecured;
+    private List<String> allowedRoles = new ArrayList<>();
+
+    private Builder() {}
+
+    public Builder action(String action) {
+      this.action = action;
+      return this;
+    }
+
+    public Builder tags(Map<String, String> tags) {
+      this.tags = tags;
+      return this;
+    }
+
+    public Builder restMethod(String restMethod) {
+      this.restMethod = restMethod;
+      return this;
+    }
+
+    public Builder isSecured(boolean secured) {
+      this.isSecured = secured;
+      return this;
+    }
+
+    public Builder allowedRoles(List<String> allowedRoles) {
+      this.allowedRoles = allowedRoles;
+      return this;
+    }
+
+    public ServiceMethodDefinition build() {
+      return new ServiceMethodDefinition(this);
+    }
   }
 }

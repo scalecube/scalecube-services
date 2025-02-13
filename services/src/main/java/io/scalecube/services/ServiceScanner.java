@@ -47,12 +47,14 @@ public class ServiceScanner {
                     registration.tags(),
                     registration.methods().stream()
                         .map(
-                            methodDefinition ->
-                                new ServiceMethodDefinition(
-                                    replacePlaceholders(methodDefinition.action(), microservices),
-                                    methodDefinition.tags(),
-                                    methodDefinition.isSecured(),
-                                    methodDefinition.restMethod()))
+                            smd ->
+                                ServiceMethodDefinition.builder()
+                                    .action(replacePlaceholders(smd.action(), microservices))
+                                    .tags(smd.tags())
+                                    .restMethod(smd.restMethod())
+                                    .isSecured(smd.isSecured())
+                                    .allowedRoles(smd.allowedRoles())
+                                    .build())
                         .toList()))
         .toList();
   }

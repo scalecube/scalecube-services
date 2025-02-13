@@ -27,7 +27,7 @@ public class StaticAddressRouter implements Router {
   public StaticAddressRouter(Address address) {
     serviceReference =
         new ServiceReference(
-            new ServiceMethodDefinition(UUID.randomUUID().toString()),
+            ServiceMethodDefinition.fromAction(UUID.randomUUID().toString()),
             new ServiceRegistration(
                 UUID.randomUUID().toString(), Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder().id(UUID.randomUUID().toString()).address(address).build());

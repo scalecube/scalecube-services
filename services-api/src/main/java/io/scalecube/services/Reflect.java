@@ -20,6 +20,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -38,7 +39,7 @@ public final class Reflect {
   }
 
   /**
-   * extract parameterized return value of a method.
+   * Util function to extract parameterized return value of a method.
    *
    * @param method to extract type from.
    * @return the generic type of the return value or object.
@@ -151,32 +152,25 @@ public final class Reflect {
   }
 
   /**
-   * Parse <code>serviceInterface</code> class and puts available methods annotated by {@link
-   * ServiceMethod} annotation to {@link Method} -> {@link MethodInfo} mapping.
+   * Parse given service interface and method, and return {@link MethodInfo} as result.
    *
-   * @param serviceInterface - service interface to be parsed.
-   * @return - mapping form available service methods of the <code>serviceInterface</code> to their
-   *     descriptions
+   * @param serviceInterface serviceInterface
+   * @return {@link MethodInfo} instance
    */
-  public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
-    return Collections.unmodifiableMap(
-        serviceMethods(serviceInterface).values().stream()
-            .collect(
-                Collectors.toMap(
-                    Function.identity(),
-                    method ->
-                        new MethodInfo(
-                            serviceName(serviceInterface),
-                            methodName(method),
-                            parameterizedReturnType(method),
-                            isReturnTypeServiceMessage(method),
-                            communicationMode(method),
-                            method.getParameterCount(),
-                            requestType(method),
-                            isRequestTypeServiceMessage(method),
-                            isSecured(method),
-                            null,
-                            restMethod(method)))));
+  public static MethodInfo methodInfo(Class<?> serviceInterface, Method method) {
+    return new MethodInfo(
+        serviceName(serviceInterface),
+        methodName(method),
+        parameterizedReturnType(method),
+        isReturnTypeServiceMessage(method),
+        communicationMode(method),
+        method.getParameterCount(),
+        requestType(method),
+        isRequestTypeServiceMessage(method),
+        isSecured(method),
+        null /*scheduler*/,
+        restMethod(method),
+        allowedRoles(method));
   }
 
   /**
@@ -272,11 +266,23 @@ public final class Reflect {
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class));
   }
 
+  /**
+   * Extracting method name, checks for annotation {@link ServiceMethod}.
+   *
+   * @param method method
+   * @return method name
+   */
   public static String methodName(Method method) {
     ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
     return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
   }
 
+  /**
+   * Extracting REST method name, checks for annotation {@link RestMethod}.
+   *
+   * @param method method
+   * @return method name
+   */
   public static String restMethod(Method method) {
     RestMethod methodAnnotation = method.getAnnotation(RestMethod.class);
     return methodAnnotation != null ? methodAnnotation.value() : null;
@@ -329,7 +335,7 @@ public final class Reflect {
   }
 
   /**
-   * This method is used to get catual {@link CommunicationMode} os service method.
+   * This method is used to get actual {@link CommunicationMode} of service method.
    *
    * <p>The following modes are supported:
    *
@@ -366,15 +372,53 @@ public final class Reflect {
             || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 
+  /**
+   * Utility function to check does given class have annotation {@link Service}.
+   *
+   * @param type type to check for {@link Service} annotation
+   * @return result
+   */
   public static boolean isService(Class<?> type) {
     return type.isAnnotationPresent(Service.class);
   }
 
+  /**
+   * Utility function to check whether given method is considered secured, i.e does it have
+   * annotation {@link Secured}, of, if not, then does declaring class contains annotation {@link
+   * Secured}.
+   *
+   * @param method method
+   * @return result
+   */
   public static boolean isSecured(Method method) {
     return method.isAnnotationPresent(Secured.class)
         || method.getDeclaringClass().isAnnotationPresent(Secured.class);
   }
 
+  /**
+   * Utility function to parse list of allowed roles from {@link Secured} annotation.
+   *
+   * @param method method
+   * @return list of roles
+   */
+  public static List<String> allowedRoles(Method method) {
+    Secured annotation = method.getAnnotation(Secured.class);
+    if (annotation == null) {
+      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
+    }
+    if (annotation == null) {
+      return Collections.emptyList();
+    }
+    return Arrays.asList(annotation.roles());
+  }
+
+  /**
+   * Parsing annotation {@code ExecuteOn} and extracts {@link Scheduler} instance as result.
+   *
+   * @param method method
+   * @param schedulers schedulers map
+   * @return {@link Scheduler} instance
+   */
   public static Scheduler executeOnScheduler(Method method, Map<String, Scheduler> schedulers) {
     if (schedulers == null) {
       return Schedulers.immediate();
