@@ -62,16 +62,18 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    final Map<Address, Mono<RSocket>> monoMap = this.rsockets; // keep reference for threadsafety
-    final Address address = serviceReference.address();
-    Mono<RSocket> mono =
+    final var monoMap = rsockets;
+    final var address = serviceReference.address();
+
+    final var mono =
         monoMap.computeIfAbsent(
             address,
             key ->
                 getCredentials(serviceReference)
-                    .flatMap(creds -> connect(key, creds, monoMap))
+                    .flatMap(credentials -> connect(key, credentials, monoMap))
                     .cacheInvalidateIf(RSocket::isDisposed)
                     .doOnError(ex -> monoMap.remove(key)));
+
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
 
@@ -101,10 +103,10 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(
-      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
+      Address address, Map<String, String> credentials, Map<Address, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
         .payloadDecoder(PayloadDecoder.DEFAULT)
-        .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
+        .setupPayload(encodeConnectionSetup(new ConnectionSetup(credentials)))
         .connect(() -> clientTransportFactory.clientTransport(address))
         .doOnSuccess(
             rsocket -> {
