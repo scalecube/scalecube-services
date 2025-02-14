@@ -254,10 +254,11 @@ final class LocalAuthTest {
     return new ServiceCall()
         .transport(
             new RSocketClientTransport(
-                credentialsSupplier,
                 HeadersCodec.DEFAULT_INSTANCE,
                 DataCodec.getAllInstances(),
-                RSocketClientTransportFactory.websocket().apply(loopResources)))
+                RSocketClientTransportFactory.websocket().apply(loopResources),
+                credentialsSupplier,
+                null))
         .router(
             (serviceRegistry, request) -> {
               final var qualifier = request.qualifier();

@@ -96,6 +96,10 @@ public class ServiceReference {
     return allowedRoles;
   }
 
+  public boolean hasAllowedRoles() {
+    return allowedRoles != null && allowedRoles.size() > 0;
+  }
+
   private static Map<String, String> mergeTags(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,

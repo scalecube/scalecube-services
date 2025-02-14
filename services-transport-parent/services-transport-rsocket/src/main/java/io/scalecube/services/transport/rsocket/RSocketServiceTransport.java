@@ -15,6 +15,7 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServerTransport.Authenticator;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -45,6 +46,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   private Collection<DataCodec> dataCodecs = DataCodec.getAllInstances();
   private CredentialsSupplier credentialsSupplier;
   private Authenticator authenticator;
+  private List<String> allowedRoles;
 
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
       RSocketServerTransportFactory.websocket();
@@ -75,6 +77,7 @@ public class RSocketServiceTransport implements ServiceTransport {
     this.serverLoopResources = other.serverLoopResources;
     this.serverTransportFactory = other.serverTransportFactory;
     this.clientTransportFactory = other.clientTransportFactory;
+    this.allowedRoles = other.allowedRoles;
   }
 
   /**
@@ -163,13 +166,26 @@ public class RSocketServiceTransport implements ServiceTransport {
     return rst;
   }
 
+  /**
+   * Setter for {@code allowedRoles}.
+   *
+   * @param allowedRoles allowedRoles
+   * @return new {@link RSocketServiceTransport} instance
+   */
+  public RSocketServiceTransport allowedRoles(List<String> allowedRoles) {
+    RSocketServiceTransport rst = new RSocketServiceTransport(this);
+    rst.allowedRoles = allowedRoles;
+    return rst;
+  }
+
   @Override
   public ClientTransport clientTransport() {
     return new RSocketClientTransport(
-        credentialsSupplier,
         headersCodec,
         dataCodecs,
-        clientTransportFactory.apply(clientLoopResources));
+        clientTransportFactory.apply(clientLoopResources),
+        credentialsSupplier,
+        allowedRoles);
   }
 
   @Override
