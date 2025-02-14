@@ -7,8 +7,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
@@ -22,11 +22,8 @@ import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -164,26 +161,11 @@ final class LocalAuthTest {
     }
   }
 
-  @SuppressWarnings("EnhancedSwitchMigration")
   private static Mono<byte[]> credentials(ServiceReference serviceReference, String serviceRole) {
     final Map<String, String> credentials = new HashMap<>();
     credentials.put("username", "Alice");
     credentials.put("password", "qwerty");
-
-    //noinspection SwitchStatementWithTooFewBranches
-    switch (serviceReference.namespace()) {
-      case "secured":
-        return Mono.just(encodeCredentials(credentials));
-    }
-
-    switch (serviceReference.qualifier()) {
-      case "partiallySecured/publicMethod":
-        return Mono.just(new byte[0]);
-      case "partiallySecured/securedMethod":
-        return Mono.just(encodeCredentials(credentials));
-    }
-
-    return Mono.just(new byte[0]);
+    return Mono.just(encodeCredentials(credentials));
   }
 
   private static Mono<byte[]> invalidCredentials(
@@ -223,40 +205,27 @@ final class LocalAuthTest {
     return new UserProfile(authData.get("name"), authData.get("role"));
   }
 
-  @SuppressWarnings("resource")
   private static ServiceCall serviceCall(CredentialsSupplier credentialsSupplier) {
-    final var loopResources = LOOP_RESOURCE;
-    final var address = service.serviceAddress();
+    return serviceCall(credentialsSupplier, null);
+  }
 
+  private static ServiceCall serviceCall(
+      CredentialsSupplier credentialsSupplier, String serviceRole) {
+    //noinspection resource
     return new ServiceCall()
         .transport(
             new RSocketClientTransport(
                 HeadersCodec.DEFAULT_INSTANCE,
                 DataCodec.getAllInstances(),
-                RSocketClientTransportFactory.websocket().apply(loopResources),
+                RSocketClientTransportFactory.websocket().apply(LOOP_RESOURCE),
                 credentialsSupplier,
                 null))
         .router(
-            (serviceRegistry, request) -> {
-              final var qualifier = request.qualifier();
-              final var ind = qualifier.lastIndexOf(Qualifier.DELIMITER);
-              final var ns = qualifier.substring(0, ind);
-              final var action = qualifier.substring(ind + 1);
-
-              final var serviceReference =
-                  new ServiceReference(
-                      ServiceMethodDefinition.builder()
-                          .action(action)
-                          .isSecured(credentialsSupplier != null)
-                          .build(),
-                      new ServiceRegistration(ns, Collections.emptyMap(), Collections.emptyList()),
-                      ServiceEndpoint.builder()
-                          .id(UUID.randomUUID().toString())
-                          .address(address)
-                          .build());
-
-              return Optional.of(serviceReference);
-            });
+            StaticAddressRouter.builder()
+                .address(service.serviceAddress())
+                .secured(credentialsSupplier != null)
+                .serviceRole(serviceRole)
+                .build());
   }
 
   private static byte[] encodeCredentials(Map<String, String> credentials) {

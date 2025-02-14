@@ -51,7 +51,7 @@ public class ServiceMethodDefinition implements Externalizable {
         .action(Reflect.methodName(method))
         .tags(Reflect.serviceMethodTags(method))
         .restMethod(Reflect.restMethod(method))
-        .isSecured(Reflect.isSecured(method))
+        .secured(Reflect.isSecured(method))
         .allowedRoles(Reflect.allowedRoles(method))
         .build();
   }
@@ -168,7 +168,7 @@ public class ServiceMethodDefinition implements Externalizable {
       return this;
     }
 
-    public Builder isSecured(boolean secured) {
+    public Builder secured(boolean secured) {
       this.isSecured = secured;
       return this;
     }

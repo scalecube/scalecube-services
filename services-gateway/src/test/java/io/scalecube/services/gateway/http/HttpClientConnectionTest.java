@@ -102,7 +102,7 @@ class HttpClientConnectionTest {
     return new ServiceCall()
         .logger("serviceCall")
         .transport(new HttpGatewayClientTransport.Builder().address(address).build())
-        .router(new StaticAddressRouter(address));
+        .router(StaticAddressRouter.fromAddress(address));
   }
 
   @Service

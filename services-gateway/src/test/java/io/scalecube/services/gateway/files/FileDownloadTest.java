@@ -108,7 +108,7 @@ public class FileDownloadTest {
   void beforeEach() {
     serviceCall =
         new ServiceCall()
-            .router(new StaticAddressRouter(wsAddress))
+            .router(StaticAddressRouter.fromAddress(wsAddress))
             .transport(new WebsocketGatewayClientTransport.Builder().address(wsAddress).build());
   }
 

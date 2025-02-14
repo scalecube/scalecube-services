@@ -65,7 +65,7 @@ class WebsocketLocalGatewayTest {
                         .build()));
 
     gatewayAddress = gateway.gateway("WS").address();
-    router = new StaticAddressRouter(gatewayAddress);
+    router = StaticAddressRouter.fromAddress(gatewayAddress);
   }
 
   @BeforeEach

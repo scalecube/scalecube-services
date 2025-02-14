@@ -142,7 +142,7 @@ class WebsocketClientConnectionTest {
                     .address(gatewayAddress)
                     .headers(Collections.singletonMap(headerKey, headerValue))
                     .build())
-            .router(new StaticAddressRouter(gatewayAddress))) {
+            .router(StaticAddressRouter.fromAddress(gatewayAddress))) {
       StepVerifier.create(
               serviceCall
                   .api(TestService.class)
@@ -157,6 +157,6 @@ class WebsocketClientConnectionTest {
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
         .transport(new WebsocketGatewayClientTransport.Builder().address(address).build())
-        .router(new StaticAddressRouter(address));
+        .router(StaticAddressRouter.fromAddress(address));
   }
 }

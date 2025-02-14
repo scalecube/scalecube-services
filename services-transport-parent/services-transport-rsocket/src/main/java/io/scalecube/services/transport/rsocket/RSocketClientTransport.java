@@ -74,23 +74,23 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private String selectServiceRole(ServiceReference serviceReference) {
-    if (credentialsSupplier == null
-        || !serviceReference.isSecured()
-        || !serviceReference.hasAllowedRoles()) {
+    if (credentialsSupplier == null || !serviceReference.isSecured()) {
       return null;
     }
 
-    if (allowedRoles == null || allowedRoles.isEmpty()) {
-      return serviceReference.allowedRoles().get(0);
-    }
-
-    for (var allowedRole : allowedRoles) {
-      if (serviceReference.allowedRoles().contains(allowedRole)) {
-        return allowedRole;
+    if (serviceReference.hasAllowedRoles()) {
+      if (allowedRoles == null || allowedRoles.isEmpty()) {
+        return serviceReference.allowedRoles().get(0);
       }
+      for (var allowedRole : allowedRoles) {
+        if (serviceReference.allowedRoles().contains(allowedRole)) {
+          return allowedRole;
+        }
+      }
+      throw new ForbiddenException("Forbidden");
     }
 
-    throw new ForbiddenException("Forbidden");
+    return null;
   }
 
   private Mono<RSocket> connect(

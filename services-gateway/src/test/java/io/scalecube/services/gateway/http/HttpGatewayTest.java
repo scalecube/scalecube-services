@@ -61,7 +61,7 @@ class HttpGatewayTest {
                     () -> new HttpGateway.Builder().id("HTTP").errorMapper(ERROR_MAPPER).build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
-    router = new StaticAddressRouter(gatewayAddress);
+    router = StaticAddressRouter.fromAddress(gatewayAddress);
 
     microservices =
         Microservices.start(

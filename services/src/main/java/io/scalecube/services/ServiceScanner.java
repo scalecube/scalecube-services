@@ -52,7 +52,7 @@ public class ServiceScanner {
                                     .action(replacePlaceholders(smd.action(), microservices))
                                     .tags(smd.tags())
                                     .restMethod(smd.restMethod())
-                                    .isSecured(smd.isSecured())
+                                    .secured(smd.isSecured())
                                     .allowedRoles(smd.allowedRoles())
                                     .build())
                         .toList()))

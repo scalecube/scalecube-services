@@ -78,7 +78,7 @@ class ScalecubeServiceDiscoveryTest {
                             ServiceMethodDefinition.builder()
                                 .action("action0")
                                 .tags(Collections.singletonMap("KKK0", "VVV"))
-                                .isSecured(true)
+                                .secured(true)
                                 .allowedRoles(List.of("read", "write"))
                                 .build()))))
             .appendServiceRegistrations(
@@ -90,7 +90,7 @@ class ScalecubeServiceDiscoveryTest {
                             ServiceMethodDefinition.builder()
                                 .action("action1")
                                 .tags(Collections.singletonMap("KKK1", "VVV"))
-                                .isSecured(true)
+                                .secured(true)
                                 .allowedRoles(List.of("replay", "archive"))
                                 .build()))))
             .appendServiceRegistrations(
@@ -102,7 +102,7 @@ class ScalecubeServiceDiscoveryTest {
                             ServiceMethodDefinition.builder()
                                 .action("action2")
                                 .tags(Collections.singletonMap("KKK2", "VVV"))
-                                .isSecured(true)
+                                .secured(true)
                                 .build()))))
             .build();
 
