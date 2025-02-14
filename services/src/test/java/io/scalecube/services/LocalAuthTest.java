@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.auth.Authenticator.NULL_AUTH_CONTEXT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -8,7 +9,6 @@ import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.sut.security.AnotherSecuredService;
 import io.scalecube.services.sut.security.AnotherSecuredServiceImpl;
 import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
@@ -21,6 +21,7 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,16 +54,11 @@ final class LocalAuthTest {
             new Context()
                 .transport(
                     () -> new RSocketServiceTransport().authenticator(LocalAuthTest::authenticate))
+                .defaultPrincipalMapper(p -> mapPrincipal((Map<String, String>) p))
                 .services(
-                    ServiceInfo.fromServiceInstance(new SecuredServiceImpl())
-                        .principalMapper(p -> mapPrincipal((Map<String, String>) p))
-                        .build(),
-                    ServiceInfo.fromServiceInstance(new AnotherSecuredServiceImpl())
-                        .principalMapper(p -> mapPrincipal((Map<String, String>) p))
-                        .build(),
-                    ServiceInfo.fromServiceInstance(new PartiallySecuredServiceImpl())
-                        .principalMapper(p -> mapPrincipal((Map<String, String>) p))
-                        .build()));
+                    new SecuredServiceImpl(),
+                    new AnotherSecuredServiceImpl(),
+                    new PartiallySecuredServiceImpl()));
   }
 
   @AfterAll
@@ -93,40 +89,14 @@ final class LocalAuthTest {
   }
 
   @Test
-  @DisplayName("Authentication failed if authenticator not provided")
-  void failedAuthenticationWhenAuthenticatorNotProvided() {
-    try (var caller = serviceCall(null)) {
-      AnotherSecuredService securedService = caller.api(AnotherSecuredService.class);
-
-      Consumer<Throwable> verifyError =
-          th -> {
-            assertEquals(UnauthorizedException.class, th.getClass());
-            assertEquals("Authentication failed", th.getMessage());
-          };
-
-      StepVerifier.create(securedService.helloWithRequest("Bob"))
-          .expectErrorSatisfies(verifyError)
-          .verify();
-
-      StepVerifier.create(securedService.helloWithPrincipal())
-          .expectErrorSatisfies(verifyError)
-          .verify();
-
-      StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
-          .expectErrorSatisfies(verifyError)
-          .verify();
-    }
-  }
-
-  @Test
   @DisplayName("Authentication failed with empty credentials")
   void failedAuthenticationWithEmptyCredentials() {
-    try (var caller = serviceCall(null)) {
+    try (var caller = serviceCall(LocalAuthTest::emptyCredentials)) {
       SecuredService securedService = caller.api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
           th -> {
-            assertEquals(UnauthorizedException.class, th.getClass());
+            assertEquals(RejectedSetupException.class, th.getClass());
             assertEquals("Authentication failed", th.getMessage());
           };
 
@@ -153,7 +123,7 @@ final class LocalAuthTest {
       Consumer<Throwable> verifyError =
           th -> {
             assertEquals(RejectedSetupException.class, th.getClass());
-            assertEquals("Authentication failed (username or password incorrect)", th.getMessage());
+            assertEquals("Authentication failed", th.getMessage());
           };
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
@@ -199,7 +169,7 @@ final class LocalAuthTest {
   }
 
   @SuppressWarnings("EnhancedSwitchMigration")
-  private static Mono<byte[]> credentials(ServiceReference serviceReference) {
+  private static Mono<byte[]> credentials(ServiceReference serviceReference, String serviceRole) {
     final Map<String, String> credentials = new HashMap<>();
     credentials.put("username", "Alice");
     credentials.put("password", "qwerty");
@@ -220,14 +190,32 @@ final class LocalAuthTest {
     return Mono.just(new byte[0]);
   }
 
-  private static Mono<byte[]> invalidCredentials(ServiceReference serviceReference) {
+  private static Mono<byte[]> invalidCredentials(
+      ServiceReference serviceReference, String serviceRole) {
     final Map<String, String> credentials = new HashMap<>();
     credentials.put("username", "Invalid-User");
     credentials.put("password", "Invalid-Password");
     return Mono.just(encodeCredentials(credentials));
   }
 
-  private static Mono<Map<String, String>> authenticate(Map<String, String> headers) {
+  private static Mono<byte[]> emptyCredentials(
+      ServiceReference serviceReference, String serviceRole) {
+    return Mono.just(encodeCredentials(new HashMap<>()));
+  }
+
+  private static Mono<Object> authenticate(byte[] credentials) {
+    if (credentials.length == 0) {
+      return Mono.just(NULL_AUTH_CONTEXT);
+    }
+
+    Map<String, String> headers;
+    try {
+      //noinspection unchecked
+      headers = new JsonMapper().readValue(credentials, HashMap.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+
     String username = headers.get("username");
     String password = headers.get("password");
 
@@ -238,8 +226,7 @@ final class LocalAuthTest {
       return Mono.just(authData);
     }
 
-    return Mono.error(
-        new UnauthorizedException("Authentication failed (username or password incorrect)"));
+    return Mono.error(new UnauthorizedException("Authentication failed"));
   }
 
   private static UserProfile mapPrincipal(Map<String, String> authData) {
