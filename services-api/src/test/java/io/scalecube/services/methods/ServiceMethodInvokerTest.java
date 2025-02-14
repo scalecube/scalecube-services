@@ -65,6 +65,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -106,6 +107,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -147,6 +149,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -189,6 +192,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -234,6 +238,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -278,6 +283,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -326,6 +332,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -371,6 +378,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     serviceMethodInvoker =
@@ -414,6 +422,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     //noinspection unchecked,rawtypes
@@ -459,6 +468,7 @@ class ServiceMethodInvokerTest {
             AUTH,
             Schedulers.immediate(),
             null,
+            Collections.emptyList(),
             Collections.emptyList());
 
     //noinspection unchecked,rawtypes

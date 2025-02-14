@@ -170,7 +170,8 @@ public final class Reflect {
         isSecured(method),
         null /*scheduler*/,
         restMethod(method),
-        allowedRoles(method));
+        allowedRoles(method),
+        allowedPermissions(method));
   }
 
   /**
@@ -406,10 +407,21 @@ public final class Reflect {
     if (annotation == null) {
       annotation = method.getDeclaringClass().getAnnotation(Secured.class);
     }
+    return annotation != null ? Arrays.asList(annotation.roles()) : Collections.emptyList();
+  }
+
+  /**
+   * Utility function to parse list of allowed permissions from {@link Secured} annotation.
+   *
+   * @param method method
+   * @return list of roles
+   */
+  public static List<String> allowedPermissions(Method method) {
+    Secured annotation = method.getAnnotation(Secured.class);
     if (annotation == null) {
-      return Collections.emptyList();
+      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
     }
-    return Arrays.asList(annotation.roles());
+    return annotation != null ? Arrays.asList(annotation.permissions()) : Collections.emptyList();
   }
 
   /**

@@ -182,7 +182,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.isSecured(method),
                                   Reflect.executeOnScheduler(serviceMethod, schedulers),
                                   Reflect.restMethod(method),
-                                  Reflect.allowedRoles(method));
+                                  Reflect.allowedRoles(method),
+                                  Reflect.allowedPermissions(method));
 
                           checkMethodInfo(methodInfo);
 

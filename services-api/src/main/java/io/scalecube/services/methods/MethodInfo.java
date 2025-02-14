@@ -26,6 +26,7 @@ public final class MethodInfo {
   private final Scheduler scheduler;
   private final String restMethod;
   private final List<String> allowedRoles;
+  private final List<String> allowedPermissions;
 
   /**
    * Create a new service info.
@@ -39,9 +40,10 @@ public final class MethodInfo {
    * @param requestType the type of the request
    * @param isRequestTypeServiceMessage is request service message
    * @param isSecured is method protected by authentication
-   * @param scheduler scheduler
-   * @param restMethod restMethod
+   * @param scheduler scheduler (optional)
+   * @param restMethod restMethod (optional)
    * @param allowedRoles allowedRoles
+   * @param allowedPermissions allowedPermissions
    */
   public MethodInfo(
       String serviceName,
@@ -55,7 +57,8 @@ public final class MethodInfo {
       boolean isSecured,
       Scheduler scheduler,
       String restMethod,
-      List<String> allowedRoles) {
+      List<String> allowedRoles,
+      List<String> allowedPermissions) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
@@ -70,6 +73,7 @@ public final class MethodInfo {
     this.scheduler = scheduler;
     this.restMethod = restMethod;
     this.allowedRoles = allowedRoles;
+    this.allowedPermissions = allowedPermissions;
   }
 
   public String serviceName() {
@@ -132,6 +136,10 @@ public final class MethodInfo {
     return allowedRoles;
   }
 
+  public List<String> allowedPermissions() {
+    return allowedPermissions;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", MethodInfo.class.getSimpleName() + "[", "]")
@@ -149,6 +157,7 @@ public final class MethodInfo {
         .add("scheduler=" + scheduler)
         .add("restMethod=" + restMethod)
         .add("allowedRoles=" + allowedRoles)
+        .add("allowedPermissions=" + allowedPermissions)
         .toString();
   }
 }
