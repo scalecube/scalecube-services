@@ -6,7 +6,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
+import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;

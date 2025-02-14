@@ -24,7 +24,7 @@ import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTran
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
-import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
+import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -59,8 +59,7 @@ public class FileDownloadTest {
   @BeforeAll
   static void beforeAll() {
     credentialsSupplier = mock(CredentialsSupplier.class);
-    when(credentialsSupplier.apply(any(ServiceReference.class)))
-        .thenReturn(Mono.never());
+    when(credentialsSupplier.apply(any(ServiceReference.class))).thenReturn(Mono.never());
 
     gateway =
         Microservices.start(

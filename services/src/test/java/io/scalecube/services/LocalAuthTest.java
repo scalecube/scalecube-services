@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.Qualifier;
@@ -13,10 +15,9 @@ import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
 import io.scalecube.services.sut.security.UserProfile;
+import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
-import io.scalecube.services.transport.rsocket.ConnectionSetupCodec;
 import io.scalecube.services.transport.rsocket.RSocketClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -197,7 +198,8 @@ final class LocalAuthTest {
     }
   }
 
-  private static Mono<Map<String, String>> credentials(ServiceReference serviceReference) {
+  @SuppressWarnings("EnhancedSwitchMigration")
+  private static Mono<byte[]> credentials(ServiceReference serviceReference) {
     final Map<String, String> credentials = new HashMap<>();
     credentials.put("username", "Alice");
     credentials.put("password", "qwerty");
@@ -205,24 +207,24 @@ final class LocalAuthTest {
     switch (serviceReference.namespace()) {
       case "anotherSecured":
       case "secured":
-        return Mono.just(credentials);
+        return Mono.just(encodeCredentials(credentials));
     }
 
     switch (serviceReference.qualifier()) {
       case "partiallySecured/publicMethod":
-        return Mono.empty();
+        return Mono.just(new byte[0]);
       case "partiallySecured/securedMethod":
-        return Mono.just(credentials);
+        return Mono.just(encodeCredentials(credentials));
     }
 
-    return Mono.just(Collections.emptyMap());
+    return Mono.just(new byte[0]);
   }
 
-  private static Mono<Map<String, String>> invalidCredentials(ServiceReference serviceReference) {
+  private static Mono<byte[]> invalidCredentials(ServiceReference serviceReference) {
     final Map<String, String> credentials = new HashMap<>();
     credentials.put("username", "Invalid-User");
     credentials.put("password", "Invalid-Password");
-    return Mono.just(credentials);
+    return Mono.just(encodeCredentials(credentials));
   }
 
   private static Mono<Map<String, String>> authenticate(Map<String, String> headers) {
@@ -253,7 +255,6 @@ final class LocalAuthTest {
         .transport(
             new RSocketClientTransport(
                 credentialsSupplier,
-                ConnectionSetupCodec.DEFAULT_INSTANCE,
                 HeadersCodec.DEFAULT_INSTANCE,
                 DataCodec.getAllInstances(),
                 RSocketClientTransportFactory.websocket().apply(loopResources)))
@@ -278,5 +279,13 @@ final class LocalAuthTest {
 
               return Optional.of(serviceReference);
             });
+  }
+
+  private static byte[] encodeCredentials(Map<String, String> credentials) {
+    try {
+      return new JsonMapper().writeValueAsBytes(credentials);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 }

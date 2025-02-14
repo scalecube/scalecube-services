@@ -3,16 +3,13 @@ package io.scalecube.services.transport.rsocket;
 import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufInputStream;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -20,6 +17,7 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
+import io.scalecube.services.transport.api.ServerTransport.Authenticator;
 import java.util.Collection;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -32,28 +30,24 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
 
-  private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
-  private final Authenticator<Object> authenticator;
+  private final Authenticator authenticator;
   private final ServiceRegistry serviceRegistry;
 
   /**
    * Constructor.
    *
-   * @param connectionSetupCodec connectionSetupCodec
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param authenticator authenticator
    * @param serviceRegistry serviceRegistry
    */
   public RSocketServiceAcceptor(
-      ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
-      Authenticator<Object> authenticator,
+      Authenticator authenticator,
       ServiceRegistry serviceRegistry) {
-    this.connectionSetupCodec = connectionSetupCodec;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.authenticator = authenticator;
@@ -62,33 +56,23 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
-    LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload);
-
-    return Mono.justOrEmpty(decodeConnectionSetup(setupPayload.data()))
-        .flatMap(connectionSetup -> authenticate(rsocket, connectionSetup))
+    return authenticate(rsocket, setupPayload.data())
         .flatMap(authData -> Mono.fromCallable(() -> newRSocket(authData)))
         .switchIfEmpty(Mono.fromCallable(() -> newRSocket(null)))
-        .cast(RSocket.class);
+        .cast(RSocket.class)
+        .doOnSubscribe(s -> LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload));
   }
 
-  private ConnectionSetup decodeConnectionSetup(ByteBuf byteBuf) {
-    // Work with byteBuf as usual and dont release it here, because it will be done by rsocket
-    if (byteBuf.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(byteBuf, false /*releaseOnClose*/)) {
-        return connectionSetupCodec.decode(stream);
-      } catch (Throwable ex) {
-        throw new MessageCodecException("Failed to decode connection setup", ex);
-      }
-    }
-    return null;
-  }
-
-  private Mono<Object> authenticate(RSocket rsocket, ConnectionSetup connectionSetup) {
-    if (authenticator == null || connectionSetup == null || !connectionSetup.hasCredentials()) {
+  private Mono<Object> authenticate(RSocket rsocket, ByteBuf connectionSetup) {
+    if (authenticator == null) {
       return Mono.empty();
     }
+
+    final var credentials = new byte[connectionSetup.readableBytes()];
+    connectionSetup.getBytes(connectionSetup.readerIndex(), credentials);
+
     return authenticator
-        .apply(connectionSetup.credentials())
+        .authenticate(credentials)
         .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] authenticated", rsocket))
         .doOnError(
             ex ->
