@@ -59,7 +59,8 @@ public class FileDownloadTest {
   @BeforeAll
   static void beforeAll() {
     credentialsSupplier = mock(CredentialsSupplier.class);
-    when(credentialsSupplier.apply(any(ServiceReference.class))).thenReturn(Mono.never());
+    when(credentialsSupplier.credentials(any(ServiceReference.class), any(String.class)))
+        .thenReturn(Mono.never());
 
     gateway =
         Microservices.start(
