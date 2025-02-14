@@ -39,10 +39,10 @@ public final class Reflect {
   }
 
   /**
-   * Util function to extract parameterized return value of a method.
+   * Extracts parameterized return value of a method.
    *
-   * @param method to extract type from.
-   * @return the generic type of the return value or object.
+   * @param method method to inspect
+   * @return the generic type of the return value or object
    */
   public static Type parameterizedReturnType(Method method) {
     if (method.isAnnotationPresent(ResponseType.class)) {
@@ -64,10 +64,10 @@ public final class Reflect {
   }
 
   /**
-   * Util function to check if return type of method is ServiceMessage.
+   * Checks if return type of method is {@link ServiceMessage}.
    *
    * @param method method to inspect
-   * @return true if return type of method is ServiceMessage, otherwise false
+   * @return true if return type of method is {@link ServiceMessage}, otherwise false
    */
   public static boolean isReturnTypeServiceMessage(Method method) {
     Type type = method.getGenericReturnType();
@@ -82,14 +82,14 @@ public final class Reflect {
   }
 
   /**
-   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
-   * in case the method is annotated with @RequestType this type will always be chosen. if the
-   * parameter is generic eg. &lt;String&gt; the actual type will be used. in case there is no
-   * annotation and the type is not generic then return the actual type. in case method accepts
-   * service message and no RequestType annotation is present then return Object.class
+   * Returns the the type of method parameter. In case the method is annotated with {@link
+   * RequestType} this type will always be chosen. If the parameter is generic, eg. {@link String},
+   * then actual type will be used. In case there is no annotation and the type is not generic then
+   * return the actual type. In case method accepts service message and no RequestType annotation is
+   * present then return Object.class
    *
-   * @param method in inspection.
-   * @return type of parameter [0] or void
+   * @param method in inspection
+   * @return type of method parameter
    */
   public static Class<?> requestType(Method method) {
     if (method.getParameterTypes().length > 0) {
@@ -114,10 +114,10 @@ public final class Reflect {
   }
 
   /**
-   * Util function to check if the first parameter of method is ServiceMessage.
+   * Checks if the first parameter of method is {@link ServiceMessage}.
    *
    * @param method method to inspect
-   * @return true if the first parameter of method is ServiceMessage, otherwise false
+   * @return true if the first parameter of method is {@link ServiceMessage}, otherwise false
    */
   public static boolean isRequestTypeServiceMessage(Method method) {
     Type[] parameterTypes = method.getGenericParameterTypes();
@@ -127,6 +127,7 @@ public final class Reflect {
     }
 
     if (parameterTypes[0] instanceof ParameterizedType) {
+      //noinspection PatternVariableCanBeUsed
       ParameterizedType parameterizedType = (ParameterizedType) parameterTypes[0];
       return ServiceMessage.class.equals(parameterizedType.getActualTypeArguments()[0]);
     }
@@ -135,10 +136,10 @@ public final class Reflect {
   }
 
   /**
-   * Util function that returns the parameterizedType of a given object.
+   * Returns the parameterized type of a given object.
    *
    * @param object to inspect
-   * @return the parameterized Type of a given object or Object class if unknown.
+   * @return the parameterized type
    */
   @SuppressWarnings("unused")
   public static Type parameterizedType(Object object) {
@@ -175,9 +176,9 @@ public final class Reflect {
   }
 
   /**
-   * Util function that returns the parameterized of the request Type of a given object.
+   * Returns the parameterized of the request type of a given object.
    *
-   * @return the parameterized Type of a given object or Object class if unknown.
+   * @return the parameterized type
    */
   public static Type parameterizedRequestType(Method method) {
     if (method != null && method.getGenericParameterTypes().length > 0) {
@@ -191,17 +192,16 @@ public final class Reflect {
   }
 
   /**
-   * Util function to extract service name from service api.
+   * Extracts service name from service interface.
    *
-   * @param serviceInterface with @Service annotation.
-   * @return service name.
+   * @param serviceInterface serviceInterface with {@link Service} annotation
+   * @return service name
    */
   public static String serviceName(Class<?> serviceInterface) {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     if (serviceAnnotation == null) {
-      throw new IllegalArgumentException(
-          String.format("Not a service interface: %s", serviceInterface));
+      throw new IllegalArgumentException("Not a service interface: " + serviceInterface);
     }
     return serviceAnnotation.value().length() > 0
         ? serviceAnnotation.value()
@@ -209,9 +209,9 @@ public final class Reflect {
   }
 
   /**
-   * Util function to extract service tags from service api.
+   * Extracts service tags from service interface.
    *
-   * @param serviceInterface with @Service annotation.
+   * @param serviceInterface serviceInterface with {@link Service} annotation
    * @return service tags
    */
   public static Map<String, String> serviceTags(Class<?> serviceInterface) {
@@ -219,9 +219,9 @@ public final class Reflect {
   }
 
   /**
-   * Util function to extract service tags from service method api.
+   * Extracts service tags from service method.
    *
-   * @param serviceMethod with @ServiceMethod annotation.
+   * @param serviceMethod serviceMethod with {@link ServiceMethod} annotation
    * @return service tags
    */
   public static Map<String, String> serviceMethodTags(Method serviceMethod) {
@@ -236,25 +236,23 @@ public final class Reflect {
   }
 
   /**
-   * Util function to get service Method map from service api.
+   * Gets service method map from service api.
    *
-   * @param serviceInterface with @Service annotation.
-   * @return service name.
+   * @param serviceInterface with {@link Service} annotation
+   * @return service name
    */
   public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-    Map<String, Method> methods =
-        Arrays.stream(serviceInterface.getMethods())
-            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-            .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
-
-    return Collections.unmodifiableMap(methods);
+    return Arrays.stream(serviceInterface.getMethods())
+        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
   }
 
   /**
-   * Util function to get service interfaces collections from service instance.
+   * Gets service interfaces collections from service instance.
    *
-   * @param serviceObject with extends service interface with @Service annotation.
-   * @return service interface class.
+   * @param serviceObject serviceObject that implements service interface with {@link Service}
+   *     annotation
+   * @return service interface class
    */
   public static Stream<Class<?>> serviceInterfaces(Object serviceObject) {
     Class<?> current = serviceObject.getClass();
@@ -292,7 +290,7 @@ public final class Reflect {
   /**
    * Util function to perform basic validation of service message request.
    *
-   * @param method service method.
+   * @param method service method
    */
   public static void validateMethodOrThrow(Method method) {
     Class<?> returnType = method.getReturnType();
@@ -374,7 +372,7 @@ public final class Reflect {
   }
 
   /**
-   * Utility function to check does given class have annotation {@link Service}.
+   * Checks whether given class have annotation {@link Service}.
    *
    * @param type type to check for {@link Service} annotation
    * @return result
@@ -384,9 +382,8 @@ public final class Reflect {
   }
 
   /**
-   * Utility function to check whether given method is considered secured, i.e does it have
-   * annotation {@link Secured}, of, if not, then does declaring class contains annotation {@link
-   * Secured}.
+   * Checks whether given method is considered secured, i.e does it have annotation {@link Secured},
+   * of, if not, then does declaring class contains annotation {@link Secured}.
    *
    * @param method method
    * @return result
@@ -397,7 +394,7 @@ public final class Reflect {
   }
 
   /**
-   * Utility function to parse list of allowed roles from {@link Secured} annotation.
+   * Parsing list of allowed roles from {@link Secured} annotation.
    *
    * @param method method
    * @return list of roles
@@ -411,7 +408,7 @@ public final class Reflect {
   }
 
   /**
-   * Utility function to parse list of allowed permissions from {@link Secured} annotation.
+   * Parsing list of allowed permissions from {@link Secured} annotation.
    *
    * @param method method
    * @return list of roles
