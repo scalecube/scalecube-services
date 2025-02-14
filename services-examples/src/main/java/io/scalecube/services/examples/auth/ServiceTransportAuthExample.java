@@ -1,16 +1,20 @@
 package io.scalecube.services.examples.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
+import io.scalecube.services.transport.api.ServerTransport.Authenticator;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import reactor.core.publisher.Mono;
 
@@ -51,8 +55,10 @@ public class ServiceTransportAuthExample {
     System.err.println("### Received 'caller' response: " + response);
   }
 
-  private static Authenticator<UserProfile> authenticator() {
-    return headers -> {
+  private static Authenticator authenticator() {
+    return credentials -> {
+      final var headers = credentials(credentials);
+
       String username = headers.get("username");
       String password = headers.get("password");
 
@@ -69,11 +75,11 @@ public class ServiceTransportAuthExample {
   }
 
   private static CredentialsSupplier credentialsSupplier() {
-    return service -> {
-      HashMap<String, String> creds = new HashMap<>();
-      creds.put("username", "Alice");
-      creds.put("password", "qwerty");
-      return Mono.just(creds);
+    return (serviceReference, serviceRole) -> {
+      HashMap<String, String> credentials = new HashMap<>();
+      credentials.put("username", "Alice");
+      credentials.put("password", "qwerty");
+      return Mono.just(encodeCredentials(credentials));
     };
   }
 
@@ -83,5 +89,24 @@ public class ServiceTransportAuthExample {
         .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
         .options(opts -> opts.metadata(endpoint))
         .membership(opts -> opts.seedMembers(service.discoveryAddress().toString()));
+  }
+
+  private static byte[] encodeCredentials(Map<String, String> credentials) {
+    try {
+      return new JsonMapper().writeValueAsBytes(credentials);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static Map<String, String> credentials(byte[] credentials) {
+    final Map<String, String> headers;
+    try {
+      //noinspection unchecked
+      headers = new JsonMapper().readValue(credentials, HashMap.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return headers;
   }
 }

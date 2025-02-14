@@ -12,16 +12,15 @@ public class SecuredServiceByCompositeProfileImpl implements SecuredServiceByCom
         .flatMap(
             compositeProfile -> {
               final UserProfile userProfile = compositeProfile.userProfile();
-              final ServiceEndpointProfile serviceEndpointProfile =
-                  compositeProfile.serviceEndpointProfile();
+              final PrincipalProfile principalProfile = compositeProfile.principalProfile();
               checkPermissions(userProfile);
               return Mono.just(
                   "Hello, name="
                       + name
                       + " (userProfile="
                       + userProfile
-                      + ", serviceEndpointProfile="
-                      + serviceEndpointProfile
+                      + ", principalProfile="
+                      + principalProfile
                       + ")");
             });
   }

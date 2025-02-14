@@ -5,15 +5,13 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
-@Service(PartiallySecuredService.SERVICE_NAME)
+@Service("partiallySecured")
 public interface PartiallySecuredService {
-
-  String SERVICE_NAME = "partiallySecured";
 
   @ServiceMethod
   Mono<String> publicMethod(String name);
 
-  @ServiceMethod
   @Secured
+  @ServiceMethod
   Mono<String> securedMethod(String name);
 }

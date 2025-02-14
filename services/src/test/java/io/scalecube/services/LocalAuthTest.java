@@ -9,7 +9,6 @@ import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.sut.security.AnotherSecuredServiceImpl;
 import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
@@ -55,10 +54,7 @@ final class LocalAuthTest {
                 .transport(
                     () -> new RSocketServiceTransport().authenticator(LocalAuthTest::authenticate))
                 .defaultPrincipalMapper(p -> mapPrincipal((Map<String, String>) p))
-                .services(
-                    new SecuredServiceImpl(),
-                    new AnotherSecuredServiceImpl(),
-                    new PartiallySecuredServiceImpl()));
+                .services(new SecuredServiceImpl(), new PartiallySecuredServiceImpl()));
   }
 
   @AfterAll
@@ -174,8 +170,8 @@ final class LocalAuthTest {
     credentials.put("username", "Alice");
     credentials.put("password", "qwerty");
 
+    //noinspection SwitchStatementWithTooFewBranches
     switch (serviceReference.namespace()) {
-      case "anotherSecured":
       case "secured":
         return Mono.just(encodeCredentials(credentials));
     }
