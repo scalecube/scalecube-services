@@ -46,7 +46,7 @@ public class ServiceCallLocalTest {
 
   public static final int TIMEOUT = 3;
 
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private final Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private static Microservices provider;
 
@@ -102,7 +102,7 @@ public class ServiceCallLocalTest {
         assertThrows(
             ServiceException.class,
             () -> Mono.from(provider.call().requestOne(GREETING_FAIL_REQ)).block(timeout));
-    assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
+    assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
   @Test
@@ -125,7 +125,7 @@ public class ServiceCallLocalTest {
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
-    assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
+    assertEquals(" hello to: joe", ((GreetingResponse) result.data()).result());
   }
 
   @Test
@@ -150,7 +150,7 @@ public class ServiceCallLocalTest {
     GreetingResponse responseData = result.data();
     System.out.println("local_async_greeting_return_Message :" + responseData);
 
-    assertEquals(" hello to: joe", responseData.getResult());
+    assertEquals(" hello to: joe", responseData.result());
   }
 
   @Test

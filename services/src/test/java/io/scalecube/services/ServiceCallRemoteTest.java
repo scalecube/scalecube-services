@@ -97,7 +97,7 @@ public class ServiceCallRemoteTest {
 
     ServiceMessage message = Mono.from(future).block(TIMEOUT);
 
-    assertEquals("hello unknown", ((GreetingResponse) message.data()).getResult());
+    assertEquals("hello unknown", ((GreetingResponse) message.data()).result());
   }
 
   @Test
@@ -141,7 +141,7 @@ public class ServiceCallRemoteTest {
             () ->
                 Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
                     .block(TIMEOUT));
-    assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
+    assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
   @Test
@@ -154,7 +154,7 @@ public class ServiceCallRemoteTest {
             () ->
                 Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
                     .block(TIMEOUT));
-    assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
+    assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
   @Test
@@ -178,7 +178,7 @@ public class ServiceCallRemoteTest {
 
     // Then
     GreetingResponse greeting = Mono.from(result).block(TIMEOUT).data();
-    assertEquals(" hello to: joe", greeting.getResult());
+    assertEquals(" hello to: joe", greeting.result());
   }
 
   @Test
@@ -208,7 +208,7 @@ public class ServiceCallRemoteTest {
               System.out.println("10. remote_async_greeting_return_Message :" + result.data());
               // print the greeting.
               assertThat(result.data(), instanceOf(GreetingResponse.class));
-              assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
+              assertEquals(" hello to: joe", ((GreetingResponse) result.data()).result());
             });
   }
 
@@ -219,8 +219,8 @@ public class ServiceCallRemoteTest {
         gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     GreetingResponse greetings = Mono.from(result).block(TIMEOUT).data();
-    System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
-    assertEquals(" hello to: joe", greetings.getResult());
+    System.out.println("greeting_request_completes_before_timeout : " + greetings.result());
+    assertEquals(" hello to: joe", greetings.result());
   }
 
   @Test

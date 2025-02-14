@@ -47,12 +47,12 @@ public final class GreetingServiceImpl implements GreetingService {
   public Mono<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
     System.out.println(
         "[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
-    return Mono.delay(request.getDuration())
+    return Mono.delay(request.duration())
         .flatMap(
             i ->
                 Mono.just(
                     new GreetingResponse(
-                        " hello to: " + request.getName(), String.valueOf(this.hashCode()))));
+                        " hello to: " + request.name(), String.valueOf(this.hashCode()))));
   }
 
   @Override
@@ -69,13 +69,13 @@ public final class GreetingServiceImpl implements GreetingService {
         instanceId
             + ":[greetingRequest] Hello... i am a service an just recived a message:"
             + request);
-    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
+    return Mono.just(new GreetingResponse(" hello to: " + request.name(), "" + instanceId));
   }
 
   @Override
   public Flux<GreetingResponse> bidiGreeting(Publisher<GreetingRequest> request) {
     return Flux.from(request)
-        .map(onNext -> new GreetingResponse(" hello to: " + onNext.getName(), "" + instanceId));
+        .map(onNext -> new GreetingResponse(" hello to: " + onNext.name(), "" + instanceId));
   }
 
   @Override
@@ -84,7 +84,7 @@ public final class GreetingServiceImpl implements GreetingService {
         .map(
             request -> {
               GreetingRequest data = request.data();
-              GreetingResponse resp = new GreetingResponse(" hello to: " + data.getName(), "1");
+              GreetingResponse resp = new GreetingResponse(" hello to: " + data.name(), "1");
               return ServiceMessage.builder().data(resp).build();
             });
   }
@@ -126,7 +126,7 @@ public final class GreetingServiceImpl implements GreetingService {
     System.out.println(
         "[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingRequest data = request.data();
-    GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
+    GreetingResponse resp = new GreetingResponse("hello to: " + data.name(), "1");
     return Mono.just(ServiceMessage.builder().data(resp).build());
   }
 
@@ -135,7 +135,7 @@ public final class GreetingServiceImpl implements GreetingService {
     System.out.println(
         "[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingRequest data = request.data();
-    GreetingResponse resp = new GreetingResponse("hello to: " + data.getName(), "1");
+    GreetingResponse resp = new GreetingResponse("hello to: " + data.name(), "1");
     return Mono.just(resp);
   }
 
@@ -143,7 +143,7 @@ public final class GreetingServiceImpl implements GreetingService {
   public Mono<Void> greetingVoid(GreetingRequest request) {
     System.out.println(
         "[greetingVoid] Hello... i am a service an just recived a message:" + request);
-    System.out.println(" hello to: " + request.getName());
+    System.out.println(" hello to: " + request.name());
     return Mono.empty();
   }
 

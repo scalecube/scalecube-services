@@ -71,7 +71,7 @@ public class ServiceTagsExample {
       Mono.from(service.greeting(new GreetingRequest("joe")))
           .doOnNext(
               success -> {
-                success.getResult().startsWith("B");
+                success.result().startsWith("B");
                 System.out.println(success);
               });
     }
