@@ -204,13 +204,7 @@ final class LocalAuthTest {
       return Mono.just(NULL_AUTH_CONTEXT);
     }
 
-    Map<String, String> headers;
-    try {
-      //noinspection unchecked
-      headers = new JsonMapper().readValue(credentials, HashMap.class);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    final var headers = credentials(credentials);
 
     String username = headers.get("username");
     String password = headers.get("password");
@@ -271,5 +265,16 @@ final class LocalAuthTest {
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private static Map<String, String> credentials(byte[] credentials) {
+    final Map<String, String> headers;
+    try {
+      //noinspection unchecked
+      headers = new JsonMapper().readValue(credentials, HashMap.class);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+    return headers;
   }
 }
