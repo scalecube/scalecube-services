@@ -13,7 +13,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithPrincipal() {
-    return Authenticator.deferSecured(UserProfile.class)
+    return Authenticator.deferSecured(CallerProfile.class)
         .flatMap(
             user -> {
               checkPrincipal(user);
@@ -23,7 +23,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithRequestAndPrincipal(String name) {
-    return Authenticator.deferSecured(UserProfile.class)
+    return Authenticator.deferSecured(CallerProfile.class)
         .flatMap(
             user -> {
               checkPrincipal(user);
@@ -31,7 +31,17 @@ public class SecuredServiceImpl implements SecuredService {
             });
   }
 
-  private void checkPrincipal(UserProfile user) {
+  @Override
+  public Mono<String> helloWithRoles() {
+    return null;
+  }
+
+  @Override
+  public Mono<String> helloWithPermissions() {
+    return null;
+  }
+
+  private void checkPrincipal(CallerProfile user) {
     if (!user.role().equals("ADMIN")) {
       throw new ForbiddenException("Forbidden");
     }

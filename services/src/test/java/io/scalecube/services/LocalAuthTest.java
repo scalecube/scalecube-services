@@ -9,11 +9,11 @@ import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.routing.StaticAddressRouter;
+import io.scalecube.services.sut.security.CallerProfile;
 import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
-import io.scalecube.services.sut.security.UserProfile;
 import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
@@ -40,7 +40,6 @@ final class LocalAuthTest {
 
   private static Microservices service;
 
-  @SuppressWarnings("unchecked")
   @BeforeAll
   static void beforeAll() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
@@ -50,7 +49,7 @@ final class LocalAuthTest {
             new Context()
                 .transport(
                     () -> new RSocketServiceTransport().authenticator(LocalAuthTest::authenticate))
-                .defaultPrincipalMapper(p -> mapPrincipal((Map<String, String>) p))
+                //.defaultPrincipalMapper(p -> mapPrincipal((Map<String, String>) p))
                 .services(new SecuredServiceImpl(), new PartiallySecuredServiceImpl()));
   }
 
@@ -195,14 +194,10 @@ final class LocalAuthTest {
       HashMap<String, String> authData = new HashMap<>();
       authData.put("name", "Alice");
       authData.put("role", "ADMIN");
-      return Mono.just(authData);
+      return Mono.just(new CallerProfile(authData.get("name"), authData.get("role")));
     }
 
     return Mono.error(new UnauthorizedException("Authentication failed"));
-  }
-
-  private static UserProfile mapPrincipal(Map<String, String> authData) {
-    return new UserProfile(authData.get("name"), authData.get("role"));
   }
 
   private static ServiceCall serviceCall(CredentialsSupplier credentialsSupplier) {

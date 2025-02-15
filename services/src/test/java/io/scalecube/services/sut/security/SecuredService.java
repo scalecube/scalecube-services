@@ -17,4 +17,12 @@ public interface SecuredService {
 
   @ServiceMethod
   Mono<String> helloWithRequestAndPrincipal(String name);
+
+  @Secured(roles = {"helloRole1", "helloRole2"})
+  @ServiceMethod
+  Mono<String> helloWithRoles();
+
+  @Secured(roles = "helloPermission", permissions = "hello:permissions")
+  @ServiceMethod
+  Mono<String> helloWithPermissions();
 }
