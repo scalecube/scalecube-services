@@ -9,6 +9,7 @@ import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -56,14 +57,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
-    return authenticate(rsocket, setupPayload.data())
-        .flatMap(authData -> Mono.fromCallable(() -> newRSocket(authData)))
+    return authenticate(setupPayload.data())
+        .flatMap(principal -> Mono.fromCallable(() -> newRSocket(principal)))
         .switchIfEmpty(Mono.fromCallable(() -> newRSocket(null)))
-        .cast(RSocket.class)
-        .doOnSubscribe(s -> LOGGER.info("[rsocket][accept][{}] setup: {}", rsocket, setupPayload));
+        .cast(RSocket.class);
   }
 
-  private Mono<Object> authenticate(RSocket rsocket, ByteBuf connectionSetup) {
+  private Mono<Principal> authenticate(ByteBuf connectionSetup) {
     if (authenticator == null) {
       return Mono.empty();
     }
@@ -73,22 +73,19 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     return authenticator
         .authenticate(credentials)
-        .doOnSuccess(obj -> LOGGER.debug("[rsocket][authenticate][{}] authenticated", rsocket))
-        .doOnError(
-            ex ->
-                LOGGER.error(
-                    "[rsocket][authenticate][{}][error] cause: {}", rsocket, ex.toString()))
+        .doOnSuccess(p -> LOGGER.debug("Authenticated successfully, principal: {}", p))
+        .doOnError(ex -> LOGGER.error("Failed to authenticate, cause: {}", ex.toString()))
         .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
   }
 
-  private RSocket newRSocket(Object authData) {
+  private RSocket newRSocket(Principal principal) {
     return new RSocketImpl(
-        authData, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
+        principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
   }
 
   private static UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException e) {
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
+    if (th instanceof ServiceException ex) {
+      return new UnauthorizedException(ex.errorCode(), ex.getMessage());
     } else {
       return new UnauthorizedException(th);
     }
@@ -97,13 +94,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   @SuppressWarnings("ClassCanBeRecord")
   private static class RSocketImpl implements RSocket {
 
-    private final Object authData;
+    private final Principal principal;
     private final ServiceMessageCodec messageCodec;
     private final ServiceRegistry serviceRegistry;
 
     private RSocketImpl(
-        Object authData, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
-      this.authData = authData;
+        Principal principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+      this.principal = principal;
       this.messageCodec = messageCodec;
       this.serviceRegistry = serviceRegistry;
     }
@@ -177,7 +174,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     }
 
     private Context setupContext(Context context) {
-      return authData != null ? Context.of(AUTH_CONTEXT_KEY, authData) : context;
+      return principal != null ? Context.of(AUTH_CONTEXT_KEY, principal) : context;
     }
 
     private static void validateRequest(ServiceMessage message) throws ServiceException {

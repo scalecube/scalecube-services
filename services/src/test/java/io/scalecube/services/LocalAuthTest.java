@@ -1,15 +1,24 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.auth.Authenticator.NULL_AUTH_CONTEXT;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.routing.StaticAddressRouter;
-import io.scalecube.services.sut.security.CallerProfile;
 import io.scalecube.services.sut.security.PartiallySecuredService;
 import io.scalecube.services.sut.security.PartiallySecuredServiceImpl;
 import io.scalecube.services.sut.security.SecuredService;
@@ -22,11 +31,12 @@ import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.StringJoiner;
+import java.util.UUID;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
@@ -37,11 +47,13 @@ final class LocalAuthTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
   private static final LoopResources LOOP_RESOURCE = LoopResources.create("exberry-service-call");
+  private static final ObjectMapper OBJECT_MAPPER = initMapper();
+  private static final String VALID_TOKEN = UUID.randomUUID().toString();
 
-  private static Microservices service;
+  private Microservices service;
 
-  @BeforeAll
-  static void beforeAll() {
+  @BeforeEach
+  void beforeEach() {
     StepVerifier.setDefaultTimeout(TIMEOUT);
 
     service =
@@ -49,12 +61,11 @@ final class LocalAuthTest {
             new Context()
                 .transport(
                     () -> new RSocketServiceTransport().authenticator(LocalAuthTest::authenticate))
-                //.defaultPrincipalMapper(p -> mapPrincipal((Map<String, String>) p))
                 .services(new SecuredServiceImpl(), new PartiallySecuredServiceImpl()));
   }
 
-  @AfterAll
-  static void afterAll() {
+  @AfterEach
+  void afterEach() {
     if (service != null) {
       service.close();
     }
@@ -63,19 +74,20 @@ final class LocalAuthTest {
   @Test
   @DisplayName("Successful authentication")
   void successfulAuthentication() {
-    try (var caller = serviceCall(LocalAuthTest::credentials)) {
-      SecuredService securedService = caller.api(SecuredService.class);
+    try (var caller =
+        serviceCall((serviceReference, serviceRole) -> credentials(serviceReference, "ADMIN"))) {
+      final var securedService = caller.api(SecuredService.class);
 
       StepVerifier.create(securedService.helloWithRequest("Bob"))
           .assertNext(response -> assertEquals("Hello, Bob", response))
           .verifyComplete();
 
       StepVerifier.create(securedService.helloWithPrincipal())
-          .assertNext(response -> assertEquals("Hello, Alice", response))
+          .assertNext(response -> assertThat(response, startsWith("Hello | ")))
           .verifyComplete();
 
       StepVerifier.create(securedService.helloWithRequestAndPrincipal("Bob"))
-          .assertNext(response -> assertEquals("Hello, Bob and Alice", response))
+          .assertNext(response -> assertEquals("Hello, Bob", response))
           .verifyComplete();
     }
   }
@@ -84,7 +96,7 @@ final class LocalAuthTest {
   @DisplayName("Authentication failed with empty credentials")
   void failedAuthenticationWithEmptyCredentials() {
     try (var caller = serviceCall(LocalAuthTest::emptyCredentials)) {
-      SecuredService securedService = caller.api(SecuredService.class);
+      final var securedService = caller.api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
           th -> {
@@ -110,7 +122,7 @@ final class LocalAuthTest {
   @DisplayName("Authentication failed with invalid credentials")
   void failedAuthenticationWithInvalidCredentials() {
     try (var caller = serviceCall(LocalAuthTest::invalidCredentials)) {
-      SecuredService securedService = caller.api(SecuredService.class);
+      final var securedService = caller.api(SecuredService.class);
 
       Consumer<Throwable> verifyError =
           th -> {
@@ -136,12 +148,12 @@ final class LocalAuthTest {
   @DisplayName("Successful authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
     try (var caller = serviceCall(LocalAuthTest::credentials)) {
-      StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("Alice"))
-          .assertNext(response -> assertEquals("Hello, Alice", response))
+      StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("securedMethod"))
+          .assertNext(response -> assertEquals("Hello, securedMethod", response))
           .verifyComplete();
 
-      StepVerifier.create(caller.api(PartiallySecuredService.class).publicMethod("Alice"))
-          .assertNext(response -> assertEquals("Hello, Alice", response))
+      StepVerifier.create(caller.api(PartiallySecuredService.class).publicMethod("publicMethod"))
+          .assertNext(response -> assertEquals("Hello, publicMethod", response))
           .verifyComplete();
     }
   }
@@ -154,58 +166,51 @@ final class LocalAuthTest {
           .assertNext(response -> assertEquals("Hello, publicMethod", response))
           .verifyComplete();
 
-      StepVerifier.create(caller.api(PartiallySecuredService.class).publicMethod("securedMethod"))
+      StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("securedMethod"))
           .assertNext(response -> assertEquals("Hello, securedMethod", response))
           .verifyComplete();
     }
   }
 
   private static Mono<byte[]> credentials(ServiceReference serviceReference, String serviceRole) {
-    final Map<String, String> credentials = new HashMap<>();
-    credentials.put("username", "Alice");
-    credentials.put("password", "qwerty");
-    return Mono.just(encodeCredentials(credentials));
+    return Mono.just(
+        encodeCredentials(new TokenCredentials().token(VALID_TOKEN).serviceRole(serviceRole)));
   }
 
   private static Mono<byte[]> invalidCredentials(
       ServiceReference serviceReference, String serviceRole) {
-    final Map<String, String> credentials = new HashMap<>();
-    credentials.put("username", "Invalid-User");
-    credentials.put("password", "Invalid-Password");
-    return Mono.just(encodeCredentials(credentials));
+    return Mono.just(
+        encodeCredentials(
+            new TokenCredentials().token(UUID.randomUUID().toString()).serviceRole(serviceRole)));
   }
 
   private static Mono<byte[]> emptyCredentials(
       ServiceReference serviceReference, String serviceRole) {
-    return Mono.just(encodeCredentials(new HashMap<>()));
+    return Mono.just(encodeCredentials(new TokenCredentials()));
   }
 
-  private static Mono<Object> authenticate(byte[] credentials) {
+  private static Mono<Principal> authenticate(byte[] credentials) {
     if (credentials.length == 0) {
-      return Mono.just(NULL_AUTH_CONTEXT);
+      return Mono.just(Principal.NULL_PRINCIPAL);
     }
 
-    final var headers = credentials(credentials);
+    final var tokenCredentials = credentials(credentials, TokenCredentials.class);
+    final var token = tokenCredentials.token();
+    final var serviceRole = tokenCredentials.serviceRole();
+    final var permissions = tokenCredentials.permissions();
 
-    String username = headers.get("username");
-    String password = headers.get("password");
-
-    if ("Alice".equals(username) && "qwerty".equals(password)) {
-      HashMap<String, String> authData = new HashMap<>();
-      authData.put("name", "Alice");
-      authData.put("role", "ADMIN");
-      return Mono.just(new CallerProfile(authData.get("name"), authData.get("role")));
+    if (VALID_TOKEN.equals(token)) {
+      return Mono.just(new Principal(serviceRole, permissions));
     }
 
     return Mono.error(new UnauthorizedException("Authentication failed"));
   }
 
-  private static ServiceCall serviceCall(CredentialsSupplier credentialsSupplier) {
+  private ServiceCall serviceCall(CredentialsSupplier credentialsSupplier) {
     return serviceCall(credentialsSupplier, null);
   }
 
-  private static ServiceCall serviceCall(
-      CredentialsSupplier credentialsSupplier, String serviceRole) {
+  private ServiceCall serviceCall(CredentialsSupplier credentialsSupplier, String serviceRole) {
     //noinspection resource
     return new ServiceCall()
         .transport(
@@ -223,22 +228,79 @@ final class LocalAuthTest {
                 .build());
   }
 
-  private static byte[] encodeCredentials(Map<String, String> credentials) {
+  private static ObjectMapper initMapper() {
+    final var mapper = new ObjectMapper();
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
+    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
+    mapper.activateDefaultTyping(
+        LaissezFaireSubTypeValidator.instance,
+        DefaultTyping.JAVA_LANG_OBJECT,
+        JsonTypeInfo.As.WRAPPER_OBJECT);
+    mapper.findAndRegisterModules();
+    return mapper;
+  }
+
+  private static byte[] encodeCredentials(Object credentials) {
     try {
-      return new JsonMapper().writeValueAsBytes(credentials);
+      return OBJECT_MAPPER.writeValueAsBytes(credentials);
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private static Map<String, String> credentials(byte[] credentials) {
-    final Map<String, String> headers;
+  private static <T> T credentials(byte[] credentials, Class<T> clazz) {
     try {
-      //noinspection unchecked
-      headers = new JsonMapper().readValue(credentials, HashMap.class);
+      return OBJECT_MAPPER.readValue(credentials, clazz);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
-    return headers;
+  }
+
+  private static class TokenCredentials {
+
+    private String token;
+    private String serviceRole;
+    private List<String> permissions;
+
+    public String token() {
+      return token;
+    }
+
+    public TokenCredentials token(String token) {
+      this.token = token;
+      return this;
+    }
+
+    public String serviceRole() {
+      return serviceRole;
+    }
+
+    public TokenCredentials serviceRole(String serviceRole) {
+      this.serviceRole = serviceRole;
+      return this;
+    }
+
+    public List<String> permissions() {
+      return permissions;
+    }
+
+    public TokenCredentials permissions(List<String> permissions) {
+      this.permissions = permissions;
+      return this;
+    }
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", TokenCredentials.class.getSimpleName() + "[", "]")
+          .add("token='" + token + "'")
+          .add("serviceRole='" + serviceRole + "'")
+          .add("permissions=" + permissions)
+          .toString();
+    }
   }
 }

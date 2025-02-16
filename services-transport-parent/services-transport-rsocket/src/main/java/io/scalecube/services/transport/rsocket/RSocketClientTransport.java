@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,30 +103,23 @@ public class RSocketClientTransport implements ClientTransport {
         .connect(() -> clientTransportFactory.clientTransport(destination.address()))
         .doOnSuccess(
             rsocket -> {
-              LOGGER.debug("[rsocket][client][{}] Connected successfully", destination.address());
+              LOGGER.debug("Connected successfully ({})", destination);
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doFinally(
                       s -> {
                         monoMap.remove(destination);
-                        LOGGER.debug(
-                            "[rsocket][client][{}] Connection closed", destination.address());
+                        LOGGER.debug("Connection closed ({})", destination);
                       })
                   .doOnError(
-                      th ->
+                      ex ->
                           LOGGER.warn(
-                              "[rsocket][client][{}][onClose] Exception occurred: {}",
-                              destination.address(),
-                              th.toString()))
+                              "Exception occurred ({}), cause: {}", destination, ex.toString()))
                   .subscribe();
             })
         .doOnError(
-            th ->
-                LOGGER.warn(
-                    "[rsocket][client][{}] Failed to connect, cause: {}",
-                    destination.address(),
-                    th.toString()));
+            ex -> LOGGER.warn("Failed to connect ({}), cause: {}", destination, ex.toString()));
   }
 
   private Mono<Payload> getCredentials(ServiceReference serviceReference, String serviceRole) {
@@ -157,5 +151,14 @@ public class RSocketClientTransport implements ClientTransport {
     rsockets.clear();
   }
 
-  private record Destination(Address address, String role) {}
+  private record Destination(Address address, String role) {
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", Destination.class.getSimpleName() + "[", "]")
+          .add("address=" + address)
+          .add("role='" + role + "'")
+          .toString();
+    }
+  }
 }
