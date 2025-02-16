@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.sut.security.PartiallySecuredService;
@@ -39,6 +40,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Mono;
 import reactor.netty.resources.LoopResources;
 import reactor.test.StepVerifier;
@@ -72,7 +75,7 @@ final class LocalAuthTest {
   }
 
   @Test
-  @DisplayName("Successful authentication")
+  @DisplayName("Successfull authentication")
   void successfulAuthentication() {
     try (var caller =
         serviceCall((serviceReference, serviceRole) -> credentials(serviceReference, "ADMIN"))) {
@@ -145,7 +148,7 @@ final class LocalAuthTest {
   }
 
   @Test
-  @DisplayName("Successful authentication of partially secured service")
+  @DisplayName("Successfull authentication of partially secured service")
   void successfulAuthenticationOnPartiallySecuredService() {
     try (var caller = serviceCall(LocalAuthTest::credentials)) {
       StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("securedMethod"))
@@ -159,7 +162,7 @@ final class LocalAuthTest {
   }
 
   @Test
-  @DisplayName("Successful call public method of partially secured service without authentication")
+  @DisplayName("Successfull call public method of partially secured service without authentication")
   void successfulCallOfPublicMethodWithoutAuthentication() {
     try (var caller = serviceCall(LocalAuthTest::credentials)) {
       StepVerifier.create(caller.api(PartiallySecuredService.class).publicMethod("publicMethod"))
@@ -169,6 +172,32 @@ final class LocalAuthTest {
       StepVerifier.create(caller.api(PartiallySecuredService.class).securedMethod("securedMethod"))
           .assertNext(response -> assertEquals("Hello, securedMethod", response))
           .verifyComplete();
+    }
+  }
+
+  @ValueSource(strings = {"helloRole1", "helloRole2"})
+  @ParameterizedTest
+  @DisplayName("Successfull call of method with service role")
+  void successfulCallOfMethodWithRole(String role) {
+    try (var caller = serviceCall((serviceReference, r) -> credentials(serviceReference, role))) {
+      StepVerifier.create(caller.api(SecuredService.class).helloWithRoles("Alice"))
+          .assertNext(response -> assertEquals("Hello, Alice", response))
+          .verifyComplete();
+    }
+  }
+
+  @Test
+  @DisplayName("Failed to call of method with service role")
+  void failedCallMethodWithRole() {
+    final String role = "wrong-role-" + System.currentTimeMillis();
+    try (var caller = serviceCall((serviceReference, r) -> credentials(serviceReference, role))) {
+      StepVerifier.create(caller.api(SecuredService.class).helloWithRoles("Bob"))
+          .expectErrorSatisfies(
+              th -> {
+                assertEquals(ForbiddenException.class, th.getClass());
+                assertEquals("Forbidden", th.getMessage());
+              })
+          .verify();
     }
   }
 

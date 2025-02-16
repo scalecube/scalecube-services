@@ -33,13 +33,13 @@ public class SecuredServiceImpl implements SecuredService {
   }
 
   @Override
-  public Mono<String> helloWithRoles() {
-    return null; // TODO
+  public Mono<String> helloWithRoles(String name) {
+    return Mono.just("Hello, " + name);
   }
 
   @Override
-  public Mono<String> helloWithPermissions() {
-    return null; // TODO
+  public Mono<String> helloWithPermissions(String name) {
+    return Mono.just("Hello, " + name);
   }
 
   private static void checkPrincipal(Principal principal) {

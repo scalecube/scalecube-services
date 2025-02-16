@@ -20,9 +20,9 @@ public interface SecuredService {
 
   @Secured(roles = {"helloRole1", "helloRole2"})
   @ServiceMethod
-  Mono<String> helloWithRoles();
+  Mono<String> helloWithRoles(String name);
 
   @Secured(roles = "helloPermission", permissions = "hello:permissions")
   @ServiceMethod
-  Mono<String> helloWithPermissions();
+  Mono<String> helloWithPermissions(String name);
 }
