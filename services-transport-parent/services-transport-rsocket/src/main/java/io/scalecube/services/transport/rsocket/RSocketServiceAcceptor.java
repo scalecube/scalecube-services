@@ -1,7 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
-
 import io.netty.buffer.ByteBuf;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
@@ -59,13 +57,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
     return authenticate(setupPayload.data())
         .flatMap(principal -> Mono.fromCallable(() -> newRSocket(principal)))
-        .switchIfEmpty(Mono.fromCallable(() -> newRSocket(null)))
         .cast(RSocket.class);
   }
 
   private Mono<Principal> authenticate(ByteBuf connectionSetup) {
     if (authenticator == null) {
-      return Mono.empty();
+      return Mono.just(Principal.NULL_PRINCIPAL);
     }
 
     final var credentials = new byte[connectionSetup.readableBytes()];
@@ -73,6 +70,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     return authenticator
         .authenticate(credentials)
+        .switchIfEmpty(Mono.just(Principal.NULL_PRINCIPAL))
         .doOnSuccess(p -> LOGGER.debug("Authenticated successfully, principal: {}", p))
         .doOnError(ex -> LOGGER.error("Failed to authenticate, cause: {}", ex.toString()))
         .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
@@ -174,7 +172,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     }
 
     private Context setupContext(Context context) {
-      return principal != null ? Context.of(AUTH_CONTEXT_KEY, principal) : context;
+      return Context.of(Principal.class, principal);
     }
 
     private static void validateRequest(ServiceMessage message) throws ServiceException {

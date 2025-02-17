@@ -1,10 +1,7 @@
 package io.scalecube.services.methods;
 
-import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
-
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
@@ -32,9 +29,6 @@ class ServiceMethodInvokerTest {
       Collections.singletonMap("token", "asdjf9asdjf0as9fkasdf9afkds");
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
-
-  private final Authenticator<Object> nullAuthenticator = null;
-  private final Authenticator<Object> authenticator = creds -> Mono.just(AUTH_DATA);
 
   private final PrincipalMapper<Object, Object> nullPrincipalMapper = null;
 
@@ -75,7 +69,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -117,7 +110,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -159,7 +151,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -202,7 +193,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -248,7 +238,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -293,7 +282,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -342,7 +330,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             nullPrincipalMapper,
             null);
 
@@ -388,7 +375,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            nullAuthenticator,
             principalMapper,
             null);
 
@@ -437,7 +423,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            authenticator,
             principalMapper,
             null);
 
@@ -483,7 +468,6 @@ class ServiceMethodInvokerTest {
             methodInfo,
             DefaultErrorMapper.INSTANCE,
             dataDecoder,
-            authenticator,
             principalMapper,
             null);
 

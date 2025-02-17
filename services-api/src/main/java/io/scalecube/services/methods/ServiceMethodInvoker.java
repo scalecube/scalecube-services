@@ -1,11 +1,8 @@
 package io.scalecube.services.methods;
 
-import static io.scalecube.services.auth.Authenticator.AUTH_CONTEXT_KEY;
-import static io.scalecube.services.auth.Authenticator.NULL_AUTH_CONTEXT;
-
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
@@ -31,7 +28,6 @@ public final class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator<Object> authenticator;
   private final PrincipalMapper<Object, Object> principalMapper;
   private final Logger logger;
 
@@ -41,7 +37,6 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator<Object> authenticator,
       PrincipalMapper<Object, Object> principalMapper,
       Logger logger) {
     this.method = Objects.requireNonNull(method, "method");
@@ -49,7 +44,6 @@ public final class ServiceMethodInvoker {
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
     this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
     this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
-    this.authenticator = authenticator;
     this.principalMapper = principalMapper;
     this.logger = logger;
   }
@@ -61,36 +55,32 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.deferContextual(context -> authenticate(message, (Context) context))
+    return Mono.deferContextual(context -> auth(message, (Context) context))
         .flatMap(authData -> invokeOne(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(
-            throwable -> Mono.just(errorMapper.toMessage(message.qualifier(), throwable)))
+        .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
 
   private Mono<?> invokeOne(ServiceMessage message, Object authData) {
-    return Mono.deferContextual(
-            context -> {
-              final var request = toRequest(message);
-              final var qualifier = message.qualifier();
-              return Mono.from(invokeRequest(request))
-                  .doOnSuccess(
-                      response -> {
-                        if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug(
-                              "[{}] request: {}, response: {}", qualifier, request, response);
-                        }
-                      })
-                  .doOnError(
-                      ex -> {
-                        if (logger != null) {
-                          logger.error("[{}][error] request: {}", qualifier, request, ex);
-                        }
-                      });
-            })
+    final var request = toRequest(message);
+    final var qualifier = message.qualifier();
+
+    return Mono.from(invokeRequest(request))
         .contextWrite(context -> enhanceWithRequestContext(context, message))
-        .contextWrite(context -> enhanceWithAuthContext(context, authData));
+        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        .doOnSuccess(
+            response -> {
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug("[{}] request: {}, response: {}", qualifier, request, response);
+              }
+            })
+        .doOnError(
+            ex -> {
+              if (logger != null) {
+                logger.error("[{}][error] request: {}", qualifier, request, ex);
+              }
+            });
   }
 
   /**
@@ -103,41 +93,38 @@ public final class ServiceMethodInvoker {
     if (methodInfo.communicationMode() == CommunicationMode.REQUEST_RESPONSE) {
       return Flux.from(invokeOne(message));
     }
-    return Mono.deferContextual(context -> authenticate(message, (Context) context))
+    return Mono.deferContextual(context -> auth(message, (Context) context))
         .flatMapMany(authData -> invokeMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
-        .onErrorResume(
-            throwable -> Flux.just(errorMapper.toMessage(message.qualifier(), throwable)))
+        .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
 
   private Flux<?> invokeMany(ServiceMessage message, Object authData) {
-    return Flux.deferContextual(
-            context -> {
-              final var request = toRequest(message);
-              final var qualifier = message.qualifier();
-              return Flux.from(invokeRequest(request))
-                  .doOnSubscribe(
-                      s -> {
-                        if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][subscribe] request: {}", qualifier, request);
-                        }
-                      })
-                  .doOnComplete(
-                      () -> {
-                        if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][complete] request: {}", qualifier, request);
-                        }
-                      })
-                  .doOnError(
-                      ex -> {
-                        if (logger != null) {
-                          logger.error("[{}][error] request: {}", qualifier, request, ex);
-                        }
-                      });
-            })
+    final var request = toRequest(message);
+    final var qualifier = message.qualifier();
+
+    return Flux.from(invokeRequest(request))
         .contextWrite(context -> enhanceWithRequestContext(context, message))
-        .contextWrite(context -> enhanceWithAuthContext(context, authData));
+        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        .doOnSubscribe(
+            s -> {
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug("[{}][subscribe] request: {}", qualifier, request);
+              }
+            })
+        .doOnComplete(
+            () -> {
+              if (logger != null && logger.isDebugEnabled()) {
+                logger.debug("[{}][complete] request: {}", qualifier, request);
+              }
+            })
+        .doOnError(
+            ex -> {
+              if (logger != null) {
+                logger.error("[{}][error] request: {}", qualifier, request, ex);
+              }
+            });
   }
 
   /**
@@ -150,7 +137,7 @@ public final class ServiceMethodInvoker {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) ->
-                Mono.deferContextual(context -> authenticate(first.get(), (Context) context))
+                Mono.deferContextual(context -> auth(first.get(), (Context) context))
                     .flatMapMany(authData -> invokeBidirectional(messages, authData))
                     .map(
                         response ->
@@ -196,18 +183,18 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Mono<Object> authenticate(ServiceMessage message, Context context) {
+  private Mono<Object> auth(ServiceMessage message, Context context) {
     if (!methodInfo.isSecured()) {
-      return Mono.just(NULL_AUTH_CONTEXT);
+      return Mono.just(Principal.NULL_PRINCIPAL);
     }
 
-    if (authenticator == null) {
-      if (context.hasKey(AUTH_CONTEXT_KEY)) {
-        return Mono.just(context.get(AUTH_CONTEXT_KEY));
-      } else {
-        throw new UnauthorizedException("Authentication failed");
-      }
-    }
+    //    if (authenticator == null) {
+    //      if (context.hasKey(AUTH_CONTEXT_KEY)) {
+    //        return Mono.just(context.get(AUTH_CONTEXT_KEY));
+    //      } else {
+    //        throw new UnauthorizedException("Authentication failed");
+    //      }
+    //    }
 
     return authenticator
         .apply(message.headers())
@@ -293,7 +280,6 @@ public final class ServiceMethodInvoker {
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
-        .add("authenticator=" + authenticator)
         .add("principalMapper=" + principalMapper)
         .add("logger=" + logger)
         .toString();

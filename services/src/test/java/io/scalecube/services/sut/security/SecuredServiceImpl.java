@@ -1,6 +1,7 @@
 package io.scalecube.services.sut.security;
 
-import io.scalecube.services.auth.Authenticator;
+import static io.scalecube.services.auth.Principal.deferSecured;
+
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
@@ -14,7 +15,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithPrincipal() {
-    return Authenticator.deferSecured(Principal.class)
+    return deferSecured()
         .flatMap(
             principal -> {
               checkPrincipal(principal);
@@ -24,7 +25,7 @@ public class SecuredServiceImpl implements SecuredService {
 
   @Override
   public Mono<String> helloWithRequestAndPrincipal(String name) {
-    return Authenticator.deferSecured(Principal.class)
+    return deferSecured()
         .flatMap(
             principal -> {
               checkPrincipal(principal);
