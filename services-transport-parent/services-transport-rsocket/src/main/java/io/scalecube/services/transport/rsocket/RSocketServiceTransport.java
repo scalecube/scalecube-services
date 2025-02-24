@@ -134,7 +134,7 @@ public class RSocketServiceTransport implements ServiceTransport {
    * @param authenticator authenticator
    * @return new {@link RSocketServiceTransport} instance
    */
-  public <R> RSocketServiceTransport authenticator(Authenticator authenticator) {
+  public RSocketServiceTransport authenticator(Authenticator authenticator) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
     rst.authenticator = authenticator;
     return rst;
@@ -208,8 +208,10 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public void stop() {
-    serverLoopResources.dispose();
-    eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+    if (serverLoopResources != null && eventLoopGroup != null) {
+      serverLoopResources.dispose();
+      eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+    }
   }
 
   private EventLoopGroup newEventLoopGroup() {

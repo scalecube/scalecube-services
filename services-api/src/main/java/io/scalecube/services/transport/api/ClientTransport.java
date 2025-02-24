@@ -23,8 +23,8 @@ public interface ClientTransport extends AutoCloseable {
     /**
      * Obtains credentials for the given {@code serviceReference}.
      *
-     * @param serviceReference serviceReference
-     * @param serviceRole serviceRole
+     * @param serviceReference target serviceReference
+     * @param serviceRole target serviceRole
      * @return result
      */
     Mono<byte[]> credentials(ServiceReference serviceReference, String serviceRole);

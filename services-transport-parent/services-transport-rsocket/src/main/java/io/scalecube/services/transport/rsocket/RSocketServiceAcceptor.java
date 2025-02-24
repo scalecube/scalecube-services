@@ -55,9 +55,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setupPayload, RSocket rsocket) {
-    return authenticate(setupPayload.data())
-        .flatMap(principal -> Mono.fromCallable(() -> newRSocket(principal)))
-        .cast(RSocket.class);
+    return Mono.defer(() -> authenticate(setupPayload.data())).map(this::newRSocket);
   }
 
   private Mono<Principal> authenticate(ByteBuf connectionSetup) {

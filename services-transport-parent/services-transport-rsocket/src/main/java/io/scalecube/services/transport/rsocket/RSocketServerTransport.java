@@ -70,15 +70,13 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public void stop() {
-    if (serverChannel == null || serverChannel.isDisposed()) {
-      return;
-    }
-
-    try {
-      serverChannel.dispose();
-      serverChannel.onClose().toFuture().get();
-    } catch (Exception e) {
-      LOGGER.warn("[serverChannel][onClose] Exception: {}", e.toString());
+    if (serverChannel != null && !serverChannel.isDisposed()) {
+      try {
+        serverChannel.dispose();
+        serverChannel.onClose().toFuture().get();
+      } catch (Exception e) {
+        LOGGER.warn("[serverChannel][onClose] Exception: {}", e.toString());
+      }
     }
   }
 }
