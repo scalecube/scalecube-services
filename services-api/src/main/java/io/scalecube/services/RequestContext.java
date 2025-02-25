@@ -13,13 +13,13 @@ public class RequestContext {
   public static final Object NULL_PRINCIPAL = new Object();
 
   private final Map<String, String> headers;
-  private final Object data;
+  private final Object request;
   private final Object principal;
   private final Map<String, String> pathVars;
 
   private RequestContext(Builder builder) {
     this.headers = builder.headers;
-    this.data = builder.data;
+    this.request = builder.request;
     this.principal = builder.principal;
     this.pathVars = builder.pathVars;
   }
@@ -28,12 +28,20 @@ public class RequestContext {
     return new Builder();
   }
 
+  public static Builder from(RequestContext context) {
+    return RequestContext.builder()
+        .headers(context.headers())
+        .request(context.request())
+        .principal(context.principal())
+        .pathVars(context.pathVars());
+  }
+
   public Map<String, String> headers() {
     return headers;
   }
 
-  public Object data() {
-    return data;
+  public Object request() {
+    return request;
   }
 
   public String header(String name) {
@@ -44,9 +52,8 @@ public class RequestContext {
     return header(HEADER_REQUEST_METHOD);
   }
 
-  public <T> T principal() {
-    //noinspection unchecked
-    return (T) principal;
+  public Object principal() {
+    return principal;
   }
 
   public Map<String, String> pathVars() {
@@ -95,7 +102,7 @@ public class RequestContext {
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
         .add("headers=" + (headers != null ? "[" + headers.size() + "]" : null))
-        .add("data=" + data)
+        .add("request=" + request)
         .add("principal=" + principal)
         .add("pathVars=" + pathVars)
         .toString();
@@ -104,7 +111,7 @@ public class RequestContext {
   public static class Builder {
 
     private Map<String, String> headers;
-    private Object data;
+    private Object request;
     private Object principal;
     private Map<String, String> pathVars;
 
@@ -115,8 +122,8 @@ public class RequestContext {
       return this;
     }
 
-    public Builder data(Object data) {
-      this.data = data;
+    public Builder request(Object request) {
+      this.request = request;
       return this;
     }
 
