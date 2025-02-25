@@ -1,9 +1,8 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Principal;
-import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -13,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.StringJoiner;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -28,7 +26,6 @@ public final class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final PrincipalMapper<Object, Object> principalMapper;
   private final Logger logger;
 
   public ServiceMethodInvoker(
@@ -37,14 +34,12 @@ public final class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      PrincipalMapper<Object, Object> principalMapper,
       Logger logger) {
     this.method = Objects.requireNonNull(method, "method");
     this.service = Objects.requireNonNull(service, "service");
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
     this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
     this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
-    this.principalMapper = principalMapper;
     this.logger = logger;
   }
 
@@ -55,7 +50,7 @@ public final class ServiceMethodInvoker {
    * @return mono of service message
    */
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
-    return Mono.deferContextual(context -> auth(message, (Context) context))
+    return auth()
         .flatMap(authData -> invokeOne(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
@@ -68,7 +63,7 @@ public final class ServiceMethodInvoker {
 
     return Mono.from(invokeRequest(request))
         .contextWrite(context -> enhanceWithRequestContext(context, message))
-        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        // .contextWrite(context -> enhanceWithAuthContext(context, authData))
         .doOnSuccess(
             response -> {
               if (logger != null && logger.isDebugEnabled()) {
@@ -93,7 +88,7 @@ public final class ServiceMethodInvoker {
     if (methodInfo.communicationMode() == CommunicationMode.REQUEST_RESPONSE) {
       return Flux.from(invokeOne(message));
     }
-    return Mono.deferContextual(context -> auth(message, (Context) context))
+    return auth()
         .flatMapMany(authData -> invokeMany(message, authData))
         .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
@@ -106,7 +101,7 @@ public final class ServiceMethodInvoker {
 
     return Flux.from(invokeRequest(request))
         .contextWrite(context -> enhanceWithRequestContext(context, message))
-        .contextWrite(context -> enhanceWithAuthContext(context, authData))
+        // .contextWrite(context -> enhanceWithAuthContext(context, authData))
         .doOnSubscribe(
             s -> {
               if (logger != null && logger.isDebugEnabled()) {
@@ -136,16 +131,17 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
         .switchOnFirst(
-            (first, messages) ->
-                Mono.deferContextual(context -> auth(first.get(), (Context) context))
-                    .flatMapMany(authData -> invokeBidirectional(messages, authData))
-                    .map(
-                        response ->
-                            toResponse(response, first.get().qualifier(), first.get().dataFormat()))
-                    .onErrorResume(
-                        throwable ->
-                            Flux.just(errorMapper.toMessage(first.get().qualifier(), throwable)))
-                    .subscribeOn(methodInfo.scheduler()));
+            (first, messages) -> {
+              final ServiceMessage message = first.get();
+              final var qualifier = message.qualifier();
+
+              return auth()
+                  .flatMapMany(authData -> invokeBidirectional(messages, authData))
+                  .map(response -> toResponse(response, qualifier, message.dataFormat()))
+                  .onErrorResume(
+                      throwable -> Flux.just(errorMapper.toMessage(qualifier, throwable)))
+                  .subscribeOn(methodInfo.scheduler());
+            });
   }
 
   private Flux<?> invokeBidirectional(Flux<ServiceMessage> messages, Object authData) {
@@ -168,7 +164,7 @@ public final class ServiceMethodInvoker {
         result = Mono.empty();
       }
     } catch (InvocationTargetException ex) {
-      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
+      throwable = ex.getCause();
     } catch (Throwable ex) {
       throwable = ex;
     }
@@ -183,23 +179,27 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Mono<Object> auth(ServiceMessage message, Context context) {
-    if (!methodInfo.isSecured()) {
-      return Mono.just(Principal.NULL_PRINCIPAL);
-    }
+  private Mono<Object> auth() {
+    return RequestContext.deferContextual()
+        .flatMap(
+            context -> {
+              if (!methodInfo.isSecured()) {
+                return Mono.just(RequestContext.NULL_PRINCIPAL);
+              }
 
-    //    if (authenticator == null) {
-    //      if (context.hasKey(AUTH_CONTEXT_KEY)) {
-    //        return Mono.just(context.get(AUTH_CONTEXT_KEY));
-    //      } else {
-    //        throw new UnauthorizedException("Authentication failed");
-    //      }
-    //    }
+              //    if (authenticator == null) {
+              //      if (context.hasKey(AUTH_CONTEXT_KEY)) {
+              //        return Mono.just(context.get(AUTH_CONTEXT_KEY));
+              //      } else {
+              //        throw new UnauthorizedException("Authentication failed");
+              //      }
+              //    }
 
-    return authenticator
-        .apply(message.headers())
-        .switchIfEmpty(Mono.just(NULL_AUTH_CONTEXT))
-        .onErrorMap(ServiceMethodInvoker::toUnauthorizedException);
+              return authenticator
+                  .apply(context.headers())
+                  .switchIfEmpty(Mono.just(NULL_AUTH_CONTEXT))
+                  .onErrorMap(ServiceMethodInvoker::toUnauthorizedException);
+            });
   }
 
   private static UnauthorizedException toUnauthorizedException(Throwable th) {
@@ -210,14 +210,14 @@ public final class ServiceMethodInvoker {
     }
   }
 
-  private Context enhanceWithAuthContext(Context context, Object authData) {
-    if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
-      return context.put(AUTH_CONTEXT_KEY, authData);
-    } else {
-      final var principal = principalMapper.apply(authData);
-      return context.put(AUTH_CONTEXT_KEY, principal != null ? principal : NULL_AUTH_CONTEXT);
-    }
-  }
+  //  private Context enhanceWithAuthContext(Context context, Object authData) {
+  //    if (authData == NULL_AUTH_CONTEXT || principalMapper == null) {
+  //      return context.put(AUTH_CONTEXT_KEY, authData);
+  //    } else {
+  //      final var principal = principalMapper.apply(authData);
+  //      return context.put(AUTH_CONTEXT_KEY, principal != null ? principal : NULL_AUTH_CONTEXT);
+  //    }
+  //  }
 
   private Context enhanceWithRequestContext(Context context, ServiceMessage message) {
     final var headers = message.headers();
@@ -233,18 +233,12 @@ public final class ServiceMethodInvoker {
   }
 
   private Object toRequest(ServiceMessage message) {
-    ServiceMessage request = dataDecoder.apply(message, methodInfo.requestType());
+    final var request = dataDecoder.apply(message, methodInfo.requestType());
 
     if (!methodInfo.isRequestTypeVoid()
         && !methodInfo.isRequestTypeServiceMessage()
         && !request.hasData(methodInfo.requestType())) {
-
-      Optional<?> dataOptional = Optional.ofNullable(request.data());
-      Class<?> clazz = dataOptional.map(Object::getClass).orElse(null);
-      throw new BadRequestException(
-          String.format(
-              "Expected service request data of type: %s, but received: %s",
-              methodInfo.requestType(), clazz));
+      throw new BadRequestException("Wrong request data type");
     }
 
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
@@ -252,10 +246,10 @@ public final class ServiceMethodInvoker {
 
   private static ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
     if (response instanceof ServiceMessage message) {
-      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
-        return ServiceMessage.from(message).qualifier(qualifier).dataFormat(dataFormat).build();
-      }
-      return ServiceMessage.from(message).qualifier(qualifier).build();
+      final var builder = ServiceMessage.from(message).qualifier(qualifier);
+      return dataFormat != null && !dataFormat.equals(message.dataFormat())
+          ? builder.dataFormat(dataFormat).build()
+          : builder.build();
     }
     return ServiceMessage.builder()
         .qualifier(qualifier)
@@ -280,7 +274,6 @@ public final class ServiceMethodInvoker {
         .add("methodInfo=" + methodInfo)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
-        .add("principalMapper=" + principalMapper)
         .add("logger=" + logger)
         .toString();
   }

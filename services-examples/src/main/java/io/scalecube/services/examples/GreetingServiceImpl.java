@@ -1,7 +1,7 @@
 package io.scalecube.services.examples;
 
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.methods.RequestContext;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;

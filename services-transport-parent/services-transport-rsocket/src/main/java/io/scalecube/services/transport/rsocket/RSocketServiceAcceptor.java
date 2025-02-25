@@ -6,8 +6,8 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -58,9 +58,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     return Mono.defer(() -> authenticate(setupPayload.data())).map(this::newRSocket);
   }
 
-  private Mono<Principal> authenticate(ByteBuf connectionSetup) {
+  private Mono<Object> authenticate(ByteBuf connectionSetup) {
     if (authenticator == null) {
-      return Mono.just(Principal.NULL_PRINCIPAL);
+      return Mono.just(RequestContext.NULL_PRINCIPAL);
     }
 
     final var credentials = new byte[connectionSetup.readableBytes()];
@@ -68,13 +68,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     return authenticator
         .authenticate(credentials)
-        .switchIfEmpty(Mono.just(Principal.NULL_PRINCIPAL))
+        .switchIfEmpty(Mono.just(RequestContext.NULL_PRINCIPAL))
         .doOnSuccess(p -> LOGGER.debug("Authenticated successfully, principal: {}", p))
         .doOnError(ex -> LOGGER.error("Failed to authenticate, cause: {}", ex.toString()))
         .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
   }
 
-  private RSocket newRSocket(Principal principal) {
+  private RSocket newRSocket(Object principal) {
     return new RSocketImpl(
         principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
   }
@@ -90,12 +90,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   @SuppressWarnings("ClassCanBeRecord")
   private static class RSocketImpl implements RSocket {
 
-    private final Principal principal;
+    private final Object principal;
     private final ServiceMessageCodec messageCodec;
     private final ServiceRegistry serviceRegistry;
 
     private RSocketImpl(
-        Principal principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+        Object principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
       this.principal = principal;
       this.messageCodec = messageCodec;
       this.serviceRegistry = serviceRegistry;
@@ -103,58 +103,64 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
-      return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
-          .doOnNext(RSocketImpl::validateRequest)
-          .flatMap(
-              message -> {
+      return Mono.defer(
+              () -> {
+                final var message = toMessage(payload);
+                validateRequest(message);
+
                 final var methodInvoker = serviceRegistry.lookupInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
+
                 return methodInvoker
                     .invokeOne(message)
-                    .doOnNext(response -> releaseRequestOnError(message, response));
+                    .doOnNext(response -> releaseRequestOnError(message, response))
+                    .contextWrite(context -> setupContext(message));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()))
-          .contextWrite(this::setupContext);
+          .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()));
     }
 
     @Override
     public Flux<Payload> requestStream(Payload payload) {
-      return Mono.deferContextual(context -> Mono.just(toMessage(payload)))
-          .doOnNext(RSocketImpl::validateRequest)
-          .flatMapMany(
-              message -> {
+      return Flux.defer(
+              () -> {
+                final var message = toMessage(payload);
+                validateRequest(message);
+
                 final var methodInvoker = serviceRegistry.lookupInvoker(message);
                 validateMethodInvoker(methodInvoker, message);
+
                 return methodInvoker
                     .invokeMany(message)
-                    .doOnNext(response -> releaseRequestOnError(message, response));
+                    .doOnNext(response -> releaseRequestOnError(message, response))
+                    .contextWrite(context -> setupContext(message));
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()))
-          .contextWrite(this::setupContext);
+          .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()));
     }
 
     @Override
     public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-      return Flux.deferContextual(context -> Flux.from(payloads))
+      return Flux.from(payloads)
           .map(this::toMessage)
           .switchOnFirst(
               (first, messages) -> {
                 if (first.hasValue()) {
                   final var message = first.get();
                   validateRequest(message);
+
                   final var methodInvoker = serviceRegistry.lookupInvoker(message);
                   validateMethodInvoker(methodInvoker, message);
+
                   return methodInvoker
                       .invokeBidirectional(messages)
-                      .doOnNext(response -> releaseRequestOnError(message, response));
+                      .doOnNext(response -> releaseRequestOnError(message, response))
+                      .contextWrite(context -> setupContext(message));
                 }
                 return messages;
               })
           .map(this::toPayload)
-          .doOnError(ex -> LOGGER.error("[requestChannel][error] cause: {}", ex.toString()))
-          .contextWrite(this::setupContext);
+          .doOnError(ex -> LOGGER.error("[requestChannel][error] cause: {}", ex.toString()));
     }
 
     private Payload toPayload(ServiceMessage response) {
@@ -169,8 +175,10 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
     }
 
-    private Context setupContext(Context context) {
-      return Context.of(Principal.class, principal);
+    private Context setupContext(ServiceMessage message) {
+      return Context.of(
+          RequestContext.class,
+          RequestContext.builder().headers(message.headers()).principal(principal).build());
     }
 
     private static void validateRequest(ServiceMessage message) throws ServiceException {

@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
-import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -228,7 +227,6 @@ public class Microservices implements AutoCloseable {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(context.defaultErrorMapper)
             .dataDecoderIfAbsent(context.defaultDataDecoder)
-            .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .loggerIfAbsent(context.defaultLogger)
             .build(),
         context.schedulers,
@@ -498,7 +496,6 @@ public class Microservices implements AutoCloseable {
     private Map<String, String> tags;
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
     private Logger defaultLogger;
@@ -655,22 +652,6 @@ public class Microservices implements AutoCloseable {
      */
     public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.defaultDataDecoder = dataDecoder;
-      return this;
-    }
-
-    /**
-     * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
-     * null.
-     *
-     * @param principalMapper principalMapper (optional)
-     * @param <T> auth data type
-     * @param <R> principal type
-     * @return this
-     */
-    public <T, R> Context defaultPrincipalMapper(
-        PrincipalMapper<? super T, ? extends R> principalMapper) {
-      //noinspection unchecked
-      this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
       return this;
     }
 

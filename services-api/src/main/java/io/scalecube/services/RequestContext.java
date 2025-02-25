@@ -1,45 +1,47 @@
-package io.scalecube.services.methods;
+package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 import reactor.core.publisher.Mono;
 
 public class RequestContext {
 
+  public static final Object NULL_PRINCIPAL = new Object();
+
   private final Map<String, String> headers;
+  private final Object data;
   private final Object principal;
   private final Map<String, String> pathVars;
 
-  /**
-   * Constructor.
-   *
-   * @param headers message headers
-   * @param principal authenticated principal (optional)
-   * @param pathVars path variables (optional)
-   */
-  public RequestContext(
-      Map<String, String> headers, Object principal, Map<String, String> pathVars) {
-    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
-    this.principal = principal;
-    this.pathVars = pathVars != null ? Map.copyOf(pathVars) : null;
+  private RequestContext(Builder builder) {
+    this.headers = builder.headers;
+    this.data = builder.data;
+    this.principal = builder.principal;
+    this.pathVars = builder.pathVars;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public Map<String, String> headers() {
     return headers;
   }
 
+  public Object data() {
+    return data;
+  }
+
   public String header(String name) {
-    return headers.get(name);
+    return headers != null ? headers.get(name) : null;
   }
 
   public String requestMethod() {
-    return headers.get(HEADER_REQUEST_METHOD);
+    return header(HEADER_REQUEST_METHOD);
   }
 
   public <T> T principal() {
@@ -82,7 +84,7 @@ public class RequestContext {
       return (T) new BigInteger(s);
     }
 
-    throw new IllegalArgumentException("Wrong pathVar class: " + clazz.getName());
+    throw new IllegalArgumentException("Wrong pathVar: " + name);
   }
 
   public static Mono<RequestContext> deferContextual() {
@@ -92,9 +94,44 @@ public class RequestContext {
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
-        .add("headers(" + headers.size() + ")")
+        .add("headers=" + (headers != null ? "[" + headers.size() + "]" : null))
+        .add("data=" + data)
         .add("principal=" + principal)
         .add("pathVars=" + pathVars)
         .toString();
+  }
+
+  public static class Builder {
+
+    private Map<String, String> headers;
+    private Object data;
+    private Object principal;
+    private Map<String, String> pathVars;
+
+    private Builder() {}
+
+    public Builder headers(Map<String, String> headers) {
+      this.headers = headers;
+      return this;
+    }
+
+    public Builder data(Object data) {
+      this.data = data;
+      return this;
+    }
+
+    public Builder principal(Object principal) {
+      this.principal = principal;
+      return this;
+    }
+
+    public Builder pathVars(Map<String, String> pathVars) {
+      this.pathVars = pathVars;
+      return this;
+    }
+
+    public RequestContext build() {
+      return new RequestContext(this);
+    }
   }
 }

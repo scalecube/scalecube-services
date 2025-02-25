@@ -1,10 +1,10 @@
 package io.scalecube.services.sut;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
-import io.scalecube.services.methods.RequestContext;
 import java.util.stream.LongStream;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;

@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
@@ -17,7 +16,6 @@ public class ServiceInfo {
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final PrincipalMapper<Object, Object> principalMapper;
   private final Logger logger;
 
   private ServiceInfo(Builder builder) {
@@ -25,7 +23,6 @@ public class ServiceInfo {
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
-    this.principalMapper = builder.principalMapper;
     this.logger = builder.logger;
   }
 
@@ -53,10 +50,6 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
-  public PrincipalMapper<Object, Object> principalMapper() {
-    return principalMapper;
-  }
-
   public Logger logger() {
     return logger;
   }
@@ -68,7 +61,6 @@ public class ServiceInfo {
         .add("tags=" + tags)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
-        .add("principalMapper=" + principalMapper)
         .add("logger=" + logger)
         .toString();
   }
@@ -79,7 +71,6 @@ public class ServiceInfo {
     private final Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
-    private PrincipalMapper<Object, Object> principalMapper;
     private Logger logger;
 
     private Builder(ServiceInfo serviceInfo) {
@@ -87,7 +78,6 @@ public class ServiceInfo {
       this.tags.putAll(new HashMap<>(serviceInfo.tags));
       this.errorMapper = serviceInfo.errorMapper;
       this.dataDecoder = serviceInfo.dataDecoder;
-      this.principalMapper = serviceInfo.principalMapper;
       this.logger = serviceInfo.logger;
     }
 
@@ -165,20 +155,6 @@ public class ServiceInfo {
       return this;
     }
 
-    /**
-     * Setter for {@code principalMapper}. Overrides default {@code Microservices.principalMapper}.
-     *
-     * @param principalMapper principalMapper (optional)
-     * @param <T> auth data type
-     * @param <R> principal type
-     * @return this
-     */
-    public <T, R> Builder principalMapper(PrincipalMapper<? super T, ? extends R> principalMapper) {
-      //noinspection unchecked
-      this.principalMapper = (PrincipalMapper<Object, Object>) principalMapper;
-      return this;
-    }
-
     Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
       if (this.errorMapper == null) {
         return errorMapper(errorMapper);
@@ -189,13 +165,6 @@ public class ServiceInfo {
     Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
       if (this.dataDecoder == null) {
         return dataDecoder(dataDecoder);
-      }
-      return this;
-    }
-
-    Builder principalMapperIfAbsent(PrincipalMapper<Object, Object> principalMapper) {
-      if (this.principalMapper == null) {
-        return principalMapper(principalMapper);
       }
       return this;
     }

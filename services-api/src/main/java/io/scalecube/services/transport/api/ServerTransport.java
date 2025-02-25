@@ -1,7 +1,6 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.Address;
-import io.scalecube.services.auth.Principal;
 import reactor.core.publisher.Mono;
 
 public interface ServerTransport {
@@ -36,6 +35,6 @@ public interface ServerTransport {
      * @param credentials credentials
      * @return result
      */
-    Mono<Principal> authenticate(byte[] credentials);
+    Mono<Object> authenticate(byte[] credentials);
   }
 }

@@ -2,7 +2,7 @@ package io.scalecube.services.methods;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import io.scalecube.services.auth.Principal;
+import io.scalecube.services.RequestContext;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
