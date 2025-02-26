@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -227,6 +228,7 @@ public class Microservices implements AutoCloseable {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(context.defaultErrorMapper)
             .dataDecoderIfAbsent(context.defaultDataDecoder)
+            .authenticatorIfAbsent(context.defaultAuthenticator)
             .loggerIfAbsent(context.defaultLogger)
             .build(),
         context.schedulers,
@@ -496,6 +498,7 @@ public class Microservices implements AutoCloseable {
     private Map<String, String> tags;
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
+    private Authenticator defaultAuthenticator;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
     private Logger defaultLogger;
@@ -652,6 +655,17 @@ public class Microservices implements AutoCloseable {
      */
     public Context defaultDataDecoder(ServiceMessageDataDecoder dataDecoder) {
       this.defaultDataDecoder = dataDecoder;
+      return this;
+    }
+
+    /**
+     * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
+     *
+     * @param authenticator authenticator (optional)
+     * @return this
+     */
+    public Context defaultAuthenticator(Authenticator authenticator) {
+      this.defaultAuthenticator = authenticator;
       return this;
     }
 

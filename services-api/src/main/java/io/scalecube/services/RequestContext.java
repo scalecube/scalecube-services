@@ -107,6 +107,16 @@ public class RequestContext {
     return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)));
   }
 
+  //  public static <T> Mono<T> deferSecured(Class<T> principalType) {
+  //    return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)))
+  //        .map(
+  //            requestContext -> {
+  //              //noinspection unchecked
+  //              final var p = (T) requestContext.principal();
+  //              return p;
+  //            });
+  //  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")

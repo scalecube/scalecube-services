@@ -40,7 +40,7 @@ public class StubServiceImpl implements StubService {
 
   @Override
   public Mono<Void> helloAuthContext() {
-    return Principal.deferSecured(StubServicePrincipal.class).then();
+    return RequestContext.deferContextual().then();
   }
 
   @Override

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.Collections;
@@ -16,6 +17,7 @@ public class ServiceInfo {
   private final Map<String, String> tags;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
+  private final Authenticator authenticator;
   private final Logger logger;
 
   private ServiceInfo(Builder builder) {
@@ -23,6 +25,7 @@ public class ServiceInfo {
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
     this.errorMapper = builder.errorMapper;
     this.dataDecoder = builder.dataDecoder;
+    this.authenticator = builder.authenticator;
     this.logger = builder.logger;
   }
 
@@ -50,6 +53,10 @@ public class ServiceInfo {
     return dataDecoder;
   }
 
+  public Authenticator authenticator() {
+    return authenticator;
+  }
+
   public Logger logger() {
     return logger;
   }
@@ -61,6 +68,7 @@ public class ServiceInfo {
         .add("tags=" + tags)
         .add("errorMapper=" + errorMapper)
         .add("dataDecoder=" + dataDecoder)
+        .add("authenticator=" + authenticator)
         .add("logger=" + logger)
         .toString();
   }
@@ -71,6 +79,7 @@ public class ServiceInfo {
     private final Map<String, String> tags = new HashMap<>();
     private ServiceProviderErrorMapper errorMapper;
     private ServiceMessageDataDecoder dataDecoder;
+    private Authenticator authenticator;
     private Logger logger;
 
     private Builder(ServiceInfo serviceInfo) {
@@ -155,6 +164,17 @@ public class ServiceInfo {
       return this;
     }
 
+    /**
+     * Setter for {@code authenticator}. Overrides default {@code Microservices.authenticator}.
+     *
+     * @param authenticator authenticator (optional)
+     * @return this
+     */
+    public Builder authenticator(Authenticator authenticator) {
+      this.authenticator = authenticator;
+      return this;
+    }
+
     Builder errorMapperIfAbsent(ServiceProviderErrorMapper errorMapper) {
       if (this.errorMapper == null) {
         return errorMapper(errorMapper);
@@ -165,6 +185,13 @@ public class ServiceInfo {
     Builder dataDecoderIfAbsent(ServiceMessageDataDecoder dataDecoder) {
       if (this.dataDecoder == null) {
         return dataDecoder(dataDecoder);
+      }
+      return this;
+    }
+
+    Builder authenticatorIfAbsent(Authenticator authenticator) {
+      if (this.authenticator == null) {
+        return authenticator(authenticator);
       }
       return this;
     }
