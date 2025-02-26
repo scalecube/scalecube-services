@@ -38,10 +38,8 @@ public class RSocketImpl implements RSocket {
     return Mono.defer(
             () -> {
               final var message = toMessage(payload);
-              validateRequest(message);
-
               final var methodInvoker = serviceRegistry.lookupInvoker(message);
-              validateMethodInvoker(methodInvoker, message);
+              validateRequest(methodInvoker, message);
 
               return methodInvoker
                   .invokeOne(message)
@@ -57,10 +55,8 @@ public class RSocketImpl implements RSocket {
     return Flux.defer(
             () -> {
               final var message = toMessage(payload);
-              validateRequest(message);
-
               final var methodInvoker = serviceRegistry.lookupInvoker(message);
-              validateMethodInvoker(methodInvoker, message);
+              validateRequest(methodInvoker, message);
 
               return methodInvoker
                   .invokeMany(message)
@@ -79,10 +75,8 @@ public class RSocketImpl implements RSocket {
             (first, messages) -> {
               if (first.hasValue()) {
                 final var message = first.get();
-                validateRequest(message);
-
                 final var methodInvoker = serviceRegistry.lookupInvoker(message);
-                validateMethodInvoker(methodInvoker, message);
+                validateRequest(methodInvoker, message);
 
                 return methodInvoker
                     .invokeBidirectional(messages)
@@ -113,22 +107,14 @@ public class RSocketImpl implements RSocket {
         RequestContext.builder().headers(message.headers()).principal(principal).build());
   }
 
-  private static void validateRequest(ServiceMessage message) throws ServiceException {
-    if (message == null) {
-      throw new BadRequestException("Message is null, invocation failed");
+  private static void validateRequest(ServiceMethodInvoker methodInvoker, ServiceMessage message) {
+    if (methodInvoker == null) {
+      releaseRequest(message);
+      throw new ServiceUnavailableException("No service invoker found");
     }
     if (message.qualifier() == null) {
       releaseRequest(message);
       throw new BadRequestException("Qualifier is null, invocation failed for " + message);
-    }
-  }
-
-  private static void validateMethodInvoker(
-      ServiceMethodInvoker methodInvoker, ServiceMessage message) {
-    if (methodInvoker == null) {
-      releaseRequest(message);
-      LOGGER.error("No service invoker found, invocation failed for {}", message);
-      throw new ServiceUnavailableException("No service invoker found");
     }
   }
 
