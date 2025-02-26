@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_QUALIFIER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 
 import java.math.BigDecimal;
@@ -52,8 +53,16 @@ public class RequestContext {
     return header(HEADER_REQUEST_METHOD);
   }
 
+  public String requestQualifier() {
+    return header(HEADER_QUALIFIER);
+  }
+
   public Object principal() {
     return principal;
+  }
+
+  public boolean hasPrincipal() {
+    return principal != NULL_PRINCIPAL;
   }
 
   public Map<String, String> pathVars() {

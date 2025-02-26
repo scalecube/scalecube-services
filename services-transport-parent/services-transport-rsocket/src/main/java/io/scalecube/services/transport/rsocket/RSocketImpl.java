@@ -6,10 +6,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.exceptions.UnauthorizedException;
-import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import org.reactivestreams.Publisher;
@@ -27,7 +24,8 @@ public class RSocketImpl implements RSocket {
   private final ServiceMessageCodec messageCodec;
   private final ServiceRegistry serviceRegistry;
 
-  RSocketImpl(Object principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+  public RSocketImpl(
+      Object principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
     this.principal = principal;
     this.messageCodec = messageCodec;
     this.serviceRegistry = serviceRegistry;
@@ -40,11 +38,10 @@ public class RSocketImpl implements RSocket {
               final var message = toMessage(payload);
               final var methodInvoker = serviceRegistry.lookupInvoker(message);
               validateRequest(methodInvoker, message);
-
               return methodInvoker
                   .invokeOne(message)
                   .doOnNext(response -> releaseRequestOnError(message, response))
-                  .contextWrite(context -> setupContext(message));
+                  .contextWrite(context -> requestContext(message));
             })
         .map(this::toPayload)
         .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()));
@@ -57,11 +54,10 @@ public class RSocketImpl implements RSocket {
               final var message = toMessage(payload);
               final var methodInvoker = serviceRegistry.lookupInvoker(message);
               validateRequest(methodInvoker, message);
-
               return methodInvoker
                   .invokeMany(message)
                   .doOnNext(response -> releaseRequestOnError(message, response))
-                  .contextWrite(context -> setupContext(message));
+                  .contextWrite(context -> requestContext(message));
             })
         .map(this::toPayload)
         .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()));
@@ -77,11 +73,10 @@ public class RSocketImpl implements RSocket {
                 final var message = first.get();
                 final var methodInvoker = serviceRegistry.lookupInvoker(message);
                 validateRequest(methodInvoker, message);
-
                 return methodInvoker
                     .invokeBidirectional(messages)
                     .doOnNext(response -> releaseRequestOnError(message, response))
-                    .contextWrite(context -> setupContext(message));
+                    .contextWrite(context -> requestContext(message));
               }
               return messages;
             })
@@ -101,7 +96,7 @@ public class RSocketImpl implements RSocket {
     }
   }
 
-  private Context setupContext(ServiceMessage message) {
+  private Context requestContext(ServiceMessage message) {
     return Context.of(
         RequestContext.class,
         RequestContext.builder().headers(message.headers()).principal(principal).build());
@@ -125,37 +120,6 @@ public class RSocketImpl implements RSocket {
   private static void releaseRequestOnError(ServiceMessage request, ServiceMessage response) {
     if (response.isError()) {
       releaseRequest(request);
-    }
-  }
-
-  private Mono<Object> doAuth(MethodInfo methodInfo) {
-    return RequestContext.deferContextual()
-        .flatMap(
-            context -> {
-              if (!methodInfo.isSecured()) {
-                return Mono.just(RequestContext.NULL_PRINCIPAL);
-              }
-
-              if (authenticator == null) {
-                if (context.hasKey(AUTH_CONTEXT_KEY)) {
-                  return Mono.just(context.get(AUTH_CONTEXT_KEY));
-                } else {
-                  throw new UnauthorizedException("Authentication failed");
-                }
-              }
-
-              return authenticator
-                  .apply(context.headers())
-                  .switchIfEmpty(Mono.just(RequestContext.NULL_PRINCIPAL))
-                  .onErrorMap(RSocketImpl::toUnauthorizedException);
-            });
-  }
-
-  private static UnauthorizedException toUnauthorizedException(Throwable ex) {
-    if (ex instanceof ServiceException e) {
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
-    } else {
-      return new UnauthorizedException(ex);
     }
   }
 }
