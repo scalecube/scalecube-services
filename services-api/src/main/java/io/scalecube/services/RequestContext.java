@@ -8,6 +8,7 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.StringJoiner;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 public class RequestContext {
 
@@ -35,6 +36,10 @@ public class RequestContext {
         .request(context.request())
         .principal(context.principal())
         .pathVars(context.pathVars());
+  }
+
+  public Context toContext() {
+    return Context.of(RequestContext.class, this);
   }
 
   public Map<String, String> headers() {

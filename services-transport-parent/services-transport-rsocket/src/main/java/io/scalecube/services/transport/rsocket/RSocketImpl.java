@@ -41,7 +41,7 @@ public class RSocketImpl implements RSocket {
               return methodInvoker
                   .invokeOne(message)
                   .doOnNext(response -> releaseRequestOnError(message, response))
-                  .contextWrite(context -> requestContext(message));
+                  .contextWrite(requestContext(message));
             })
         .map(this::toPayload)
         .doOnError(ex -> LOGGER.error("[requestResponse][error] cause: {}", ex.toString()));
@@ -57,7 +57,7 @@ public class RSocketImpl implements RSocket {
               return methodInvoker
                   .invokeMany(message)
                   .doOnNext(response -> releaseRequestOnError(message, response))
-                  .contextWrite(context -> requestContext(message));
+                  .contextWrite(requestContext(message));
             })
         .map(this::toPayload)
         .doOnError(ex -> LOGGER.error("[requestStream][error] cause: {}", ex.toString()));
@@ -76,7 +76,7 @@ public class RSocketImpl implements RSocket {
                 return methodInvoker
                     .invokeBidirectional(messages)
                     .doOnNext(response -> releaseRequestOnError(message, response))
-                    .contextWrite(context -> requestContext(message));
+                    .contextWrite(requestContext(message));
               }
               return messages;
             })
@@ -97,9 +97,11 @@ public class RSocketImpl implements RSocket {
   }
 
   private Context requestContext(ServiceMessage message) {
-    return Context.of(
-        RequestContext.class,
-        RequestContext.builder().headers(message.headers()).principal(principal).build());
+    return RequestContext.builder()
+        .headers(message.headers())
+        .principal(principal)
+        .build()
+        .toContext();
   }
 
   private static void validateRequest(ServiceMethodInvoker methodInvoker, ServiceMessage message) {

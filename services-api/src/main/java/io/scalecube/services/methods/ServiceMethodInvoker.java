@@ -17,6 +17,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.context.Context;
 
 public final class ServiceMethodInvoker {
 
@@ -54,20 +55,15 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(ServiceMessage message) {
     return RequestContext.deferContextual()
         .flatMap(
-            requestContext -> {
+            context -> {
               final var request = toRequest(message);
               final var qualifier = message.qualifier();
 
-              return authenticate(requestContext)
+              return authenticate(context)
                   .flatMap(
                       principal ->
-                          Mono.from(invokeRequest(request))
-                              .contextWrite(
-                                  context ->
-                                      context.put(
-                                          RequestContext.class,
-                                          enhanceRequestContext(
-                                              requestContext, request, principal))))
+                          Mono.defer(() -> Mono.from(invokeRequest(request)))
+                              .contextWrite(enhanceRequestContext(context, request, principal)))
                   .doOnSuccess(
                       response -> {
                         if (logger != null && logger.isDebugEnabled()) {
@@ -99,20 +95,15 @@ public final class ServiceMethodInvoker {
     }
     return RequestContext.deferContextual()
         .flatMapMany(
-            requestContext -> {
+            context -> {
               final var request = toRequest(message);
               final var qualifier = message.qualifier();
 
-              return authenticate(requestContext)
+              return authenticate(context)
                   .flatMapMany(
                       principal ->
-                          Flux.from(invokeRequest(request))
-                              .contextWrite(
-                                  context ->
-                                      context.put(
-                                          RequestContext.class,
-                                          enhanceRequestContext(
-                                              requestContext, request, principal))))
+                          Flux.defer(() -> Flux.from(invokeRequest(request)))
+                              .contextWrite(enhanceRequestContext(context, request, principal)))
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isDebugEnabled()) {
@@ -188,8 +179,7 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private RequestContext enhanceRequestContext(
-      RequestContext context, Object request, Object principal) {
+  private Context enhanceRequestContext(RequestContext context, Object request, Object principal) {
     final var dynamicQualifier = methodInfo.dynamicQualifier();
 
     Map<String, String> pathVars = null;
@@ -201,7 +191,8 @@ public final class ServiceMethodInvoker {
         .request(request)
         .principal(principal)
         .pathVars(pathVars)
-        .build();
+        .build()
+        .toContext();
   }
 
   private Object toRequest(ServiceMessage message) {
