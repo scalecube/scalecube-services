@@ -6,6 +6,10 @@ public interface Principal {
 
   Principal NULL_PRINCIPAL = new Principal() {};
 
+  default String role() {
+    return null;
+  }
+
   default Collection<String> permissions() {
     return null;
   }
