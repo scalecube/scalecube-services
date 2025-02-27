@@ -169,7 +169,7 @@ public final class Reflect {
         requestType(method),
         isRequestTypeServiceMessage(method),
         isSecured(method),
-        null /*scheduler*/,
+        Schedulers.immediate(),
         restMethod(method),
         allowedRoles(method),
         allowedPermissions(method));
