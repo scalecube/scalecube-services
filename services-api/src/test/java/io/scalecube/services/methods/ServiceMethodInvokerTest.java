@@ -4,8 +4,10 @@ import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import io.scalecube.services.CommunicationMode;
+import io.scalecube.services.Reflect;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
@@ -20,19 +22,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
 class ServiceMethodInvokerTest {
 
-  private static final boolean IS_SECURED = true;
-  private static final boolean IS_RETURN_TYPE_SERVICE_MESSAGE = false;
-  private static final boolean IS_REQUEST_TYPE_SERVICE_MESSAGE = false;
-  private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("alice", List.of("permission"));
+  private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("user", List.of("permission"));
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
   private final Authenticator authenticator = requestContext -> Mono.just(PRINCIPAL);
@@ -45,179 +42,69 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("invokeOne() should return empty response when service returns null")
-    void testInvokeOneWhenReturnNull() throws Exception {
-      final String methodName = "returnNull";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void invokeOneReturnsNull() throws Exception {
+      final var methodName = "invokeOneReturnsNull";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeOne(message)
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
     }
 
     @Test
     @DisplayName("invokeMany() should return empty response when service returns null")
-    void testInvokeManyWhenReturnNull() throws Exception {
-      final String methodName = "returnNull2";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void invokeManyReturnsNull() throws Exception {
+      final var methodName = "invokeManyReturnsNull";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_STREAM,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeMany(message)
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
     }
 
     @Test
     @DisplayName("invokeBidirectional() should return empty response when service returns null")
-    void testInvokeBidirectionalWhenReturnNull() throws Exception {
-      final String methodName = "returnNull3";
-      final Method method = stubService.getClass().getMethod(methodName, Flux.class);
+    void invokeBidirectionalReturnsNull() throws Exception {
+      final var methodName = "invokeBidirectionalReturnsNull";
+      final var method = StubService.class.getMethod(methodName, Flux.class);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_CHANNEL,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeBidirectional(Flux.just(message))
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
     }
 
     @Test
     @DisplayName("invokeOne() should return error response when service throws exception")
-    void testInvokeOneWhenThrowException() throws Exception {
-      final String methodName = "throwException";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void invokeOneThrowsException() throws Exception {
+      final var methodName = "invokeOneThrowsException";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
-
-      // invokeOne
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeOne(message)
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .assertNext(
               serviceMessage -> {
                 assertTrue(serviceMessage.isError());
@@ -228,45 +115,18 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("invokeMany() should return error response when service throws exception")
-    void testInvokeManyWhenThrowException() throws Exception {
-      final String methodName = "throwException2";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void invokeManyThrowsException() throws Exception {
+      final var methodName = "invokeManyThrowsException";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_STREAM,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeMany(message)
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .assertNext(
               serviceMessage -> {
                 assertTrue(serviceMessage.isError());
@@ -277,47 +137,18 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("invokeBidirectional() should return error response when service throws exception")
-    void testInvokeBidirectionalWhenThrowException() throws Exception {
-      final String methodName = "throwException3";
-      final Method method = stubService.getClass().getMethod(methodName, Flux.class);
+    void invokeBidirectionalThrowsException() throws Exception {
+      final var methodName = "invokeBidirectionalThrowsException";
+      final var method = StubService.class.getMethod(methodName, Flux.class);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_CHANNEL,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
-
-      // invokeOne
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeBidirectional(Flux.just(message))
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .assertNext(
               serviceMessage -> {
                 assertTrue(serviceMessage.isError());
@@ -328,51 +159,22 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("Invocation of method should contain RequestConext")
-    void invokeWithDynamicQualifier() throws Exception {
-      final String methodName = "helloRequestContextWithDynamicQualifier";
-      final String actionName = "hello/:foo/dynamic/:bar";
-      final String actualActionName = "hello/foo123/dynamic/bar456";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void invokeDynamicQualifier() throws Exception {
+      final var methodName = "invokeDynamicQualifier";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage("hello/foo123/dynamic/bar456");
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              actionName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
+      final var authenticator = mock(Authenticator.class);
+      when(authenticator.authenticate(ArgumentMatchers.any()))
+          .thenReturn(Mono.just(new PrincipalImpl("user", List.of("read", "write"))));
 
-      Authenticator authenticator = Mockito.mock(Authenticator.class);
-      Mockito.when(authenticator.authenticate(ArgumentMatchers.any()))
-          .thenReturn(Mono.just(new PrincipalImpl("bob", List.of("read", "write"))));
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              authenticator,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, actualActionName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeOne(message)
-                  .contextWrite(requestContext(message, PRINCIPAL)))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
     }
   }
@@ -382,42 +184,13 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("Principal is null, Authenticator is null")
-    void testSecuredWhenNoPrincipalAndNoAuthenticator() throws Exception {
-      final String methodName = "helloAuthContext";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void testAuthWhenNoPrincipalAndNoAuthenticator() throws Exception {
+      final var methodName = "invokeWithAuthContext";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              null,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
-
-      // invokeOne
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -432,40 +205,13 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("Principal is not null, Authenticator is null")
-    void testSecuredWhenThereIsPrincipalAndNoAuthenticator() throws Exception {
-      final String methodName = "helloAuthContext";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void testAuthWhenThereIsPrincipalAndNoAuthenticator() throws Exception {
+      final var methodName = "invokeWithAuthContext";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              authenticator,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -476,51 +222,137 @@ class ServiceMethodInvokerTest {
 
     @Test
     @DisplayName("Principal is null, Authenticator is not null")
-    void testSecuredWhenNoPrincipalButThereIsAuthenticator() throws Exception {
-      final String methodName = "helloAuthContext";
-      final Method method = stubService.getClass().getMethod(methodName);
+    void testAuthNoPrincipalButThereIsAuthenticator() throws Exception {
+      final var methodName = "invokeWithAuthContext";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
 
-      final MethodInfo methodInfo =
-          new MethodInfo(
-              StubService.NAMESPACE,
-              methodName,
-              method.getReturnType(),
-              IS_RETURN_TYPE_SERVICE_MESSAGE,
-              CommunicationMode.REQUEST_RESPONSE,
-              method.getParameterCount(),
-              Void.TYPE,
-              IS_REQUEST_TYPE_SERVICE_MESSAGE,
-              IS_SECURED,
-              Schedulers.immediate(),
-              null,
-              null,
-              null);
+      final var authenticator = mock(Authenticator.class);
+      when(authenticator.authenticate(ArgumentMatchers.any()))
+          .thenReturn(Mono.just(new PrincipalImpl("admin", List.of("read", "write"))));
 
-      Authenticator authenticator = Mockito.mock(Authenticator.class);
-      Mockito.when(authenticator.authenticate(ArgumentMatchers.any()))
-          .thenReturn(Mono.just(new PrincipalImpl("bob", List.of("read", "write"))));
-
-      serviceMethodInvoker =
-          new ServiceMethodInvoker(
-              method,
-              stubService,
-              methodInfo,
-              DefaultErrorMapper.INSTANCE,
-              dataDecoder,
-              authenticator,
-              null);
-
-      ServiceMessage message =
-          ServiceMessage.builder()
-              .qualifier(Qualifier.asString(StubService.NAMESPACE, methodName))
-              .build();
-
-      // invokeOne
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
 
       StepVerifier.create(
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
+          .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Authenticate by principal role")
+    void testAuthWithRoleOnly() throws Exception {
+      final var methodName = "invokeWithRoleOnly";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      final var principal = new PrincipalImpl("admin", List.of("read", "write"));
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Failed to authenticate by principal role")
+    void testAuthFailedWithRoleOnly() throws Exception {
+      final var methodName = "invokeWithRoleOnly";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      final var principal = new PrincipalImpl("not-admin", List.of("read", "write"));
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .assertNext(
+              serviceMessage -> {
+                assertTrue(serviceMessage.isError());
+                assertEquals(403, serviceMessage.errorType());
+              })
+          .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Authenticate by principal permissions")
+    void testAuthWithPermissionsOnly() throws Exception {
+      final var methodName = "invokeWithPermissionsOnly";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      final var principal = new PrincipalImpl(null, List.of("read", "write"));
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Failed to authenticate by principal permissions")
+    void testAuthFailedWithPermissionsOnly() throws Exception {
+      final var methodName = "invokeWithPermissionsOnly";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      final var principal = new PrincipalImpl(null, List.of("wrong-permission"));
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .assertNext(
+              serviceMessage -> {
+                assertTrue(serviceMessage.isError());
+                assertEquals(403, serviceMessage.errorType());
+              })
+          .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("Authenticate by principal role and permissions")
+    void testAuthWithRoleAndPermissions() throws Exception {
+      final var methodName = "invokeWithRoleAndPermissions";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      final var principal = new PrincipalImpl("admin", List.of("read", "write"));
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
           .verifyComplete();
     }
   }
@@ -533,11 +365,21 @@ class ServiceMethodInvokerTest {
         .toContext();
   }
 
-  record PrincipalImpl(String role, List<String> permissions) implements Principal {
+  private ServiceMethodInvoker serviceMethodInvoker(
+      Method method, MethodInfo methodInfo, Authenticator authenticator) {
+    return new ServiceMethodInvoker(
+        method,
+        stubService,
+        methodInfo,
+        DefaultErrorMapper.INSTANCE,
+        dataDecoder,
+        authenticator,
+        null);
+  }
 
-    @Override
-    public boolean hasPermission(String permission) {
-      return permissions.contains(permission);
-    }
+  private static ServiceMessage serviceMessage(String action) {
+    return ServiceMessage.builder()
+        .qualifier(Qualifier.asString(StubService.NAMESPACE, action))
+        .build();
   }
 }

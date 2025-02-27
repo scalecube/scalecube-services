@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -10,27 +11,44 @@ public interface StubService {
 
   String NAMESPACE = "v1/stubService";
 
-  @ServiceMethod
-  Mono<String> returnNull();
+  // Invocation methods
 
   @ServiceMethod
-  Flux<String> returnNull2();
+  Mono<String> invokeOneReturnsNull();
 
   @ServiceMethod
-  Flux<String> returnNull3(Flux<String> request);
+  Flux<String> invokeManyReturnsNull();
 
   @ServiceMethod
-  Mono<String> throwException();
+  Flux<String> invokeBidirectionalReturnsNull(Flux<String> request);
 
   @ServiceMethod
-  Flux<String> throwException2();
+  Mono<String> invokeOneThrowsException();
 
   @ServiceMethod
-  Flux<String> throwException3(Flux<String> request);
+  Flux<String> invokeManyThrowsException();
 
   @ServiceMethod
-  Mono<Void> helloAuthContext();
+  Flux<String> invokeBidirectionalThrowsException(Flux<String> request);
 
   @ServiceMethod("hello/:foo/dynamic/:bar")
-  Mono<Void> helloRequestContextWithDynamicQualifier();
+  Mono<Void> invokeDynamicQualifier();
+
+  // Secured methods
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> invokeWithAuthContext();
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> invokeWithRoleOnly();
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> invokeWithPermissionsOnly();
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> invokeWithRoleAndPermissions();
 }
