@@ -2,7 +2,9 @@ package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_QUALIFIER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
+import io.scalecube.services.auth.Principal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
@@ -12,11 +14,9 @@ import reactor.util.context.Context;
 
 public class RequestContext {
 
-  public static final Object NULL_PRINCIPAL = new Object();
-
   private final Map<String, String> headers;
   private final Object request;
-  private final Object principal;
+  private final Principal principal;
   private final Map<String, String> pathVars;
 
   private RequestContext(Builder builder) {
@@ -62,7 +62,7 @@ public class RequestContext {
     return header(HEADER_QUALIFIER);
   }
 
-  public Object principal() {
+  public Principal principal() {
     return principal;
   }
 
@@ -136,7 +136,7 @@ public class RequestContext {
 
     private Map<String, String> headers;
     private Object request;
-    private Object principal;
+    private Principal principal;
     private Map<String, String> pathVars;
 
     private Builder() {}
@@ -151,7 +151,7 @@ public class RequestContext {
       return this;
     }
 
-    public Builder principal(Object principal) {
+    public Builder principal(Principal principal) {
       this.principal = principal;
       return this;
     }

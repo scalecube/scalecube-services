@@ -4,7 +4,13 @@ import java.util.List;
 
 public interface Principal {
 
-  List<String> permissions();
+  Principal NULL_PRINCIPAL = new Principal() {};
 
-  boolean hasPermission(String permission);
+  default List<String> permissions() {
+    return null;
+  }
+
+  default boolean hasPermission(String permission) {
+    return false;
+  }
 }

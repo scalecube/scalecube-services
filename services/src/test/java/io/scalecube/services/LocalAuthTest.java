@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.routing.StaticAddressRouter;
@@ -217,9 +219,9 @@ final class LocalAuthTest {
     return Mono.just(encodeCredentials(new TokenCredentials()));
   }
 
-  private static Mono<Object> authenticate(byte[] credentials) {
+  private static Mono<Principal> authenticate(byte[] credentials) {
     if (credentials.length == 0) {
-      return Mono.just(PrincipalImpl.NULL_PRINCIPAL);
+      return Mono.just(NULL_PRINCIPAL);
     }
 
     final var tokenCredentials = credentials(credentials, TokenCredentials.class);

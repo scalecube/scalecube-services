@@ -4,6 +4,7 @@ import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -179,7 +180,8 @@ public final class ServiceMethodInvoker {
     return arguments;
   }
 
-  private Context enhanceRequestContext(RequestContext context, Object request, Object principal) {
+  private Context enhanceRequestContext(
+      RequestContext context, Object request, Principal principal) {
     final var dynamicQualifier = methodInfo.dynamicQualifier();
 
     Map<String, String> pathVars = null;
@@ -233,7 +235,7 @@ public final class ServiceMethodInvoker {
     return authenticator;
   }
 
-  private Mono<Object> authenticate(RequestContext context) {
+  private Mono<Principal> authenticate(RequestContext context) {
     if (!methodInfo.isSecured()) {
       return Mono.just(context.principal());
     }

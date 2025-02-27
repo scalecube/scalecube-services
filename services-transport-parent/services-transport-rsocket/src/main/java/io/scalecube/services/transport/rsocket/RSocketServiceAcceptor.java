@@ -1,10 +1,12 @@
 package io.scalecube.services.transport.rsocket;
 
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
+
 import io.netty.buffer.ByteBuf;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
-import io.scalecube.services.RequestContext;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -41,9 +43,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     return Mono.defer(() -> authenticate(setupPayload.data())).map(this::newRSocket);
   }
 
-  private Mono<Object> authenticate(ByteBuf connectionSetup) {
+  private Mono<Principal> authenticate(ByteBuf connectionSetup) {
     if (authenticator == null) {
-      return Mono.just(RequestContext.NULL_PRINCIPAL);
+      return Mono.just(NULL_PRINCIPAL);
     }
 
     final var credentials = new byte[connectionSetup.readableBytes()];
@@ -51,13 +53,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     return authenticator
         .authenticate(credentials)
-        .switchIfEmpty(Mono.just(RequestContext.NULL_PRINCIPAL))
+        .switchIfEmpty(Mono.just(NULL_PRINCIPAL))
         .doOnSuccess(p -> LOGGER.debug("Authenticated successfully, principal: {}", p))
         .doOnError(ex -> LOGGER.error("Failed to authenticate, cause: {}", ex.toString()))
         .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
   }
 
-  private RSocket newRSocket(Object principal) {
+  private RSocket newRSocket(Principal principal) {
     return new RSocketImpl(
         principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
   }

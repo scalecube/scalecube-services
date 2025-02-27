@@ -6,5 +6,5 @@ import reactor.core.publisher.Mono;
 @FunctionalInterface
 public interface Authenticator {
 
-  Mono<Object> authenticate(RequestContext requestContext);
+  Mono<Principal> authenticate(RequestContext requestContext);
 }

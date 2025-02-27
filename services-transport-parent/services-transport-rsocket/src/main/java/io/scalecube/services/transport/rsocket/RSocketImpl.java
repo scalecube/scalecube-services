@@ -5,6 +5,7 @@ import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
@@ -20,12 +21,12 @@ public class RSocketImpl implements RSocket {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketImpl.class);
 
-  private final Object principal;
+  private final Principal principal;
   private final ServiceMessageCodec messageCodec;
   private final ServiceRegistry serviceRegistry;
 
   public RSocketImpl(
-      Object principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+      Principal principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
     this.principal = principal;
     this.messageCodec = messageCodec;
     this.serviceRegistry = serviceRegistry;
