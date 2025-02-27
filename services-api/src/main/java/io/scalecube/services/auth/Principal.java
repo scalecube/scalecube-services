@@ -13,8 +13,4 @@ public interface Principal {
   default Collection<String> permissions() {
     return null;
   }
-
-  default boolean hasPermission(String permission) {
-    return false;
-  }
 }
