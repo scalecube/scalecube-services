@@ -36,13 +36,13 @@ public class RSocketClientTransport implements ClientTransport {
   private final List<String> allowedRoles;
 
   /**
-   * Constructor for this transport.
+   * Constructor.
    *
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param clientTransportFactory clientTransportFactory
-   * @param credentialsSupplier credentialsSupplier
-   * @param allowedRoles allowedRoles
+   * @param credentialsSupplier credentialsSupplier (optional)
+   * @param allowedRoles allowedRoles (optional)
    */
   public RSocketClientTransport(
       HeadersCodec headersCodec,
