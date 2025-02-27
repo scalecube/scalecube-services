@@ -1,12 +1,12 @@
 package io.scalecube.services.auth;
 
-import java.util.List;
+import java.util.Collection;
 
 public interface Principal {
 
   Principal NULL_PRINCIPAL = new Principal() {};
 
-  default List<String> permissions() {
+  default Collection<String> permissions() {
     return null;
   }
 
