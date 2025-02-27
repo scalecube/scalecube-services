@@ -1,7 +1,5 @@
 package io.scalecube.services.sut.security;
 
-import static io.scalecube.services.RequestContext.deferSecured;
-
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
