@@ -8,6 +8,7 @@ import io.scalecube.services.auth.Principal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Objects;
 import java.util.StringJoiner;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -78,34 +79,44 @@ public class RequestContext {
     return pathVars != null ? pathVars.get(name) : null;
   }
 
-  public <T> T pathVar(String name, Class<T> clazz) {
+  public <T> T pathVar(String name, Class<T> type) {
     final var s = pathVar(name);
     if (s == null) {
       return null;
     }
 
-    if (clazz == String.class) {
+    if (type == String.class) {
       //noinspection unchecked
       return (T) s;
     }
-    if (clazz == Integer.class) {
+    if (type == Integer.class) {
       //noinspection unchecked
       return (T) Integer.valueOf(s);
     }
-    if (clazz == Long.class) {
+    if (type == Long.class) {
       //noinspection unchecked
       return (T) Long.valueOf(s);
     }
-    if (clazz == BigDecimal.class) {
+    if (type == BigDecimal.class) {
       //noinspection unchecked
       return (T) new BigDecimal(s);
     }
-    if (clazz == BigInteger.class) {
+    if (type == BigInteger.class) {
       //noinspection unchecked
       return (T) new BigInteger(s);
     }
 
-    throw new IllegalArgumentException("Wrong pathVar: " + name);
+    throw new IllegalArgumentException("Wrong pathVar type: " + type);
+  }
+
+  public boolean hasRole(String role) {
+    return principal != null && Objects.equals(principal.role(), role);
+  }
+
+  public boolean hasPermission(String permission) {
+    return principal != null
+        && principal.permissions() != null
+        && principal.permissions().contains(permission);
   }
 
   public static Mono<RequestContext> deferContextual() {
