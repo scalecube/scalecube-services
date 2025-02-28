@@ -68,7 +68,7 @@ public class RequestContext {
   }
 
   public boolean hasPrincipal() {
-    return principal != NULL_PRINCIPAL;
+    return principal != null && principal != NULL_PRINCIPAL;
   }
 
   public Map<String, String> pathVars() {

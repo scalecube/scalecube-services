@@ -10,7 +10,15 @@ public interface Principal {
     return null;
   }
 
+  default boolean hasRole(String role) {
+    return false;
+  }
+
   default Collection<String> permissions() {
     return null;
+  }
+
+  default boolean hasPermission(String permission) {
+    return false;
   }
 }
