@@ -88,7 +88,7 @@ public class RSocketClientTransport implements ClientTransport {
           return allowedRole;
         }
       }
-      throw new ForbiddenException("Forbidden");
+      throw new ForbiddenException("Insufficient permissions");
     }
 
     return null;

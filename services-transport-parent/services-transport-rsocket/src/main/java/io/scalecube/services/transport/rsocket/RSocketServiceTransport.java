@@ -209,8 +209,12 @@ public class RSocketServiceTransport implements ServiceTransport {
   @Override
   public void stop() {
     if (serverLoopResources != null && eventLoopGroup != null) {
-      serverLoopResources.dispose();
-      eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+      if (!serverLoopResources.isDisposed()) {
+        serverLoopResources.dispose();
+      }
+      if (!eventLoopGroup.isShutdown()) {
+        eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+      }
     }
   }
 
