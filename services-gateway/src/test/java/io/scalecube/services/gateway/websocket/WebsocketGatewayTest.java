@@ -65,7 +65,7 @@ class WebsocketGatewayTest {
                     () -> new WebsocketGateway.Builder().id("WS").heartbeatEnabled(true).build()));
 
     gatewayAddress = gateway.gateway("WS").address();
-    router = StaticAddressRouter.fromAddress(gatewayAddress);
+    router = StaticAddressRouter.from(gatewayAddress).build();
 
     microservices =
         Microservices.start(

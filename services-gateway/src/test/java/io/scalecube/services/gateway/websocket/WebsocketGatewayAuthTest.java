@@ -62,7 +62,7 @@ public class WebsocketGatewayAuthTest {
 
     serviceCall =
         new ServiceCall()
-            .router(StaticAddressRouter.fromAddress(gatewayAddress))
+            .router(StaticAddressRouter.from(gatewayAddress).build())
             .transport(
                 new WebsocketGatewayClientTransport.Builder().address(gatewayAddress).build());
 

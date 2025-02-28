@@ -298,7 +298,7 @@ public class RestGatewayTest {
     @Test
     void testNoMatchWithoutRestMethod() {
       final var gatewayAddress = gateway.gateway("WS").address();
-      final var router = StaticAddressRouter.fromAddress(gatewayAddress);
+      final var router = StaticAddressRouter.from(gatewayAddress).build();
       final var clientTransport = new Builder().address(gatewayAddress).build();
 
       try (final var serviceCall = new ServiceCall().router(router).transport(clientTransport)) {

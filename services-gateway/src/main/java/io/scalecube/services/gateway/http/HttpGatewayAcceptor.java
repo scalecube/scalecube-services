@@ -196,7 +196,7 @@ public class HttpGatewayAcceptor
   private Mono<Void> handleFileRequest(
       ServiceReference service, ServiceMessage message, HttpServerResponse response) {
     return serviceCall
-        .router(StaticAddressRouter.fromAddress(service.address()))
+        .router(StaticAddressRouter.from(service.address()).build())
         .requestMany(message)
         .switchOnFirst(
             (signal, flux) -> {
