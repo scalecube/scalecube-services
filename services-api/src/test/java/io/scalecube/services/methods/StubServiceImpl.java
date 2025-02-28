@@ -10,6 +10,8 @@ import reactor.core.publisher.Mono;
 
 public class StubServiceImpl implements StubService {
 
+  // Invocation methods
+
   @Override
   public Mono<String> invokeOneReturnsNull() {
     return RequestContext.deferContextual().then(Mono.empty());
@@ -54,6 +56,8 @@ public class StubServiceImpl implements StubService {
         .then();
   }
 
+  // Secured methods
+
   @Override
   public Mono<Void> invokeWithAuthContext() {
     return RequestContext.deferContextual()
@@ -65,39 +69,28 @@ public class StubServiceImpl implements StubService {
         .then();
   }
 
-  @Override
-  public Mono<Void> invokeWithRoleOnly() {
-    return RequestContext.deferContextual()
-        .doOnNext(
-            context -> {
-              if (!context.hasRole("admin")) {
-                throw new ForbiddenException("Not allowed");
-              }
-            })
-        .then();
-  }
+  // Services secured by code in method body
 
   @Override
-  public Mono<Void> invokeWithPermissionsOnly() {
+  public Mono<Void> invokeWithRoleOrPermissions() {
     return RequestContext.deferContextual()
         .doOnNext(
             context -> {
-              if (!context.hasPermission("read") || !context.hasPermission("write")) {
+              if (!context.hasPrincipal()) {
                 throw new ForbiddenException("Not allowed");
               }
-            })
-        .then();
-  }
 
-  @Override
-  public Mono<Void> invokeWithRoleAndPermissions() {
-    return RequestContext.deferContextual()
-        .doOnNext(
-            context -> {
-              if (!context.hasRole("admin")) {
+              final var principal = context.principal();
+              final var role = principal.role();
+              final var permissions = principal.permissions();
+
+              if (role == null && permissions == null) {
                 throw new ForbiddenException("Not allowed");
               }
-              if (!context.hasPermission("read") || !context.hasPermission("write")) {
+              if (role != null && !role.equals("invoker")) {
+                throw new ForbiddenException("Not allowed");
+              }
+              if (permissions != null && !permissions.contains("invoke")) {
                 throw new ForbiddenException("Not allowed");
               }
             })

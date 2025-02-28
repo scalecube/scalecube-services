@@ -18,9 +18,12 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentMatchers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -241,16 +244,16 @@ class ServiceMethodInvokerTest {
           .verifyComplete();
     }
 
-    @Test
-    @DisplayName("Authenticate by principal role")
-    void testAuthWithRoleOnly() throws Exception {
-      final var methodName = "invokeWithRoleOnly";
+    @ParameterizedTest
+    @MethodSource("testAuthWithRoleOrPermissionsSource")
+    @DisplayName("Authenticate by principal role or permissions")
+    void testAuthWithRoleOrPermissions(Principal principal) throws Exception {
+      final var methodName = "invokeWithRoleOrPermissions";
       final var method = StubService.class.getMethod(methodName);
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
       final var authenticator = mock(Authenticator.class);
-      final var principal = new PrincipalImpl("admin", List.of("read", "write"));
       when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
@@ -262,16 +265,21 @@ class ServiceMethodInvokerTest {
           .verifyComplete();
     }
 
-    @Test
-    @DisplayName("Failed to authenticate by principal role")
-    void testAuthFailedWithRoleOnly() throws Exception {
-      final var methodName = "invokeWithRoleOnly";
+    static Stream<Principal> testAuthWithRoleOrPermissionsSource() {
+      return Stream.of(
+          new PrincipalImpl("invoker", null), new PrincipalImpl(null, List.of("invoke")));
+    }
+
+    @ParameterizedTest
+    @MethodSource("testAuthFailedWithRoleOrPermissionsMethodSource")
+    @DisplayName("Failed to authenticate by principal role or permissions")
+    void testAuthFailedWithRoleOrPermissions(Principal principal) throws Exception {
+      final var methodName = "invokeWithRoleOrPermissions";
       final var method = StubService.class.getMethod(methodName);
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
       final var authenticator = mock(Authenticator.class);
-      final var principal = new PrincipalImpl("not-admin", List.of("read", "write"));
       when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
@@ -288,72 +296,12 @@ class ServiceMethodInvokerTest {
           .verifyComplete();
     }
 
-    @Test
-    @DisplayName("Authenticate by principal permissions")
-    void testAuthWithPermissionsOnly() throws Exception {
-      final var methodName = "invokeWithPermissionsOnly";
-      final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
-      final var message = serviceMessage(methodName);
-
-      final var authenticator = mock(Authenticator.class);
-      final var principal = new PrincipalImpl(null, List.of("read", "write"));
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
-
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
-
-      StepVerifier.create(
-              serviceMethodInvoker
-                  .invokeOne(message)
-                  .contextWrite(requestContext(message, principal)))
-          .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Failed to authenticate by principal permissions")
-    void testAuthFailedWithPermissionsOnly() throws Exception {
-      final var methodName = "invokeWithPermissionsOnly";
-      final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
-      final var message = serviceMessage(methodName);
-
-      final var authenticator = mock(Authenticator.class);
-      final var principal = new PrincipalImpl(null, List.of("wrong-permission"));
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
-
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
-
-      StepVerifier.create(
-              serviceMethodInvoker
-                  .invokeOne(message)
-                  .contextWrite(requestContext(message, principal)))
-          .assertNext(
-              serviceMessage -> {
-                assertTrue(serviceMessage.isError());
-                assertEquals(403, serviceMessage.errorType());
-              })
-          .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Authenticate by principal role and permissions")
-    void testAuthWithRoleAndPermissions() throws Exception {
-      final var methodName = "invokeWithRoleAndPermissions";
-      final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
-      final var message = serviceMessage(methodName);
-
-      final var authenticator = mock(Authenticator.class);
-      final var principal = new PrincipalImpl("admin", List.of("read", "write"));
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
-
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
-
-      StepVerifier.create(
-              serviceMethodInvoker
-                  .invokeOne(message)
-                  .contextWrite(requestContext(message, principal)))
-          .verifyComplete();
+    static Stream<Principal> testAuthFailedWithRoleOrPermissionsMethodSource() {
+      return Stream.of(
+          NULL_PRINCIPAL,
+          new PrincipalImpl(null, null),
+          new PrincipalImpl("not-invoker", null),
+          new PrincipalImpl(null, List.of("not-invoke")));
     }
   }
 

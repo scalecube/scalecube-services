@@ -44,13 +44,5 @@ public interface StubService {
 
   @Secured
   @ServiceMethod
-  Mono<Void> invokeWithRoleOnly();
-
-  @Secured
-  @ServiceMethod
-  Mono<Void> invokeWithPermissionsOnly();
-
-  @Secured
-  @ServiceMethod
-  Mono<Void> invokeWithRoleAndPermissions();
+  Mono<Void> invokeWithRoleOrPermissions();
 }
