@@ -40,12 +40,8 @@ public class StaticAddressRouter implements Router {
                 .build());
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   public static Builder from(Address address) {
-    return builder().address(address);
+    return new Builder().address(address);
   }
 
   @Override
