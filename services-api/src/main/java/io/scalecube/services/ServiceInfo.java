@@ -87,6 +87,7 @@ public class ServiceInfo {
       this.tags.putAll(new HashMap<>(serviceInfo.tags));
       this.errorMapper = serviceInfo.errorMapper;
       this.dataDecoder = serviceInfo.dataDecoder;
+      this.authenticator = serviceInfo.authenticator;
       this.logger = serviceInfo.logger;
     }
 

@@ -9,20 +9,9 @@ import reactor.core.publisher.Mono;
 @Service("secured")
 public interface SecuredService {
 
-  @ServiceMethod
-  Mono<String> helloWithRequest(String name);
+  // Services secured by code in method body
 
+  @Secured
   @ServiceMethod
-  Mono<String> helloWithPrincipal();
-
-  @ServiceMethod
-  Mono<String> helloWithRequestAndPrincipal(String name);
-
-  @Secured(roles = {"helloRole1", "helloRole2"})
-  @ServiceMethod
-  Mono<String> helloWithRoles(String name);
-
-  @Secured(roles = "helloPermission", permissions = "hello:permissions")
-  @ServiceMethod
-  Mono<String> helloWithPermissions(String name);
+  Mono<Void> invokeWithRoleOrPermissions();
 }
