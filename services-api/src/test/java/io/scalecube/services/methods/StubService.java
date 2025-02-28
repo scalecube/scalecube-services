@@ -40,6 +40,8 @@ public interface StubService {
   @ServiceMethod
   Mono<Void> invokeWithAuthContext();
 
+  // Services secured by code in method body
+
   @Secured
   @ServiceMethod
   Mono<Void> invokeWithRoleOnly();
