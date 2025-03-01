@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
+
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -202,7 +204,23 @@ public class ServiceCall implements AutoCloseable {
               if (serviceRegistry != null
                   && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
-                return methodInvoker.invokeOne(request).map(this::throwIfError);
+                return methodInvoker
+                    .invokeOne(request)
+                    .map(this::throwIfError)
+                    .contextWrite(
+                        context -> {
+                          if (context.hasKey(RequestContext.class)) {
+                            return context;
+                          } else {
+                            return context.put(
+                                RequestContext.class,
+                                RequestContext.builder()
+                                    .headers(request.headers())
+                                    .request(request)
+                                    .principal(NULL_PRINCIPAL)
+                                    .build());
+                          }
+                        });
               } else {
                 // remote service
                 Objects.requireNonNull(transport, "[requestOne] transport");
@@ -254,7 +272,23 @@ public class ServiceCall implements AutoCloseable {
               if (serviceRegistry != null
                   && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
-                return methodInvoker.invokeMany(request).map(this::throwIfError);
+                return methodInvoker
+                    .invokeMany(request)
+                    .map(this::throwIfError)
+                    .contextWrite(
+                        context -> {
+                          if (context.hasKey(RequestContext.class)) {
+                            return context;
+                          } else {
+                            return context.put(
+                                RequestContext.class,
+                                RequestContext.builder()
+                                    .headers(request.headers())
+                                    .request(request)
+                                    .principal(NULL_PRINCIPAL)
+                                    .build());
+                          }
+                        });
               } else {
                 // remote service
                 Objects.requireNonNull(transport, "[requestMany] transport");

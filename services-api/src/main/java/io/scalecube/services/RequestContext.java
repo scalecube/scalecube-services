@@ -8,7 +8,6 @@ import io.scalecube.services.auth.Principal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
-import java.util.Objects;
 import java.util.StringJoiner;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -109,29 +108,9 @@ public class RequestContext {
     throw new IllegalArgumentException("Wrong pathVar type: " + type);
   }
 
-  public boolean hasRole(String role) {
-    return principal != null && Objects.equals(principal.role(), role);
-  }
-
-  public boolean hasPermission(String permission) {
-    return principal != null
-        && principal.permissions() != null
-        && principal.permissions().contains(permission);
-  }
-
   public static Mono<RequestContext> deferContextual() {
     return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)));
   }
-
-  //  public static <T> Mono<T> deferSecured(Class<T> principalType) {
-  //    return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)))
-  //        .map(
-  //            requestContext -> {
-  //              //noinspection unchecked
-  //              final var p = (T) requestContext.principal();
-  //              return p;
-  //            });
-  //  }
 
   @Override
   public String toString() {
