@@ -7,7 +7,6 @@ import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.scalecube.services.auth.Principal;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.DataCodec;
@@ -44,7 +43,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   }
 
   private Mono<Principal> authenticate(ByteBuf connectionSetup) {
-    if (authenticator == null) {
+    if (authenticator == null || !connectionSetup.isReadable()) {
       return Mono.just(NULL_PRINCIPAL);
     }
 
@@ -54,21 +53,13 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     return authenticator
         .authenticate(credentials)
         .switchIfEmpty(Mono.just(NULL_PRINCIPAL))
-        .doOnSuccess(p -> LOGGER.debug("Authenticated successfully, principal: {}", p))
-        .doOnError(ex -> LOGGER.error("Failed to authenticate, cause: {}", ex.toString()))
-        .onErrorMap(RSocketServiceAcceptor::toUnauthorizedException);
+        .doOnSuccess(principal -> LOGGER.debug("Authenticated successfully: {}", principal))
+        .doOnError(ex -> LOGGER.error("Authentication failed", ex))
+        .onErrorMap(ex -> new UnauthorizedException("Authentication failed"));
   }
 
   private RSocket newRSocket(Principal principal) {
     return new RSocketImpl(
         principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
-  }
-
-  private static UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException ex) {
-      return new UnauthorizedException(ex.errorCode(), ex.getMessage());
-    } else {
-      return new UnauthorizedException(th);
-    }
   }
 }
