@@ -58,8 +58,6 @@ public final class ServiceMethodInvoker {
         .flatMap(
             context -> {
               final var request = toRequest(message);
-              final var qualifier = message.qualifier();
-
               return authenticate(context)
                   .flatMap(
                       principal ->
@@ -69,19 +67,22 @@ public final class ServiceMethodInvoker {
                       response -> {
                         if (logger != null && logger.isDebugEnabled()) {
                           logger.debug(
-                              "[{}] request: {}, response: {}", qualifier, request, response);
+                              "[{}] request: {}, response: {}",
+                              message.qualifier(),
+                              request,
+                              response);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}][error] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", message.qualifier(), request, ex);
                         }
-                      })
-                  .map(response -> toResponse(response, qualifier, message.dataFormat()))
-                  .onErrorResume(ex -> Mono.just(errorMapper.toMessage(qualifier, ex)))
-                  .subscribeOn(methodInfo.scheduler());
-            });
+                      });
+            })
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
+        .subscribeOn(methodInfo.scheduler());
   }
 
   /**
@@ -98,8 +99,6 @@ public final class ServiceMethodInvoker {
         .flatMapMany(
             context -> {
               final var request = toRequest(message);
-              final var qualifier = message.qualifier();
-
               return authenticate(context)
                   .flatMapMany(
                       principal ->
@@ -108,25 +107,25 @@ public final class ServiceMethodInvoker {
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][subscribe] request: {}", qualifier, request);
+                          logger.debug("[{}][subscribe] request: {}", message.qualifier(), request);
                         }
                       })
                   .doOnComplete(
                       () -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][complete] request: {}", qualifier, request);
+                          logger.debug("[{}][complete] request: {}", message.qualifier(), request);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}][error] request: {}", qualifier, request, ex);
+                          logger.error("[{}][error] request: {}", message.qualifier(), request, ex);
                         }
-                      })
-                  .map(response -> toResponse(response, qualifier, message.dataFormat()))
-                  .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
-                  .subscribeOn(methodInfo.scheduler());
-            });
+                      });
+            })
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
+        .subscribeOn(methodInfo.scheduler());
   }
 
   /**
@@ -141,11 +140,12 @@ public final class ServiceMethodInvoker {
             (first, messages) -> {
               final var message = first.get();
               final var qualifier = message.qualifier();
+              final var dataFormat = message.dataFormat();
 
               return messages
                   .map(this::toRequest)
                   .transform(this::invokeRequest)
-                  .map(response -> toResponse(response, qualifier, message.dataFormat()))
+                  .map(response -> toResponse(response, qualifier, dataFormat))
                   .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
                   .subscribeOn(methodInfo.scheduler());
             });
