@@ -6,6 +6,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -239,6 +240,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public ServiceMethodInvoker lookupInvoker(ServiceMessage request) {
+    if (request.qualifier() == null) {
+      throw new BadRequestException("Wrong message: qualifier is null");
+    }
+
     final var qualifier = request.qualifier();
     final var requestMethod = request.requestMethod();
 
