@@ -21,10 +21,7 @@ public class GatewaySessionHandlerImpl implements GatewaySessionHandler {
   @Override
   public Context onRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
     final var principal = authRegistry.getAuth(session.sessionId());
-    return RequestContext.builder()
-        .principal(principal != null ? principal : NULL_PRINCIPAL)
-        .build()
-        .toContext();
+    return new RequestContext().principal(principal != null ? principal : NULL_PRINCIPAL);
   }
 
   @Override

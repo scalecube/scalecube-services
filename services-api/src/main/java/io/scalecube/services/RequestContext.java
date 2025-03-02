@@ -9,6 +9,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
 import reactor.core.publisher.Mono;
@@ -28,7 +29,9 @@ public class RequestContext implements Context {
 
   @Override
   public RequestContext put(Object key, Object value) {
-    return new RequestContext(source.put(key, value));
+    Objects.requireNonNull(key, "key");
+    //noinspection ConstantValue
+    return value != null ? new RequestContext(source.put(key, value)) : this;
   }
 
   @Override
@@ -63,7 +66,7 @@ public class RequestContext implements Context {
 
   @Override
   public Stream<Entry<Object, Object>> stream() {
-    return source.stream();
+    return source.put(RequestContext.class, this).stream();
   }
 
   @Override

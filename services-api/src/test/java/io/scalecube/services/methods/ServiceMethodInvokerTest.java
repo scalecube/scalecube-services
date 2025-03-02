@@ -2,22 +2,22 @@ package io.scalecube.services.methods;
 
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.RequestContext;
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
-import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -108,11 +108,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
-          .assertNext(
-              serviceMessage -> {
-                assertTrue(serviceMessage.isError());
-                assertEquals(500, serviceMessage.errorType());
-              })
+          .assertNext(assertError(500, "Error"))
           .verifyComplete();
     }
 
@@ -130,11 +126,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeMany(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
-          .assertNext(
-              serviceMessage -> {
-                assertTrue(serviceMessage.isError());
-                assertEquals(500, serviceMessage.errorType());
-              })
+          .assertNext(assertError(500, "Error"))
           .verifyComplete();
     }
 
@@ -152,11 +144,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeBidirectional(Flux.just(message))
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
-          .assertNext(
-              serviceMessage -> {
-                assertTrue(serviceMessage.isError());
-                assertEquals(500, serviceMessage.errorType());
-              })
+          .assertNext(assertError(500, "Error"))
           .verifyComplete();
     }
 
@@ -199,11 +187,8 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
-          .verifyErrorSatisfies(
-              ex -> {
-                assertInstanceOf(UnauthorizedException.class, ex);
-                assertEquals(401, ((UnauthorizedException) ex).errorCode());
-              });
+          .assertNext(assertError(401, "Authentication failed"))
+          .verifyComplete();
     }
 
     @Test
@@ -288,11 +273,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, principal)))
-          .assertNext(
-              serviceMessage -> {
-                assertTrue(serviceMessage.isError());
-                assertEquals(403, serviceMessage.errorType());
-              })
+          .assertNext(assertError(403, "Not allowed"))
           .verifyComplete();
     }
 
@@ -306,11 +287,7 @@ class ServiceMethodInvokerTest {
   }
 
   private static Context requestContext(ServiceMessage message, Principal principal) {
-    return RequestContext.builder()
-        .headers(message.headers())
-        .principal(principal)
-        .build()
-        .toContext();
+    return new RequestContext().headers(message.headers()).principal(principal);
   }
 
   private ServiceMethodInvoker serviceMethodInvoker(
@@ -329,5 +306,14 @@ class ServiceMethodInvokerTest {
     return ServiceMessage.builder()
         .qualifier(Qualifier.asString(StubService.NAMESPACE, action))
         .build();
+  }
+
+  private static Consumer<ServiceMessage> assertError(int errorCode, String errorMessage) {
+    return message -> {
+      assertTrue(message.isError(), "isError");
+      final var errorData = (ErrorData) message.data();
+      assertEquals(errorCode, errorData.getErrorCode(), "errorCode");
+      assertEquals(errorMessage, errorData.getErrorMessage(), "errorMessage");
+    };
   }
 }
