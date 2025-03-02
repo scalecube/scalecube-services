@@ -1,7 +1,10 @@
 package io.scalecube.services.gateway.websocket;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -16,6 +19,7 @@ import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
@@ -35,8 +39,6 @@ import reactor.test.StepVerifier;
 
 class WebsocketLocalGatewayTest {
 
-  private static final Duration TIMEOUT = Duration.ofSeconds(3);
-
   private static Microservices gateway;
   private static Address gatewayAddress;
   private static StaticAddressRouter router;
@@ -47,6 +49,8 @@ class WebsocketLocalGatewayTest {
 
   @BeforeAll
   static void beforeAll() {
+    StepVerifier.setDefaultTimeout(Duration.ofSeconds(3));
+
     gateway =
         Microservices.start(
             new Context()
@@ -91,39 +95,32 @@ class WebsocketLocalGatewayTest {
     if (gateway != null) {
       gateway.close();
     }
+    StepVerifier.resetDefaultTimeout();
   }
 
   @Test
   void shouldReturnSingleResponseWithSimpleRequest() {
-    StepVerifier.create(greetingService.one("hello"))
-        .expectNext("Echo:hello")
-        .expectComplete()
-        .verify(TIMEOUT);
+    StepVerifier.create(greetingService.one("hello")).expectNext("Echo:hello").verifyComplete();
   }
 
   @Test
   void shouldReturnSingleResponseWithSimpleLongDataRequest() {
     String data = new String(new char[500]);
-    StepVerifier.create(greetingService.one(data))
-        .expectNext("Echo:" + data)
-        .expectComplete()
-        .verify(TIMEOUT);
+    StepVerifier.create(greetingService.one(data)).expectNext("Echo:" + data).verifyComplete();
   }
 
   @Test
   void shouldReturnSingleResponseWithPojoRequest() {
     StepVerifier.create(greetingService.pojoOne(new GreetingRequest("hello")))
         .expectNextMatches(response -> "Echo:hello".equals(response.getText()))
-        .expectComplete()
-        .verify(TIMEOUT);
+        .verifyComplete();
   }
 
   @Test
   void shouldReturnListResponseWithPojoRequest() {
     StepVerifier.create(greetingService.pojoList(new GreetingRequest("hello")))
         .expectNextMatches(response -> "Echo:hello".equals(response.get(0).getText()))
-        .expectComplete()
-        .verify(TIMEOUT);
+        .verifyComplete();
   }
 
   @Test
@@ -136,8 +133,7 @@ class WebsocketLocalGatewayTest {
 
     StepVerifier.create(greetingService.many("hello").take(expectedResponseNum))
         .expectNextSequence(expected)
-        .expectComplete()
-        .verify(TIMEOUT);
+        .verifyComplete();
   }
 
   @Test
@@ -151,25 +147,23 @@ class WebsocketLocalGatewayTest {
     StepVerifier.create(
             greetingService.pojoMany(new GreetingRequest("hello")).take(expectedResponseNum))
         .expectNextSequence(expected)
-        .expectComplete()
-        .verify(TIMEOUT);
+        .verifyComplete();
   }
 
   @Test
   void shouldReturnErrorDataWhenServiceFails() {
     StepVerifier.create(greetingService.failingOne("hello"))
-        .expectErrorMatches(throwable -> throwable instanceof InternalServiceException)
-        .verify(TIMEOUT);
+        .verifyErrorSatisfies(ex -> assertInstanceOf(InternalServiceException.class, ex));
   }
 
   @Test
   void shouldReturnErrorDataWhenRequestDataIsEmpty() {
     StepVerifier.create(greetingService.one(null))
-        .expectErrorMatches(
-            throwable ->
-                "Expected service request data of type: class java.lang.String, but received: null"
-                    .equals(throwable.getMessage()))
-        .verify(TIMEOUT);
+        .verifyErrorSatisfies(
+            ex -> {
+              assertInstanceOf(BadRequestException.class, ex);
+              assertThat(ex.getMessage(), startsWith("Wrong request data type"));
+            });
   }
 
   @Test
@@ -185,9 +179,12 @@ class WebsocketLocalGatewayTest {
   void shouldReturnOnEmptyGreeting() {
     StepVerifier.create(greetingService.emptyGreeting(new EmptyGreetingRequest()))
         .expectSubscription()
-        .expectNextMatches(resp -> resp instanceof EmptyGreetingResponse)
-        .thenCancel()
-        .verify();
+        .expectNextMatches(
+            resp -> {
+              assertInstanceOf(EmptyGreetingResponse.class, resp);
+              return true;
+            })
+        .verifyComplete();
   }
 
   @Test
@@ -197,19 +194,22 @@ class WebsocketLocalGatewayTest {
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
     StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
         .expectSubscription()
-        .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
-        .thenCancel()
-        .verify();
+        .expectNextMatches(
+            resp -> {
+              assertInstanceOf(EmptyGreetingResponse.class, resp.data());
+              return true;
+            })
+        .verifyComplete();
   }
 
   @Test
   void shouldReturnSomeExceptionOnFlux() {
-    StepVerifier.create(errorService.manyError()).expectError(SomeException.class).verify(TIMEOUT);
+    StepVerifier.create(errorService.manyError()).verifyError(SomeException.class);
   }
 
   @Test
   void shouldReturnSomeExceptionOnMono() {
-    StepVerifier.create(errorService.oneError()).expectError(SomeException.class).verify(TIMEOUT);
+    StepVerifier.create(errorService.oneError()).verifyError(SomeException.class);
   }
 
   @Test
