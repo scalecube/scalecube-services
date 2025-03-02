@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.context.Context;
 
 public class RSocketImpl implements RSocket {
 
@@ -113,12 +112,8 @@ public class RSocketImpl implements RSocket {
     }
   }
 
-  private Context requestContext(ServiceMessage message) {
-    return RequestContext.builder()
-        .headers(message.headers())
-        .principal(principal)
-        .build()
-        .toContext();
+  private RequestContext requestContext(ServiceMessage message) {
+    return new RequestContext().headers(message.headers()).principal(principal);
   }
 
   private static void releaseOnError(ServiceMessage request, ServiceMessage response) {

@@ -189,12 +189,7 @@ public final class ServiceMethodInvoker {
       pathVars = dynamicQualifier.matchQualifier(context.requestQualifier());
     }
 
-    return RequestContext.from(context)
-        .request(request)
-        .principal(principal)
-        .pathVars(pathVars)
-        .build()
-        .toContext();
+    return new RequestContext(context).request(request).principal(principal).pathVars(pathVars);
   }
 
   private Object toRequest(ServiceMessage message) {

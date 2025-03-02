@@ -212,13 +212,10 @@ public class ServiceCall implements AutoCloseable {
                           if (context.hasKey(RequestContext.class)) {
                             return context;
                           } else {
-                            return context.put(
-                                RequestContext.class,
-                                RequestContext.builder()
-                                    .headers(request.headers())
-                                    .request(request)
-                                    .principal(NULL_PRINCIPAL)
-                                    .build());
+                            return new RequestContext(context)
+                                .headers(request.headers())
+                                .request(request)
+                                .principal(NULL_PRINCIPAL);
                           }
                         });
               } else {
@@ -280,13 +277,10 @@ public class ServiceCall implements AutoCloseable {
                           if (context.hasKey(RequestContext.class)) {
                             return context;
                           } else {
-                            return context.put(
-                                RequestContext.class,
-                                RequestContext.builder()
-                                    .headers(request.headers())
-                                    .request(request)
-                                    .principal(NULL_PRINCIPAL)
-                                    .build());
+                            return new RequestContext(context)
+                                .headers(request.headers())
+                                .request(request)
+                                .principal(NULL_PRINCIPAL);
                           }
                         });
               } else {

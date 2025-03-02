@@ -8,49 +8,87 @@ import io.scalecube.services.auth.Principal;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.StringJoiner;
+import java.util.stream.Stream;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
-public class RequestContext {
+public class RequestContext implements Context {
 
-  private final Map<String, String> headers;
-  private final Object request;
-  private final Principal principal;
-  private final Map<String, String> pathVars;
+  private final Context source;
 
-  private RequestContext(Builder builder) {
-    this.headers = builder.headers;
-    this.request = builder.request;
-    this.principal = builder.principal;
-    this.pathVars = builder.pathVars;
+  public RequestContext() {
+    this(Context.empty());
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public RequestContext(Context source) {
+    this.source = source;
   }
 
-  public static Builder from(RequestContext context) {
-    return RequestContext.builder()
-        .headers(context.headers())
-        .request(context.request())
-        .principal(context.principal())
-        .pathVars(context.pathVars());
+  @Override
+  public RequestContext put(Object key, Object value) {
+    return new RequestContext(source.put(key, value));
   }
 
-  public Context toContext() {
-    return Context.of(RequestContext.class, this);
+  @Override
+  public <T> T get(Object key) {
+    if (key == RequestContext.class) {
+      //noinspection unchecked
+      return (T) this;
+    } else {
+      return source.get(key);
+    }
+  }
+
+  @Override
+  public <T> T get(Class<T> key) {
+    if (key == RequestContext.class) {
+      //noinspection unchecked
+      return (T) this;
+    } else {
+      return source.get(key);
+    }
+  }
+
+  @Override
+  public boolean hasKey(Object key) {
+    return key == RequestContext.class || source.hasKey(key);
+  }
+
+  @Override
+  public int size() {
+    return source.size();
+  }
+
+  @Override
+  public Stream<Entry<Object, Object>> stream() {
+    return source.stream();
+  }
+
+  @Override
+  public Context delete(Object key) {
+    return key == RequestContext.class ? source : source.delete(key);
   }
 
   public Map<String, String> headers() {
-    return headers;
+    return source.getOrDefault("headers", null);
+  }
+
+  public RequestContext headers(Map<String, String> headers) {
+    return put("headers", headers);
   }
 
   public Object request() {
-    return request;
+    return source.getOrDefault("request", null);
+  }
+
+  public RequestContext request(Object request) {
+    return put("request", request);
   }
 
   public String header(String name) {
+    final var headers = headers();
     return headers != null ? headers.get(name) : null;
   }
 
@@ -63,18 +101,28 @@ public class RequestContext {
   }
 
   public Principal principal() {
-    return principal;
+    return getOrDefault("principal", null);
+  }
+
+  public RequestContext principal(Principal principal) {
+    return put("principal", principal);
   }
 
   public boolean hasPrincipal() {
+    final var principal = principal();
     return principal != null && principal != NULL_PRINCIPAL;
   }
 
   public Map<String, String> pathVars() {
-    return pathVars;
+    return get("pathVars");
+  }
+
+  public RequestContext pathVars(Map<String, String> pathVars) {
+    return put("pathVars", pathVars);
   }
 
   public String pathVar(String name) {
+    final var pathVars = pathVars();
     return pathVars != null ? pathVars.get(name) : null;
   }
 
@@ -115,44 +163,7 @@ public class RequestContext {
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
-        .add("headers=" + (headers != null ? "[" + headers.size() + "]" : null))
-        .add("request=" + request)
-        .add("principal=" + principal)
-        .add("pathVars=" + pathVars)
+        .add("source=" + source)
         .toString();
-  }
-
-  public static class Builder {
-
-    private Map<String, String> headers;
-    private Object request;
-    private Principal principal;
-    private Map<String, String> pathVars;
-
-    private Builder() {}
-
-    public Builder headers(Map<String, String> headers) {
-      this.headers = headers;
-      return this;
-    }
-
-    public Builder request(Object request) {
-      this.request = request;
-      return this;
-    }
-
-    public Builder principal(Principal principal) {
-      this.principal = principal;
-      return this;
-    }
-
-    public Builder pathVars(Map<String, String> pathVars) {
-      this.pathVars = pathVars;
-      return this;
-    }
-
-    public RequestContext build() {
-      return new RequestContext(this);
-    }
   }
 }
