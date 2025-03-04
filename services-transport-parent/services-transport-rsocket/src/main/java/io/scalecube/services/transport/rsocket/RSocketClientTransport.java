@@ -83,11 +83,13 @@ public class RSocketClientTransport implements ClientTransport {
       if (allowedRoles == null || allowedRoles.isEmpty()) {
         return serviceReference.allowedRoles().get(0);
       }
+
       for (var allowedRole : allowedRoles) {
         if (serviceReference.allowedRoles().contains(allowedRole)) {
           return allowedRole;
         }
       }
+
       throw new ForbiddenException("Insufficient permissions");
     }
 
