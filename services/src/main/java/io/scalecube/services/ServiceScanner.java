@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.ServiceMethod;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -26,8 +24,7 @@ public class ServiceScanner {
 
               final var namespace = Reflect.serviceName(serviceInterface);
               final var actions =
-                  Arrays.stream(serviceInterface.getMethods())
-                      .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+                  Reflect.serviceMethods(serviceInterface).values().stream()
                       .map(ServiceMethodDefinition::fromMethod)
                       .toList();
 
