@@ -125,19 +125,19 @@ public class RSocketClientTransport implements ClientTransport {
   private Mono<Payload> getCredentials(ServiceReference serviceReference, String serviceRole) {
     if (credentialsSupplier == null || !serviceReference.isSecured()) {
       return Mono.just(EmptyPayload.INSTANCE);
-    } else {
-      return credentialsSupplier
-          .credentials(serviceReference, serviceRole)
-          .map(DefaultPayload::create)
-          .onErrorMap(
-              th -> {
-                if (th instanceof ServiceException e) {
-                  return new UnauthorizedException(e.errorCode(), e.getMessage());
-                } else {
-                  return new UnauthorizedException(th);
-                }
-              });
     }
+
+    return credentialsSupplier
+        .credentials(serviceReference, serviceRole)
+        .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
+        .onErrorMap(
+            th -> {
+              if (th instanceof ServiceException e) {
+                return new UnauthorizedException(e.errorCode(), e.getMessage());
+              } else {
+                return new UnauthorizedException(th);
+              }
+            });
   }
 
   @Override
