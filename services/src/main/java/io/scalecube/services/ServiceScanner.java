@@ -20,10 +20,9 @@ public class ServiceScanner {
         .map(
             serviceInterface -> {
               final var serviceInfoTags = serviceInfo.tags();
-              final var apiTags = Reflect.serviceTags(serviceInterface);
-              final var tags = new HashMap<>(apiTags);
+              final var serviceTags = new HashMap<>(Reflect.serviceTags(serviceInterface));
               // service tags override tags from @Service
-              tags.putAll(serviceInfoTags);
+              serviceTags.putAll(serviceInfoTags);
 
               final var namespace = Reflect.serviceName(serviceInterface);
               final var actions =
@@ -32,7 +31,7 @@ public class ServiceScanner {
                       .map(ServiceMethodDefinition::fromMethod)
                       .toList();
 
-              return new ServiceRegistration(namespace, tags, actions);
+              return new ServiceRegistration(namespace, serviceTags, actions);
             })
         .collect(Collectors.toList());
   }
