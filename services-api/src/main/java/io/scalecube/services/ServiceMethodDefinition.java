@@ -4,7 +4,6 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -47,16 +46,6 @@ public class ServiceMethodDefinition implements Externalizable {
 
   public static ServiceMethodDefinition fromAction(String action) {
     return new ServiceMethodDefinition.Builder().action(action).build();
-  }
-
-  public static ServiceMethodDefinition fromMethod(Method method) {
-    return new Builder()
-        .action(Reflect.methodName(method))
-        .tags(Reflect.serviceMethodTags(method))
-        .restMethod(Reflect.restMethod(method))
-        .secured(Reflect.isSecured(method))
-        .allowedRoles(Reflect.allowedRoles(method))
-        .build();
   }
 
   public String action() {

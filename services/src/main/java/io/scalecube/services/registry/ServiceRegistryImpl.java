@@ -30,7 +30,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
-  // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -52,7 +51,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
-    // todo how to collect tags correctly?
     return new ArrayList<>(serviceEndpoints.values());
   }
 
@@ -183,7 +181,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   Reflect.isSecured(method),
                                   Reflect.executeOnScheduler(serviceMethod, schedulers),
                                   Reflect.restMethod(method),
-                                  Reflect.serviceRoles(method));
+                                  Reflect.serviceRoles(serviceMethod));
 
                           checkMethodInfo(methodInfo);
 

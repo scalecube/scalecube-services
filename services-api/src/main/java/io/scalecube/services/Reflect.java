@@ -172,7 +172,7 @@ public final class Reflect {
         isSecured(method),
         Schedulers.immediate(),
         restMethod(method),
-        serviceRoles(method));
+        Collections.emptyList());
   }
 
   /**
@@ -396,41 +396,27 @@ public final class Reflect {
   /**
    * Parsing collection of service roles from service method.
    *
-   * @param method method
+   * @param method service method
    * @return {@link ServiceRoleDefinition} objects
    */
   public static Collection<ServiceRoleDefinition> serviceRoles(Method method) {
-    return null;
+    return null; // TODO ...
   }
 
   /**
    * Parsing collection of service role names from service method.
    *
-   * @param method method
+   * @param method service method
    * @return service role names
    */
   public static Collection<String> allowedRoles(Method method) {
-    return null;
+    return null; // TODO ...
   }
-
-  //  /**
-  //   * Parsing list of allowed roles from {@link Secured} annotation.
-  //   *
-  //   * @param method method
-  //   * @return list of roles
-  //   */
-  //  public static List<String> allowedRoles(Method method) {
-  //    Secured annotation = method.getAnnotation(Secured.class);
-  //    if (annotation == null) {
-  //      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
-  //    }
-  //    return annotation != null ? Arrays.asList(annotation.roles()) : Collections.emptyList();
-  //  }
 
   /**
    * Parsing annotation {@code ExecuteOn} and extracts {@link Scheduler} instance as result.
    *
-   * @param method method
+   * @param method service method
    * @param schedulers schedulers map
    * @return {@link Scheduler} instance
    */
@@ -439,7 +425,7 @@ public final class Reflect {
       return Schedulers.immediate();
     }
 
-    final var declaringClass = method.getDeclaringClass();
+    Class<?> clazz = method.getDeclaringClass();
 
     if (method.isAnnotationPresent(ExecuteOn.class)) {
       final var executeOn = method.getAnnotation(ExecuteOn.class);
@@ -448,7 +434,7 @@ public final class Reflect {
       if (scheduler == null) {
         throw new IllegalArgumentException(
             "Wrong @ExecuteOn definition on "
-                + declaringClass.getName()
+                + clazz.getName()
                 + "."
                 + method.getName()
                 + ": scheduler(name="
@@ -461,7 +447,7 @@ public final class Reflect {
     // If @ExecuteOn annotation is not present on service method, then find it on service class
 
     ExecuteOn executeOn = null;
-    for (var clazz = declaringClass; clazz != null; clazz = clazz.getSuperclass()) {
+    for (; clazz != null; clazz = clazz.getSuperclass()) {
       executeOn = clazz.getAnnotation(ExecuteOn.class);
       if (executeOn != null) {
         break;
@@ -477,7 +463,7 @@ public final class Reflect {
     if (scheduler == null) {
       throw new IllegalArgumentException(
           "Wrong @ExecuteOn definition on "
-              + declaringClass.getName()
+              + clazz.getName()
               + "."
               + method.getName()
               + ": scheduler(name="

@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.methods.ServiceRoleDefinition;
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,7 +18,8 @@ public class ServiceScanner {
   }
 
   public static List<ServiceRegistration> toServiceRegistrations(ServiceInfo serviceInfo) {
-    return Reflect.serviceInterfaces(serviceInfo.serviceInstance())
+    final var serviceInstance = serviceInfo.serviceInstance();
+    return Reflect.serviceInterfaces(serviceInstance)
         .map(
             serviceInterface -> {
               final var serviceInfoTags = serviceInfo.tags();
@@ -25,13 +27,37 @@ public class ServiceScanner {
               // service tags override tags from @Service
               serviceTags.putAll(serviceInfoTags);
 
+              final var serviceInstanceClass = serviceInstance.getClass();
               final var namespace = Reflect.serviceName(serviceInterface);
-              final var actions =
+
+              final var methodDefinitions =
                   Reflect.serviceMethods(serviceInterface).values().stream()
-                      .map(ServiceMethodDefinition::fromMethod)
+                      .map(
+                          method -> {
+                            // validate method
+                            Reflect.validateMethodOrThrow(method);
+
+                            // get service instance method
+                            Method serviceMethod;
+                            try {
+                              serviceMethod =
+                                  serviceInstanceClass.getMethod(
+                                      method.getName(), method.getParameterTypes());
+                            } catch (NoSuchMethodException e) {
+                              throw new RuntimeException(e);
+                            }
+
+                            return ServiceMethodDefinition.builder()
+                                .action(Reflect.methodName(method))
+                                .tags(Reflect.serviceMethodTags(method))
+                                .restMethod(Reflect.restMethod(method))
+                                .secured(Reflect.isSecured(method))
+                                .allowedRoles(Reflect.allowedRoles(serviceMethod))
+                                .build();
+                          })
                       .toList();
 
-              return new ServiceRegistration(namespace, serviceTags, actions);
+              return new ServiceRegistration(namespace, serviceTags, methodDefinitions);
             })
         .collect(Collectors.toList());
   }
@@ -78,14 +104,34 @@ public class ServiceScanner {
   public static Collection<ServiceRoleDefinition> collectServiceRoles(
       List<Object> serviceInstances) {
     final var collectorMap = new HashMap<String, ServiceRoleDefinition>();
-    serviceInstances.stream()
-        .flatMap(Reflect::serviceInterfaces)
-        .forEach(
-            serviceInterface ->
-                Reflect.serviceMethods(serviceInterface).values().stream()
-                    .map(method -> Reflect.methodInfo(serviceInterface, method))
-                    .flatMap(methodInfo -> methodInfo.serviceRoles().stream())
-                    .forEach(roleDefinition -> collectServiceRole(roleDefinition, collectorMap)));
+    serviceInstances.forEach(
+        serviceInstance -> {
+          final var serviceInstanceClass = serviceInstance.getClass();
+          Reflect.serviceInterfaces(serviceInstance)
+              .forEach(
+                  serviceInterface ->
+                      Reflect.serviceMethods(serviceInterface)
+                          .forEach(
+                              (key, method) -> {
+                                // validate method
+                                Reflect.validateMethodOrThrow(method);
+
+                                // get service instance method
+                                Method serviceMethod;
+                                try {
+                                  serviceMethod =
+                                      serviceInstanceClass.getMethod(
+                                          method.getName(), method.getParameterTypes());
+                                } catch (NoSuchMethodException e) {
+                                  throw new RuntimeException(e);
+                                }
+
+                                Reflect.serviceRoles(serviceMethod)
+                                    .forEach(
+                                        roleDefinition ->
+                                            collectServiceRole(roleDefinition, collectorMap));
+                              }));
+        });
     return collectorMap.values();
   }
 
