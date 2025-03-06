@@ -1,8 +1,11 @@
 package io.scalecube.services;
 
+import io.scalecube.services.methods.ServiceRoleDefinition;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -33,7 +36,7 @@ public class ServiceScanner {
         .collect(Collectors.toList());
   }
 
-  public static List<ServiceRegistration> processServiceRegistrations(
+  public static List<ServiceRegistration> replacePlaceholders(
       Collection<ServiceRegistration> serviceRegistrations, Microservices microservices) {
     return serviceRegistrations.stream()
         .map(
@@ -43,31 +46,47 @@ public class ServiceScanner {
                     registration.tags(),
                     registration.methods().stream()
                         .map(
-                            smd ->
+                            methodDefinition ->
                                 ServiceMethodDefinition.builder()
-                                    .action(replacePlaceholders(smd.action(), microservices))
-                                    .tags(smd.tags())
-                                    .restMethod(smd.restMethod())
-                                    .secured(smd.isSecured())
-                                    .allowedRoles(smd.allowedRoles())
+                                    .action(
+                                        replacePlaceholders(
+                                            methodDefinition.action(), microservices))
+                                    .tags(methodDefinition.tags())
+                                    .restMethod(methodDefinition.restMethod())
+                                    .secured(methodDefinition.isSecured())
+                                    .allowedRoles(methodDefinition.allowedRoles())
                                     .build())
                         .toList()))
         .toList();
   }
 
-  public static String replacePlaceholders(String input, Microservices microservices) {
+  public static String replacePlaceholders(String action, Microservices microservices) {
     final var pattern = Pattern.compile("\\$\\{(.*?)}");
-    final var matcher = pattern.matcher(input);
+    final var matcher = pattern.matcher(action);
     final var result = new StringBuilder();
 
     while (matcher.find()) {
       final var key = matcher.group(1);
-      final var replacement = parsePlaceholderValue(input, key, microservices);
+      final var replacement = parsePlaceholderValue(action, key, microservices);
       matcher.appendReplacement(result, Matcher.quoteReplacement(replacement));
     }
     matcher.appendTail(result);
 
     return result.toString();
+  }
+
+  public static Collection<ServiceRoleDefinition> collectServiceRoles(
+      List<Object> serviceInstances) {
+    final var collectorMap = new HashMap<String, ServiceRoleDefinition>();
+    serviceInstances.stream()
+        .flatMap(Reflect::serviceInterfaces)
+        .forEach(
+            serviceInterface ->
+                Reflect.serviceMethods(serviceInterface).values().stream()
+                    .map(method -> Reflect.methodInfo(serviceInterface, method))
+                    .flatMap(methodInfo -> methodInfo.serviceRoles().stream())
+                    .forEach(roleDefinition -> collectServiceRole(roleDefinition, collectorMap)));
+    return collectorMap.values();
   }
 
   private static String parsePlaceholderValue(
@@ -93,5 +112,21 @@ public class ServiceScanner {
     }
 
     throw new IllegalArgumentException("Wrong placeholder qualifier: " + input);
+  }
+
+  private static void collectServiceRole(
+      ServiceRoleDefinition roleDefinition, Map<String, ServiceRoleDefinition> collectorMap) {
+    collectorMap.compute(
+        roleDefinition.role(),
+        (key, value) -> {
+          if (value == null) {
+            return roleDefinition;
+          } else {
+            final var permissions = new HashSet<String>();
+            permissions.addAll(value.permissions());
+            permissions.addAll(roleDefinition.permissions());
+            return new ServiceRoleDefinition(key, permissions);
+          }
+        });
   }
 }

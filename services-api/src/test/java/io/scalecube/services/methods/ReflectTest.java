@@ -21,12 +21,6 @@ import reactor.core.publisher.Mono;
 
 public class ReflectTest {
 
-  /**
-   * Test communication mode.
-   *
-   * @param methodName method name
-   * @param expectedMode expected mode
-   */
   @ParameterizedTest
   @MethodSource("argsCommunicationModeProvider")
   public void testCommunicationMode(String methodName, CommunicationMode expectedMode) {
@@ -42,7 +36,7 @@ public class ReflectTest {
     Assertions.assertEquals(expectedMode, communicationMode, "Invalid communicationMode");
   }
 
-  static Stream<Arguments> argsCommunicationModeProvider() {
+  private static Stream<Arguments> argsCommunicationModeProvider() {
     return Stream.of(
         Arguments.of("fireAndForget", REQUEST_RESPONSE),
         Arguments.of("emptyResponse", REQUEST_RESPONSE),
@@ -74,7 +68,7 @@ public class ReflectTest {
         String.format("isRequestTypeServiceMessage(%s) should be %b", methodName, expect));
   }
 
-  static Stream<Arguments> argsIsRequestTypeServiceMessage() {
+  private static Stream<Arguments> argsIsRequestTypeServiceMessage() {
     return Stream.of(
         Arguments.of("fireAndForget", false),
         Arguments.of("emptyResponse", false),
@@ -86,6 +80,16 @@ public class ReflectTest {
         Arguments.of("requestResponseMessage", true),
         Arguments.of("requestStreamMessage", true),
         Arguments.of("requestChannelMessage", true));
+  }
+
+  @Test
+  public void testSubServiceInterfaces() {
+
+    // When:
+    Stream<Class<?>> interfaces = Reflect.serviceInterfaces(new SubServiceImpl());
+    // Then:
+    Assertions.assertEquals(
+        1, interfaces.count(), "serviceInterfaces(..) should detect interfaces in SubServiceImpl");
   }
 
   private interface TestService {
@@ -112,25 +116,17 @@ public class ReflectTest {
 
   @Service
   private interface SimpleService {
-    public String name();
+
+    String name();
   }
 
-  private class ServiceImpl implements SimpleService {
+  private static class ServiceImpl implements SimpleService {
+
     @Override
     public String name() {
       return "duke";
     }
   }
 
-  private class SubServiceImpl extends ServiceImpl {}
-
-  @Test
-  public void testSubServiceInterfaces() {
-
-    // When:
-    Stream<Class<?>> interfaces = Reflect.serviceInterfaces(new SubServiceImpl());
-    // Then:
-    Assertions.assertEquals(
-        1, interfaces.count(), "serviceInterfaces(..) should detect interfaces in SubServiceImpl");
-  }
+  private static class SubServiceImpl extends ServiceImpl {}
 }

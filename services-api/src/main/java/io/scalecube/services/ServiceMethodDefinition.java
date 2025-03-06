@@ -6,11 +6,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.StringJoiner;
 
 /**
@@ -35,7 +38,7 @@ public class ServiceMethodDefinition implements Externalizable {
     this.tags = Collections.unmodifiableMap(builder.tags);
     this.restMethod = builder.restMethod;
     this.isSecured = builder.isSecured;
-    this.allowedRoles = Collections.unmodifiableList(builder.allowedRoles);
+    this.allowedRoles = List.copyOf(builder.allowedRoles);
   }
 
   public static Builder builder() {
@@ -149,7 +152,7 @@ public class ServiceMethodDefinition implements Externalizable {
     private Map<String, String> tags = new HashMap<>();
     private String restMethod;
     private boolean isSecured;
-    private List<String> allowedRoles = new ArrayList<>();
+    private Set<String> allowedRoles = new HashSet<>();
 
     private Builder() {}
 
@@ -173,8 +176,8 @@ public class ServiceMethodDefinition implements Externalizable {
       return this;
     }
 
-    public Builder allowedRoles(List<String> allowedRoles) {
-      this.allowedRoles = allowedRoles;
+    public Builder allowedRoles(Collection<String> allowedRoles) {
+      this.allowedRoles = Set.copyOf(allowedRoles);
       return this;
     }
 

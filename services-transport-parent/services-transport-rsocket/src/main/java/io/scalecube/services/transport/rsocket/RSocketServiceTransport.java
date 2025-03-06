@@ -15,7 +15,7 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServerTransport.Authenticator;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -46,7 +46,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   private Collection<DataCodec> dataCodecs = DataCodec.getAllInstances();
   private CredentialsSupplier credentialsSupplier;
   private Authenticator authenticator;
-  private List<String> allowedRoles;
+  private Collection<String> allowedRoles;
 
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
       RSocketServerTransportFactory.websocket();
@@ -172,9 +172,9 @@ public class RSocketServiceTransport implements ServiceTransport {
    * @param allowedRoles allowedRoles
    * @return new {@link RSocketServiceTransport} instance
    */
-  public RSocketServiceTransport allowedRoles(List<String> allowedRoles) {
+  public RSocketServiceTransport allowedRoles(Collection<String> allowedRoles) {
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.allowedRoles = allowedRoles;
+    rst.allowedRoles = new HashSet<>(allowedRoles);
     return rst;
   }
 

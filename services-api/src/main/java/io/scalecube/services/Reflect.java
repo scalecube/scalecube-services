@@ -14,13 +14,14 @@ import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
+import io.scalecube.services.methods.ServiceRoleDefinition;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -171,8 +172,7 @@ public final class Reflect {
         isSecured(method),
         Schedulers.immediate(),
         restMethod(method),
-        allowedRoles(method),
-        allowedPermissions(method));
+        serviceRoles(method));
   }
 
   /**
@@ -383,7 +383,7 @@ public final class Reflect {
 
   /**
    * Checks whether given method is considered secured, i.e does it have annotation {@link Secured},
-   * of, if not, then does declaring class contains annotation {@link Secured}.
+   * or, if not, then does declaring class contains annotation {@link Secured}.
    *
    * @param method method
    * @return result
@@ -394,32 +394,38 @@ public final class Reflect {
   }
 
   /**
-   * Parsing list of allowed roles from {@link Secured} annotation.
+   * Parsing collection of service roles from service method.
    *
    * @param method method
-   * @return list of roles
+   * @return {@link ServiceRoleDefinition} objects
    */
-  public static List<String> allowedRoles(Method method) {
-    Secured annotation = method.getAnnotation(Secured.class);
-    if (annotation == null) {
-      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
-    }
-    return annotation != null ? Arrays.asList(annotation.roles()) : Collections.emptyList();
+  public static Collection<ServiceRoleDefinition> serviceRoles(Method method) {
+    return null;
   }
 
   /**
-   * Parsing list of allowed permissions from {@link Secured} annotation.
+   * Parsing collection of service role names from service method.
    *
    * @param method method
-   * @return list of roles
+   * @return service role names
    */
-  public static List<String> allowedPermissions(Method method) {
-    Secured annotation = method.getAnnotation(Secured.class);
-    if (annotation == null) {
-      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
-    }
-    return annotation != null ? Arrays.asList(annotation.permissions()) : Collections.emptyList();
+  public static Collection<String> allowedRoles(Method method) {
+    return null;
   }
+
+  //  /**
+  //   * Parsing list of allowed roles from {@link Secured} annotation.
+  //   *
+  //   * @param method method
+  //   * @return list of roles
+  //   */
+  //  public static List<String> allowedRoles(Method method) {
+  //    Secured annotation = method.getAnnotation(Secured.class);
+  //    if (annotation == null) {
+  //      annotation = method.getDeclaringClass().getAnnotation(Secured.class);
+  //    }
+  //    return annotation != null ? Arrays.asList(annotation.roles()) : Collections.emptyList();
+  //  }
 
   /**
    * Parsing annotation {@code ExecuteOn} and extracts {@link Scheduler} instance as result.

@@ -6,8 +6,9 @@ import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
 import java.lang.reflect.Type;
-import java.util.List;
+import java.util.Collection;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 import reactor.core.scheduler.Scheduler;
 
 public final class MethodInfo {
@@ -25,8 +26,9 @@ public final class MethodInfo {
   private final boolean isSecured;
   private final Scheduler scheduler;
   private final String restMethod;
-  private final List<String> allowedRoles;
-  private final List<String> allowedPermissions;
+  private final Collection<ServiceRoleDefinition> serviceRoles;
+  private final Collection<String> allowedRoles;
+  private final Collection<String> allowedPermissions;
 
   /**
    * Create a new service info.
@@ -42,8 +44,7 @@ public final class MethodInfo {
    * @param isSecured is method protected by authentication
    * @param scheduler scheduler (optional)
    * @param restMethod restMethod (optional)
-   * @param allowedRoles allowedRoles
-   * @param allowedPermissions allowedPermissions
+   * @param serviceRoles serviceRoles (optional)
    */
   public MethodInfo(
       String serviceName,
@@ -57,8 +58,7 @@ public final class MethodInfo {
       boolean isSecured,
       Scheduler scheduler,
       String restMethod,
-      List<String> allowedRoles,
-      List<String> allowedPermissions) {
+      Collection<ServiceRoleDefinition> serviceRoles) {
     this.parameterizedReturnType = parameterizedReturnType;
     this.isReturnTypeServiceMessage = isReturnTypeServiceMessage;
     this.communicationMode = communicationMode;
@@ -72,8 +72,13 @@ public final class MethodInfo {
     this.isSecured = isSecured;
     this.scheduler = scheduler;
     this.restMethod = restMethod;
-    this.allowedRoles = allowedRoles;
-    this.allowedPermissions = allowedPermissions;
+    this.serviceRoles = serviceRoles;
+    this.allowedRoles =
+        serviceRoles.stream().map(ServiceRoleDefinition::role).collect(Collectors.toSet());
+    this.allowedPermissions =
+        serviceRoles.stream()
+            .flatMap(definition -> definition.permissions().stream())
+            .collect(Collectors.toSet());
   }
 
   public String serviceName() {
@@ -132,11 +137,15 @@ public final class MethodInfo {
     return restMethod;
   }
 
-  public List<String> allowedRoles() {
+  public Collection<ServiceRoleDefinition> serviceRoles() {
+    return serviceRoles;
+  }
+
+  public Collection<String> allowedRoles() {
     return allowedRoles;
   }
 
-  public List<String> allowedPermissions() {
+  public Collection<String> allowedPermissions() {
     return allowedPermissions;
   }
 
@@ -156,6 +165,7 @@ public final class MethodInfo {
         .add("isSecured=" + isSecured)
         .add("scheduler=" + scheduler)
         .add("restMethod=" + restMethod)
+        .add("serviceRoles=" + serviceRoles)
         .add("allowedRoles=" + allowedRoles)
         .add("allowedPermissions=" + allowedPermissions)
         .toString();

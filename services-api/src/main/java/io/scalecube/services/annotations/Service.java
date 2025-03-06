@@ -10,6 +10,10 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface Service {
 
-  /** Name of the service. If not specified service class result will be used. */
+  /**
+   * Name of the service. If not specified service class result will be used.
+   *
+   * @return service name
+   */
   String value() default "";
 }

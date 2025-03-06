@@ -15,7 +15,6 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,7 +32,7 @@ public class RSocketClientTransport implements ClientTransport {
   private final Collection<DataCodec> dataCodecs;
   private final RSocketClientTransportFactory clientTransportFactory;
   private final CredentialsSupplier credentialsSupplier;
-  private final List<String> allowedRoles;
+  private final Collection<String> allowedRoles;
 
   /**
    * Constructor.
@@ -49,7 +48,7 @@ public class RSocketClientTransport implements ClientTransport {
       Collection<DataCodec> dataCodecs,
       RSocketClientTransportFactory clientTransportFactory,
       CredentialsSupplier credentialsSupplier,
-      List<String> allowedRoles) {
+      Collection<String> allowedRoles) {
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;

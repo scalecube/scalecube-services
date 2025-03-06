@@ -15,9 +15,17 @@ import java.lang.annotation.Target;
 @Repeatable(Tags.class)
 public @interface Tag {
 
-  /** Returns the key corresponding to this entry. */
+  /**
+   * Returns the key corresponding to this entry.
+   *
+   * @return key
+   */
   String key();
 
-  /** Returns the value corresponding to this entry. */
+  /**
+   * Returns the value corresponding to this entry.
+   *
+   * @return value
+   */
   String value();
 }

@@ -142,6 +142,7 @@ public class Microservices implements AutoCloseable {
       microservices.startGateways();
       microservices.createDiscovery();
       microservices.doInject();
+      microservices.processServiceRoles();
       microservices.startListen();
       LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
     } catch (Exception ex) {
@@ -218,8 +219,7 @@ public class Microservices implements AutoCloseable {
                 Optional.ofNullable(context.externalHost).orElse(address.host()),
                 Optional.ofNullable(context.externalPort).orElse(address.port())))
         .serviceRegistrations(
-            ServiceScanner.processServiceRegistrations(
-                serviceEndpoint.serviceRegistrations(), this))
+            ServiceScanner.replacePlaceholders(serviceEndpoint.serviceRegistrations(), this))
         .build();
   }
 
@@ -259,6 +259,11 @@ public class Microservices implements AutoCloseable {
 
   private void doInject() {
     Injector.inject(this, serviceInstances);
+  }
+
+  private void processServiceRoles() {
+    final var serviceRoles = ServiceScanner.collectServiceRoles(serviceInstances);
+    // TODO: take abstract "service roles processor" from context, and invoke "processing"
   }
 
   private void startListen() {
