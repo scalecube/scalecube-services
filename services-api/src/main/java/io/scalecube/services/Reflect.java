@@ -12,6 +12,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.AllowedRoles;
 import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceRoleDefinition;
@@ -400,7 +401,41 @@ public final class Reflect {
    * @return {@link ServiceRoleDefinition} objects
    */
   public static Collection<ServiceRoleDefinition> serviceRoles(Method method) {
-    return null; // TODO ...
+    if (method.isAnnotationPresent(AllowedRoles.class)) {
+      final var allowedRolesAnnotation = method.getAnnotation(AllowedRoles.class);
+      final var allowedRoles = allowedRolesAnnotation.value();
+      return Arrays.stream(allowedRoles)
+          .map(
+              allowedRole ->
+                  new ServiceRoleDefinition(
+                      allowedRole.name(), new HashSet<>(Arrays.asList(allowedRole.permissions()))))
+          .collect(Collectors.toSet());
+    }
+
+    // If @AllowedRoles/@AllowedRole annotations is not present on service method, then find it on
+    // service class
+
+    Class<?> clazz = method.getDeclaringClass();
+
+    AllowedRoles allowedRolesAnnotation = null;
+    for (; clazz != null; clazz = clazz.getSuperclass()) {
+      allowedRolesAnnotation = clazz.getAnnotation(AllowedRoles.class);
+      if (allowedRolesAnnotation != null) {
+        break;
+      }
+    }
+
+    if (allowedRolesAnnotation != null) {
+      final var allowedRoles = allowedRolesAnnotation.value();
+      return Arrays.stream(allowedRoles)
+          .map(
+              allowedRole ->
+                  new ServiceRoleDefinition(
+                      allowedRole.name(), new HashSet<>(Arrays.asList(allowedRole.permissions()))))
+          .collect(Collectors.toSet());
+    }
+
+    return Set.of();
   }
 
   /**
@@ -410,7 +445,9 @@ public final class Reflect {
    * @return service role names
    */
   public static Collection<String> allowedRoles(Method method) {
-    return null; // TODO ...
+    return serviceRoles(method).stream()
+        .map(ServiceRoleDefinition::role)
+        .collect(Collectors.toSet());
   }
 
   /**
