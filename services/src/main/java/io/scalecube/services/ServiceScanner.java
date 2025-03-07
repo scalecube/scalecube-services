@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.methods.ServiceRoleDefinition;
 import java.lang.reflect.Method;
 import java.util.Collection;

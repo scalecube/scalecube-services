@@ -2,10 +2,10 @@ package io.scalecube.services.routing;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;

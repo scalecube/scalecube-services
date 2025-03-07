@@ -4,6 +4,7 @@ import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
 
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

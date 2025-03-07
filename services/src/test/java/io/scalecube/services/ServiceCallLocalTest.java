@@ -21,6 +21,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.EmptyGreetingResponse;

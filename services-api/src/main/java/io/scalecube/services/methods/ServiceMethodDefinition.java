@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.services.methods;
 
 import java.io.Externalizable;
 import java.io.IOException;
