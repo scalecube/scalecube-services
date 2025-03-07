@@ -127,9 +127,7 @@ public class ServiceScanner {
                                 }
 
                                 Reflect.serviceRoles(serviceMethod)
-                                    .forEach(
-                                        roleDefinition ->
-                                            collectServiceRole(roleDefinition, collectorMap));
+                                    .forEach(role -> collectServiceRole(role, collectorMap));
                               }));
         });
     return collectorMap.values();
