@@ -15,10 +15,9 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services</artifactId>
+      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <!-- Other -->
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-security-tokens</artifactId>

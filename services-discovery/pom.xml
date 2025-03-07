@@ -14,12 +14,12 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-cluster</artifactId>
+      <artifactId>scalecube-services-api</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-api</artifactId>
-      <version>${project.version}</version>
+      <artifactId>scalecube-cluster</artifactId>
     </dependency>
     <!-- Tests -->
     <dependency>
