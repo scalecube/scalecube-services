@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
 import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.ServiceRolesProcessor;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -262,8 +263,10 @@ public class Microservices implements AutoCloseable {
   }
 
   private void processServiceRoles() {
-    final var serviceRoles = ServiceScanner.collectServiceRoles(serviceInstances);
-    // TODO: take abstract "service roles processor" from context, and invoke "processing"
+    final var serviceRolesProcessor = context.serviceRolesProcessor;
+    if (serviceRolesProcessor != null) {
+      serviceRolesProcessor.process(ServiceScanner.collectServiceRoles(serviceInstances));
+    }
   }
 
   private void startListen() {
@@ -512,8 +515,8 @@ public class Microservices implements AutoCloseable {
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
     private final List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
-    private final Map<String, Supplier<Scheduler>> schedulerSuppliers = new HashMap<>();
     private final Map<String, Scheduler> schedulers = new ConcurrentHashMap<>();
+    private ServiceRolesProcessor serviceRolesProcessor;
 
     public Context() {}
 
@@ -715,7 +718,18 @@ public class Microservices implements AutoCloseable {
      * @return this
      */
     public Context scheduler(String name, Supplier<Scheduler> supplier) {
-      schedulerSuppliers.put(name, supplier);
+      schedulers.put(name, supplier.get());
+      return this;
+    }
+
+    /**
+     * Setter for {@link ServiceRolesProcessor}.
+     *
+     * @param serviceRolesProcessor serviceRolesProcessor
+     * @return this
+     */
+    public Context serviceRolesProcessor(ServiceRolesProcessor serviceRolesProcessor) {
+      this.serviceRolesProcessor = serviceRolesProcessor;
       return this;
     }
 
@@ -746,7 +760,6 @@ public class Microservices implements AutoCloseable {
       schedulers.put("single", Schedulers.single());
       schedulers.put("boundedElastic", Schedulers.boundedElastic());
       schedulers.put("immediate", Schedulers.immediate());
-      schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
       return this;
     }

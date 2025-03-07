@@ -12,6 +12,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.Tag;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.AllowedRole;
 import io.scalecube.services.auth.AllowedRoles;
 import io.scalecube.services.auth.Secured;
 import io.scalecube.services.methods.MethodInfo;
@@ -401,41 +402,39 @@ public final class Reflect {
    * @return {@link ServiceRoleDefinition} objects
    */
   public static Collection<ServiceRoleDefinition> serviceRoles(Method method) {
+    AllowedRole[] allowedRoles = null;
+
     if (method.isAnnotationPresent(AllowedRoles.class)) {
-      final var allowedRolesAnnotation = method.getAnnotation(AllowedRoles.class);
-      final var allowedRoles = allowedRolesAnnotation.value();
-      return Arrays.stream(allowedRoles)
-          .map(
-              allowedRole ->
-                  new ServiceRoleDefinition(
-                      allowedRole.name(), new HashSet<>(Arrays.asList(allowedRole.permissions()))))
-          .collect(Collectors.toSet());
+      allowedRoles = method.getAnnotation(AllowedRoles.class).value();
+    } else if (method.isAnnotationPresent(AllowedRole.class)) {
+      allowedRoles = method.getAnnotationsByType(AllowedRole.class);
     }
 
-    // If @AllowedRoles/@AllowedRole annotations is not present on service method, then find it on
-    // service class
+    // If @AllowedRoles/@AllowedRole annotations are not present on service method, then find them
+    // on service class
 
-    Class<?> clazz = method.getDeclaringClass();
-
-    AllowedRoles allowedRolesAnnotation = null;
-    for (; clazz != null; clazz = clazz.getSuperclass()) {
-      allowedRolesAnnotation = clazz.getAnnotation(AllowedRoles.class);
-      if (allowedRolesAnnotation != null) {
-        break;
+    if (allowedRoles == null) {
+      for (var clazz = method.getDeclaringClass(); clazz != null; clazz = clazz.getSuperclass()) {
+        if (clazz.isAnnotationPresent(AllowedRoles.class)) {
+          allowedRoles = clazz.getAnnotation(AllowedRoles.class).value();
+          break;
+        }
+        if (clazz.isAnnotationPresent(AllowedRole.class)) {
+          allowedRoles = clazz.getAnnotationsByType(AllowedRole.class);
+          break;
+        }
       }
     }
 
-    if (allowedRolesAnnotation != null) {
-      final var allowedRoles = allowedRolesAnnotation.value();
-      return Arrays.stream(allowedRoles)
-          .map(
-              allowedRole ->
-                  new ServiceRoleDefinition(
-                      allowedRole.name(), new HashSet<>(Arrays.asList(allowedRole.permissions()))))
-          .collect(Collectors.toSet());
-    }
-
-    return Set.of();
+    return allowedRoles != null
+        ? Arrays.stream(allowedRoles)
+            .map(
+                allowedRole ->
+                    new ServiceRoleDefinition(
+                        allowedRole.name(),
+                        new HashSet<>(Arrays.asList(allowedRole.permissions()))))
+            .collect(Collectors.toSet())
+        : Set.of();
   }
 
   /**
