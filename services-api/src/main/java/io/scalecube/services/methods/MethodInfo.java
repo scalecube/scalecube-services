@@ -11,7 +11,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import reactor.core.scheduler.Scheduler;
 
-public final class MethodInfo {
+public class MethodInfo {
 
   private final String serviceName;
   private final String methodName;
