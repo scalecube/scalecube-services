@@ -50,7 +50,7 @@ class WebsocketClientConnectionTest {
                 .transport(RSocketServiceTransport::new)
                 .gateway(
                     () ->
-                        new WebsocketGateway.Builder()
+                        WebsocketGateway.builder()
                             .id("WS")
                             .gatewayHandler(sessionEventHandler)
                             .build()));
@@ -138,7 +138,7 @@ class WebsocketClientConnectionTest {
     try (final ServiceCall serviceCall =
         new ServiceCall()
             .transport(
-                new WebsocketGatewayClientTransport.Builder()
+                WebsocketGatewayClientTransport.builder()
                     .address(gatewayAddress)
                     .headers(Collections.singletonMap(headerKey, headerValue))
                     .build())
@@ -156,7 +156,7 @@ class WebsocketClientConnectionTest {
 
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
-        .transport(new WebsocketGatewayClientTransport.Builder().address(address).build())
+        .transport(WebsocketGatewayClientTransport.builder().address(address).build())
         .router(StaticAddressRouter.from(address).build());
   }
 }

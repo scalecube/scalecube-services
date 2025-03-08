@@ -56,7 +56,7 @@ class WebsocketLocalGatewayTest {
             new Context()
                 .gateway(
                     () ->
-                        new WebsocketGateway.Builder()
+                        WebsocketGateway.builder()
                             .id("WS")
                             .serviceCall(call -> call.errorMapper(ERROR_MAPPER))
                             .errorMapper(ERROR_MAPPER)
@@ -77,8 +77,7 @@ class WebsocketLocalGatewayTest {
     serviceCall =
         new ServiceCall()
             .router(router)
-            .transport(
-                new WebsocketGatewayClientTransport.Builder().address(gatewayAddress).build());
+            .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }

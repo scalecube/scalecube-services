@@ -2,8 +2,10 @@ package io.scalecube.services.security;
 
 import io.scalecube.security.tokens.jwt.JwtToken;
 import io.scalecube.security.tokens.jwt.JwtTokenResolver;
+import io.scalecube.security.tokens.jwt.JwtUnavailableException;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.transport.api.ServerTransport;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
@@ -14,9 +16,16 @@ public class ServiceTokenAuthenticator implements ServerTransport.Authenticator 
   private final JwtTokenResolver tokenResolver;
   private final Retry retryStrategy;
 
-  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver, Retry retryStrategy) {
+  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver) {
+    this(tokenResolver, 5, Duration.ofSeconds(3));
+  }
+
+  public ServiceTokenAuthenticator(
+      JwtTokenResolver tokenResolver, int retryMaxAttempts, Duration retryFixedDelay) {
     this.tokenResolver = tokenResolver;
-    this.retryStrategy = retryStrategy;
+    this.retryStrategy =
+        Retry.fixedDelay(retryMaxAttempts, retryFixedDelay)
+            .filter(ex -> ex instanceof JwtUnavailableException);
   }
 
   @Override
@@ -28,12 +37,12 @@ public class ServiceTokenAuthenticator implements ServerTransport.Authenticator 
             payload -> {
               final var role = (String) payload.get("role");
               if (role == null) {
-                throw new IllegalArgumentException("Wrong token: role is missing");
+                throw new IllegalArgumentException("Wrong token: role claim is missing");
               }
 
               final var permissionsClaim = (String) payload.get("permissions");
               if (permissionsClaim == null) {
-                throw new IllegalArgumentException("Wrong token: permissions is missing");
+                throw new IllegalArgumentException("Wrong token: permissions claim is missing");
               }
 
               final var permissions =

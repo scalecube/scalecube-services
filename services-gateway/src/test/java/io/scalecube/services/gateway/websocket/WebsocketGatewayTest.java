@@ -64,8 +64,7 @@ class WebsocketGatewayTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .gateway(
-                    () -> new WebsocketGateway.Builder().id("WS").heartbeatEnabled(true).build()));
+                .gateway(() -> WebsocketGateway.builder().id("WS").heartbeatEnabled(true).build()));
 
     gatewayAddress = gateway.gateway("WS").address();
     router = StaticAddressRouter.from(gatewayAddress).build();
@@ -94,8 +93,7 @@ class WebsocketGatewayTest {
     serviceCall =
         new ServiceCall()
             .router(router)
-            .transport(
-                new WebsocketGatewayClientTransport.Builder().address(gatewayAddress).build());
+            .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }

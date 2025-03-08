@@ -9,43 +9,31 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class VaultServiceRolesProcessor implements ServiceRolesProcessor {
 
+  private final String environment;
   private final String vaultAddress;
   private final Supplier<CompletableFuture<String>> vaultTokenSupplier;
-  private final Supplier<String> keyNameSupplier;
-  private final Function<String, String> roleNameBuilder;
 
-  /**
-   * Constructor.
-   *
-   * @param vaultAddress vaultAddress
-   * @param vaultTokenSupplier vaultTokenSupplier
-   * @param keyNameSupplier keyNameSupplier
-   * @param roleNameBuilder roleNameBuilder
-   */
   public VaultServiceRolesProcessor(
+      String environment,
       String vaultAddress,
-      Supplier<CompletableFuture<String>> vaultTokenSupplier,
-      Supplier<String> keyNameSupplier,
-      Function<String, String> roleNameBuilder) {
+      Supplier<CompletableFuture<String>> vaultTokenSupplier) {
+    this.environment = environment;
     this.vaultAddress = vaultAddress;
     this.vaultTokenSupplier = vaultTokenSupplier;
-    this.keyNameSupplier = keyNameSupplier;
-    this.roleNameBuilder = roleNameBuilder;
   }
 
   @Override
   public void process(Collection<ServiceRoleDefinition> values) {
-    new VaultServiceRolesInstaller.Builder()
+    VaultServiceRolesInstaller.builder()
         .vaultAddress(vaultAddress)
         .vaultTokenSupplier(vaultTokenSupplier)
         .serviceRolesSources(List.of(() -> toServiceRoles(values)))
-        .keyNameSupplier(keyNameSupplier)
-        .roleNameBuilder(roleNameBuilder)
+        .keyNameSupplier(() -> environment + "." + "key")
+        .roleNameBuilder(role -> environment + "." + role)
         .build()
         .install();
   }

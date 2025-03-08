@@ -59,6 +59,10 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     this.ownsLoopResources = builder.loopResources == null;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
     clientSessionReference.getAndUpdate(
@@ -204,7 +208,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     private Duration keepAliveInterval = Duration.ZERO;
     private Function<HttpClient, HttpClient> operator = client -> client;
 
-    public Builder() {}
+    private Builder() {}
 
     public Builder clientCodec(GatewayClientCodec clientCodec) {
       this.clientCodec = clientCodec;

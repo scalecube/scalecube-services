@@ -47,7 +47,7 @@ class WebsocketClientTest {
                 .transport(RSocketServiceTransport::new)
                 .gateway(
                     () ->
-                        new WebsocketGateway.Builder()
+                        WebsocketGateway.builder()
                             .id("WS")
                             .gatewayHandler(new TestGatewaySessionHandler())
                             .build()));
@@ -111,7 +111,7 @@ class WebsocketClientTest {
 
   private static ServiceCall serviceCall(final Address address) {
     return new ServiceCall()
-        .transport(new WebsocketGatewayClientTransport.Builder().address(address).build())
+        .transport(WebsocketGatewayClientTransport.builder().address(address).build())
         .router(StaticAddressRouter.from(address).build());
   }
 

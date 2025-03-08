@@ -50,6 +50,10 @@ public class HttpGateway implements Gateway {
     this.corsConfigBuilder = builder.corsConfigBuilder;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public String id() {
     return id;
@@ -119,7 +123,7 @@ public class HttpGateway implements Gateway {
             .allowNullOrigin()
             .maxAge(3600);
 
-    public Builder() {}
+    private Builder() {}
 
     public String id() {
       return id;

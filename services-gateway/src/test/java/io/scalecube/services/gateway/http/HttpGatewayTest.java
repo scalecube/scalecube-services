@@ -57,8 +57,7 @@ class HttpGatewayTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .gateway(
-                    () -> new HttpGateway.Builder().id("HTTP").errorMapper(ERROR_MAPPER).build()));
+                .gateway(() -> HttpGateway.builder().id("HTTP").errorMapper(ERROR_MAPPER).build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
     router = StaticAddressRouter.from(gatewayAddress).build();
@@ -87,7 +86,7 @@ class HttpGatewayTest {
     serviceCall =
         new ServiceCall()
             .router(router)
-            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build());
+            .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }

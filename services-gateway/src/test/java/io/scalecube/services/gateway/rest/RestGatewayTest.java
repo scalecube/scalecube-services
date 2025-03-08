@@ -19,7 +19,7 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport.Builder;
+import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
@@ -58,8 +58,8 @@ public class RestGatewayTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .defaultLogger("gateway")
-                .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
-                .gateway(() -> new WebsocketGateway.Builder().id("WS").build()));
+                .gateway(() -> HttpGateway.builder().id("HTTP").build())
+                .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
     httpGatewayAddress = "http://localhost:" + gateway.gateway("HTTP").address().port();
 
@@ -299,7 +299,8 @@ public class RestGatewayTest {
     void testNoMatchWithoutRestMethod() {
       final var gatewayAddress = gateway.gateway("WS").address();
       final var router = StaticAddressRouter.from(gatewayAddress).build();
-      final var clientTransport = new Builder().address(gatewayAddress).build();
+      final var clientTransport =
+          WebsocketGatewayClientTransport.builder().address(gatewayAddress).build();
 
       try (final var serviceCall = new ServiceCall().router(router).transport(clientTransport)) {
         StepVerifier.create(serviceCall.api(RoutingService.class).update(new SomeRequest()))

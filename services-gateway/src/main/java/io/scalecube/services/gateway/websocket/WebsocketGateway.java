@@ -41,6 +41,10 @@ public class WebsocketGateway implements Gateway {
     this.errorMapper = builder.errorMapper;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public String id() {
     return id;
@@ -144,7 +148,7 @@ public class WebsocketGateway implements Gateway {
     private boolean heartbeatEnabled = false;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
-    public Builder() {}
+    private Builder() {}
 
     public String id() {
       return id;

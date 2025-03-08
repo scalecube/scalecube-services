@@ -9,11 +9,15 @@ import reactor.core.publisher.Mono;
 
 public class ServiceTokenCredentialsSupplier implements ClientTransport.CredentialsSupplier {
 
+  private final String environment;
   private final String vaultAddress;
   private final Supplier<CompletableFuture<String>> vaultTokenSupplier;
 
   public ServiceTokenCredentialsSupplier(
-      String vaultAddress, Supplier<CompletableFuture<String>> vaultTokenSupplier) {
+      String environment,
+      String vaultAddress,
+      Supplier<CompletableFuture<String>> vaultTokenSupplier) {
+    this.environment = environment;
     this.vaultAddress = vaultAddress;
     this.vaultTokenSupplier = vaultTokenSupplier;
   }
@@ -27,11 +31,11 @@ public class ServiceTokenCredentialsSupplier implements ClientTransport.Credenti
           }
 
           return Mono.fromFuture(
-                  new VaultServiceTokenSupplier.Builder()
+                  VaultServiceTokenSupplier.builder()
                       .vaultAddress(vaultAddress)
                       .serviceRole(serviceRole)
                       .vaultTokenSupplier(vaultTokenSupplier)
-                      .serviceTokenNameBuilder((role, tags) -> role)
+                      .serviceTokenNameBuilder((role, tags) -> environment + "." + role)
                       .build()
                       .getToken(serviceReference.tags()))
               .map(String::getBytes);

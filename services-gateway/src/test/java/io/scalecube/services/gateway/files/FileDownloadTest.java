@@ -72,8 +72,8 @@ public class FileDownloadTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(
                     () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier))
-                .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
-                .gateway(() -> new WebsocketGateway.Builder().id("WS").build()));
+                .gateway(() -> HttpGateway.builder().id("HTTP").build())
+                .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
     microservices =
         Microservices.start(
@@ -109,7 +109,7 @@ public class FileDownloadTest {
     serviceCall =
         new ServiceCall()
             .router(StaticAddressRouter.from(wsAddress).build())
-            .transport(new WebsocketGatewayClientTransport.Builder().address(wsAddress).build());
+            .transport(WebsocketGatewayClientTransport.builder().address(wsAddress).build());
   }
 
   @AfterEach
