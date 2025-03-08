@@ -45,4 +45,10 @@ public interface StubService {
   @Secured
   @ServiceMethod
   Mono<Void> invokeWithRoleOrPermissions();
+
+  // Services secured by annotations in method body
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> invokeWithAllowedRoleAnnotation();
 }

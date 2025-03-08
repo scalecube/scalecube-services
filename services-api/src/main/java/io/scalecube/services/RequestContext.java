@@ -5,6 +5,8 @@ import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.exceptions.ForbiddenException;
+import io.scalecube.services.methods.MethodInfo;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Map;
@@ -116,6 +118,14 @@ public class RequestContext implements Context {
     return principal != null && principal != NULL_PRINCIPAL;
   }
 
+  public MethodInfo methodInfo() {
+    return getOrDefault("methodInfo", null);
+  }
+
+  public RequestContext methodInfo(MethodInfo methodInfo) {
+    return put("methodInfo", methodInfo);
+  }
+
   public Map<String, String> pathVars() {
     return get("pathVars");
   }
@@ -161,6 +171,28 @@ public class RequestContext implements Context {
 
   public static Mono<RequestContext> deferContextual() {
     return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)));
+  }
+
+  public static Mono<RequestContext> deferSecured() {
+    return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)))
+        .doOnNext(
+            context -> {
+              if (!context.hasPrincipal()) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+
+              final var principal = context.principal();
+              final var methodInfo = context.methodInfo();
+
+              if (!methodInfo.allowedRoles().contains(principal.role())) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              for (var allowedPermission : methodInfo.allowedPermissions()) {
+                if (!principal.hasPermission(allowedPermission)) {
+                  throw new ForbiddenException("Insufficient permissions");
+                }
+              }
+            });
   }
 
   @Override

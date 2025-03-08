@@ -1,11 +1,13 @@
 package io.scalecube.services.methods;
 
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
+import static io.scalecube.services.methods.StubService.NAMESPACE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ErrorData;
@@ -17,6 +19,7 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +30,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentMatchers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 import reactor.util.context.Context;
 
@@ -286,6 +290,88 @@ class ServiceMethodInvokerTest {
     }
   }
 
+  @Nested
+  class ServiceRoleTests {
+
+    @Test
+    @DisplayName("Invocation of service method with @AllowedRole annotation")
+    void invokeWithAllowedRoleAnnotation() throws Exception {
+      final var methodName = "invokeWithAllowedRoleAnnotation";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo =
+          new MethodInfo(
+              NAMESPACE,
+              methodName,
+              Void.TYPE,
+              false,
+              CommunicationMode.REQUEST_RESPONSE,
+              0,
+              Void.TYPE,
+              false,
+              true,
+              Schedulers.immediate(),
+              null,
+              List.of(new ServiceRoleDefinition("admin", Set.of("read", "write"))));
+
+      final var message = serviceMessage(methodName);
+      final var principal = new PrincipalImpl("admin", List.of("read", "write"));
+
+      final var authenticator = mock(Authenticator.class);
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @MethodSource("invokeWithAllowedRoleAnnotationFailedMethodSource")
+    @DisplayName("Failed to invoke of service method with @AllowedRole annotation")
+    void invokeWithAllowedRoleAnnotationFailed(Principal principal) throws Exception {
+      final var methodName = "invokeWithAllowedRoleAnnotation";
+      final var method = StubService.class.getMethod(methodName);
+      final var methodInfo =
+          new MethodInfo(
+              NAMESPACE,
+              methodName,
+              Void.TYPE,
+              false,
+              CommunicationMode.REQUEST_RESPONSE,
+              0,
+              Void.TYPE,
+              false,
+              true,
+              Schedulers.immediate(),
+              null,
+              List.of(new ServiceRoleDefinition("admin", Set.of("read", "write"))));
+
+      final var message = serviceMessage(methodName);
+
+      final var authenticator = mock(Authenticator.class);
+      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeOne(message)
+                  .contextWrite(requestContext(message, principal)))
+          .assertNext(assertError(403, "Insufficient permissions"))
+          .verifyComplete();
+    }
+
+    static Stream<Principal> invokeWithAllowedRoleAnnotationFailedMethodSource() {
+      return Stream.of(
+          NULL_PRINCIPAL,
+          new PrincipalImpl("invalid-role", null),
+          new PrincipalImpl("admin", List.of("invalid-permission")));
+    }
+  }
+
   private static Context requestContext(ServiceMessage message, Principal principal) {
     return new RequestContext().headers(message.headers()).principal(principal);
   }
@@ -303,9 +389,7 @@ class ServiceMethodInvokerTest {
   }
 
   private static ServiceMessage serviceMessage(String action) {
-    return ServiceMessage.builder()
-        .qualifier(Qualifier.asString(StubService.NAMESPACE, action))
-        .build();
+    return ServiceMessage.builder().qualifier(Qualifier.asString(NAMESPACE, action)).build();
   }
 
   private static Consumer<ServiceMessage> assertError(int errorCode, String errorMessage) {

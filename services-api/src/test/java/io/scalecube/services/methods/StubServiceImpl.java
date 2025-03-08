@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.RequestContext;
+import io.scalecube.services.auth.AllowedRole;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -95,5 +96,15 @@ public class StubServiceImpl implements StubService {
               }
             })
         .then();
+  }
+
+  // Services secured by annotations in method body
+
+  @AllowedRole(
+      name = "admin",
+      permissions = {"read", "write"})
+  @Override
+  public Mono<Void> invokeWithAllowedRoleAnnotation() {
+    return RequestContext.deferSecured().then();
   }
 }
