@@ -281,11 +281,14 @@ final class AuthTest {
     void authenticateSuccessfully() {
       final var role = "admin";
       final var tokenCredentials =
-          new TokenCredentials(VALID_TOKEN, role, List.of("read", "write"));
+          new TokenCredentials(VALID_TOKEN, role, List.of("read", "write", "delete", "*"));
 
       serviceCall = serviceCall((sr, r) -> credentials(tokenCredentials), role, null);
 
-      StepVerifier.create(serviceCall.api(SecuredService.class).invokeWithAllowedRoleAnnotation())
+      StepVerifier.create(serviceCall.api(SecuredService.class).readWithAllowedRoleAnnotation())
+          .verifyComplete();
+
+      StepVerifier.create(serviceCall.api(SecuredService.class).writeWithAllowedRoleAnnotation())
           .verifyComplete();
     }
   }

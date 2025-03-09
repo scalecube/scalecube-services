@@ -19,5 +19,9 @@ public interface SecuredService {
 
   @Secured
   @ServiceMethod
-  Mono<Void> invokeWithAllowedRoleAnnotation();
+  Mono<Void> readWithAllowedRoleAnnotation();
+
+  @Secured
+  @ServiceMethod
+  Mono<Void> writeWithAllowedRoleAnnotation();
 }

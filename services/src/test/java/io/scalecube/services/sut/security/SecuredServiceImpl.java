@@ -39,9 +39,17 @@ public class SecuredServiceImpl implements SecuredService {
 
   @AllowedRole(
       name = "admin",
-      permissions = {"read", "write"})
+      permissions = {"read"})
   @Override
-  public Mono<Void> invokeWithAllowedRoleAnnotation() {
+  public Mono<Void> readWithAllowedRoleAnnotation() {
+    return RequestContext.deferSecured().then();
+  }
+
+  @AllowedRole(
+      name = "admin",
+      permissions = {"write"})
+  @Override
+  public Mono<Void> writeWithAllowedRoleAnnotation() {
     return RequestContext.deferSecured().then();
   }
 }
