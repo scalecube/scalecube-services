@@ -101,8 +101,8 @@ final class AuthTest {
   class SecuredTests {
 
     @ParameterizedTest(name = "[{index}] {0}")
-    @MethodSource("successfulAuthenticationMethodSource")
-    void successfulAuthentication(String test, SuccessArgs args) {
+    @MethodSource("authenticateSuccessfullyMethodSource")
+    void authenticateSuccessfully(String test, SuccessArgs args) {
       serviceCall =
           serviceCall(
               ($, serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
@@ -118,7 +118,7 @@ final class AuthTest {
         String serviceRole,
         List<String> allowedRoles) {}
 
-    private static Stream<Arguments> successfulAuthenticationMethodSource() {
+    private static Stream<Arguments> authenticateSuccessfullyMethodSource() {
       return Stream.of(
           arguments(
               "Authenticate by service role only",
@@ -213,7 +213,7 @@ final class AuthTest {
   class CompositeSecuredTests {
 
     @Test
-    void successfulAuthentication() {
+    void authenticateSuccessfully() {
       final var role = "invoker";
       final var tokenCredentials = new TokenCredentials(VALID_TOKEN, role, null);
 
@@ -271,6 +271,22 @@ final class AuthTest {
                   Map.of("user", "alice", "permissions", "wrong-permissions"),
                   ForbiddenException.class,
                   "Insufficient permissions")));
+    }
+  }
+
+  @Nested
+  class ServiceRoleSecuredTests {
+
+    @Test
+    void authenticateSuccessfully() {
+      final var role = "admin";
+      final var tokenCredentials =
+          new TokenCredentials(VALID_TOKEN, role, List.of("read", "write"));
+
+      serviceCall = serviceCall((sr, r) -> credentials(tokenCredentials), role, null);
+
+      StepVerifier.create(serviceCall.api(SecuredService.class).invokeWithAllowedRoleAnnotation())
+          .verifyComplete();
     }
   }
 
