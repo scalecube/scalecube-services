@@ -5,10 +5,9 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -70,10 +69,9 @@ public class StaticAddressRouter implements Router {
     }
 
     /**
-     * Setter for whether to apply behavior of {@link ClientTransport.CredentialsSupplier}, or not.
-     * If it is known upfront that destination service is secured, then set this flag to {@code
-     * true}, in such case {@link CredentialsSupplier#credentials(ServiceReference, String)} will be
-     * invoked.
+     * Setter for whether to apply behavior of {@link CredentialsSupplier}, or not. If it is known
+     * upfront that destination service is secured, then set this flag to {@code true}, in such case
+     * {@link CredentialsSupplier#credentials(String)} will be invoked.
      *
      * @param secured secured flag
      * @return this
@@ -85,7 +83,7 @@ public class StaticAddressRouter implements Router {
 
     /**
      * Setter for {@code serviceRole} property, will be used in the invocation of {@link
-     * CredentialsSupplier#credentials(ServiceReference, String)}.
+     * CredentialsSupplier#credentials(String)}.
      *
      * @param serviceRole serviceRole
      * @return this

@@ -13,8 +13,8 @@ import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
@@ -39,7 +39,7 @@ class ServiceMethodInvokerTest {
   private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("user", List.of("permission"));
 
   private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
-  private final Authenticator authenticator = requestContext -> Mono.just(PRINCIPAL);
+  private final PrincipalMapper principalMapper = context -> Mono.just(PRINCIPAL);
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
@@ -160,11 +160,11 @@ class ServiceMethodInvokerTest {
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage("hello/foo123/dynamic/bar456");
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any()))
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any()))
           .thenReturn(Mono.just(new PrincipalImpl("user", List.of("read", "write"))));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -191,7 +191,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
-          .assertNext(assertError(401, "Authentication failed"))
+          .assertNext(assertError(403, "Insufficient permissions"))
           .verifyComplete();
     }
 
@@ -203,7 +203,7 @@ class ServiceMethodInvokerTest {
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -220,11 +220,11 @@ class ServiceMethodInvokerTest {
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any()))
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any()))
           .thenReturn(Mono.just(new PrincipalImpl("admin", List.of("read", "write"))));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -242,10 +242,10 @@ class ServiceMethodInvokerTest {
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -268,10 +268,10 @@ class ServiceMethodInvokerTest {
       final var methodInfo = Reflect.methodInfo(StubService.class, method);
       final var message = serviceMessage(methodName);
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -316,10 +316,10 @@ class ServiceMethodInvokerTest {
       final var message = serviceMessage(methodName);
       final var principal = new PrincipalImpl("admin", List.of("read", "write"));
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -351,10 +351,10 @@ class ServiceMethodInvokerTest {
 
       final var message = serviceMessage(methodName);
 
-      final var authenticator = mock(Authenticator.class);
-      when(authenticator.authenticate(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
+      final var principalMapper = mock(PrincipalMapper.class);
+      when(principalMapper.map(ArgumentMatchers.any())).thenReturn(Mono.just(principal));
 
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, authenticator);
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
 
       StepVerifier.create(
               serviceMethodInvoker
@@ -377,14 +377,14 @@ class ServiceMethodInvokerTest {
   }
 
   private ServiceMethodInvoker serviceMethodInvoker(
-      Method method, MethodInfo methodInfo, Authenticator authenticator) {
+      Method method, MethodInfo methodInfo, PrincipalMapper principalMapper) {
     return new ServiceMethodInvoker(
         method,
         stubService,
         methodInfo,
         DefaultErrorMapper.INSTANCE,
         dataDecoder,
-        authenticator,
+        principalMapper,
         null);
   }
 

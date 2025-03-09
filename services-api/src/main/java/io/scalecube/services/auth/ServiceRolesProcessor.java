@@ -7,6 +7,7 @@ import java.util.Collection;
  * Handler for processing of service roles which come out of registered services. Used as
  * post-construction step in bootstraping of services.
  */
+@FunctionalInterface
 public interface ServiceRolesProcessor {
 
   /**

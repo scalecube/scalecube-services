@@ -1,10 +1,19 @@
 package io.scalecube.services.auth;
 
-import io.scalecube.services.RequestContext;
 import reactor.core.publisher.Mono;
 
+/**
+ * Service authentication interface to handle authentication of clients to the service. Result of
+ * authentication is abstract {@link Principal} with role and permissions.
+ */
 @FunctionalInterface
 public interface Authenticator {
 
-  Mono<Principal> authenticate(RequestContext requestContext);
+  /**
+   * Authenticates service clients by given credentials.
+   *
+   * @param credentials credentials
+   * @return result
+   */
+  Mono<Principal> authenticate(byte[] credentials);
 }

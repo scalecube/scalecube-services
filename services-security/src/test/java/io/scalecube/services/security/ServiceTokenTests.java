@@ -5,19 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.security.tokens.jwt.JsonwebtokenResolver;
 import io.scalecube.security.tokens.jwt.JwksKeyLocator;
-import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceReference;
-import io.scalecube.services.ServiceRegistration;
-import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.methods.ServiceRoleDefinition;
 import io.scalecube.services.security.environment.IntegrationEnvironmentFixture;
 import io.scalecube.services.security.environment.VaultEnvironment;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -56,9 +48,7 @@ public class ServiceTokenTests {
 
     // Get service token
 
-    final var tags = new HashMap<String, String>();
-    final var credentials =
-        credentialsSupplier.credentials(newServiceReference(tags), args.serviceRole).block();
+    final var credentials = credentialsSupplier.credentials(args.serviceRole).block();
 
     // Authenticate
 
@@ -80,12 +70,5 @@ public class ServiceTokenTests {
         new SuccessArgs("master", "admin", Set.of("*")),
         new SuccessArgs("master", "user", Set.of("read", "write")),
         new SuccessArgs("master", "foo", Set.of("read", "write", "delete")));
-  }
-
-  private static ServiceReference newServiceReference(Map<String, String> tags) {
-    return new ServiceReference(
-        ServiceMethodDefinition.builder().tags(tags).build(),
-        new ServiceRegistration(UUID.randomUUID().toString(), tags, Collections.emptyList()),
-        ServiceEndpoint.builder().id(UUID.randomUUID().toString()).build());
   }
 }

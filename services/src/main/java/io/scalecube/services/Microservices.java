@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.auth.ServiceRolesProcessor;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
@@ -229,7 +229,7 @@ public class Microservices implements AutoCloseable {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(context.defaultErrorMapper)
             .dataDecoderIfAbsent(context.defaultDataDecoder)
-            .authenticatorIfAbsent(context.defaultAuthenticator)
+            .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .loggerIfAbsent(context.defaultLogger)
             .build(),
         context.schedulers,
@@ -506,7 +506,7 @@ public class Microservices implements AutoCloseable {
     private Map<String, String> tags;
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
-    private Authenticator defaultAuthenticator;
+    private PrincipalMapper defaultPrincipalMapper;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
     private Logger defaultLogger;
@@ -667,13 +667,14 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
+     * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
+     * null.
      *
-     * @param authenticator authenticator (optional)
+     * @param principalMapper principalMapper (optional)
      * @return this
      */
-    public Context defaultAuthenticator(Authenticator authenticator) {
-      this.defaultAuthenticator = authenticator;
+    public Context defaultPrincipalMapper(PrincipalMapper principalMapper) {
+      this.defaultPrincipalMapper = principalMapper;
       return this;
     }
 

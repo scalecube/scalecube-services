@@ -1,13 +1,13 @@
 package io.scalecube.services.security;
 
 import io.scalecube.security.vault.VaultServiceTokenSupplier;
-import io.scalecube.services.ServiceReference;
-import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.auth.CredentialsSupplier;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import reactor.core.publisher.Mono;
 
-public class ServiceTokenCredentialsSupplier implements ClientTransport.CredentialsSupplier {
+public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
 
   private final String environment;
   private final String vaultAddress;
@@ -23,7 +23,7 @@ public class ServiceTokenCredentialsSupplier implements ClientTransport.Credenti
   }
 
   @Override
-  public Mono<byte[]> credentials(ServiceReference serviceReference, String serviceRole) {
+  public Mono<byte[]> credentials(String serviceRole) {
     return Mono.defer(
         () -> {
           if (serviceRole == null) {
@@ -37,7 +37,7 @@ public class ServiceTokenCredentialsSupplier implements ClientTransport.Credenti
                       .vaultTokenSupplier(vaultTokenSupplier)
                       .serviceTokenNameBuilder((role, tags) -> environment + "." + role)
                       .build()
-                      .getToken(serviceReference.tags()))
+                      .getToken(Collections.emptyMap()))
               .map(String::getBytes);
         });
   }

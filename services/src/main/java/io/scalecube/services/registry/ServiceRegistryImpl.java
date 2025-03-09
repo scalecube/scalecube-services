@@ -192,7 +192,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
-                                  serviceInfo.authenticator(),
+                                  serviceInfo.principalMapper(),
                                   serviceInfo.logger());
 
                           final List<ServiceMethodInvoker> methodInvokers;

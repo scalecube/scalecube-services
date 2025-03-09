@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.websocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -10,6 +9,7 @@ import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.gateway.AuthRegistry;
 import io.scalecube.services.gateway.SecuredService;
@@ -104,9 +104,9 @@ public class WebsocketGatewayAuthTest {
     StepVerifier.create(securedService.requestOne("echo"))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }
@@ -135,9 +135,9 @@ public class WebsocketGatewayAuthTest {
     StepVerifier.create(securedService.requestOne(req))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }
@@ -147,9 +147,9 @@ public class WebsocketGatewayAuthTest {
     StepVerifier.create(securedService.requestMany(10))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }

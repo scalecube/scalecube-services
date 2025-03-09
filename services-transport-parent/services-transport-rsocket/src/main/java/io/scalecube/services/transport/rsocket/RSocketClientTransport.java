@@ -7,6 +7,7 @@ import io.rsocket.util.DefaultPayload;
 import io.rsocket.util.EmptyPayload;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
+import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -129,7 +130,7 @@ public class RSocketClientTransport implements ClientTransport {
     }
 
     return credentialsSupplier
-        .credentials(serviceReference, serviceRole)
+        .credentials(serviceRole)
         .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
         .onErrorMap(
             th -> {

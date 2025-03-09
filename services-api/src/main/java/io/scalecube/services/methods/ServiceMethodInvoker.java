@@ -3,12 +3,12 @@ package io.scalecube.services.methods;
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -27,7 +27,7 @@ public class ServiceMethodInvoker {
   private final MethodInfo methodInfo;
   private final ServiceProviderErrorMapper errorMapper;
   private final ServiceMessageDataDecoder dataDecoder;
-  private final Authenticator authenticator;
+  private final PrincipalMapper principalMapper;
   private final Logger logger;
 
   public ServiceMethodInvoker(
@@ -36,14 +36,14 @@ public class ServiceMethodInvoker {
       MethodInfo methodInfo,
       ServiceProviderErrorMapper errorMapper,
       ServiceMessageDataDecoder dataDecoder,
-      Authenticator authenticator,
+      PrincipalMapper principalMapper,
       Logger logger) {
     this.method = Objects.requireNonNull(method, "method");
     this.service = Objects.requireNonNull(service, "service");
     this.methodInfo = Objects.requireNonNull(methodInfo, "methodInfo");
     this.errorMapper = Objects.requireNonNull(errorMapper, "errorMapper");
     this.dataDecoder = Objects.requireNonNull(dataDecoder, "dataDecoder");
-    this.authenticator = authenticator;
+    this.principalMapper = principalMapper;
     this.logger = logger;
   }
 
@@ -58,7 +58,7 @@ public class ServiceMethodInvoker {
         .flatMap(
             context -> {
               final var request = toRequest(message);
-              return authenticate(context)
+              return mapPrincipal(context)
                   .flatMap(
                       principal ->
                           Mono.defer(() -> Mono.from(invokeRequest(request)))
@@ -99,7 +99,7 @@ public class ServiceMethodInvoker {
         .flatMapMany(
             context -> {
               final var request = toRequest(message);
-              return authenticate(context)
+              return mapPrincipal(context)
                   .flatMapMany(
                       principal ->
                           Flux.defer(() -> Flux.from(invokeRequest(request)))
@@ -230,34 +230,34 @@ public class ServiceMethodInvoker {
     return methodInfo;
   }
 
-  public Authenticator authenticator() {
-    return authenticator;
+  public PrincipalMapper principalMapper() {
+    return principalMapper;
   }
 
-  private Mono<Principal> authenticate(RequestContext context) {
+  private Mono<Principal> mapPrincipal(RequestContext context) {
     if (!methodInfo.isSecured()) {
       return Mono.just(context.principal());
     }
 
-    if (authenticator == null) {
+    if (principalMapper == null) {
       if (context.hasPrincipal()) {
         return Mono.just(context.principal());
       } else {
-        throw new UnauthorizedException("Authentication failed");
+        throw new ForbiddenException("Insufficient permissions");
       }
     }
 
-    return authenticator
-        .authenticate(context)
+    return principalMapper
+        .map(context)
         .switchIfEmpty(Mono.just(context.principal()))
-        .onErrorMap(ServiceMethodInvoker::toUnauthorizedException);
+        .onErrorMap(ServiceMethodInvoker::toForbiddenException);
   }
 
-  private static UnauthorizedException toUnauthorizedException(Throwable ex) {
+  private static ForbiddenException toForbiddenException(Throwable ex) {
     if (ex instanceof ServiceException e) {
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
+      return new ForbiddenException(e.errorCode(), e.getMessage());
     } else {
-      return new UnauthorizedException(ex);
+      return new ForbiddenException(ex);
     }
   }
 }

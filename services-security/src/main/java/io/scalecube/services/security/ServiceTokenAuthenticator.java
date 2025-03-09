@@ -3,15 +3,15 @@ package io.scalecube.services.security;
 import io.scalecube.security.tokens.jwt.JwtToken;
 import io.scalecube.security.tokens.jwt.JwtTokenResolver;
 import io.scalecube.security.tokens.jwt.JwtUnavailableException;
+import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
-import io.scalecube.services.transport.api.ServerTransport;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
-public class ServiceTokenAuthenticator implements ServerTransport.Authenticator {
+public class ServiceTokenAuthenticator implements Authenticator {
 
   private final JwtTokenResolver tokenResolver;
   private final Retry retryStrategy;

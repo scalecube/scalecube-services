@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
+import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -26,7 +27,6 @@ import io.scalecube.services.sut.security.CompositeSecuredServiceImpl;
 import io.scalecube.services.sut.security.CompositeSecuredServiceImpl.CompositePrincipalImpl;
 import io.scalecube.services.sut.security.SecuredService;
 import io.scalecube.services.sut.security.SecuredServiceImpl;
-import io.scalecube.services.transport.api.ClientTransport.CredentialsSupplier;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketClientTransport;
@@ -78,7 +78,7 @@ final class AuthTest {
                 .services(new SecuredServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new CompositeSecuredServiceImpl())
-                        .authenticator(AuthTest::authenticateComposite)
+                        .principalMapper(AuthTest::mapPrincipal)
                         .build()));
   }
 
@@ -105,7 +105,7 @@ final class AuthTest {
     void authenticateSuccessfully(String test, SuccessArgs args) {
       serviceCall =
           serviceCall(
-              ($, serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
+              (serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
               args.serviceRole,
               args.allowedRoles);
 
@@ -145,7 +145,7 @@ final class AuthTest {
     void failedAuthentication(String test, FailedArgs args) {
       serviceCall =
           serviceCall(
-              ($, serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
+              (serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
               args.serviceRole,
               args.allowedRoles);
 
@@ -221,7 +221,7 @@ final class AuthTest {
       credentials.put("user", "alice");
       credentials.put("permissions", "helloComposite");
 
-      serviceCall = serviceCall((sr, r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
 
       StepVerifier.create(
               serviceCall
@@ -237,7 +237,7 @@ final class AuthTest {
       final var role = "invoker";
       final var tokenCredentials = new TokenCredentials(VALID_TOKEN, role, null);
 
-      serviceCall = serviceCall((sr, r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
 
       StepVerifier.create(
               serviceCall
@@ -260,11 +260,11 @@ final class AuthTest {
       return Stream.of(
           arguments(
               "Authentication failed: empty composite credentails",
-              new FailedArgs(Map.of(), UnauthorizedException.class, "Not allowed")),
+              new FailedArgs(Map.of(), ForbiddenException.class, "Not allowed")),
           arguments(
               "Authentication failed: wrong composite user",
               new FailedArgs(
-                  Map.of("user", "wrong-user"), UnauthorizedException.class, "Not allowed")),
+                  Map.of("user", "wrong-user"), ForbiddenException.class, "Not allowed")),
           arguments(
               "Authentication failed: wrong composite permissions",
               new FailedArgs(
@@ -283,7 +283,7 @@ final class AuthTest {
       final var tokenCredentials =
           new TokenCredentials(VALID_TOKEN, role, List.of("read", "write", "delete", "*"));
 
-      serviceCall = serviceCall((sr, r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
 
       StepVerifier.create(serviceCall.api(SecuredService.class).readWithAllowedRoleAnnotation())
           .verifyComplete();
@@ -321,7 +321,7 @@ final class AuthTest {
     return Mono.error(new UnauthorizedException("Authentication failed"));
   }
 
-  private static Mono<Principal> authenticateComposite(RequestContext requestContext) {
+  private static Mono<Principal> mapPrincipal(RequestContext requestContext) {
     return RequestContext.deferContextual()
         .map(
             context -> {
