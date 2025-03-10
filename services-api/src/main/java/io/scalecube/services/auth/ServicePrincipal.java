@@ -1,16 +1,15 @@
-package io.scalecube.services.security;
+package io.scalecube.services.auth;
 
-import io.scalecube.services.auth.Principal;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 
-public class ServiceTokenPrincipal implements Principal {
+public class ServicePrincipal implements Principal {
 
   private final String role;
   private final Set<String> permissions;
 
-  public ServiceTokenPrincipal(String role, Set<String> permissions) {
+  public ServicePrincipal(String role, Set<String> permissions) {
     this.role = role;
     this.permissions = permissions;
   }

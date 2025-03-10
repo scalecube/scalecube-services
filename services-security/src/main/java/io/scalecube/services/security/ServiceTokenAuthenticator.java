@@ -5,6 +5,7 @@ import io.scalecube.security.tokens.jwt.JwtTokenResolver;
 import io.scalecube.security.tokens.jwt.JwtUnavailableException;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.ServicePrincipal;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -51,7 +52,7 @@ public class ServiceTokenAuthenticator implements Authenticator {
                       .filter(s -> !s.isBlank())
                       .collect(Collectors.toSet());
 
-              return new ServiceTokenPrincipal(role, permissions);
+              return new ServicePrincipal(role, permissions);
             });
   }
 }
