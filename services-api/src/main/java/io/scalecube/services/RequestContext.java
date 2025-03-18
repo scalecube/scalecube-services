@@ -185,7 +185,8 @@ public class RequestContext implements Context {
                 if (LOGGER.isDebugEnabled()) {
                   LOGGER.debug(
                       "Insufficient permissions for secured method ({}): "
-                          + "request context does not have principal",
+                          + "request context ({}) does not have principal",
+                      context,
                       context.methodInfo());
                 }
                 throw new ForbiddenException("Insufficient permissions");

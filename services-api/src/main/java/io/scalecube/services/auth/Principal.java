@@ -4,7 +4,13 @@ import java.util.Collection;
 
 public interface Principal {
 
-  Principal NULL_PRINCIPAL = new Principal() {};
+  Principal NULL_PRINCIPAL =
+      new Principal() {
+        @Override
+        public String toString() {
+          return "NULL_PRINCIPAL";
+        }
+      };
 
   default String role() {
     return null;

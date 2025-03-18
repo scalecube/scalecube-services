@@ -249,7 +249,9 @@ public class ServiceMethodInvoker {
         if (LOGGER.isDebugEnabled()) {
           LOGGER.debug(
               "Insufficient permissions for secured method ({}): "
-                  + "request context does not have principal and principalMapper is also not set",
+                  + "request context ({}) does not have principal "
+                  + "and principalMapper is also not set",
+              context,
               methodInfo);
         }
         throw new ForbiddenException("Insufficient permissions");
