@@ -8,6 +8,7 @@ import io.scalecube.services.methods.ServiceRoleDefinition;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -21,9 +22,9 @@ public class VaultServiceRolesProcessor implements ServiceRolesProcessor {
       String environment,
       String vaultAddress,
       Supplier<CompletableFuture<String>> vaultTokenSupplier) {
-    this.environment = environment;
-    this.vaultAddress = vaultAddress;
-    this.vaultTokenSupplier = vaultTokenSupplier;
+    this.environment = Objects.requireNonNull(environment, "environment");
+    this.vaultAddress = Objects.requireNonNull(vaultAddress, "vaultAddress");
+    this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
   }
 
   @Override
@@ -32,7 +33,7 @@ public class VaultServiceRolesProcessor implements ServiceRolesProcessor {
         .vaultAddress(vaultAddress)
         .vaultTokenSupplier(vaultTokenSupplier)
         .serviceRolesSources(List.of(() -> toServiceRoles(values)))
-        .keyNameSupplier(() -> environment + "." + "key")
+        .keyNameSupplier(() -> environment + "." + "identity-key")
         .roleNameBuilder(role -> environment + "." + role)
         .build()
         .install();

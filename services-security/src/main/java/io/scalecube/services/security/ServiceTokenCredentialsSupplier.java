@@ -3,6 +3,7 @@ package io.scalecube.services.security;
 import io.scalecube.security.vault.VaultServiceTokenSupplier;
 import io.scalecube.services.auth.CredentialsSupplier;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import reactor.core.publisher.Mono;
@@ -17,9 +18,9 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
       String environment,
       String vaultAddress,
       Supplier<CompletableFuture<String>> vaultTokenSupplier) {
-    this.environment = environment;
-    this.vaultAddress = vaultAddress;
-    this.vaultTokenSupplier = vaultTokenSupplier;
+    this.environment = Objects.requireNonNull(environment, "environment");
+    this.vaultAddress = Objects.requireNonNull(vaultAddress, "vaultAddress");
+    this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
   }
 
   @Override
