@@ -16,11 +16,14 @@ import java.util.Map;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public class ServiceMethodInvoker {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodInvoker.class);
 
   private final Method method;
   private final Object service;
@@ -243,6 +246,12 @@ public class ServiceMethodInvoker {
       if (context.hasPrincipal()) {
         return Mono.just(context.principal());
       } else {
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug(
+              "Insufficient permissions for secured method ({}): "
+                  + "request context does not have principal and principalMapper is also not set",
+              methodInfo);
+        }
         throw new ForbiddenException("Insufficient permissions");
       }
     }

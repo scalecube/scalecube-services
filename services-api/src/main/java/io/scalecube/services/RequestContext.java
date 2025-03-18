@@ -14,10 +14,14 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.StringJoiner;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 public class RequestContext implements Context {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RequestContext.class);
 
   private final Context source;
 
@@ -178,6 +182,12 @@ public class RequestContext implements Context {
         .doOnNext(
             context -> {
               if (!context.hasPrincipal()) {
+                if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug(
+                      "Insufficient permissions for secured method ({}): "
+                          + "request context does not have principal",
+                      context.methodInfo());
+                }
                 throw new ForbiddenException("Insufficient permissions");
               }
 
@@ -185,10 +195,26 @@ public class RequestContext implements Context {
               final var methodInfo = context.methodInfo();
 
               if (!methodInfo.allowedRoles().contains(principal.role())) {
+                if (LOGGER.isDebugEnabled()) {
+                  LOGGER.debug(
+                      "Insufficient permissions for secured method ({}): "
+                          + "principal role is not allowed (principal: {})",
+                      context.methodInfo(),
+                      principal);
+                }
                 throw new ForbiddenException("Insufficient permissions");
               }
+
               for (var allowedPermission : methodInfo.allowedPermissions()) {
                 if (!principal.hasPermission(allowedPermission)) {
+                  if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug(
+                        "Insufficient permissions for secured method ({}): "
+                            + "allowed permission: {} is missing (principal: {})",
+                        context.methodInfo(),
+                        allowedPermission,
+                        principal.role());
+                  }
                   throw new ForbiddenException("Insufficient permissions");
                 }
               }

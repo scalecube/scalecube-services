@@ -50,8 +50,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
     final var credentials = new byte[connectionSetup.readableBytes()];
     connectionSetup.getBytes(connectionSetup.readerIndex(), credentials);
 
-    return authenticator
-        .authenticate(credentials)
+    return Mono.defer(() -> authenticator.authenticate(credentials))
         .switchIfEmpty(Mono.just(NULL_PRINCIPAL))
         .doOnSuccess(principal -> LOGGER.debug("Authenticated successfully: {}", principal))
         .doOnError(ex -> LOGGER.error("Authentication failed", ex))
