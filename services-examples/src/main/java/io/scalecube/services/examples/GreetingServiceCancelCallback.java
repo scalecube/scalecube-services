@@ -1,6 +1,7 @@
 package io.scalecube.services.examples;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import java.util.List;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -16,6 +17,9 @@ public class GreetingServiceCancelCallback implements GreetingService {
 
   @Override
   public Mono<String> one(String name) {
+    if (name == null) {
+      throw new BadRequestException("Wrong request");
+    }
     return greetingService.one(name).doOnCancel(onCancel);
   }
 

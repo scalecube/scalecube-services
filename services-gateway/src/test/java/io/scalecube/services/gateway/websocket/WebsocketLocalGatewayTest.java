@@ -161,7 +161,7 @@ class WebsocketLocalGatewayTest {
         .verifyErrorSatisfies(
             ex -> {
               assertInstanceOf(BadRequestException.class, ex);
-              assertThat(ex.getMessage(), startsWith("Wrong request data type"));
+              assertThat(ex.getMessage(), startsWith("Wrong request"));
             });
   }
 

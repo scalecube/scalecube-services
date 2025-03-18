@@ -2,6 +2,7 @@ package io.scalecube.services.examples;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +15,9 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<String> one(String name) {
+    if (name == null) {
+      throw new BadRequestException("Wrong request");
+    }
     return Mono.defer(() -> Mono.just("Echo:" + name));
   }
 
