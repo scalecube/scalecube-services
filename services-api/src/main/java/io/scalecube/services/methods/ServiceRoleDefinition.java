@@ -1,6 +1,6 @@
 package io.scalecube.services.methods;
 
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -16,26 +16,16 @@ public class ServiceRoleDefinition {
    * @param role service role
    * @param permissions service permissions
    */
-  public ServiceRoleDefinition(String role, String... permissions) {
-    this(role, Set.copyOf(Arrays.asList(permissions)));
-  }
-
-  /**
-   * Constructor.
-   *
-   * @param role service role
-   * @param permissions service permissions
-   */
-  public ServiceRoleDefinition(String role, Set<String> permissions) {
+  public ServiceRoleDefinition(String role, Collection<String> permissions) {
     this.role = role;
-    this.permissions = permissions;
+    this.permissions = Set.copyOf(permissions);
   }
 
   public String role() {
     return role;
   }
 
-  public Set<String> permissions() {
+  public Collection<String> permissions() {
     return permissions;
   }
 

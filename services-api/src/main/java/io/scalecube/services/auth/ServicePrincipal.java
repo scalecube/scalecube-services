@@ -1,6 +1,5 @@
 package io.scalecube.services.auth;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -16,19 +15,9 @@ public class ServicePrincipal implements Principal {
    * @param role service role
    * @param permissions service permissions
    */
-  public ServicePrincipal(String role, String... permissions) {
-    this(role, Set.copyOf(Arrays.asList(permissions)));
-  }
-
-  /**
-   * Constructor.
-   *
-   * @param role service role
-   * @param permissions service permissions
-   */
   public ServicePrincipal(String role, Set<String> permissions) {
     this.role = role;
-    this.permissions = permissions;
+    this.permissions = Set.copyOf(permissions);
   }
 
   @Override
