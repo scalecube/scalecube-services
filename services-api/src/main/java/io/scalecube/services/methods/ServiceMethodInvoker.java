@@ -247,8 +247,7 @@ public class ServiceMethodInvoker {
       }
     }
 
-    return principalMapper
-        .map(context)
+    return Mono.defer(() -> principalMapper.map(context))
         .switchIfEmpty(Mono.just(context.principal()))
         .onErrorMap(ServiceMethodInvoker::toForbiddenException);
   }
