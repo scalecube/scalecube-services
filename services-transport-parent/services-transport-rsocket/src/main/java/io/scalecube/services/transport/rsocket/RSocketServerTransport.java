@@ -56,13 +56,14 @@ public class RSocketServerTransport implements ServerTransport {
   @Override
   public ServerTransport bind() {
     try {
-      RSocketServer.create()
-          .acceptor(
-              new RSocketServiceAcceptor(headersCodec, dataCodecs, authenticator, serviceRegistry))
-          .bind(serverTransportFactory.serverTransport())
-          .doOnSuccess(channel -> serverChannel = channel)
-          .toFuture()
-          .get();
+      serverChannel =
+          RSocketServer.create()
+              .acceptor(
+                  new RSocketServiceAcceptor(
+                      headersCodec, dataCodecs, authenticator, serviceRegistry))
+              .bind(serverTransportFactory.serverTransport())
+              .toFuture()
+              .get();
       return this;
     } catch (Exception e) {
       throw new RuntimeException(e);

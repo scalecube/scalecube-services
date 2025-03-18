@@ -64,17 +64,17 @@ public class WebsocketGateway implements Gateway {
     }
 
     try {
-      HttpServer.create()
-          .runOn(loopResources)
-          .bindAddress(() -> new InetSocketAddress(port))
-          .doOnConnection(this::setupKeepAlive)
-          .handle(
-              new WebsocketGatewayAcceptor(callFactory.apply(call), gatewayHandler, errorMapper))
-          .bind()
-          .doOnSuccess(server -> this.server = server)
-          .thenReturn(this)
-          .toFuture()
-          .get();
+      server =
+          HttpServer.create()
+              .runOn(loopResources)
+              .bindAddress(() -> new InetSocketAddress(port))
+              .doOnConnection(this::setupKeepAlive)
+              .handle(
+                  new WebsocketGatewayAcceptor(
+                      callFactory.apply(call), gatewayHandler, errorMapper))
+              .bind()
+              .toFuture()
+              .get();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

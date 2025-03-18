@@ -65,20 +65,21 @@ public class HttpGateway implements Gateway {
         LoopResources.create(id + ":" + port, LoopResources.DEFAULT_IO_WORKER_COUNT, true);
 
     try {
-      HttpServer.create()
-          .runOn(loopResources)
-          .bindAddress(() -> new InetSocketAddress(port))
-          .doOnConnection(
-              connection -> {
-                if (corsEnabled) {
-                  connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
-                }
-              })
-          .handle(new HttpGatewayAcceptor(callFactory.apply(call), serviceRegistry, errorMapper))
-          .bind()
-          .doOnSuccess(server -> this.server = server)
-          .toFuture()
-          .get();
+      server =
+          HttpServer.create()
+              .runOn(loopResources)
+              .bindAddress(() -> new InetSocketAddress(port))
+              .doOnConnection(
+                  connection -> {
+                    if (corsEnabled) {
+                      connection.addHandlerLast(new CorsHandler(corsConfigBuilder.build()));
+                    }
+                  })
+              .handle(
+                  new HttpGatewayAcceptor(callFactory.apply(call), serviceRegistry, errorMapper))
+              .bind()
+              .toFuture()
+              .get();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
