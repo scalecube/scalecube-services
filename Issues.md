@@ -5,3 +5,4 @@
 * VaultServiceRolesInstaller:
   * must validate for non-null constructor parameters (check other security classes as well).
   * ".key" change to ".identity-key"
+* Add debug logs for Auth/Authz error situations.
