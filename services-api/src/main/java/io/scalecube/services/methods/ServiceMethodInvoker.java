@@ -5,7 +5,6 @@ import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.auth.PrincipalMapper;
-import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -201,13 +200,6 @@ public class ServiceMethodInvoker {
 
   private Object toRequest(ServiceMessage message) {
     final var request = dataDecoder.apply(message, methodInfo.requestType());
-
-    if (!methodInfo.isRequestTypeVoid()
-        && !methodInfo.isRequestTypeServiceMessage()
-        && !request.hasData(methodInfo.requestType())) {
-      throw new BadRequestException("Wrong request data type");
-    }
-
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 

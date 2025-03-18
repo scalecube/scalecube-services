@@ -4,6 +4,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.stream.LongStream;
 import org.reactivestreams.Publisher;
@@ -34,8 +35,11 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Mono<GreetingResponse> greetingPojo(GreetingRequest name) {
-    return Mono.just(new GreetingResponse(" hello to: " + name));
+  public Mono<GreetingResponse> greetingPojo(GreetingRequest request) {
+    if (request == null) {
+      throw new BadRequestException("Wrong request");
+    }
+    return Mono.just(new GreetingResponse(" hello to: " + request));
   }
 
   @Override
