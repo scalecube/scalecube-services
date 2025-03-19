@@ -184,7 +184,7 @@ public class RequestContext implements Context {
               if (!context.hasPrincipal()) {
                 if (LOGGER.isDebugEnabled()) {
                   LOGGER.debug(
-                      "Insufficient permissions for secured method ({}): "
+                      "Insufficient permissions for secured method ({}) -- "
                           + "request context ({}) does not have principal",
                       context,
                       context.methodInfo());
@@ -198,9 +198,10 @@ public class RequestContext implements Context {
               if (!methodInfo.allowedRoles().contains(principal.role())) {
                 if (LOGGER.isDebugEnabled()) {
                   LOGGER.debug(
-                      "Insufficient permissions for secured method ({}): "
-                          + "principal role is not allowed (principal: {})",
+                      "Insufficient permissions for secured method ({}) -- "
+                          + "principal role '{}' is not allowed (principal: {})",
                       context.methodInfo(),
+                      principal.role(),
                       principal);
                 }
                 throw new ForbiddenException("Insufficient permissions");
@@ -210,11 +211,11 @@ public class RequestContext implements Context {
                 if (!principal.hasPermission(allowedPermission)) {
                   if (LOGGER.isDebugEnabled()) {
                     LOGGER.debug(
-                        "Insufficient permissions for secured method ({}): "
-                            + "allowed permission: {} is missing (principal: {})",
+                        "Insufficient permissions for secured method ({}) -- "
+                            + "allowed permission '{}' is missing (principal: {})",
                         context.methodInfo(),
                         allowedPermission,
-                        principal.role());
+                        principal);
                   }
                   throw new ForbiddenException("Insufficient permissions");
                 }
