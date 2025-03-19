@@ -1,7 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.core.RSocketServer;
-import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.scalecube.services.Address;
 import io.scalecube.services.auth.Authenticator;
@@ -17,9 +16,8 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private final Authenticator<Object> authenticator;
+  private final Authenticator authenticator;
   private final ServiceRegistry serviceRegistry;
-  private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
   private final RSocketServerTransportFactory serverTransportFactory;
@@ -31,21 +29,18 @@ public class RSocketServerTransport implements ServerTransport {
    *
    * @param authenticator authenticator
    * @param serviceRegistry serviceRegistry
-   * @param connectionSetupCodec connectionSetupCodec
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param serverTransportFactory serverTransportFactory
    */
   public RSocketServerTransport(
-      Authenticator<Object> authenticator,
+      Authenticator authenticator,
       ServiceRegistry serviceRegistry,
-      ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       RSocketServerTransportFactory serverTransportFactory) {
     this.authenticator = authenticator;
     this.serviceRegistry = serviceRegistry;
-    this.connectionSetupCodec = connectionSetupCodec;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.serverTransportFactory = serverTransportFactory;
@@ -61,15 +56,14 @@ public class RSocketServerTransport implements ServerTransport {
   @Override
   public ServerTransport bind() {
     try {
-      RSocketServer.create()
-          .acceptor(
-              new RSocketServiceAcceptor(
-                  connectionSetupCodec, headersCodec, dataCodecs, authenticator, serviceRegistry))
-          .payloadDecoder(PayloadDecoder.DEFAULT)
-          .bind(serverTransportFactory.serverTransport())
-          .doOnSuccess(channel -> serverChannel = channel)
-          .toFuture()
-          .get();
+      serverChannel =
+          RSocketServer.create()
+              .acceptor(
+                  new RSocketServiceAcceptor(
+                      headersCodec, dataCodecs, authenticator, serviceRegistry))
+              .bind(serverTransportFactory.serverTransport())
+              .toFuture()
+              .get();
       return this;
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -78,15 +72,13 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public void stop() {
-    if (serverChannel == null || serverChannel.isDisposed()) {
-      return;
-    }
-
-    try {
-      serverChannel.dispose();
-      serverChannel.onClose().toFuture().get();
-    } catch (Exception e) {
-      LOGGER.warn("[serverChannel][onClose] Exception: {}", e.toString());
+    if (serverChannel != null && !serverChannel.isDisposed()) {
+      try {
+        serverChannel.dispose();
+        serverChannel.onClose().toFuture().get();
+      } catch (Exception e) {
+        LOGGER.warn("[serverChannel][onClose] Exception: {}", e.toString());
+      }
     }
   }
 }

@@ -1,12 +1,13 @@
 package io.scalecube.services.gateway.websocket;
 
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
+
 import io.netty.buffer.ByteBuf;
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.gateway.AuthRegistry;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
-import java.util.Optional;
 import reactor.util.context.Context;
 
 public class GatewaySessionHandlerImpl implements GatewaySessionHandler {
@@ -19,8 +20,8 @@ public class GatewaySessionHandlerImpl implements GatewaySessionHandler {
 
   @Override
   public Context onRequest(GatewaySession session, ByteBuf byteBuf, Context context) {
-    Optional<String> authData = authRegistry.getAuth(session.sessionId());
-    return authData.map(s -> context.put(Authenticator.AUTH_CONTEXT_KEY, s)).orElse(context);
+    final var principal = authRegistry.getAuth(session.sessionId());
+    return new RequestContext().principal(principal != null ? principal : NULL_PRINCIPAL);
   }
 
   @Override

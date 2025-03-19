@@ -50,8 +50,8 @@ public class ServiceLocalTest {
             .block(TIMEOUT.plusMillis(500));
 
     // print the greeting.
-    System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
-    assertEquals(" hello to: joe", result.getResult());
+    System.out.println("2. greeting_request_completes_before_timeout : " + result.result());
+    assertEquals(" hello to: joe", result.result());
   }
 
   @Test
@@ -143,7 +143,7 @@ public class ServiceLocalTest {
             })
         .block(Duration.ofSeconds(1));
 
-    assertEquals(" hello to: joe", result.get().getResult());
+    assertEquals(" hello to: joe", result.get().result());
   }
 
   @Test
@@ -173,7 +173,7 @@ public class ServiceLocalTest {
     future
         .doOnNext(
             result -> {
-              assertEquals(" hello to: joe", result.getResult());
+              assertEquals(" hello to: joe", result.result());
               // print the greeting.
               System.out.println("9. local_async_greeting_return_Message :" + result);
             })
@@ -196,7 +196,7 @@ public class ServiceLocalTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -205,7 +205,7 @@ public class ServiceLocalTest {
         .assertNext(
             resp -> {
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -224,7 +224,7 @@ public class ServiceLocalTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -240,7 +240,7 @@ public class ServiceLocalTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -344,9 +344,9 @@ public class ServiceLocalTest {
         service.bidiGreeting(requests.asFlux().onBackpressureBuffer());
 
     StepVerifier.create(responses)
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-1"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-2"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-3"))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
   }
@@ -369,11 +369,11 @@ public class ServiceLocalTest {
 
     StepVerifier.create(responses)
         .then(() -> requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-1"))
         .then(() -> requests.emitNext(new GreetingRequest("joe-2"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-2"))
         .then(() -> requests.emitNext(new GreetingRequest("joe-3"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-3"))
         .then(() -> requests.emitComplete(FAIL_FAST))
         .expectComplete()
         .verify(Duration.ofSeconds(3));

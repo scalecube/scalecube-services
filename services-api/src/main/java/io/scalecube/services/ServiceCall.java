@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
+
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -202,7 +204,20 @@ public class ServiceCall implements AutoCloseable {
               if (serviceRegistry != null
                   && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
-                return methodInvoker.invokeOne(request).map(this::throwIfError);
+                return methodInvoker
+                    .invokeOne(request)
+                    .map(this::throwIfError)
+                    .contextWrite(
+                        context -> {
+                          if (context.hasKey(RequestContext.class)) {
+                            return context;
+                          } else {
+                            return new RequestContext(context)
+                                .headers(request.headers())
+                                .request(request)
+                                .principal(NULL_PRINCIPAL);
+                          }
+                        });
               } else {
                 // remote service
                 Objects.requireNonNull(transport, "[requestOne] transport");
@@ -254,7 +269,20 @@ public class ServiceCall implements AutoCloseable {
               if (serviceRegistry != null
                   && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                 // local service
-                return methodInvoker.invokeMany(request).map(this::throwIfError);
+                return methodInvoker
+                    .invokeMany(request)
+                    .map(this::throwIfError)
+                    .contextWrite(
+                        context -> {
+                          if (context.hasKey(RequestContext.class)) {
+                            return context;
+                          } else {
+                            return new RequestContext(context)
+                                .headers(request.headers())
+                                .request(request)
+                                .principal(NULL_PRINCIPAL);
+                          }
+                        });
               } else {
                 // remote service
                 Objects.requireNonNull(transport, "[requestMany] transport");
@@ -351,11 +379,10 @@ public class ServiceCall implements AutoCloseable {
                 return check.get(); // toString, hashCode was invoked.
               }
 
-              final var serviceCall = ServiceCall.this;
-              final var genericReturnTypes = Reflect.methodsInfo(serviceInterface);
-              final var methodInfo = genericReturnTypes.get(method);
+              final var serviceCall = this;
+              final var methodInfo = Reflect.methodInfo(serviceInterface, method);
               final var returnType = methodInfo.parameterizedReturnType();
-              final var isServiceMessage = methodInfo.isReturnTypeServiceMessage();
+              final var isReturnTypeServiceMessage = methodInfo.isReturnTypeServiceMessage();
               final var request = methodInfo.requestType() == Void.TYPE ? null : params[0];
 
               //noinspection EnhancedSwitchMigration
@@ -363,12 +390,12 @@ public class ServiceCall implements AutoCloseable {
                 case REQUEST_RESPONSE:
                   return serviceCall
                       .requestOne(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asMono(isServiceMessage));
+                      .transform(asMono(isReturnTypeServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
                       .requestMany(toServiceMessage(methodInfo, request), returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(asFlux(isReturnTypeServiceMessage));
 
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must
@@ -379,7 +406,7 @@ public class ServiceCall implements AutoCloseable {
                           Flux.from((Publisher) request)
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(asFlux(isReturnTypeServiceMessage));
 
                 default:
                   throw new IllegalArgumentException(
@@ -441,12 +468,14 @@ public class ServiceCall implements AutoCloseable {
     }
   }
 
-  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isReturnTypeServiceMessage) {
+  private static Function<Flux<ServiceMessage>, Flux<Object>> asFlux(
+      boolean isReturnTypeServiceMessage) {
     return flux ->
         isReturnTypeServiceMessage ? flux.cast(Object.class) : flux.map(ServiceMessage::data);
   }
 
-  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isReturnTypeServiceMessage) {
+  private static Function<Mono<ServiceMessage>, Mono<Object>> asMono(
+      boolean isReturnTypeServiceMessage) {
     return mono ->
         isReturnTypeServiceMessage ? mono.cast(Object.class) : mono.map(ServiceMessage::data);
   }
