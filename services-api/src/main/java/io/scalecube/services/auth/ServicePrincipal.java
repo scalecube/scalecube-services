@@ -4,6 +4,10 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * Service principal implementation of {@link Principal}. Provides role-based access control by
+ * allowing checks against assigned roles and permissions.
+ */
 public class ServicePrincipal implements Principal {
 
   private final String role;
@@ -17,7 +21,7 @@ public class ServicePrincipal implements Principal {
    */
   public ServicePrincipal(String role, Collection<String> permissions) {
     this.role = role;
-    this.permissions = Set.copyOf(permissions);
+    this.permissions = permissions != null ? Set.copyOf(permissions) : null;
   }
 
   @Override
@@ -37,6 +41,6 @@ public class ServicePrincipal implements Principal {
 
   @Override
   public boolean hasPermission(String permission) {
-    return permissions.contains(permission);
+    return permissions != null && permissions.contains(permission);
   }
 }
