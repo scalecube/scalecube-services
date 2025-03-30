@@ -17,7 +17,7 @@ public class ServiceRoleDefinition {
    */
   public ServiceRoleDefinition(String role, Collection<String> permissions) {
     this.role = role;
-    this.permissions = Set.copyOf(permissions);
+    this.permissions = permissions != null ? Set.copyOf(permissions) : null;
   }
 
   public String role() {

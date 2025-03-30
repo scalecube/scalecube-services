@@ -13,7 +13,7 @@ public interface ServiceRolesProcessor {
   /**
    * Function that does processing of service roles.
    *
-   * @param values collection {@link ServiceRoleDefinition} objects
+   * @param values collection of {@link ServiceRoleDefinition} objects
    */
   void process(Collection<ServiceRoleDefinition> values);
 }
