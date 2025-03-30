@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.resolver.DefaultAddressResolverGroup;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
@@ -26,7 +27,6 @@ import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
-import reactor.netty.resources.LoopResources;
 
 public final class WebsocketGatewayClientTransport implements ClientChannel, ClientTransport {
 
@@ -39,10 +39,8 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   private static final int CONNECT_TIMEOUT_MILLIS = (int) Duration.ofSeconds(5).toMillis();
 
   private final GatewayClientCodec clientCodec;
-  private final LoopResources loopResources;
   private final Duration keepAliveInterval;
   private final Function<HttpClient, HttpClient> operator;
-  private final boolean ownsLoopResources;
 
   private final AtomicLong sidCounter = new AtomicLong();
   private final AtomicReference<WebsocketGatewayClientSession> clientSessionReference =
@@ -52,11 +50,6 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     this.clientCodec = builder.clientCodec;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.operator = builder.operator;
-    this.loopResources =
-        builder.loopResources == null
-            ? LoopResources.create("websocket-gateway-client", 1, true)
-            : builder.loopResources;
-    this.ownsLoopResources = builder.loopResources == null;
   }
 
   public static Builder builder() {
@@ -74,7 +67,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
           final HttpClient httpClient =
               operator.apply(
                   HttpClient.create(ConnectionProvider.newConnection())
-                      .runOn(loopResources)
+                      .resolver(DefaultAddressResolverGroup.INSTANCE)
                       .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
                       .option(ChannelOption.TCP_NODELAY, true)
                       .headers(headers -> headers.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)));
@@ -196,15 +189,15 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   @Override
   public void close() {
-    if (ownsLoopResources) {
-      loopResources.dispose();
+    final var session = clientSessionReference.get();
+    if (session != null) {
+      session.close().doOnError(ex -> {}).subscribe();
     }
   }
 
   public static class Builder {
 
     private GatewayClientCodec clientCodec = CLIENT_CODEC;
-    private LoopResources loopResources;
     private Duration keepAliveInterval = Duration.ZERO;
     private Function<HttpClient, HttpClient> operator = client -> client;
 
@@ -212,11 +205,6 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
     public Builder clientCodec(GatewayClientCodec clientCodec) {
       this.clientCodec = clientCodec;
-      return this;
-    }
-
-    public Builder loopResources(LoopResources loopResources) {
-      this.loopResources = loopResources;
       return this;
     }
 
