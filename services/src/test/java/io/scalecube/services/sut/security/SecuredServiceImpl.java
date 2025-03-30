@@ -1,39 +1,55 @@
 package io.scalecube.services.sut.security;
 
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.RequestContext;
+import io.scalecube.services.auth.AllowedRole;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
 public class SecuredServiceImpl implements SecuredService {
 
-  @Override
-  public Mono<String> helloWithRequest(String name) {
-    return Mono.just("Hello, " + name);
-  }
+  // Services secured by code in method body
 
   @Override
-  public Mono<String> helloWithPrincipal() {
-    return Authenticator.deferSecured(UserProfile.class)
-        .flatMap(
-            user -> {
-              checkPrincipal(user);
-              return Mono.just("Hello, " + user.name());
-            });
+  public Mono<Void> invokeWithRoleOrPermissions() {
+    return RequestContext.deferContextual()
+        .doOnNext(
+            context -> {
+              if (!context.hasPrincipal()) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+
+              final var principal = context.principal();
+              final var role = principal.role();
+              final var permissions = principal.permissions();
+
+              if (role == null && permissions == null) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              if (role != null && !role.equals("invoker") && !role.equals("caller")) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              if (permissions != null && !permissions.contains("invoke")) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+            })
+        .then();
   }
 
+  // Services secured by annotations in method body
+
+  @AllowedRole(
+      name = "admin",
+      permissions = {"read"})
   @Override
-  public Mono<String> helloWithRequestAndPrincipal(String name) {
-    return Authenticator.deferSecured(UserProfile.class)
-        .flatMap(
-            user -> {
-              checkPrincipal(user);
-              return Mono.just("Hello, " + name + " and " + user.name());
-            });
+  public Mono<Void> readWithAllowedRoleAnnotation() {
+    return RequestContext.deferSecured().then();
   }
 
-  private void checkPrincipal(UserProfile user) {
-    if (!user.role().equals("ADMIN")) {
-      throw new ForbiddenException("Forbidden");
-    }
+  @AllowedRole(
+      name = "admin",
+      permissions = {"write"})
+  @Override
+  public Mono<Void> writeWithAllowedRoleAnnotation() {
+    return RequestContext.deferSecured().then();
   }
 }

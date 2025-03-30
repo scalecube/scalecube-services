@@ -54,7 +54,7 @@ public class CorsTest {
             new Context()
                 .gateway(
                     () ->
-                        new HttpGateway.Builder()
+                        HttpGateway.builder()
                             .id("http")
                             .corsEnabled(true)
                             .corsConfigBuilder(
@@ -120,7 +120,7 @@ public class CorsTest {
     gateway =
         Microservices.start(
             new Context()
-                .gateway(() -> new HttpGateway.Builder().id("http").build())
+                .gateway(() -> HttpGateway.builder().id("http").build())
                 .services(new GreetingServiceImpl()));
 
     final HttpClient client = newClient(gateway.gateway("http").address());

@@ -1,6 +1,7 @@
 package io.scalecube.services.sut;
 
 import java.time.Duration;
+import java.util.StringJoiner;
 
 public final class GreetingRequest {
 
@@ -19,16 +20,29 @@ public final class GreetingRequest {
     this.duration = duration;
   }
 
-  public String getName() {
+  public String name() {
     return name;
   }
 
-  public Duration getDuration() {
+  public GreetingRequest name(String name) {
+    this.name = name;
+    return this;
+  }
+
+  public Duration duration() {
     return duration;
+  }
+
+  public GreetingRequest duration(Duration duration) {
+    this.duration = duration;
+    return this;
   }
 
   @Override
   public String toString() {
-    return "GreetingRequest{name='" + name + '\'' + '}';
+    return new StringJoiner(", ", GreetingRequest.class.getSimpleName() + "[", "]")
+        .add("name='" + name + "'")
+        .add("duration=" + duration)
+        .toString();
   }
 }

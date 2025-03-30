@@ -7,17 +7,17 @@ public interface ServerTransport {
   /**
    * Returns listening server address.
    *
-   * @return listening server address, or {@code null} if {@link #bind()} was not called.
+   * @return listening server address
    */
   Address address();
 
   /**
-   * Starts this instance.
+   * Starts this {@link ServerTransport} instance.
    *
-   * @return transport instance
+   * @return started {@link ServerTransport} instance
    */
   ServerTransport bind();
 
-  /** Stops this instance and release occupied resources. */
+  /** Stops this instance and release allocated resources. */
   void stop();
 }

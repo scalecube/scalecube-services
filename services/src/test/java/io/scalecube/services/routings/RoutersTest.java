@@ -175,7 +175,7 @@ public class RoutersTest {
 
     Flux.range(0, n)
         .flatMap(i -> service.greeting(new GreetingRequest("joe")))
-        .filter(response -> response.getResult().contains("SERVICE_B_TALKING"))
+        .filter(response -> response.result().contains("SERVICE_B_TALKING"))
         .doOnNext(response -> serviceBCount.incrementAndGet())
         .blockLast(Duration.ofSeconds(3));
 
@@ -242,7 +242,7 @@ public class RoutersTest {
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())
-                                    .getName()
+                                    .name()
                                     .equals(ref.tags().get("ONLYFOR")))
                         .findFirst());
 

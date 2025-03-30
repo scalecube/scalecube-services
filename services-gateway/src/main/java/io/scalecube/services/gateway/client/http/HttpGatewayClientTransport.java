@@ -57,6 +57,10 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     this.ownsLoopResources = builder.loopResources == null;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
     httpClientReference.getAndUpdate(
@@ -148,7 +152,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     private LoopResources loopResources;
     private Function<HttpClient, HttpClient> operator = client -> client;
 
-    public Builder() {}
+    private Builder() {}
 
     public Builder clientCodec(GatewayClientCodec clientCodec) {
       this.clientCodec = clientCodec;

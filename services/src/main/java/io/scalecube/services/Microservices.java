@@ -2,8 +2,8 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
-import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.PrincipalMapper;
+import io.scalecube.services.auth.ServiceRolesProcessor;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscoveryFactory;
@@ -143,6 +143,7 @@ public class Microservices implements AutoCloseable {
       microservices.startGateways();
       microservices.createDiscovery();
       microservices.doInject();
+      microservices.processServiceRoles();
       microservices.startListen();
       LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
     } catch (Exception ex) {
@@ -219,8 +220,7 @@ public class Microservices implements AutoCloseable {
                 Optional.ofNullable(context.externalHost).orElse(address.host()),
                 Optional.ofNullable(context.externalPort).orElse(address.port())))
         .serviceRegistrations(
-            ServiceScanner.processServiceRegistrations(
-                serviceEndpoint.serviceRegistrations(), this))
+            ServiceScanner.replacePlaceholders(serviceEndpoint.serviceRegistrations(), this))
         .build();
   }
 
@@ -229,7 +229,6 @@ public class Microservices implements AutoCloseable {
         ServiceInfo.from(serviceInfo)
             .errorMapperIfAbsent(context.defaultErrorMapper)
             .dataDecoderIfAbsent(context.defaultDataDecoder)
-            .authenticatorIfAbsent(context.defaultAuthenticator)
             .principalMapperIfAbsent(context.defaultPrincipalMapper)
             .loggerIfAbsent(context.defaultLogger)
             .build(),
@@ -261,6 +260,13 @@ public class Microservices implements AutoCloseable {
 
   private void doInject() {
     Injector.inject(this, serviceInstances);
+  }
+
+  private void processServiceRoles() {
+    final var serviceRolesProcessor = context.serviceRolesProcessor;
+    if (serviceRolesProcessor != null) {
+      serviceRolesProcessor.process(ServiceScanner.collectServiceRoles(serviceInstances));
+    }
   }
 
   private void startListen() {
@@ -500,8 +506,7 @@ public class Microservices implements AutoCloseable {
     private Map<String, String> tags;
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
-    private Authenticator<Object> defaultAuthenticator;
-    private PrincipalMapper<Object, Object> defaultPrincipalMapper;
+    private PrincipalMapper defaultPrincipalMapper;
     private ServiceProviderErrorMapper defaultErrorMapper;
     private ServiceMessageDataDecoder defaultDataDecoder;
     private Logger defaultLogger;
@@ -510,8 +515,8 @@ public class Microservices implements AutoCloseable {
     private ServiceDiscoveryFactory discoveryFactory;
     private Supplier<ServiceTransport> transportSupplier;
     private final List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
-    private final Map<String, Supplier<Scheduler>> schedulerSuppliers = new HashMap<>();
     private final Map<String, Scheduler> schedulers = new ConcurrentHashMap<>();
+    private ServiceRolesProcessor serviceRolesProcessor;
 
     public Context() {}
 
@@ -662,30 +667,14 @@ public class Microservices implements AutoCloseable {
     }
 
     /**
-     * Setter for default {@code authenticator}. By default, default {@code authenticator} is null.
-     *
-     * @param authenticator authenticator (optional)
-     * @return this
-     */
-    public <T> Context defaultAuthenticator(Authenticator<? extends T> authenticator) {
-      //noinspection unchecked
-      this.defaultAuthenticator = (Authenticator<Object>) authenticator;
-      return this;
-    }
-
-    /**
      * Setter for default {@code principalMapper}. By default, default {@code principalMapper} is
      * null.
      *
      * @param principalMapper principalMapper (optional)
-     * @param <T> auth data type
-     * @param <R> principal type
      * @return this
      */
-    public <T, R> Context defaultPrincipalMapper(
-        PrincipalMapper<? super T, ? extends R> principalMapper) {
-      //noinspection unchecked
-      this.defaultPrincipalMapper = (PrincipalMapper<Object, Object>) principalMapper;
+    public Context defaultPrincipalMapper(PrincipalMapper principalMapper) {
+      this.defaultPrincipalMapper = principalMapper;
       return this;
     }
 
@@ -730,7 +719,18 @@ public class Microservices implements AutoCloseable {
      * @return this
      */
     public Context scheduler(String name, Supplier<Scheduler> supplier) {
-      schedulerSuppliers.put(name, supplier);
+      schedulers.put(name, supplier.get());
+      return this;
+    }
+
+    /**
+     * Setter for {@link ServiceRolesProcessor}.
+     *
+     * @param serviceRolesProcessor serviceRolesProcessor
+     * @return this
+     */
+    public Context serviceRolesProcessor(ServiceRolesProcessor serviceRolesProcessor) {
+      this.serviceRolesProcessor = serviceRolesProcessor;
       return this;
     }
 
@@ -761,7 +761,6 @@ public class Microservices implements AutoCloseable {
       schedulers.put("single", Schedulers.single());
       schedulers.put("boundedElastic", Schedulers.boundedElastic());
       schedulers.put("immediate", Schedulers.immediate());
-      schedulerSuppliers.forEach((s, supplier) -> schedulers.put(s, supplier.get()));
 
       return this;
     }

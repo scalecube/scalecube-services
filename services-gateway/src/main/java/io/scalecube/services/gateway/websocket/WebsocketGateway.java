@@ -41,6 +41,10 @@ public class WebsocketGateway implements Gateway {
     this.errorMapper = builder.errorMapper;
   }
 
+  public static Builder builder() {
+    return new Builder();
+  }
+
   @Override
   public String id() {
     return id;
@@ -60,17 +64,17 @@ public class WebsocketGateway implements Gateway {
     }
 
     try {
-      HttpServer.create()
-          .runOn(loopResources)
-          .bindAddress(() -> new InetSocketAddress(port))
-          .doOnConnection(this::setupKeepAlive)
-          .handle(
-              new WebsocketGatewayAcceptor(callFactory.apply(call), gatewayHandler, errorMapper))
-          .bind()
-          .doOnSuccess(server -> this.server = server)
-          .thenReturn(this)
-          .toFuture()
-          .get();
+      server =
+          HttpServer.create()
+              .runOn(loopResources)
+              .bindAddress(() -> new InetSocketAddress(port))
+              .doOnConnection(this::setupKeepAlive)
+              .handle(
+                  new WebsocketGatewayAcceptor(
+                      callFactory.apply(call), gatewayHandler, errorMapper))
+              .bind()
+              .toFuture()
+              .get();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -144,7 +148,7 @@ public class WebsocketGateway implements Gateway {
     private boolean heartbeatEnabled = false;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
-    public Builder() {}
+    private Builder() {}
 
     public String id() {
       return id;

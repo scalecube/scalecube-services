@@ -1,5 +1,7 @@
 package io.scalecube.services.sut;
 
+import java.util.StringJoiner;
+
 public final class GreetingResponse {
 
   private String result;
@@ -17,16 +19,29 @@ public final class GreetingResponse {
     this.sender = sender;
   }
 
-  public String getResult() {
+  public String result() {
     return result;
   }
 
-  @Override
-  public String toString() {
-    return "GreetingResponse{" + "result='" + result + '\'' + ", sender='" + sender + '\'' + '}';
+  public GreetingResponse result(String result) {
+    this.result = result;
+    return this;
   }
 
   public String sender() {
     return sender;
+  }
+
+  public GreetingResponse sender(String sender) {
+    this.sender = sender;
+    return this;
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", GreetingResponse.class.getSimpleName() + "[", "]")
+        .add("result='" + result + "'")
+        .add("sender='" + sender + "'")
+        .toString();
   }
 }

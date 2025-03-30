@@ -30,7 +30,6 @@ public class GatewayErrorMapperImpl
       final String errorMessage = throwable.getMessage();
       return ServiceMessage.error(qualifier, errorType, errorCode, errorMessage);
     }
-
     return DefaultErrorMapper.INSTANCE.toMessage(qualifier, throwable);
   }
 }

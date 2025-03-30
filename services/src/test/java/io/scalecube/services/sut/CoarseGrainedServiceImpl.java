@@ -26,7 +26,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
             this.greetingServiceTimeout.greetingRequestTimeout(
                 new GreetingRequest(request, Duration.ofSeconds(3))))
         .timeout(Duration.ofSeconds(1))
-        .map(GreetingResponse::getResult);
+        .map(GreetingResponse::result);
   }
 
   @Override
