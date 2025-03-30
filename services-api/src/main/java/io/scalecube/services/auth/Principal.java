@@ -9,8 +9,8 @@ import java.util.Collection;
 public interface Principal {
 
   /**
-   * A constant representing a "null" principal, which signifies an unauthenticated entity. This
-   * principal does not have any roles or permissions.
+   * Null principal, which signifies an unauthenticated entity. This principal does not have any
+   * roles or permissions.
    */
   Principal NULL_PRINCIPAL =
       new Principal() {
