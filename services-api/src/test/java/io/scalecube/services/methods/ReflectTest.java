@@ -3,10 +3,9 @@ package io.scalecube.services.methods;
 import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
@@ -17,6 +16,7 @@ import io.scalecube.services.auth.AllowedRole;
 import io.scalecube.services.auth.AllowedRoles;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -107,9 +107,19 @@ public class ReflectTest {
     final var serviceRoles = Reflect.serviceRoles(method);
     assertNotNull(serviceRoles, "serviceRoles");
     assertEquals(args.list.size(), serviceRoles.size(), "serviceRoles.size");
-    for (var expectedServiceRole : args.list) {
-      assertThat(serviceRoles, hasItem(expectedServiceRole));
+    for (var role : args.list) {
+      assertContains(serviceRoles, role);
     }
+  }
+
+  private static void assertContains(
+      Collection<ServiceRoleDefinition> serviceRoles, ServiceRoleDefinition item) {
+    final var hasItem =
+        serviceRoles.stream()
+            .filter(role -> role.role().equals(item.role()))
+            .filter(role -> role.permissions().equals(item.permissions()))
+            .findFirst();
+    assertTrue(hasItem.isPresent(), "serviceRoles: " + serviceRoles + ", item: " + item);
   }
 
   private record SuccessArgs(Object serviceInstance, List<ServiceRoleDefinition> list) {}

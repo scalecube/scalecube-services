@@ -1,7 +1,6 @@
 package io.scalecube.services.methods;
 
 import java.util.Collection;
-import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -27,25 +26,6 @@ public class ServiceRoleDefinition {
 
   public Collection<String> permissions() {
     return permissions;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final var that = (ServiceRoleDefinition) o;
-    return Objects.equals(role, that.role) && Objects.equals(permissions, that.permissions);
-  }
-
-  @Override
-  public int hashCode() {
-    int result = Objects.hashCode(role);
-    result = 31 * result + Objects.hashCode(permissions);
-    return result;
   }
 
   @Override

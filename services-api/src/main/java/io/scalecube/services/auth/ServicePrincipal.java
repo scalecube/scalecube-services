@@ -15,7 +15,7 @@ public class ServicePrincipal implements Principal {
    * @param role service role
    * @param permissions service permissions
    */
-  public ServicePrincipal(String role, Set<String> permissions) {
+  public ServicePrincipal(String role, Collection<String> permissions) {
     this.role = role;
     this.permissions = Set.copyOf(permissions);
   }

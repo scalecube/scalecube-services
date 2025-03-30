@@ -1,9 +1,9 @@
 package io.scalecube.services.auth;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
@@ -12,6 +12,7 @@ import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.methods.ServiceRoleDefinition;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -44,11 +45,21 @@ public class ServiceRolesProcessorTest {
                     assertEquals(
                         expectedServiceRoles.size(), serviceRoles.size(), "serviceRoles.size");
                     for (var role : expectedServiceRoles) {
-                      assertThat(serviceRoles, hasItem(role));
+                      assertContains(serviceRoles, role);
                     }
                     return true;
                   }));
     }
+  }
+
+  private static void assertContains(
+      Collection<ServiceRoleDefinition> serviceRoles, ServiceRoleDefinition item) {
+    final var hasItem =
+        serviceRoles.stream()
+            .filter(role -> role.role().equals(item.role()))
+            .filter(role -> role.permissions().equals(item.permissions()))
+            .findFirst();
+    assertTrue(hasItem.isPresent(), "serviceRoles: " + serviceRoles + ", item: " + item);
   }
 
   @Service
