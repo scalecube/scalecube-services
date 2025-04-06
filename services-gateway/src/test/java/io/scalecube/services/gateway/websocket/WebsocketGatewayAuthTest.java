@@ -58,7 +58,7 @@ public class WebsocketGatewayAuthTest {
 
     serviceCall =
         new ServiceCall()
-            .router(StaticAddressRouter.from(gatewayAddress).build())
+            .router(StaticAddressRouter.from(gatewayAddress).serviceName("app-service").build())
             .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build());
 
     securedService = serviceCall.api(SecuredService.class);

@@ -55,7 +55,7 @@ class HttpLocalGatewayTest {
                         .errorMapper(ERROR_MAPPER)
                         .build()));
     gatewayAddress = gateway.gateway("HTTP").address();
-    router = StaticAddressRouter.from(gatewayAddress).build();
+    router = StaticAddressRouter.from(gatewayAddress).serviceName("app-service").build();
   }
 
   @BeforeEach

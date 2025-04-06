@@ -50,7 +50,7 @@ class WebsocketServerTest {
     try (ServiceCall serviceCall =
         new ServiceCall()
             .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build())
-            .router(StaticAddressRouter.from(gatewayAddress).build())) {
+            .router(StaticAddressRouter.from(gatewayAddress).serviceName("app-service").build())) {
       int count = 1000;
       StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<<")*/)
           .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))
