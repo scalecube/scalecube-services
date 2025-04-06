@@ -297,6 +297,7 @@ public class ServiceCallRemoteTest {
             new ServiceRegistration("ns", Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder()
                 .id(UUID.randomUUID().toString())
+                .name("app-service-" + System.currentTimeMillis())
                 .address(provider.serviceAddress())
                 .build()));
   }

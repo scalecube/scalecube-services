@@ -43,7 +43,7 @@ public class ServiceTokenTests {
 
     // Install service roles
 
-    new VaultServiceRolesProcessor(args.environment, vaultAddr, vaultTokenSupplier)
+    new VaultServiceRolesProcessor(args.environment, args.service, vaultAddr, vaultTokenSupplier)
         .process(SERVICE_ROLES);
 
     // Get service token
@@ -60,15 +60,15 @@ public class ServiceTokenTests {
   }
 
   private record SuccessArgs(
-      String environment, String serviceRole, Set<String> expectedPermissions) {}
+      String environment, String service, String serviceRole, Set<String> expectedPermissions) {}
 
   private static Stream<?> shouldAuthenticateSuccessfullyMethodSource() {
     return Stream.of(
-        new SuccessArgs("develop", "admin", Set.of("*")),
-        new SuccessArgs("develop", "user", Set.of("read", "write")),
-        new SuccessArgs("develop", "foo", Set.of("read", "write", "delete")),
-        new SuccessArgs("master", "admin", Set.of("*")),
-        new SuccessArgs("master", "user", Set.of("read", "write")),
-        new SuccessArgs("master", "foo", Set.of("read", "write", "delete")));
+        new SuccessArgs("develop", "app", "admin", Set.of("*")),
+        new SuccessArgs("develop", "app", "user", Set.of("read", "write")),
+        new SuccessArgs("develop", "app", "foo", Set.of("read", "write", "delete")),
+        new SuccessArgs("master", "app", "admin", Set.of("*")),
+        new SuccessArgs("master", "app", "user", Set.of("read", "write")),
+        new SuccessArgs("master", "app", "foo", Set.of("read", "write", "delete")));
   }
 }

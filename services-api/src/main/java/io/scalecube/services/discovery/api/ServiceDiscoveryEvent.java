@@ -63,7 +63,7 @@ public final class ServiceDiscoveryEvent {
   public String toString() {
     return new StringJoiner(", ", ServiceDiscoveryEvent.class.getSimpleName() + "[", "]")
         .add("type=" + type)
-        .add("ServiceEndpoint.id='" + serviceEndpoint.id() + "'")
+        .add("serviceEndpoint=" + serviceEndpoint)
         .toString();
   }
 }

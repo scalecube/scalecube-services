@@ -243,8 +243,8 @@ public class ServiceMethodInvoker {
               "Insufficient permissions for secured method ({}) -- "
                   + "request context ({}) does not have principal "
                   + "and principalMapper is also not set",
-              context,
-              methodInfo);
+              methodInfo,
+              context);
         }
         throw new ForbiddenException("Insufficient permissions");
       }

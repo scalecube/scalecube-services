@@ -75,25 +75,23 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private String selectServiceRole(ServiceReference serviceReference) {
-    if (credentialsSupplier == null || !serviceReference.isSecured()) {
+    if (credentialsSupplier == null
+        || !serviceReference.isSecured()
+        || !serviceReference.hasAllowedRoles()) {
       return null;
     }
 
-    if (serviceReference.hasAllowedRoles()) {
-      if (allowedRoles == null || allowedRoles.isEmpty()) {
-        return serviceReference.allowedRoles().get(0);
-      }
-
-      for (var allowedRole : allowedRoles) {
-        if (serviceReference.allowedRoles().contains(allowedRole)) {
-          return allowedRole;
-        }
-      }
-
-      throw new ForbiddenException("Insufficient permissions");
+    if (allowedRoles == null || allowedRoles.isEmpty()) {
+      return serviceReference.allowedRoles().get(0);
     }
 
-    return null;
+    for (var allowedRole : allowedRoles) {
+      if (serviceReference.allowedRoles().contains(allowedRole)) {
+        return allowedRole;
+      }
+    }
+
+    throw new ForbiddenException("Insufficient permissions");
   }
 
   private Mono<RSocket> connect(
@@ -125,12 +123,12 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<Payload> getCredentials(ServiceReference serviceReference, String serviceRole) {
-    if (credentialsSupplier == null || !serviceReference.isSecured()) {
+    if (credentialsSupplier == null || !serviceReference.isSecured() || serviceRole == null) {
       return Mono.just(EmptyPayload.INSTANCE);
     }
 
     return credentialsSupplier
-        .credentials(serviceRole)
+        .credentials(serviceReference.endpointName() + "." + serviceRole)
         .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
         .onErrorMap(
             th -> {

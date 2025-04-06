@@ -18,6 +18,7 @@ import java.util.StringJoiner;
 public class ServiceReference {
 
   private final String endpointId;
+  private final String endpointName;
   private final String namespace;
   private final String action;
   private final String qualifier;
@@ -41,6 +42,7 @@ public class ServiceReference {
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
+    this.endpointName = serviceEndpoint.name();
     this.namespace = serviceRegistration.namespace();
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
@@ -55,6 +57,10 @@ public class ServiceReference {
 
   public String endpointId() {
     return endpointId;
+  }
+
+  public String endpointName() {
+    return endpointName;
   }
 
   public String namespace() {
@@ -116,6 +122,7 @@ public class ServiceReference {
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
         .add("endpointId='" + endpointId + "'")
+        .add("endpointName='" + endpointName + "'")
         .add("namespace='" + namespace + "'")
         .add("action='" + action + "'")
         .add("qualifier='" + qualifier + "'")

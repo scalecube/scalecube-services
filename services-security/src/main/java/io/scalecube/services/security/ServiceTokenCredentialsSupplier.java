@@ -14,6 +14,13 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
   private final String vaultAddress;
   private final Supplier<CompletableFuture<String>> vaultTokenSupplier;
 
+  /**
+   * Constructor.
+   *
+   * @param environment logical environment name
+   * @param vaultAddress vaultAddress
+   * @param vaultTokenSupplier vaultTokenSupplier
+   */
   public ServiceTokenCredentialsSupplier(
       String environment,
       String vaultAddress,
@@ -23,6 +30,12 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
     this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
   }
 
+  /**
+   * TODO
+   *
+   * @param serviceRole serviceRole
+   * @return credentials
+   */
   @Override
   public Mono<byte[]> credentials(String serviceRole) {
     return Mono.defer(

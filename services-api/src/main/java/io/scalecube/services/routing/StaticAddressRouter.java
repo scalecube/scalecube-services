@@ -35,6 +35,7 @@ public class StaticAddressRouter implements Router {
                 UUID.randomUUID().toString(), Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder()
                 .id(UUID.randomUUID().toString())
+                .name(builder.serviceName)
                 .address(builder.address)
                 .build());
   }
@@ -53,6 +54,7 @@ public class StaticAddressRouter implements Router {
     private Address address;
     private boolean isSecured;
     private String serviceRole;
+    private String serviceName;
 
     private Builder() {}
 
@@ -90,6 +92,18 @@ public class StaticAddressRouter implements Router {
      */
     public Builder serviceRole(String serviceRole) {
       this.serviceRole = serviceRole;
+      return this;
+    }
+
+    /**
+     * Setter for {@code serviceName} property, will be used in the invocation of {@link
+     * CredentialsSupplier#credentials(String)}.
+     *
+     * @param serviceName serviceName
+     * @return this
+     */
+    public Builder serviceName(String serviceName) {
+      this.serviceName = serviceName;
       return this;
     }
 

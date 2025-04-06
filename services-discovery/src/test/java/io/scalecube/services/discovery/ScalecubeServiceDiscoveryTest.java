@@ -67,6 +67,7 @@ class ScalecubeServiceDiscoveryTest {
     ServiceEndpoint serviceEndpoint =
         ServiceEndpoint.builder()
             .id(UUID.randomUUID().toString())
+            .name("app-service")
             .tags(Collections.singletonMap("K", "V"))
             .contentTypes(Collections.singleton("json"))
             .appendServiceRegistrations(
@@ -231,7 +232,10 @@ class ScalecubeServiceDiscoveryTest {
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return ServiceEndpoint.builder().id("" + ID_COUNTER.incrementAndGet()).build();
+    return ServiceEndpoint.builder()
+        .id("" + ID_COUNTER.incrementAndGet())
+        .name("app-service")
+        .build();
   }
 
   private Mono<ServiceDiscovery> newServiceDiscovery(

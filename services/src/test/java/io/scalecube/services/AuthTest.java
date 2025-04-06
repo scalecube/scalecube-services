@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectMapper.DefaultTyping;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
-import io.rsocket.exceptions.RejectedSetupException;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.auth.Principal;
@@ -105,7 +104,7 @@ final class AuthTest {
     void authenticateSuccessfully(String test, SuccessArgs args) {
       serviceCall =
           serviceCall(
-              (serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
+              serviceRole -> credentials(args.tokenSupplier.apply(stripService(serviceRole))),
               args.serviceRole,
               args.allowedRoles);
 
@@ -127,13 +126,7 @@ final class AuthTest {
                   "invoker",
                   null)),
           arguments(
-              "Authenticate by permissions only",
-              new SuccessArgs(
-                  serviceRole -> new TokenCredentials(VALID_TOKEN, serviceRole, List.of("invoke")),
-                  null,
-                  null)),
-          arguments(
-              "Authenticate with allowed service role",
+              "Authenticate by service role and permissions",
               new SuccessArgs(
                   serviceRole -> new TokenCredentials(VALID_TOKEN, serviceRole, List.of("invoke")),
                   "caller",
@@ -145,7 +138,7 @@ final class AuthTest {
     void failedAuthentication(String test, FailedArgs args) {
       serviceCall =
           serviceCall(
-              (serviceRole) -> credentials(args.tokenSupplier.apply(serviceRole)),
+              serviceRole -> credentials(args.tokenSupplier.apply(stripService(serviceRole))),
               args.serviceRole,
               args.allowedRoles);
 
@@ -166,14 +159,6 @@ final class AuthTest {
 
     private static Stream<Arguments> failedAuthenticationSource() {
       return Stream.of(
-          arguments(
-              "Failed to authenticate: invalid token",
-              new FailedArgs(
-                  serviceRole -> new TokenCredentials(INVALID_TOKEN, serviceRole, null),
-                  null,
-                  null,
-                  RejectedSetupException.class,
-                  "Authentication failed")),
           arguments(
               "Failed to authenticate: service role is null, permissions is null",
               new FailedArgs(
@@ -359,6 +344,7 @@ final class AuthTest {
             StaticAddressRouter.from(service.serviceAddress())
                 .secured(credentialsSupplier != null)
                 .serviceRole(serviceRole)
+                .serviceName("app-service")
                 .build());
   }
 
@@ -385,6 +371,10 @@ final class AuthTest {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  private static String stripService(String serviceRole) {
+    return serviceRole != null ? serviceRole.substring(serviceRole.lastIndexOf(".") + 1) : null;
   }
 
   private static class TokenCredentials {

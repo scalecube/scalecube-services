@@ -68,6 +68,7 @@ class ServiceRegistryImplTest {
       serviceRegistry.registerService(
           ServiceEndpoint.builder()
               .id("endpoint" + i)
+              .name("app-service-" + i)
               .address(Address.create("endpoint" + i, 4848))
               .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(
@@ -125,6 +126,7 @@ class ServiceRegistryImplTest {
       serviceRegistry.registerService(
           ServiceEndpoint.builder()
               .id("endpoint" + i)
+              .name("app-service-" + i)
               .address(Address.create("endpoint" + i, 4848))
               .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(

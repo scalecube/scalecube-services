@@ -191,6 +191,7 @@ public class Microservices implements AutoCloseable {
     final ServiceEndpoint.Builder builder =
         ServiceEndpoint.builder()
             .id(id.toString())
+            .name(context.name)
             .address(serviceAddress)
             .contentTypes(DataCodec.getAllContentTypes())
             .tags(context.tags);
@@ -503,6 +504,7 @@ public class Microservices implements AutoCloseable {
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
 
+    private String name;
     private Map<String, String> tags;
     private final List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry;
@@ -583,6 +585,17 @@ public class Microservices implements AutoCloseable {
      */
     public Context externalPort(Integer externalPort) {
       this.externalPort = externalPort;
+      return this;
+    }
+
+    /**
+     * Setter for logical service name.
+     *
+     * @param name logical service name.
+     * @return this
+     */
+    public Context name(String name) {
+      this.name = name;
       return this;
     }
 
@@ -747,6 +760,10 @@ public class Microservices implements AutoCloseable {
         defaultDataDecoder =
             Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
                 .orElse((message, dataType) -> message);
+      }
+
+      if (name == null) {
+        name = Long.toHexString(Long.MAX_VALUE & UUID.randomUUID().getMostSignificantBits());
       }
 
       if (tags == null) {
