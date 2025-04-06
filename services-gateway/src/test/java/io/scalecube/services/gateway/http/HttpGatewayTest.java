@@ -60,7 +60,7 @@ class HttpGatewayTest {
                 .gateway(() -> HttpGateway.builder().id("HTTP").errorMapper(ERROR_MAPPER).build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
-    router = StaticAddressRouter.from(gatewayAddress).serviceName("app-service").build();
+    router = StaticAddressRouter.forService(gatewayAddress, "app-service").build();
 
     microservices =
         Microservices.start(

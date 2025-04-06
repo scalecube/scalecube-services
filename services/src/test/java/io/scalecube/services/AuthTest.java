@@ -341,10 +341,9 @@ final class AuthTest {
                 credentialsSupplier,
                 allowedRoles))
         .router(
-            StaticAddressRouter.from(service.serviceAddress())
+            StaticAddressRouter.forService(service.serviceAddress(), "app-service")
                 .secured(credentialsSupplier != null)
                 .serviceRole(serviceRole)
-                .serviceName("app-service")
                 .build());
   }
 

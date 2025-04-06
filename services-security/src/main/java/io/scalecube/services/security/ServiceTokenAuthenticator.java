@@ -12,15 +12,31 @@ import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
+/**
+ * Service authenticator based on JWT token. Being used to verify service identity that establishing
+ * session to the system. JWT token must have claims: {@code role} and {@code permissions}.
+ */
 public class ServiceTokenAuthenticator implements Authenticator {
 
   private final JwtTokenResolver tokenResolver;
   private final Retry retryStrategy;
 
+  /**
+   * Constructor with defaults.
+   *
+   * @param tokenResolver token resolver
+   */
   public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver) {
     this(tokenResolver, 5, Duration.ofSeconds(3));
   }
 
+  /**
+   * Constructor.
+   *
+   * @param tokenResolver token resolver
+   * @param retryMaxAttempts max number of retry attempts
+   * @param retryFixedDelay delay between retry attempts
+   */
   public ServiceTokenAuthenticator(
       JwtTokenResolver tokenResolver, int retryMaxAttempts, Duration retryFixedDelay) {
     this.tokenResolver = tokenResolver;

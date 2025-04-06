@@ -112,7 +112,7 @@ class WebsocketClientTest {
   private static ServiceCall serviceCall(final Address address) {
     return new ServiceCall()
         .transport(WebsocketGatewayClientTransport.builder().address(address).build())
-        .router(StaticAddressRouter.from(address).serviceName("app-service").build());
+        .router(StaticAddressRouter.forService(address, "app-service").build());
   }
 
   @Service

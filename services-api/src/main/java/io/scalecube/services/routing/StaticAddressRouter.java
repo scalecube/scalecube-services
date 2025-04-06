@@ -24,6 +24,7 @@ public class StaticAddressRouter implements Router {
 
   private StaticAddressRouter(Builder builder) {
     Objects.requireNonNull(builder.address, "builder.address");
+    Objects.requireNonNull(builder.serviceName, "builder.serviceName");
     serviceReference =
         new ServiceReference(
             ServiceMethodDefinition.builder()
@@ -40,8 +41,15 @@ public class StaticAddressRouter implements Router {
                 .build());
   }
 
-  public static Builder from(Address address) {
-    return new Builder().address(address);
+  /**
+   * Creates {@link Builder} with service address and service name.
+   *
+   * @param address service address
+   * @param name logical service name
+   * @return builder instance
+   */
+  public static Builder forService(Address address, String name) {
+    return new Builder().address(address).serviceName(name);
   }
 
   @Override

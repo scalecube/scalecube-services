@@ -30,12 +30,6 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
     this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
   }
 
-  /**
-   * TODO
-   *
-   * @param serviceRole serviceRole
-   * @return credentials
-   */
   @Override
   public Mono<byte[]> credentials(String serviceRole) {
     return Mono.defer(

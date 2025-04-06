@@ -38,11 +38,6 @@ public class VaultServiceRolesProcessor implements ServiceRolesProcessor {
     this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
   }
 
-  /**
-   * TODO
-   *
-   * @param values collection of {@link ServiceRoleDefinition} objects
-   */
   @Override
   public void process(Collection<ServiceRoleDefinition> values) {
     VaultServiceRolesInstaller.builder()
