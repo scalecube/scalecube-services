@@ -48,7 +48,8 @@ public class ServiceTokenTests {
 
     // Get service token
 
-    final var credentials = credentialsSupplier.credentials(args.serviceRole).block();
+    final var credentials =
+        credentialsSupplier.credentials(args.service + "." + args.serviceRole).block();
 
     // Authenticate
 
