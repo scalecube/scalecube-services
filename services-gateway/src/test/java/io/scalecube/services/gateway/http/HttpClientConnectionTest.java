@@ -43,7 +43,7 @@ class HttpClientConnectionTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .gateway(() -> new HttpGateway.Builder().id("HTTP").build()));
+                .gateway(() -> HttpGateway.builder().id("HTTP").build()));
 
     gatewayAddress = gateway.gateway("HTTP").address();
 
@@ -101,8 +101,8 @@ class HttpClientConnectionTest {
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
         .logger("serviceCall")
-        .transport(new HttpGatewayClientTransport.Builder().address(address).build())
-        .router(new StaticAddressRouter(address));
+        .transport(HttpGatewayClientTransport.builder().address(address).build())
+        .router(StaticAddressRouter.forService(address, "app-service").build());
   }
 
   @Service

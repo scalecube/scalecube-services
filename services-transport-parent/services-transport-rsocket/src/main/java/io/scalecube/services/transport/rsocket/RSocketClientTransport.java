@@ -1,26 +1,23 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufOutputStream;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.core.RSocketConnector;
-import io.rsocket.frame.decoder.PayloadDecoder;
-import io.rsocket.util.ByteBufPayload;
+import io.rsocket.util.DefaultPayload;
+import io.rsocket.util.EmptyPayload;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.exceptions.MessageCodecException;
+import io.scalecube.services.auth.CredentialsSupplier;
+import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
-import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,126 +27,117 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final Map<Address, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
+  private final Map<Destination, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
 
-  private final CredentialsSupplier credentialsSupplier;
-  private final ConnectionSetupCodec connectionSetupCodec;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
   private final RSocketClientTransportFactory clientTransportFactory;
+  private final CredentialsSupplier credentialsSupplier;
+  private final Collection<String> allowedRoles;
 
   /**
-   * Constructor for this transport.
+   * Constructor.
    *
-   * @param credentialsSupplier credentialsSupplier
-   * @param connectionSetupCodec connectionSetupCodec
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
    * @param clientTransportFactory clientTransportFactory
+   * @param credentialsSupplier credentialsSupplier (optional)
+   * @param allowedRoles allowedRoles (optional)
    */
   public RSocketClientTransport(
-      CredentialsSupplier credentialsSupplier,
-      ConnectionSetupCodec connectionSetupCodec,
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
-      RSocketClientTransportFactory clientTransportFactory) {
-    this.credentialsSupplier = credentialsSupplier;
-    this.connectionSetupCodec = connectionSetupCodec;
+      RSocketClientTransportFactory clientTransportFactory,
+      CredentialsSupplier credentialsSupplier,
+      Collection<String> allowedRoles) {
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;
+    this.credentialsSupplier = credentialsSupplier;
+    this.allowedRoles = allowedRoles;
   }
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    final Map<Address, Mono<RSocket>> monoMap = this.rsockets; // keep reference for threadsafety
-    final Address address = serviceReference.address();
-    Mono<RSocket> mono =
+    final var monoMap = rsockets;
+    final var address = serviceReference.address();
+    final var serviceRole = selectServiceRole(serviceReference);
+
+    final var mono =
         monoMap.computeIfAbsent(
-            address,
-            key ->
-                getCredentials(serviceReference)
-                    .flatMap(creds -> connect(key, creds, monoMap))
+            new Destination(address, serviceRole),
+            destination ->
+                connect(destination, serviceReference, monoMap)
                     .cacheInvalidateIf(RSocket::isDisposed)
-                    .doOnError(ex -> monoMap.remove(key)));
+                    .doOnError(ex -> monoMap.remove(destination)));
+
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
 
-  private Mono<Map<String, String>> getCredentials(ServiceReference serviceReference) {
-    return Mono.defer(
-        () -> {
-          if (credentialsSupplier == null) {
-            return Mono.just(Collections.emptyMap());
-          }
+  private String selectServiceRole(ServiceReference serviceReference) {
+    if (credentialsSupplier == null
+        || !serviceReference.isSecured()
+        || !serviceReference.hasAllowedRoles()) {
+      return null;
+    }
 
-          if (!serviceReference.isSecured()) {
-            return Mono.just(Collections.emptyMap());
-          }
+    if (allowedRoles == null || allowedRoles.isEmpty()) {
+      return serviceReference.allowedRoles().get(0);
+    }
 
-          return credentialsSupplier
-              .apply(serviceReference)
-              .switchIfEmpty(Mono.just(Collections.emptyMap()))
-              .doOnError(
-                  ex ->
-                      LOGGER.error(
-                          "[credentialsSupplier] "
-                              + "Failed to get credentials for service: {}, cause: {}",
-                          serviceReference,
-                          ex.toString()))
-              .onErrorMap(this::toUnauthorizedException);
-        });
+    for (var allowedRole : allowedRoles) {
+      if (serviceReference.allowedRoles().contains(allowedRole)) {
+        return allowedRole;
+      }
+    }
+
+    throw new ForbiddenException("Insufficient permissions");
   }
 
   private Mono<RSocket> connect(
-      Address address, Map<String, String> creds, Map<Address, Mono<RSocket>> monoMap) {
+      Destination destination,
+      ServiceReference serviceReference,
+      Map<Destination, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
-        .payloadDecoder(PayloadDecoder.DEFAULT)
-        .setupPayload(encodeConnectionSetup(new ConnectionSetup(creds)))
-        .connect(() -> clientTransportFactory.clientTransport(address))
+        .setupPayload(Mono.defer(() -> getCredentials(serviceReference)))
+        .connect(() -> clientTransportFactory.clientTransport(destination.address()))
         .doOnSuccess(
             rsocket -> {
-              LOGGER.debug("[rsocket][client][{}] Connected successfully", address);
+              LOGGER.debug("Connected successfully ({})", destination);
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doFinally(
                       s -> {
-                        monoMap.remove(address);
-                        LOGGER.debug("[rsocket][client][{}] Connection closed", address);
+                        monoMap.remove(destination);
+                        LOGGER.debug("Connection closed ({})", destination);
                       })
                   .doOnError(
-                      th ->
+                      ex ->
                           LOGGER.warn(
-                              "[rsocket][client][{}][onClose] Exception occurred: {}",
-                              address,
-                              th.toString()))
+                              "Exception occurred ({}), cause: {}", destination, ex.toString()))
                   .subscribe();
             })
         .doOnError(
-            th ->
-                LOGGER.warn(
-                    "[rsocket][client][{}] Failed to connect, cause: {}", address, th.toString()));
+            ex -> LOGGER.warn("Failed to connect ({}), cause: {}", destination, ex.toString()));
   }
 
-  private Payload encodeConnectionSetup(ConnectionSetup connectionSetup) {
-    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
-    try {
-      connectionSetupCodec.encode(new ByteBufOutputStream(byteBuf), connectionSetup);
-    } catch (Throwable ex) {
-      ReferenceCountUtil.safestRelease(byteBuf);
-      LOGGER.error(
-          "Failed to encode connectionSetup: {}, cause: {}", connectionSetup, ex.toString());
-      throw new MessageCodecException("Failed to encode ConnectionSetup", ex);
+  private Mono<Payload> getCredentials(ServiceReference serviceReference) {
+    if (credentialsSupplier == null || !serviceReference.isSecured()) {
+      return Mono.just(EmptyPayload.INSTANCE);
     }
-    return ByteBufPayload.create(byteBuf);
-  }
 
-  private UnauthorizedException toUnauthorizedException(Throwable th) {
-    if (th instanceof ServiceException e) {
-      return new UnauthorizedException(e.errorCode(), e.getMessage());
-    } else {
-      return new UnauthorizedException(th);
-    }
+    return credentialsSupplier
+        .credentials(serviceReference.endpointName(), serviceReference.allowedRoles())
+        .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
+        .onErrorMap(
+            th -> {
+              if (th instanceof ServiceException e) {
+                return new UnauthorizedException(e.errorCode(), e.getMessage());
+              } else {
+                return new UnauthorizedException(th);
+              }
+            });
   }
 
   @Override
@@ -162,5 +150,16 @@ public class RSocketClientTransport implements ClientTransport {
                   // no-op
                 }));
     rsockets.clear();
+  }
+
+  private record Destination(Address address, String role) {
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", Destination.class.getSimpleName() + "[", "]")
+          .add("address=" + address)
+          .add("role='" + role + "'")
+          .toString();
+    }
   }
 }

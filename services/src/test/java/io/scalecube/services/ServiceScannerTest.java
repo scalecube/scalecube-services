@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 class ServiceScannerTest {
 
   @Test
-  void testToServiceRegistrations() {
+  void testServiceRegistrations() {
     final var serviceRegistrations =
         ServiceScanner.toServiceRegistrations(
             ServiceInfo.fromServiceInstance(new PlaceholderQualifierServiceImpl()).build());
@@ -41,7 +41,7 @@ class ServiceScannerTest {
   }
 
   @Test
-  void testProcessServiceRegistrations() {
+  void testReplacePlaceholders() {
     final var serviceRegistrations =
         ServiceScanner.toServiceRegistrations(
             ServiceInfo.fromServiceInstance(new PlaceholderQualifierServiceImpl()).build());
@@ -50,8 +50,7 @@ class ServiceScannerTest {
     final var microservicesId = "100500";
     when(microservices.id()).thenReturn(microservicesId);
 
-    final var result =
-        ServiceScanner.processServiceRegistrations(serviceRegistrations, microservices);
+    final var result = ServiceScanner.replacePlaceholders(serviceRegistrations, microservices);
 
     assertEquals(1, result.size(), "serviceRegistrations.size");
 

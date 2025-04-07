@@ -2,12 +2,12 @@ package io.scalecube.services.gateway.websocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -17,8 +17,6 @@ import io.scalecube.services.gateway.SecuredServiceImpl;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.routing.StaticAddressRouter;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -31,11 +29,9 @@ public class WebsocketGatewayAuthTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
-  private static final String ALLOWED_USER = "VASYA_PUPKIN";
-  private static final Set<String> ALLOWED_USERS =
-      new HashSet<>(Collections.singletonList(ALLOWED_USER));
+  private static final String ALLOWED_USER = "ALICE";
+  private static final AuthRegistry AUTH_REGISTRY = new AuthRegistry(Set.of(ALLOWED_USER));
 
-  private static final AuthRegistry AUTH_REGISTRY = new AuthRegistry(ALLOWED_USERS);
   private static Microservices gateway;
 
   private ServiceCall serviceCall;
@@ -48,7 +44,7 @@ public class WebsocketGatewayAuthTest {
             new Context()
                 .gateway(
                     () ->
-                        new WebsocketGateway.Builder()
+                        WebsocketGateway.builder()
                             .id("WS")
                             .gatewayHandler(new GatewaySessionHandlerImpl(AUTH_REGISTRY))
                             .build())
@@ -62,9 +58,8 @@ public class WebsocketGatewayAuthTest {
 
     serviceCall =
         new ServiceCall()
-            .router(new StaticAddressRouter(gatewayAddress))
-            .transport(
-                new WebsocketGatewayClientTransport.Builder().address(gatewayAddress).build());
+            .router(StaticAddressRouter.forService(gatewayAddress, "app-service").build())
+            .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build());
 
     securedService = serviceCall.api(SecuredService.class);
   }
@@ -97,9 +92,9 @@ public class WebsocketGatewayAuthTest {
             serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), String.class))
         .expectErrorSatisfies(
             th -> {
-              ForbiddenException e = (ForbiddenException) th;
-              assertEquals(403, e.errorCode(), "error code");
-              assertTrue(e.getMessage().contains("User not allowed to use this service"));
+              UnauthorizedException e = (UnauthorizedException) th;
+              assertEquals(401, e.errorCode(), "error code");
+              assertEquals("Authentication failed", e.getMessage());
             })
         .verify();
   }
@@ -109,9 +104,9 @@ public class WebsocketGatewayAuthTest {
     StepVerifier.create(securedService.requestOne("echo"))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }
@@ -133,28 +128,28 @@ public class WebsocketGatewayAuthTest {
     // authenticate session
     StepVerifier.create(
             serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), String.class))
-        .expectErrorSatisfies(th -> assertInstanceOf(ForbiddenException.class, th))
+        .expectErrorSatisfies(th -> assertInstanceOf(UnauthorizedException.class, th))
         .verify();
     // call secured service
     final String req = "echo";
     StepVerifier.create(securedService.requestOne(req))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }
 
   @Test
   void securedMethodNotAuthenticatedRequestStream() {
-    StepVerifier.create(securedService.requestN(10))
+    StepVerifier.create(securedService.requestMany(10))
         .expectErrorSatisfies(
             th -> {
-              UnauthorizedException e = (UnauthorizedException) th;
-              assertEquals(401, e.errorCode(), "Authentication failed");
-              assertTrue(e.getMessage().contains("Authentication failed"));
+              ForbiddenException e = (ForbiddenException) th;
+              assertEquals(403, e.errorCode(), "errorCode");
+              assertEquals("Insufficient permissions", e.getMessage(), "errorMessage");
             })
         .verify();
   }
@@ -165,7 +160,7 @@ public class WebsocketGatewayAuthTest {
     serviceCall.requestOne(createSessionRequest(ALLOWED_USER), String.class).block(TIMEOUT);
     // call secured service
     Integer times = 10;
-    StepVerifier.create(securedService.requestN(times))
+    StepVerifier.create(securedService.requestMany(times))
         .expectNextCount(10)
         .expectComplete()
         .verify();
@@ -173,7 +168,7 @@ public class WebsocketGatewayAuthTest {
 
   private static ServiceMessage createSessionRequest(String username) {
     return ServiceMessage.builder()
-        .qualifier(SecuredService.NAMESPACE + "/createSession")
+        .qualifier(Qualifier.asString(SecuredService.NAMESPACE, "createSession"))
         .data(username)
         .build();
   }

@@ -7,13 +7,13 @@ import static org.mockito.Mockito.mock;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.HashMap;
 import java.util.List;
@@ -68,6 +68,7 @@ class ServiceRegistryImplTest {
       serviceRegistry.registerService(
           ServiceEndpoint.builder()
               .id("endpoint" + i)
+              .name("app-service-" + i)
               .address(Address.create("endpoint" + i, 4848))
               .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(
@@ -76,8 +77,8 @@ class ServiceRegistryImplTest {
                           "greeting",
                           new HashMap<>(),
                           List.of(
-                              new ServiceMethodDefinition("hello"),
-                              new ServiceMethodDefinition("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello"),
+                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
               .build());
     }
 
@@ -125,6 +126,7 @@ class ServiceRegistryImplTest {
       serviceRegistry.registerService(
           ServiceEndpoint.builder()
               .id("endpoint" + i)
+              .name("app-service-" + i)
               .address(Address.create("endpoint" + i, 4848))
               .contentTypes(Set.of(CONTENT_TYPE))
               .serviceRegistrations(
@@ -133,8 +135,8 @@ class ServiceRegistryImplTest {
                           "greeting",
                           new HashMap<>(),
                           List.of(
-                              new ServiceMethodDefinition("hello"),
-                              new ServiceMethodDefinition("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello"),
+                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
               .build());
     }
     assertEquals(

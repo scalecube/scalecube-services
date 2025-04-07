@@ -14,10 +14,10 @@ import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -67,6 +67,7 @@ class ScalecubeServiceDiscoveryTest {
     ServiceEndpoint serviceEndpoint =
         ServiceEndpoint.builder()
             .id(UUID.randomUUID().toString())
+            .name("app-service")
             .tags(Collections.singletonMap("K", "V"))
             .contentTypes(Collections.singleton("json"))
             .appendServiceRegistrations(
@@ -75,24 +76,35 @@ class ScalecubeServiceDiscoveryTest {
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action0", Collections.singletonMap("KKK0", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action0")
+                                .tags(Collections.singletonMap("KKK0", "VVV"))
+                                .secured(true)
+                                .allowedRoles(List.of("read", "write"))
+                                .build()))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action1", Collections.singletonMap("KKK1", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action1")
+                                .tags(Collections.singletonMap("KKK1", "VVV"))
+                                .secured(true)
+                                .allowedRoles(List.of("replay", "archive"))
+                                .build()))))
             .appendServiceRegistrations(
                 Collections.singletonList(
                     new ServiceRegistration(
                         "namespace",
                         Collections.singletonMap("KK", "VV"),
                         Collections.singletonList(
-                            new ServiceMethodDefinition(
-                                "action2", Collections.singletonMap("KKK2", "VVV"), true, null)))))
+                            ServiceMethodDefinition.builder()
+                                .action("action2")
+                                .tags(Collections.singletonMap("KKK2", "VVV"))
+                                .secured(true)
+                                .build()))))
             .build();
 
     ByteBuffer buffer = metadataCodec.serialize(serviceEndpoint);
@@ -220,7 +232,10 @@ class ScalecubeServiceDiscoveryTest {
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
-    return ServiceEndpoint.builder().id("" + ID_COUNTER.incrementAndGet()).build();
+    return ServiceEndpoint.builder()
+        .id("" + ID_COUNTER.incrementAndGet())
+        .name("app-service")
+        .build();
   }
 
   private Mono<ServiceDiscovery> newServiceDiscovery(

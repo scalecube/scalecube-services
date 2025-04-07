@@ -75,7 +75,7 @@ public class HttpGatewayAcceptor
         .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .map(ByteBuf::retain)
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .onErrorResume(t -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, t)));
+        .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
 
   private Mono<Void> handleRequest(
@@ -196,7 +196,7 @@ public class HttpGatewayAcceptor
   private Mono<Void> handleFileRequest(
       ServiceReference service, ServiceMessage message, HttpServerResponse response) {
     return serviceCall
-        .router(new StaticAddressRouter(service.address()))
+        .router(StaticAddressRouter.forService(service.address(), service.endpointName()).build())
         .requestMany(message)
         .switchOnFirst(
             (signal, flux) -> {

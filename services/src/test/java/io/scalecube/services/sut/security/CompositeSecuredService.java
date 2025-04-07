@@ -1,4 +1,4 @@
-package io.scalecube.services.examples.auth;
+package io.scalecube.services.sut.security;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
@@ -6,9 +6,12 @@ import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
 @Secured
-@Service("securedServiceByCompositeProfile")
-public interface SecuredServiceByCompositeProfile {
+@Service("compositeSecured")
+public interface CompositeSecuredService {
 
+  // Services secured by code in method body
+
+  @Secured
   @ServiceMethod
-  Mono<String> hello(String name);
+  Mono<Void> helloComposite();
 }
