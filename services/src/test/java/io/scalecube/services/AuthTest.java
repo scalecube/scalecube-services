@@ -104,9 +104,9 @@ final class AuthTest {
     void authenticateSuccessfully(String test, SuccessArgs args) {
       serviceCall =
           serviceCall(
-              serviceRole -> credentials(args.tokenSupplier.apply(stripService(serviceRole))),
-              args.serviceRole,
-              args.allowedRoles);
+              (serviceName, roles) ->
+                  credentials(args.tokenSupplier.apply(stripService(args.serviceRole))),
+              args.serviceRole);
 
       StepVerifier.create(serviceCall.api(SecuredService.class).invokeWithRoleOrPermissions())
           .verifyComplete();
@@ -138,9 +138,9 @@ final class AuthTest {
     void failedAuthentication(String test, FailedArgs args) {
       serviceCall =
           serviceCall(
-              serviceRole -> credentials(args.tokenSupplier.apply(stripService(serviceRole))),
-              args.serviceRole,
-              args.allowedRoles);
+              (serviceName, roles) ->
+                  credentials(args.tokenSupplier.apply(stripService(args.serviceRole))),
+              args.serviceRole);
 
       StepVerifier.create(serviceCall.api(SecuredService.class).invokeWithRoleOrPermissions())
           .verifyErrorSatisfies(
@@ -206,7 +206,7 @@ final class AuthTest {
       credentials.put("user", "alice");
       credentials.put("permissions", "helloComposite");
 
-      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(
               serviceCall
@@ -222,7 +222,7 @@ final class AuthTest {
       final var role = "invoker";
       final var tokenCredentials = new TokenCredentials(VALID_TOKEN, role, null);
 
-      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(
               serviceCall
@@ -268,7 +268,7 @@ final class AuthTest {
       final var tokenCredentials =
           new TokenCredentials(VALID_TOKEN, role, List.of("read", "write", "delete", "*"));
 
-      serviceCall = serviceCall((r) -> credentials(tokenCredentials), role, null);
+      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(serviceCall.api(SecuredService.class).readWithAllowedRoleAnnotation())
           .verifyComplete();
@@ -329,8 +329,7 @@ final class AuthTest {
             });
   }
 
-  private ServiceCall serviceCall(
-      CredentialsSupplier credentialsSupplier, String serviceRole, List<String> allowedRoles) {
+  private ServiceCall serviceCall(CredentialsSupplier credentialsSupplier, String serviceRole) {
     //noinspection resource
     return new ServiceCall()
         .transport(
@@ -339,7 +338,7 @@ final class AuthTest {
                 DataCodec.getAllInstances(),
                 RSocketClientTransportFactory.websocket().apply(LOOP_RESOURCE),
                 credentialsSupplier,
-                allowedRoles))
+                serviceRole != null ? List.of(serviceRole) : null))
         .router(
             StaticAddressRouter.forService(service.serviceAddress(), "app-service")
                 .secured(credentialsSupplier != null)

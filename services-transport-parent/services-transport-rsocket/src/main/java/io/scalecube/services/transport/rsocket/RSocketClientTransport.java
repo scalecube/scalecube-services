@@ -66,10 +66,10 @@ public class RSocketClientTransport implements ClientTransport {
     final var mono =
         monoMap.computeIfAbsent(
             new Destination(address, serviceRole),
-            key ->
-                connect(key, serviceReference, monoMap)
+            destination ->
+                connect(destination, serviceReference, monoMap)
                     .cacheInvalidateIf(RSocket::isDisposed)
-                    .doOnError(ex -> monoMap.remove(key)));
+                    .doOnError(ex -> monoMap.remove(destination)));
 
     return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
   }
@@ -99,7 +99,7 @@ public class RSocketClientTransport implements ClientTransport {
       ServiceReference serviceReference,
       Map<Destination, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
-        .setupPayload(Mono.defer(() -> getCredentials(serviceReference, destination.role())))
+        .setupPayload(Mono.defer(() -> getCredentials(serviceReference)))
         .connect(() -> clientTransportFactory.clientTransport(destination.address()))
         .doOnSuccess(
             rsocket -> {
@@ -122,13 +122,13 @@ public class RSocketClientTransport implements ClientTransport {
             ex -> LOGGER.warn("Failed to connect ({}), cause: {}", destination, ex.toString()));
   }
 
-  private Mono<Payload> getCredentials(ServiceReference serviceReference, String serviceRole) {
-    if (credentialsSupplier == null || !serviceReference.isSecured() || serviceRole == null) {
+  private Mono<Payload> getCredentials(ServiceReference serviceReference) {
+    if (credentialsSupplier == null || !serviceReference.isSecured()) {
       return Mono.just(EmptyPayload.INSTANCE);
     }
 
     return credentialsSupplier
-        .credentials(serviceReference.endpointName() + "." + serviceRole)
+        .credentials(serviceReference.endpointName(), serviceReference.allowedRoles())
         .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
         .onErrorMap(
             th -> {
