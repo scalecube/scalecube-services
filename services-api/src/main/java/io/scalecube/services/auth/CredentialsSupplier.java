@@ -13,9 +13,9 @@ public interface CredentialsSupplier {
   /**
    * Obtains credentials for the given service role.
    *
-   * @param serviceName logical service name
+   * @param service logical service name
    * @param serviceRoles allowed roles on the service (optional)
    * @return credentials
    */
-  Mono<byte[]> credentials(String serviceName, List<String> serviceRoles);
+  Mono<byte[]> credentials(String service, List<String> serviceRoles);
 }

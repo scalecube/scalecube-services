@@ -104,7 +104,7 @@ final class AuthTest {
     void authenticateSuccessfully(String test, SuccessArgs args) {
       serviceCall =
           serviceCall(
-              (serviceName, roles) ->
+              (service, roles) ->
                   credentials(args.tokenSupplier.apply(stripService(args.serviceRole))),
               args.serviceRole);
 
@@ -138,7 +138,7 @@ final class AuthTest {
     void failedAuthentication(String test, FailedArgs args) {
       serviceCall =
           serviceCall(
-              (serviceName, roles) ->
+              (service, roles) ->
                   credentials(args.tokenSupplier.apply(stripService(args.serviceRole))),
               args.serviceRole);
 
@@ -206,7 +206,7 @@ final class AuthTest {
       credentials.put("user", "alice");
       credentials.put("permissions", "helloComposite");
 
-      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
+      serviceCall = serviceCall((service, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(
               serviceCall
@@ -222,7 +222,7 @@ final class AuthTest {
       final var role = "invoker";
       final var tokenCredentials = new TokenCredentials(VALID_TOKEN, role, null);
 
-      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
+      serviceCall = serviceCall((service, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(
               serviceCall
@@ -268,7 +268,7 @@ final class AuthTest {
       final var tokenCredentials =
           new TokenCredentials(VALID_TOKEN, role, List.of("read", "write", "delete", "*"));
 
-      serviceCall = serviceCall((serviceName, roles) -> credentials(tokenCredentials), role);
+      serviceCall = serviceCall((service, roles) -> credentials(tokenCredentials), role);
 
       StepVerifier.create(serviceCall.api(SecuredService.class).readWithAllowedRoleAnnotation())
           .verifyComplete();

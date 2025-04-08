@@ -60,7 +60,7 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
   }
 
   @Override
-  public Mono<byte[]> credentials(String serviceName, List<String> serviceRoles) {
+  public Mono<byte[]> credentials(String service, List<String> serviceRoles) {
     return Mono.defer(
         () -> {
           if (serviceRoles == null || serviceRoles.isEmpty()) {
@@ -89,7 +89,7 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
                       .serviceRole(serviceRole)
                       .vaultTokenSupplier(vaultTokenSupplier)
                       .serviceTokenNameBuilder(
-                          (role, tags) -> String.join(".", environment, serviceName, role))
+                          (role, tags) -> String.join(".", environment, service, role))
                       .build()
                       .getToken(Collections.emptyMap()))
               .map(String::getBytes);
