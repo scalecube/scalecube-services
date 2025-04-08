@@ -25,20 +25,6 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
    * @param environment logical environment name
    * @param vaultAddress vaultAddress
    * @param vaultTokenSupplier vaultTokenSupplier
-   */
-  public ServiceTokenCredentialsSupplier(
-      String environment,
-      String vaultAddress,
-      Supplier<CompletableFuture<String>> vaultTokenSupplier) {
-    this(environment, vaultAddress, vaultTokenSupplier, null);
-  }
-
-  /**
-   * Constructor.
-   *
-   * @param environment logical environment name
-   * @param vaultAddress vaultAddress
-   * @param vaultTokenSupplier vaultTokenSupplier
    * @param allowedRoles allowedRoles (optional)
    */
   public ServiceTokenCredentialsSupplier(
