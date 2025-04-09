@@ -3,6 +3,7 @@ package io.scalecube.services.auth;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringJoiner;
 
 /**
  * Service principal implementation of {@link Principal}. Provides role-based access control by
@@ -42,5 +43,13 @@ public class ServicePrincipal implements Principal {
   @Override
   public boolean hasPermission(String permission) {
     return permissions != null && permissions.contains(permission);
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", ServicePrincipal.class.getSimpleName() + "[", "]")
+        .add("role='" + role + "'")
+        .add("permissions=" + permissions)
+        .toString();
   }
 }
