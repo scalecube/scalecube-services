@@ -308,13 +308,11 @@ public class RequestContext implements Context {
         .doOnNext(
             context -> {
               if (!context.hasPrincipal()) {
-                if (LOGGER.isDebugEnabled()) {
-                  LOGGER.debug(
-                      "Insufficient permissions for secured method ({}) -- "
-                          + "request context ({}) does not have principal",
-                      context,
-                      context.methodInfo());
-                }
+                LOGGER.warn(
+                    "Insufficient permissions for secured method ({}) -- "
+                        + "request context ({}) does not have principal",
+                    context,
+                    context.methodInfo());
                 throw new ForbiddenException("Insufficient permissions");
               }
 
@@ -322,27 +320,23 @@ public class RequestContext implements Context {
               final var methodInfo = context.methodInfo();
 
               if (!methodInfo.allowedRoles().contains(principal.role())) {
-                if (LOGGER.isDebugEnabled()) {
-                  LOGGER.debug(
-                      "Insufficient permissions for secured method ({}) -- "
-                          + "principal role '{}' is not allowed (principal: {})",
-                      context.methodInfo(),
-                      principal.role(),
-                      principal);
-                }
+                LOGGER.warn(
+                    "Insufficient permissions for secured method ({}) -- "
+                        + "principal role '{}' is not allowed (principal: {})",
+                    context.methodInfo(),
+                    principal.role(),
+                    principal);
                 throw new ForbiddenException("Insufficient permissions");
               }
 
               for (var allowedPermission : methodInfo.allowedPermissions()) {
                 if (!principal.hasPermission(allowedPermission)) {
-                  if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug(
-                        "Insufficient permissions for secured method ({}) -- "
-                            + "allowed permission '{}' is missing (principal: {})",
-                        context.methodInfo(),
-                        allowedPermission,
-                        principal);
-                  }
+                  LOGGER.warn(
+                      "Insufficient permissions for secured method ({}) -- "
+                          + "allowed permission '{}' is missing (principal: {})",
+                      context.methodInfo(),
+                      allowedPermission,
+                      principal);
                   throw new ForbiddenException("Insufficient permissions");
                 }
               }
