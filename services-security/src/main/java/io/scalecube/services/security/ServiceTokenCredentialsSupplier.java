@@ -3,7 +3,6 @@ package io.scalecube.services.security;
 import io.scalecube.security.vault.VaultServiceTokenSupplier;
 import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.exceptions.ForbiddenException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -36,27 +35,6 @@ public class ServiceTokenCredentialsSupplier implements CredentialsSupplier {
     this.vaultAddress = Objects.requireNonNull(vaultAddress, "vaultAddress");
     this.vaultTokenSupplier = Objects.requireNonNull(vaultTokenSupplier, "vaultTokenSupplier");
     this.allowedRoles = allowedRoles;
-  }
-
-  /**
-   * Clones this {@link ServiceTokenCredentialsSupplier} with given allowed roles.
-   *
-   * @param allowedRoles allowedRoles
-   * @return new instance
-   */
-  public ServiceTokenCredentialsSupplier forAllowedRoles(String... allowedRoles) {
-    return forAllowedRoles(Arrays.asList(allowedRoles));
-  }
-
-  /**
-   * Clones this {@link ServiceTokenCredentialsSupplier} with given allowed roles.
-   *
-   * @param allowedRoles allowedRoles
-   * @return new instance
-   */
-  public ServiceTokenCredentialsSupplier forAllowedRoles(Collection<String> allowedRoles) {
-    return new ServiceTokenCredentialsSupplier(
-        environment, vaultAddress, vaultTokenSupplier, allowedRoles);
   }
 
   @Override
