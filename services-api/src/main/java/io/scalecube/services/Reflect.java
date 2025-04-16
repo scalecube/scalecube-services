@@ -15,7 +15,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.AllowedRole;
 import io.scalecube.services.auth.AllowedRoles;
 import io.scalecube.services.auth.Secured;
-import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceRoleDefinition;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -153,28 +152,6 @@ public final class Reflect {
       }
     }
     return Object.class;
-  }
-
-  /**
-   * Parse given service interface and method, and return {@link MethodInfo} as result.
-   *
-   * @param serviceInterface serviceInterface
-   * @return {@link MethodInfo} instance
-   */
-  public static MethodInfo methodInfo(Class<?> serviceInterface, Method method) {
-    return new MethodInfo(
-        serviceName(serviceInterface),
-        methodName(method),
-        parameterizedReturnType(method),
-        isReturnTypeServiceMessage(method),
-        communicationMode(method),
-        method.getParameterCount(),
-        requestType(method),
-        isRequestTypeServiceMessage(method),
-        isSecured(method),
-        Schedulers.immediate(),
-        restMethod(method),
-        Collections.emptyList());
   }
 
   /**
@@ -384,15 +361,27 @@ public final class Reflect {
   }
 
   /**
-   * Checks whether given method is considered secured, i.e does it have annotation {@link Secured},
-   * or, if not, then does declaring class contains annotation {@link Secured}.
+   * Retrives {@link Secured} annotation. Annotation is expected to be declared on service method,
+   * or on the service class. If declared on both - service method declaration takes precedence.
    *
-   * @param method method
-   * @return result
+   * @param method service method
+   * @return {@link Secured} annotation, or null
    */
-  public static boolean isSecured(Method method) {
-    return method.isAnnotationPresent(Secured.class)
-        || method.getDeclaringClass().isAnnotationPresent(Secured.class);
+  public static Secured secured(Method method) {
+    Secured secured = method.getAnnotation(Secured.class);
+
+    // If @Secured annotation is not present on service method, then find it on service class
+
+    if (secured == null) {
+      for (var clazz = method.getDeclaringClass(); clazz != null; clazz = clazz.getSuperclass()) {
+        if (clazz.isAnnotationPresent(Secured.class)) {
+          secured = clazz.getAnnotation(Secured.class);
+          break;
+        }
+      }
+    }
+
+    return secured;
   }
 
   /**

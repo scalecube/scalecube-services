@@ -5,6 +5,7 @@ import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.auth.Secured;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.StringJoiner;
@@ -23,10 +24,9 @@ public class MethodInfo {
   private final int parameterCount;
   private final Class<?> requestType;
   private final boolean isRequestTypeServiceMessage;
-  private final boolean isSecured;
+  private final Secured secured;
   private final Scheduler scheduler;
   private final String restMethod;
-  private final Collection<ServiceRoleDefinition> serviceRoles;
   private final Collection<String> allowedRoles;
   private final Collection<String> allowedPermissions;
 
@@ -41,7 +41,7 @@ public class MethodInfo {
    * @param parameterCount amount of parameters
    * @param requestType the type of the request
    * @param isRequestTypeServiceMessage is request service message
-   * @param isSecured is method protected by authentication
+   * @param secured secured (optional)
    * @param scheduler scheduler (optional)
    * @param restMethod restMethod (optional)
    * @param serviceRoles serviceRoles (optional)
@@ -55,7 +55,7 @@ public class MethodInfo {
       int parameterCount,
       Class<?> requestType,
       boolean isRequestTypeServiceMessage,
-      boolean isSecured,
+      Secured secured,
       Scheduler scheduler,
       String restMethod,
       Collection<ServiceRoleDefinition> serviceRoles) {
@@ -69,10 +69,9 @@ public class MethodInfo {
     this.parameterCount = parameterCount;
     this.requestType = requestType;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
-    this.isSecured = isSecured;
+    this.secured = secured;
     this.scheduler = scheduler;
     this.restMethod = restMethod;
-    this.serviceRoles = serviceRoles;
     this.allowedRoles =
         serviceRoles.stream().map(ServiceRoleDefinition::role).collect(Collectors.toSet());
     this.allowedPermissions =
@@ -125,8 +124,8 @@ public class MethodInfo {
     return requestType;
   }
 
-  public boolean isSecured() {
-    return isSecured;
+  public Secured secured() {
+    return secured;
   }
 
   public Scheduler scheduler() {
@@ -135,10 +134,6 @@ public class MethodInfo {
 
   public String restMethod() {
     return restMethod;
-  }
-
-  public Collection<ServiceRoleDefinition> serviceRoles() {
-    return serviceRoles;
   }
 
   public Collection<String> allowedRoles() {
@@ -162,10 +157,9 @@ public class MethodInfo {
         .add("parameterCount=" + parameterCount)
         .add("requestType=" + requestType)
         .add("isRequestTypeServiceMessage=" + isRequestTypeServiceMessage)
-        .add("isSecured=" + isSecured)
+        .add("secured=" + secured)
         .add("scheduler=" + scheduler)
         .add("restMethod=" + restMethod)
-        .add("serviceRoles=" + serviceRoles)
         .add("allowedRoles=" + allowedRoles)
         .add("allowedPermissions=" + allowedPermissions)
         .toString();

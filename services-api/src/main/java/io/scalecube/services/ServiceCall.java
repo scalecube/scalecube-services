@@ -1,5 +1,13 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.Reflect.communicationMode;
+import static io.scalecube.services.Reflect.isRequestTypeServiceMessage;
+import static io.scalecube.services.Reflect.isReturnTypeServiceMessage;
+import static io.scalecube.services.Reflect.methodName;
+import static io.scalecube.services.Reflect.parameterizedReturnType;
+import static io.scalecube.services.Reflect.requestType;
+import static io.scalecube.services.Reflect.restMethod;
+import static io.scalecube.services.Reflect.serviceName;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.api.ErrorData;
@@ -13,6 +21,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Collections;
@@ -27,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class ServiceCall implements AutoCloseable {
 
@@ -380,7 +390,7 @@ public class ServiceCall implements AutoCloseable {
               }
 
               final var serviceCall = this;
-              final var methodInfo = Reflect.methodInfo(serviceInterface, method);
+              final var methodInfo = getMethodInfo(serviceInterface, method);
               final var returnType = methodInfo.parameterizedReturnType();
               final var isReturnTypeServiceMessage = methodInfo.isReturnTypeServiceMessage();
               final var request = methodInfo.requestType() == Void.TYPE ? null : params[0];
@@ -485,6 +495,22 @@ public class ServiceCall implements AutoCloseable {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
     return message;
+  }
+
+  private static MethodInfo getMethodInfo(Class<?> serviceInterface, Method method) {
+    return new MethodInfo(
+        serviceName(serviceInterface),
+        methodName(method),
+        parameterizedReturnType(method),
+        isReturnTypeServiceMessage(method),
+        communicationMode(method),
+        method.getParameterCount(),
+        requestType(method),
+        isRequestTypeServiceMessage(method),
+        null,
+        Schedulers.immediate(),
+        restMethod(method),
+        Collections.emptyList());
   }
 
   @Override

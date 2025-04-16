@@ -2,16 +2,20 @@ package io.scalecube.services.sut.security;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.exceptions.ForbiddenException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.StringJoiner;
 import reactor.core.publisher.Mono;
 
+@Secured
 public class CompositeSecuredServiceImpl implements CompositeSecuredService {
 
   // Services secured by code in method body
 
+  @Secured
   @Override
   public Mono<Void> helloComposite() {
     return RequestContext.deferContextual()
@@ -64,6 +68,14 @@ public class CompositeSecuredServiceImpl implements CompositeSecuredService {
     @Override
     public boolean hasPermission(String permission) {
       return permissions.contains(permission);
+    }
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", CompositePrincipalImpl.class.getSimpleName() + "[", "]")
+          .add("principal=" + principal)
+          .add("permissions=" + permissions)
+          .toString();
     }
   }
 }

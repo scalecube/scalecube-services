@@ -6,7 +6,6 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,11 +18,9 @@ public interface SecuredService {
   @RequestType(String.class)
   Mono<String> createSession(ServiceMessage request);
 
-  @Secured
   @ServiceMethod
   Mono<String> requestOne(String request);
 
-  @Secured
   @ServiceMethod
   Flux<String> requestMany(Integer request);
 }

@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ErrorData;
@@ -19,7 +18,6 @@ import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +50,7 @@ class ServiceMethodInvokerTest {
     void invokeOneReturnsNull() throws Exception {
       final var methodName = "invokeOneReturnsNull";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -69,7 +67,7 @@ class ServiceMethodInvokerTest {
     void invokeManyReturnsNull() throws Exception {
       final var methodName = "invokeManyReturnsNull";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -86,7 +84,7 @@ class ServiceMethodInvokerTest {
     void invokeBidirectionalReturnsNull() throws Exception {
       final var methodName = "invokeBidirectionalReturnsNull";
       final var method = StubService.class.getMethod(methodName, Flux.class);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -103,7 +101,7 @@ class ServiceMethodInvokerTest {
     void invokeOneThrowsException() throws Exception {
       final var methodName = "invokeOneThrowsException";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -121,7 +119,7 @@ class ServiceMethodInvokerTest {
     void invokeManyThrowsException() throws Exception {
       final var methodName = "invokeManyThrowsException";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -139,7 +137,7 @@ class ServiceMethodInvokerTest {
     void invokeBidirectionalThrowsException() throws Exception {
       final var methodName = "invokeBidirectionalThrowsException";
       final var method = StubService.class.getMethod(methodName, Flux.class);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -149,27 +147,6 @@ class ServiceMethodInvokerTest {
                   .invokeBidirectional(Flux.just(message))
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .assertNext(assertError(500, "Error"))
-          .verifyComplete();
-    }
-
-    @Test
-    @DisplayName("Invocation of method should contain RequestConext")
-    void invokeDynamicQualifier() throws Exception {
-      final var methodName = "invokeDynamicQualifier";
-      final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
-      final var message = serviceMessage("hello/foo123/dynamic/bar456");
-
-      final var principalMapper = mock(PrincipalMapper.class);
-      when(principalMapper.map(ArgumentMatchers.any()))
-          .thenReturn(Mono.just(new PrincipalImpl("user", List.of("read", "write"))));
-
-      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
-
-      StepVerifier.create(
-              serviceMethodInvoker
-                  .invokeOne(message)
-                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
     }
   }
@@ -182,7 +159,7 @@ class ServiceMethodInvokerTest {
     void testAuthWhenNoPrincipalAndNoAuthenticator() throws Exception {
       final var methodName = "invokeWithAuthContext";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
@@ -200,7 +177,7 @@ class ServiceMethodInvokerTest {
     void testAuthWhenThereIsPrincipalAndNoAuthenticator() throws Exception {
       final var methodName = "invokeWithAuthContext";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
@@ -217,7 +194,7 @@ class ServiceMethodInvokerTest {
     void testAuthNoPrincipalButThereIsAuthenticator() throws Exception {
       final var methodName = "invokeWithAuthContext";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       final var principalMapper = mock(PrincipalMapper.class);
@@ -239,7 +216,7 @@ class ServiceMethodInvokerTest {
     void testAuthWithRoleOrPermissions(Principal principal) throws Exception {
       final var methodName = "invokeWithRoleOrPermissions";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       final var principalMapper = mock(PrincipalMapper.class);
@@ -256,7 +233,9 @@ class ServiceMethodInvokerTest {
 
     static Stream<Principal> testAuthWithRoleOrPermissionsSource() {
       return Stream.of(
-          new PrincipalImpl("invoker", null), new PrincipalImpl(null, List.of("invoke")));
+          new PrincipalImpl("invoker", null),
+          new PrincipalImpl(null, List.of("invoke")),
+          new PrincipalImpl("invoker", List.of("invoke")));
     }
 
     @ParameterizedTest
@@ -265,7 +244,7 @@ class ServiceMethodInvokerTest {
     void testAuthFailedWithRoleOrPermissions(Principal principal) throws Exception {
       final var methodName = "invokeWithRoleOrPermissions";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo = Reflect.methodInfo(StubService.class, method);
+      final var methodInfo = getMethodInfo(stubService, methodName);
       final var message = serviceMessage(methodName);
 
       final var principalMapper = mock(PrincipalMapper.class);
@@ -277,7 +256,7 @@ class ServiceMethodInvokerTest {
               serviceMethodInvoker
                   .invokeOne(message)
                   .contextWrite(requestContext(message, principal)))
-          .assertNext(assertError(403, "Not allowed"))
+          .assertNext(assertError(403, "Insufficient permissions"))
           .verifyComplete();
     }
 
@@ -298,20 +277,7 @@ class ServiceMethodInvokerTest {
     void invokeWithAllowedRoleAnnotation() throws Exception {
       final var methodName = "invokeWithAllowedRoleAnnotation";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo =
-          new MethodInfo(
-              NAMESPACE,
-              methodName,
-              Void.TYPE,
-              false,
-              CommunicationMode.REQUEST_RESPONSE,
-              0,
-              Void.TYPE,
-              false,
-              true,
-              Schedulers.immediate(),
-              null,
-              List.of(new ServiceRoleDefinition("admin", Set.of("read", "write"))));
+      final var methodInfo = getMethodInfo(stubService, methodName);
 
       final var message = serviceMessage(methodName);
       final var principal = new PrincipalImpl("admin", List.of("read", "write"));
@@ -334,20 +300,7 @@ class ServiceMethodInvokerTest {
     void invokeWithAllowedRoleAnnotationFailed(Principal principal) throws Exception {
       final var methodName = "invokeWithAllowedRoleAnnotation";
       final var method = StubService.class.getMethod(methodName);
-      final var methodInfo =
-          new MethodInfo(
-              NAMESPACE,
-              methodName,
-              Void.TYPE,
-              false,
-              CommunicationMode.REQUEST_RESPONSE,
-              0,
-              Void.TYPE,
-              false,
-              true,
-              Schedulers.immediate(),
-              null,
-              List.of(new ServiceRoleDefinition("admin", Set.of("read", "write"))));
+      final var methodInfo = getMethodInfo(stubService, methodName);
 
       final var message = serviceMessage(methodName);
 
@@ -399,5 +352,33 @@ class ServiceMethodInvokerTest {
       assertEquals(errorCode, errorData.getErrorCode(), "errorCode");
       assertEquals(errorMessage, errorData.getErrorMessage(), "errorMessage");
     };
+  }
+
+  private static MethodInfo getMethodInfo(Object serviceInstance, String methodName) {
+    final var serviceInstanceClass = serviceInstance.getClass();
+    final Class<?> serviceInterface = Reflect.serviceInterfaces(serviceInstance).toList().get(0);
+    final var method = Reflect.serviceMethods(serviceInterface).get(methodName);
+
+    // get service instance method
+    Method serviceMethod;
+    try {
+      serviceMethod = serviceInstanceClass.getMethod(method.getName(), method.getParameterTypes());
+    } catch (NoSuchMethodException e) {
+      throw new RuntimeException(e);
+    }
+
+    return new MethodInfo(
+        Reflect.serviceName(serviceInterface),
+        Reflect.methodName(method),
+        Reflect.parameterizedReturnType(method),
+        Reflect.isReturnTypeServiceMessage(method),
+        Reflect.communicationMode(method),
+        method.getParameterCount(),
+        Reflect.requestType(method),
+        Reflect.isRequestTypeServiceMessage(method),
+        Reflect.secured(serviceMethod),
+        Schedulers.immediate(),
+        Reflect.restMethod(method),
+        Reflect.serviceRoles(serviceMethod));
   }
 }

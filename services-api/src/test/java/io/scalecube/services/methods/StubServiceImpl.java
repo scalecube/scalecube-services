@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.auth.AllowedRole;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -59,6 +60,7 @@ public class StubServiceImpl implements StubService {
 
   // Secured methods
 
+  @Secured
   @Override
   public Mono<Void> invokeWithAuthContext() {
     return RequestContext.deferContextual()
@@ -72,13 +74,14 @@ public class StubServiceImpl implements StubService {
 
   // Services secured by code in method body
 
+  @Secured
   @Override
   public Mono<Void> invokeWithRoleOrPermissions() {
     return RequestContext.deferContextual()
         .doOnNext(
             context -> {
               if (!context.hasPrincipal()) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
 
               final var principal = context.principal();
@@ -86,13 +89,13 @@ public class StubServiceImpl implements StubService {
               final var permissions = principal.permissions();
 
               if (role == null && permissions == null) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
               if (role != null && !role.equals("invoker")) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
               if (permissions != null && !permissions.contains("invoke")) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
             })
         .then();
@@ -100,6 +103,7 @@ public class StubServiceImpl implements StubService {
 
   // Services secured by annotations in method body
 
+  @Secured(deferSecured = false)
   @AllowedRole(
       name = "admin",
       permissions = {"read", "write"})

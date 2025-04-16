@@ -111,12 +111,12 @@ class ServiceScannerTest {
   @Service
   public interface PlaceholderQualifierService {
 
-    @Secured
     @RestMethod("GET")
     @ServiceMethod("v1/very/cool/${microservices:id}/service/:name")
     Mono<Void> doSomething();
   }
 
+  @Secured
   public static class PlaceholderQualifierServiceImpl implements PlaceholderQualifierService {
 
     @Override

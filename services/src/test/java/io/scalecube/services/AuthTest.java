@@ -184,7 +184,7 @@ final class AuthTest {
                   ForbiddenException.class,
                   "Insufficient permissions")),
           arguments(
-              "Failed to authenticate: service role is not allowed",
+              "Failed to authenticate: wrong service role",
               new FailedArgs(
                   serviceRole -> new TokenCredentials(VALID_TOKEN, serviceRole, null),
                   "foo",
@@ -245,11 +245,13 @@ final class AuthTest {
       return Stream.of(
           arguments(
               "Authentication failed: empty composite credentails",
-              new FailedArgs(Map.of(), ForbiddenException.class, "Not allowed")),
+              new FailedArgs(Map.of(), ForbiddenException.class, "Insufficient permissions")),
           arguments(
               "Authentication failed: wrong composite user",
               new FailedArgs(
-                  Map.of("user", "wrong-user"), ForbiddenException.class, "Not allowed")),
+                  Map.of("user", "wrong-user"),
+                  ForbiddenException.class,
+                  "Insufficient permissions")),
           arguments(
               "Authentication failed: wrong composite permissions",
               new FailedArgs(
@@ -319,10 +321,10 @@ final class AuthTest {
               final var permissions = headers.get("permissions");
 
               if (user == null || permissions == null) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
               if (!"alice".equals(user)) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
 
               return new CompositePrincipalImpl(context.principal(), List.of(permissions));

@@ -63,7 +63,8 @@ public class ServiceMethodInvoker {
               return mapPrincipal(context)
                   .flatMap(
                       principal ->
-                          Mono.defer(() -> Mono.from(invokeRequest(request)))
+                          requestContext()
+                              .then(Mono.defer(() -> Mono.from(invokeRequest(request))))
                               .contextWrite(enhanceRequestContext(context, request, principal)))
                   .doOnSuccess(
                       response -> {
@@ -104,7 +105,8 @@ public class ServiceMethodInvoker {
               return mapPrincipal(context)
                   .flatMapMany(
                       principal ->
-                          Flux.defer(() -> Flux.from(invokeRequest(request)))
+                          requestContext()
+                              .thenMany(Flux.defer(() -> Flux.from(invokeRequest(request))))
                               .contextWrite(enhanceRequestContext(context, request, principal)))
                   .doOnSubscribe(
                       s -> {
@@ -151,6 +153,19 @@ public class ServiceMethodInvoker {
                   .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
                   .subscribeOn(methodInfo.scheduler());
             });
+  }
+
+  private Mono<RequestContext> requestContext() {
+    final Mono<RequestContext> contextMono;
+    final var secured = methodInfo.secured();
+
+    if (secured != null && secured.deferSecured()) {
+      contextMono = RequestContext.deferSecured();
+    } else {
+      contextMono = RequestContext.deferContextual();
+    }
+
+    return contextMono;
   }
 
   private Publisher<?> invokeRequest(Object request) {
@@ -230,7 +245,7 @@ public class ServiceMethodInvoker {
   }
 
   private Mono<Principal> mapPrincipal(RequestContext context) {
-    if (!methodInfo.isSecured()) {
+    if (methodInfo.secured() == null) {
       return Mono.just(context.principal());
     }
 

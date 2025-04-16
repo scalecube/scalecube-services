@@ -2,13 +2,16 @@ package io.scalecube.services.sut.security;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.auth.AllowedRole;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Mono;
 
+@Secured
 public class SecuredServiceImpl implements SecuredService {
 
   // Services secured by code in method body
 
+  @Secured
   @Override
   public Mono<Void> invokeWithRoleOrPermissions() {
     return RequestContext.deferContextual()
@@ -37,19 +40,21 @@ public class SecuredServiceImpl implements SecuredService {
 
   // Services secured by annotations in method body
 
+  @Secured
   @AllowedRole(
       name = "admin",
       permissions = {"read"})
   @Override
   public Mono<Void> readWithAllowedRoleAnnotation() {
-    return RequestContext.deferSecured().then();
+    return Mono.empty();
   }
 
+  @Secured
   @AllowedRole(
       name = "admin",
       permissions = {"write"})
   @Override
   public Mono<Void> writeWithAllowedRoleAnnotation() {
-    return RequestContext.deferSecured().then();
+    return Mono.empty();
   }
 }

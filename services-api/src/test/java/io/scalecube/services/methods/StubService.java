@@ -2,7 +2,6 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,19 +35,16 @@ public interface StubService {
 
   // Secured methods
 
-  @Secured
   @ServiceMethod
   Mono<Void> invokeWithAuthContext();
 
   // Services secured by code in method body
 
-  @Secured
   @ServiceMethod
   Mono<Void> invokeWithRoleOrPermissions();
 
   // Services secured by annotations in method body
 
-  @Secured
   @ServiceMethod
   Mono<Void> invokeWithAllowedRoleAnnotation();
 }

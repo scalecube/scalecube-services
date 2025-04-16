@@ -3,6 +3,7 @@ package io.scalecube.services.methods;
 import io.scalecube.services.auth.Principal;
 import java.util.List;
 import java.util.Objects;
+import java.util.StringJoiner;
 
 public record PrincipalImpl(String role, List<String> permissions) implements Principal {
 
@@ -14,5 +15,13 @@ public record PrincipalImpl(String role, List<String> permissions) implements Pr
   @Override
   public boolean hasPermission(String permission) {
     return permissions != null && permissions.contains(permission);
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", PrincipalImpl.class.getSimpleName() + "[", "]")
+        .add("role='" + role + "'")
+        .add("permissions=" + permissions)
+        .toString();
   }
 }

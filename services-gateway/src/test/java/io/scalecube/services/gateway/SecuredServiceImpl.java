@@ -2,6 +2,7 @@ package io.scalecube.services.gateway;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.UnauthorizedException;
@@ -31,26 +32,28 @@ public class SecuredServiceImpl implements SecuredService {
     return Mono.just(req);
   }
 
+  @Secured
   @Override
   public Mono<String> requestOne(String req) {
     return RequestContext.deferContextual()
         .map(
             context -> {
               if (!context.hasPrincipal()) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
               final var principal = (AllowedUser) context.principal();
               return principal.username() + "@" + req;
             });
   }
 
+  @Secured
   @Override
   public Flux<String> requestMany(Integer times) {
     return RequestContext.deferContextual()
         .flatMapMany(
             context -> {
               if (!context.hasPrincipal()) {
-                throw new ForbiddenException("Not allowed");
+                throw new ForbiddenException("Insufficient permissions");
               }
               if (times <= 0) {
                 return Flux.empty();

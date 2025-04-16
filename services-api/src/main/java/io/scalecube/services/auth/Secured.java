@@ -15,4 +15,13 @@ import java.lang.annotation.Target;
 @Documented
 @Target({METHOD, TYPE})
 @Retention(RUNTIME)
-public @interface Secured {}
+public @interface Secured {
+
+  /**
+   * Returns whether service method must apply standard security check behavior.
+   *
+   * @return {@code true} if service must apply standard security check behavior, {@code false}
+   *     otherwise
+   */
+  boolean deferSecured() default true;
+}

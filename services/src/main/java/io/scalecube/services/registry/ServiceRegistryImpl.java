@@ -178,7 +178,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   method.getParameterCount(),
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
-                                  Reflect.isSecured(method),
+                                  Reflect.secured(serviceMethod),
                                   Reflect.executeOnScheduler(serviceMethod, schedulers),
                                   Reflect.restMethod(method),
                                   Reflect.serviceRoles(serviceMethod));

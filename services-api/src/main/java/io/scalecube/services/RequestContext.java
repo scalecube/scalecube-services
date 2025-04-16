@@ -319,7 +319,10 @@ public class RequestContext implements Context {
               final var principal = context.principal();
               final var methodInfo = context.methodInfo();
 
-              if (!methodInfo.allowedRoles().contains(principal.role())) {
+              final var allowedRoles = methodInfo.allowedRoles();
+              if (allowedRoles != null
+                  && !allowedRoles.isEmpty()
+                  && !allowedRoles.contains(principal.role())) {
                 LOGGER.warn(
                     "Insufficient permissions for secured method ({}) -- "
                         + "principal role '{}' is not allowed (principal: {})",
@@ -329,15 +332,18 @@ public class RequestContext implements Context {
                 throw new ForbiddenException("Insufficient permissions");
               }
 
-              for (var allowedPermission : methodInfo.allowedPermissions()) {
-                if (!principal.hasPermission(allowedPermission)) {
-                  LOGGER.warn(
-                      "Insufficient permissions for secured method ({}) -- "
-                          + "allowed permission '{}' is missing (principal: {})",
-                      context.methodInfo(),
-                      allowedPermission,
-                      principal);
-                  throw new ForbiddenException("Insufficient permissions");
+              final var allowedPermissions = methodInfo.allowedPermissions();
+              if (allowedPermissions != null && !allowedPermissions.isEmpty()) {
+                for (var allowedPermission : allowedPermissions) {
+                  if (!principal.hasPermission(allowedPermission)) {
+                    LOGGER.warn(
+                        "Insufficient permissions for secured method ({}) -- "
+                            + "allowed permission '{}' is missing (principal: {})",
+                        context.methodInfo(),
+                        allowedPermission,
+                        principal);
+                    throw new ForbiddenException("Insufficient permissions");
+                  }
                 }
               }
             });

@@ -52,7 +52,7 @@ public class ServiceScanner {
                                 .action(Reflect.methodName(method))
                                 .tags(Reflect.serviceMethodTags(method))
                                 .restMethod(Reflect.restMethod(method))
-                                .secured(Reflect.isSecured(method))
+                                .secured(Reflect.secured(serviceMethod) != null)
                                 .allowedRoles(Reflect.allowedRoles(serviceMethod))
                                 .build();
                           })
