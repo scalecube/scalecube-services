@@ -6,7 +6,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ForbiddenException;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
@@ -264,15 +263,6 @@ public class ServiceMethodInvoker {
     }
 
     return Mono.defer(() -> principalMapper.map(context))
-        .switchIfEmpty(Mono.just(context.principal()))
-        .onErrorMap(ServiceMethodInvoker::toForbiddenException);
-  }
-
-  private static ForbiddenException toForbiddenException(Throwable ex) {
-    if (ex instanceof ServiceException e) {
-      return new ForbiddenException(e.errorCode(), e.getMessage());
-    } else {
-      return new ForbiddenException(ex);
-    }
+        .switchIfEmpty(Mono.just(context.principal()));
   }
 }
