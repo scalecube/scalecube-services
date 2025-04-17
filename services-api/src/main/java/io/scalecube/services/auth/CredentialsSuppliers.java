@@ -1,6 +1,17 @@
 package io.scalecube.services.auth;
 
-public interface CredentialsSuppliers {
+import java.util.List;
 
-  CredentialsSupplier forServiceRole(String serviceRole);
+public class CredentialsSuppliers {
+
+  private final CredentialsSupplier credentialsSupplier;
+
+  public CredentialsSuppliers(CredentialsSupplier credentialsSupplier) {
+    this.credentialsSupplier = credentialsSupplier;
+  }
+
+  public CredentialsSupplier forServiceRole(String serviceRole) {
+    return (service, allowedRoles) ->
+        credentialsSupplier.credentials(service, List.of(serviceRole));
+  }
 }

@@ -47,7 +47,7 @@ class HttpLocalGatewayTest {
     gateway =
         Microservices.start(
             new Context()
-                .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
+                .gateway(() -> HttpGateway.builder().id("HTTP").build())
                 .defaultLogger("gateway")
                 .services(new GreetingServiceImpl())
                 .services(
@@ -55,7 +55,7 @@ class HttpLocalGatewayTest {
                         .errorMapper(ERROR_MAPPER)
                         .build()));
     gatewayAddress = gateway.gateway("HTTP").address();
-    router = new StaticAddressRouter(gatewayAddress);
+    router = StaticAddressRouter.forService(gatewayAddress, "app-service").build();
   }
 
   @BeforeEach
@@ -63,7 +63,7 @@ class HttpLocalGatewayTest {
     serviceCall =
         new ServiceCall()
             .router(router)
-            .transport(new HttpGatewayClientTransport.Builder().address(gatewayAddress).build());
+            .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }

@@ -1,59 +1,114 @@
 package io.scalecube.services.methods;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.RequestContext;
+import io.scalecube.services.auth.AllowedRole;
+import io.scalecube.services.auth.Secured;
+import io.scalecube.services.exceptions.ForbiddenException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class StubServiceImpl implements StubService {
 
+  // Invocation methods
+
   @Override
-  public Mono<String> returnNull() {
-    return null;
+  public Mono<String> invokeOneReturnsNull() {
+    return RequestContext.deferContextual().then(Mono.empty());
   }
 
   @Override
-  public Flux<String> returnNull2() {
-    return null;
+  public Flux<String> invokeManyReturnsNull() {
+    return RequestContext.deferContextual().thenMany(Flux.empty());
   }
 
   @Override
-  public Flux<String> returnNull3(Flux<String> request) {
-    return null;
+  public Flux<String> invokeBidirectionalReturnsNull(Flux<String> request) {
+    return RequestContext.deferContextual().thenMany(Flux.empty());
   }
 
   @Override
-  public Mono<String> throwException() {
-    throw new RuntimeException();
+  public Mono<String> invokeOneThrowsException() {
+    return RequestContext.deferContextual().then(Mono.error(new RuntimeException("Error")));
   }
 
   @Override
-  public Flux<String> throwException2() {
-    throw new RuntimeException();
+  public Flux<String> invokeManyThrowsException() {
+    return RequestContext.deferContextual().thenMany(Flux.error(new RuntimeException("Error")));
   }
 
   @Override
-  public Flux<String> throwException3(Flux<String> request) {
-    throw new RuntimeException();
+  public Flux<String> invokeBidirectionalThrowsException(Flux<String> request) {
+    return RequestContext.deferContextual().thenMany(Flux.error(new RuntimeException("Error")));
   }
 
   @Override
-  public Mono<Void> helloAuthContext() {
-    return Authenticator.deferSecured(StubServicePrincipal.class).then();
-  }
-
-  @Override
-  public Mono<Void> helloRequestContextWithDynamicQualifier() {
+  public Mono<Void> invokeDynamicQualifier() {
     return RequestContext.deferContextual()
         .doOnNext(
-            requestContext -> {
-              assertNotNull(requestContext.headers(), "requestContext.headers");
-              assertNotNull(requestContext.principal(), "requestContext.principal");
-              assertNotNull(requestContext.pathVars(), "requestContext.pathVars");
-              assertNotNull(requestContext.pathVar("foo"), "foo");
-              assertNotNull(requestContext.pathVar("bar"), "bar");
+            context -> {
+              assertNotNull(context.headers(), "headers");
+              assertNotNull(context.principal(), "principal");
+              assertNotNull(context.pathVars(), "pathVars");
+              assertNotNull(context.pathVar("foo"), "pathVar[foo]");
+              assertNotNull(context.pathVar("bar"), "pathVar[bar]");
             })
         .then();
+  }
+
+  // Secured methods
+
+  @Secured
+  @Override
+  public Mono<Void> invokeWithAuthContext() {
+    return RequestContext.deferContextual()
+        .doOnNext(
+            context -> {
+              assertNotNull(context.principal());
+              assertTrue(context.hasPrincipal());
+            })
+        .then();
+  }
+
+  // Services secured by code in method body
+
+  @Secured
+  @Override
+  public Mono<Void> invokeWithRoleOrPermissions() {
+    return RequestContext.deferContextual()
+        .doOnNext(
+            context -> {
+              if (!context.hasPrincipal()) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+
+              final var principal = context.principal();
+              final var role = principal.role();
+              final var permissions = principal.permissions();
+
+              if (role == null && permissions == null) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              if (role != null && !role.equals("invoker")) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              if (permissions != null && !permissions.contains("invoke")) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+            })
+        .then();
+  }
+
+  // Services secured by annotations in method body
+
+  @Secured(deferSecured = false)
+  @AllowedRole(
+      name = "admin",
+      permissions = {"read", "write"})
+  @Override
+  public Mono<Void> invokeWithAllowedRoleAnnotation() {
+    return RequestContext.deferSecured().then();
   }
 }

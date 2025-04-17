@@ -1,8 +1,8 @@
 package io.scalecube.services.files;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
-import io.scalecube.services.methods.RequestContext;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

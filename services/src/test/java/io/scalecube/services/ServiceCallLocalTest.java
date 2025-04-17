@@ -21,6 +21,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.EmptyGreetingResponse;
@@ -46,7 +47,7 @@ public class ServiceCallLocalTest {
 
   public static final int TIMEOUT = 3;
 
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private final Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private static Microservices provider;
 
@@ -102,7 +103,7 @@ public class ServiceCallLocalTest {
         assertThrows(
             ServiceException.class,
             () -> Mono.from(provider.call().requestOne(GREETING_FAIL_REQ)).block(timeout));
-    assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
+    assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
   @Test
@@ -125,7 +126,7 @@ public class ServiceCallLocalTest {
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
-    assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
+    assertEquals(" hello to: joe", ((GreetingResponse) result.data()).result());
   }
 
   @Test
@@ -150,7 +151,7 @@ public class ServiceCallLocalTest {
     GreetingResponse responseData = result.data();
     System.out.println("local_async_greeting_return_Message :" + responseData);
 
-    assertEquals(" hello to: joe", responseData.getResult());
+    assertEquals(" hello to: joe", responseData.result());
   }
 
   @Test
@@ -220,10 +221,11 @@ public class ServiceCallLocalTest {
       ServiceRegistry serviceRegistry, ServiceMessage request) {
     return Optional.of(
         new ServiceReference(
-            new ServiceMethodDefinition("dummy"),
+            ServiceMethodDefinition.fromAction("dummy"),
             new ServiceRegistration("ns", Collections.emptyMap(), Collections.emptyList()),
             ServiceEndpoint.builder()
                 .id(UUID.randomUUID().toString())
+                .name("app-service-" + System.currentTimeMillis())
                 .address(provider.serviceAddress())
                 .build()));
   }

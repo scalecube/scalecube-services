@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway;
 
-import java.util.Optional;
+import io.scalecube.services.auth.Principal;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -10,49 +10,51 @@ public class AuthRegistry {
 
   public static final String SESSION_ID = "SESSION_ID";
 
-  /** Preconfigured userName-s that are allowed to be authenticated. */
   private final Set<String> allowedUsers;
+  private final ConcurrentMap<Long, Principal> loggedInUsers = new ConcurrentHashMap<>();
 
-  private ConcurrentMap<Long, String> loggedInUsers = new ConcurrentHashMap<>();
-
+  /**
+   * Constructor.
+   *
+   * @param allowedUsers preconfigured usernames that are allowed to be authenticated.
+   */
   public AuthRegistry(Set<String> allowedUsers) {
     this.allowedUsers = allowedUsers;
   }
 
   /**
-   * Get session's auth data if exists.
+   * Get session auth data if exists.
    *
-   * @param sessionId session id to get auth info for
-   * @return auth info for given session if exists
+   * @param sessionId sessionId
+   * @return principal by sessionId
    */
-  public Optional<String> getAuth(long sessionId) {
-    return Optional.ofNullable(loggedInUsers.get(sessionId));
+  public Principal getAuth(long sessionId) {
+    return loggedInUsers.get(sessionId);
   }
 
   /**
-   * Add session with auth t registry.
+   * Add session auth data.
    *
-   * @param sessionId session id to add auth info for
-   * @param auth auth info for given session id
-   * @return auth info added for session id or empty if auth info is invalid
+   * @param sessionId sessionId
+   * @param username username
    */
-  public Optional<String> addAuth(long sessionId, String auth) {
-    if (allowedUsers.contains(auth)) {
-      loggedInUsers.putIfAbsent(sessionId, auth);
-      return Optional.of(auth);
-    } else {
-      System.err.println("User not in list of ALLOWED: " + auth);
+  public boolean addAuth(long sessionId, String username) {
+    if (allowedUsers.contains(username)) {
+      loggedInUsers.putIfAbsent(sessionId, new AllowedUser(username));
+      return true;
     }
-    return Optional.empty();
+    return false;
   }
 
   /**
    * Remove session from registry.
    *
-   * @param sessionId session id to be removed from registry
-   * @return true if session had auth info, false - otherwise
+   * @param sessionId sessionId
+   * @return principal, or null if not exists
    */
-  public String removeAuth(long sessionId) {
+  public Principal removeAuth(long sessionId) {
     return loggedInUsers.remove(sessionId);
   }
+
+  public record AllowedUser(String username) implements Principal {}
 }

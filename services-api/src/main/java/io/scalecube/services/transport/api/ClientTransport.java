@@ -8,7 +8,7 @@ public interface ClientTransport extends AutoCloseable {
    * Creates {@link ClientChannel} for communication with remote service endpoint.
    *
    * @param serviceReference target serviceReference
-   * @return {@code ClientChannel} instance
+   * @return {@link ClientChannel} instance
    */
   ClientChannel create(ServiceReference serviceReference);
 }

@@ -1,129 +1,74 @@
 package io.scalecube.services.security;
 
+import io.scalecube.security.tokens.jwt.JwtToken;
 import io.scalecube.security.tokens.jwt.JwtTokenResolver;
+import io.scalecube.security.tokens.jwt.JwtUnavailableException;
 import io.scalecube.services.auth.Authenticator;
-import io.scalecube.services.exceptions.UnauthorizedException;
-import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.scalecube.services.auth.Principal;
+import io.scalecube.services.auth.ServicePrincipal;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
 /**
- * Implementation of {@link Authenticator} backed by {@link JwtTokenResolver}. Using {@code
- * tokenResolver} (and {@code authDataMapper}) this authenticator turns extracted (and verified)
- * source auth data into client specified destination auth data.
+ * Service authenticator based on JWT token. Being used to verify service identity that establishing
+ * session to the system. JWT token must have claims: {@code role} and {@code permissions}.
  */
-public final class ServiceTokenAuthenticator<T> implements Authenticator<T> {
+public class ServiceTokenAuthenticator implements Authenticator {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceTokenAuthenticator.class);
+  private final JwtTokenResolver tokenResolver;
+  private final Retry retryStrategy;
 
-  private JwtTokenResolver tokenResolver;
-  private ServiceTokenMapper tokenMapper;
-  private AuthDataMapper<T> authDataMapper;
-  private Retry retryStrategy = Retry.max(0);
-
-  public ServiceTokenAuthenticator() {}
-
-  private ServiceTokenAuthenticator(ServiceTokenAuthenticator<T> other) {
-    this.tokenResolver = other.tokenResolver;
-    this.tokenMapper = other.tokenMapper;
-    this.authDataMapper = other.authDataMapper;
-    this.retryStrategy = other.retryStrategy;
-  }
-
-  private ServiceTokenAuthenticator<T> copy() {
-    return new ServiceTokenAuthenticator<>(this);
+  /**
+   * Constructor with defaults.
+   *
+   * @param tokenResolver token resolver
+   */
+  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver) {
+    this(tokenResolver, 5, Duration.ofSeconds(3));
   }
 
   /**
-   * Setter for tokenResolver.
+   * Constructor.
    *
-   * @param tokenResolver tokenResolver
-   * @return new instance with applied setting
+   * @param tokenResolver token resolver
+   * @param retryMaxAttempts max number of retry attempts
+   * @param retryFixedDelay delay between retry attempts
    */
-  public ServiceTokenAuthenticator<T> tokenResolver(JwtTokenResolver tokenResolver) {
-    final ServiceTokenAuthenticator<T> c = copy();
-    c.tokenResolver = tokenResolver;
-    return c;
-  }
-
-  /**
-   * Setter for tokenMapper.
-   *
-   * @param tokenMapper tokenMapper
-   * @return new instance with applied setting
-   */
-  public ServiceTokenAuthenticator<T> tokenMapper(ServiceTokenMapper tokenMapper) {
-    final ServiceTokenAuthenticator<T> c = copy();
-    c.tokenMapper = tokenMapper;
-    return c;
-  }
-
-  /**
-   * Setter for authDataMapper.
-   *
-   * @param authDataMapper authDataMapper
-   * @return new instance with applied setting
-   */
-  public ServiceTokenAuthenticator<T> authDataMapper(AuthDataMapper<T> authDataMapper) {
-    final ServiceTokenAuthenticator<T> c = copy();
-    c.authDataMapper = authDataMapper;
-    return c;
-  }
-
-  /**
-   * Setter for retryStrategy.
-   *
-   * @param retryStrategy retryStrategy
-   * @return new instance with applied setting
-   */
-  public ServiceTokenAuthenticator<T> retryStrategy(Retry retryStrategy) {
-    final ServiceTokenAuthenticator<T> c = copy();
-    c.retryStrategy = retryStrategy;
-    return c;
+  public ServiceTokenAuthenticator(
+      JwtTokenResolver tokenResolver, int retryMaxAttempts, Duration retryFixedDelay) {
+    this.tokenResolver = tokenResolver;
+    this.retryStrategy =
+        Retry.fixedDelay(retryMaxAttempts, retryFixedDelay)
+            .filter(ex -> ex instanceof JwtUnavailableException);
   }
 
   @Override
-  public Mono<T> apply(Map<String, String> credentials) {
-    return Mono.defer(
-        () -> {
-          final var serviceToken = tokenMapper.map(credentials);
+  public Mono<Principal> authenticate(byte[] credentials) {
+    return Mono.fromFuture(tokenResolver.resolve(new String(credentials)))
+        .retryWhen(retryStrategy)
+        .map(JwtToken::payload)
+        .map(
+            payload -> {
+              final var role = (String) payload.get("role");
+              if (role == null) {
+                throw new IllegalArgumentException("Wrong token: role claim is missing");
+              }
 
-          if (serviceToken == null) {
-            throw new UnauthorizedException("Authentication failed");
-          }
+              final var permissionsClaim = (String) payload.get("permissions");
+              if (permissionsClaim == null) {
+                throw new IllegalArgumentException("Wrong token: permissions claim is missing");
+              }
 
-          return Mono.fromFuture(tokenResolver.resolve(serviceToken))
-              .map(token -> authDataMapper.map(token.payload()))
-              .retryWhen(retryStrategy)
-              .doOnError(th -> LOGGER.error("Failed to authenticate, cause: {}", th.toString()))
-              .onErrorMap(th -> new UnauthorizedException("Authentication failed"))
-              .switchIfEmpty(Mono.error(new UnauthorizedException("Authentication failed")));
-        });
-  }
+              final var permissions =
+                  Arrays.stream(permissionsClaim.split(","))
+                      .map(String::trim)
+                      .filter(s -> !s.isBlank())
+                      .collect(Collectors.toSet());
 
-  @FunctionalInterface
-  public interface ServiceTokenMapper {
-
-    /**
-     * Returns service token from input credentials.
-     *
-     * @param credentials credentials (which must contain service token)
-     * @return extracted service token
-     */
-    String map(Map<String, String> credentials);
-  }
-
-  @FunctionalInterface
-  public interface AuthDataMapper<A> {
-
-    /**
-     * Converts source auth data to the destination auth data.
-     *
-     * @param authData source auth data
-     * @return converted auth data
-     */
-    A map(Map<String, Object> authData);
+              return new ServicePrincipal(role, permissions);
+            });
   }
 }

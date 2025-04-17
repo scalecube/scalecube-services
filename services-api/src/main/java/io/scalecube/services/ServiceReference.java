@@ -4,8 +4,9 @@ import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
 
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.Qualifier;
-import java.util.Collections;
+import io.scalecube.services.methods.ServiceMethodDefinition;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -17,6 +18,7 @@ import java.util.StringJoiner;
 public class ServiceReference {
 
   private final String endpointId;
+  private final String endpointName;
   private final String namespace;
   private final String action;
   private final String qualifier;
@@ -26,32 +28,39 @@ public class ServiceReference {
   private final Address address;
   private final boolean isSecured;
   private final String restMethod;
+  private final List<String> allowedRoles;
 
   /**
-   * Constructor for service reference.
+   * Constructor.
    *
-   * @param serviceMethodDefinition service method info
-   * @param serviceRegistration service registration
-   * @param serviceEndpoint service node info
+   * @param serviceMethodDefinition serviceMethodDefinition
+   * @param serviceRegistration serviceRegistration
+   * @param serviceEndpoint serviceEndpoint
    */
   public ServiceReference(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
+    this.endpointName = serviceEndpoint.name();
     this.namespace = serviceRegistration.namespace();
     this.action = serviceMethodDefinition.action();
     this.qualifier = Qualifier.asString(namespace, action);
     this.dynamicQualifier = isDynamicQualifier(qualifier) ? DynamicQualifier.from(qualifier) : null;
-    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
+    this.contentTypes = serviceEndpoint.contentTypes();
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.address = serviceEndpoint.address();
     this.isSecured = serviceMethodDefinition.isSecured();
     this.restMethod = serviceMethodDefinition.restMethod();
+    this.allowedRoles = serviceMethodDefinition.allowedRoles();
   }
 
   public String endpointId() {
     return endpointId;
+  }
+
+  public String endpointName() {
+    return endpointName;
   }
 
   public String namespace() {
@@ -90,7 +99,15 @@ public class ServiceReference {
     return restMethod;
   }
 
-  private Map<String, String> mergeTags(
+  public List<String> allowedRoles() {
+    return allowedRoles;
+  }
+
+  public boolean hasAllowedRoles() {
+    return allowedRoles.size() > 0;
+  }
+
+  private static Map<String, String> mergeTags(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
@@ -105,6 +122,7 @@ public class ServiceReference {
   public String toString() {
     return new StringJoiner(", ", ServiceReference.class.getSimpleName() + "[", "]")
         .add("endpointId='" + endpointId + "'")
+        .add("endpointName='" + endpointName + "'")
         .add("namespace='" + namespace + "'")
         .add("action='" + action + "'")
         .add("qualifier='" + qualifier + "'")
@@ -114,6 +132,7 @@ public class ServiceReference {
         .add("address=" + address)
         .add("isSecured=" + isSecured)
         .add("restMethod='" + restMethod + "'")
+        .add("allowedRoles=" + allowedRoles)
         .toString();
   }
 }

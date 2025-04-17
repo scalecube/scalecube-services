@@ -22,6 +22,7 @@ public class ServiceEndpoint implements Externalizable {
   private static final long serialVersionUID = 1L;
 
   private String id;
+  private String name;
   private Address address;
   private Set<String> contentTypes;
   private Map<String, String> tags;
@@ -37,6 +38,7 @@ public class ServiceEndpoint implements Externalizable {
 
   private ServiceEndpoint(Builder builder) {
     this.id = Objects.requireNonNull(builder.id, "ServiceEndpoint.id is required");
+    this.name = Objects.requireNonNull(builder.name, "ServiceEndpoint.name is required");
     this.address = Objects.requireNonNull(builder.address, "ServiceEndpoint.address is required");
     this.contentTypes = Collections.unmodifiableSet(new HashSet<>(builder.contentTypes));
     this.tags = Collections.unmodifiableMap(new HashMap<>(builder.tags));
@@ -54,6 +56,10 @@ public class ServiceEndpoint implements Externalizable {
 
   public String id() {
     return id;
+  }
+
+  public String name() {
+    return name;
   }
 
   public Address address() {
@@ -86,7 +92,8 @@ public class ServiceEndpoint implements Externalizable {
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceEndpoint.class.getSimpleName() + "[", "]")
-        .add("id=" + id)
+        .add("id='" + id + "'")
+        .add("name='" + name + "'")
         .add("address=" + address)
         .add("contentTypes=" + contentTypes)
         .add("tags=" + tags)
@@ -98,6 +105,9 @@ public class ServiceEndpoint implements Externalizable {
   public void writeExternal(ObjectOutput out) throws IOException {
     // id
     out.writeUTF(id);
+
+    // name
+    out.writeUTF(name);
 
     // address
     out.writeUTF(address.toString());
@@ -126,6 +136,9 @@ public class ServiceEndpoint implements Externalizable {
   public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
     // id
     id = in.readUTF();
+
+    // name
+    name = in.readUTF();
 
     // address
     address = Address.from(in.readUTF());
@@ -160,6 +173,7 @@ public class ServiceEndpoint implements Externalizable {
   public static class Builder {
 
     private String id;
+    private String name;
     private Address address = Address.NULL_ADDRESS;
     private Set<String> contentTypes = Collections.emptySet();
     private Map<String, String> tags = Collections.emptyMap();
@@ -169,6 +183,7 @@ public class ServiceEndpoint implements Externalizable {
 
     private Builder(ServiceEndpoint other) {
       this.id = other.id;
+      this.name = other.name;
       this.address = other.address;
       this.contentTypes = new HashSet<>(other.contentTypes);
       this.tags = new HashMap<>(other.tags);
@@ -177,6 +192,11 @@ public class ServiceEndpoint implements Externalizable {
 
     public Builder id(String id) {
       this.id = Objects.requireNonNull(id, "id");
+      return this;
+    }
+
+    public Builder name(String name) {
+      this.name = Objects.requireNonNull(name, "name");
       return this;
     }
 

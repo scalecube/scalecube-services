@@ -6,6 +6,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -29,7 +30,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
-  // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
@@ -51,7 +51,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
-    // todo how to collect tags correctly?
     return new ArrayList<>(serviceEndpoints.values());
   }
 
@@ -179,9 +178,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   method.getParameterCount(),
                                   Reflect.requestType(method),
                                   Reflect.isRequestTypeServiceMessage(method),
-                                  Reflect.isSecured(method),
+                                  Reflect.secured(serviceMethod),
                                   Reflect.executeOnScheduler(serviceMethod, schedulers),
-                                  Reflect.restMethod(method));
+                                  Reflect.restMethod(method),
+                                  Reflect.serviceRoles(serviceMethod));
 
                           checkMethodInfo(methodInfo);
 
@@ -192,7 +192,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                                   methodInfo,
                                   serviceInfo.errorMapper(),
                                   serviceInfo.dataDecoder(),
-                                  serviceInfo.authenticator(),
                                   serviceInfo.principalMapper(),
                                   serviceInfo.logger());
 
@@ -238,6 +237,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public ServiceMethodInvoker lookupInvoker(ServiceMessage request) {
+    if (request.qualifier() == null) {
+      throw new BadRequestException("Wrong message: qualifier is null");
+    }
+
     final var qualifier = request.qualifier();
     final var requestMethod = request.requestMethod();
 

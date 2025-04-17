@@ -14,6 +14,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD, ElementType.TYPE})
 public @interface Tags {
 
-  /** Returns array of associated tags. */
+  /**
+   * Returns array of associated tags.
+   *
+   * @return array of tags
+   */
   Tag[] value();
 }

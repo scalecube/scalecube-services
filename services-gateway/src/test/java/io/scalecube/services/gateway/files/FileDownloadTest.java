@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,7 +16,7 @@ import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.ServiceReference;
+import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -24,7 +25,6 @@ import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTran
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
-import io.scalecube.services.transport.api.ServiceTransport.CredentialsSupplier;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
@@ -59,8 +59,7 @@ public class FileDownloadTest {
   @BeforeAll
   static void beforeAll() {
     credentialsSupplier = mock(CredentialsSupplier.class);
-    when(credentialsSupplier.apply(any(ServiceReference.class)))
-        .thenReturn(Mono.never());
+    when(credentialsSupplier.credentials(any(String.class), anyList())).thenReturn(Mono.never());
 
     gateway =
         Microservices.start(
@@ -72,8 +71,8 @@ public class FileDownloadTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(
                     () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier))
-                .gateway(() -> new HttpGateway.Builder().id("HTTP").build())
-                .gateway(() -> new WebsocketGateway.Builder().id("WS").build()));
+                .gateway(() -> HttpGateway.builder().id("HTTP").build())
+                .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
     microservices =
         Microservices.start(
@@ -108,8 +107,8 @@ public class FileDownloadTest {
   void beforeEach() {
     serviceCall =
         new ServiceCall()
-            .router(new StaticAddressRouter(wsAddress))
-            .transport(new WebsocketGatewayClientTransport.Builder().address(wsAddress).build());
+            .router(StaticAddressRouter.forService(wsAddress, "app-service").build())
+            .transport(WebsocketGatewayClientTransport.builder().address(wsAddress).build());
   }
 
   @AfterEach

@@ -2,21 +2,21 @@ package io.scalecube.services.sut.security;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.auth.Secured;
 import reactor.core.publisher.Mono;
 
-@Secured
-@Service(SecuredService.SERVICE_NAME)
+@Service("secured")
 public interface SecuredService {
 
-  String SERVICE_NAME = "secured";
+  // Services secured by code in method body
 
   @ServiceMethod
-  Mono<String> helloWithRequest(String name);
+  Mono<Void> invokeWithRoleOrPermissions();
+
+  // Services secured by annotations in method body
 
   @ServiceMethod
-  Mono<String> helloWithPrincipal();
+  Mono<Void> readWithAllowedRoleAnnotation();
 
   @ServiceMethod
-  Mono<String> helloWithRequestAndPrincipal(String name);
+  Mono<Void> writeWithAllowedRoleAnnotation();
 }

@@ -1,21 +1,17 @@
 package io.scalecube.services.gateway;
 
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.auth.Authenticator;
+import io.scalecube.services.auth.Secured;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
-import java.util.Optional;
+import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.gateway.AuthRegistry.AllowedUser;
 import java.util.stream.IntStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class SecuredServiceImpl implements SecuredService {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(SecuredServiceImpl.class);
-
-  private static final String ALLOWED_USER = "VASYA_PUPKIN";
 
   private final AuthRegistry authRegistry;
 
@@ -27,49 +23,42 @@ public class SecuredServiceImpl implements SecuredService {
   public Mono<String> createSession(ServiceMessage request) {
     String sessionId = request.header(AuthRegistry.SESSION_ID);
     if (sessionId == null) {
-      return Mono.error(new BadRequestException("session Id is not present in request") {});
+      throw new BadRequestException("sessionId is not present in request");
     }
     String req = request.data();
-    Optional<String> authResult = authRegistry.addAuth(Long.parseLong(sessionId), req);
-    if (authResult.isPresent()) {
-      return Mono.just(req);
-    } else {
-      return Mono.error(new ForbiddenException("User not allowed to use this service: " + req));
+    if (!authRegistry.addAuth(Long.parseLong(sessionId), req)) {
+      throw new UnauthorizedException("Authentication failed");
     }
+    return Mono.just(req);
   }
 
+  @Secured
   @Override
   public Mono<String> requestOne(String req) {
-    return Mono.deferContextual(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
-        .doOnNext(this::checkPermissions)
-        .cast(String.class)
-        .flatMap(
-            auth -> {
-              LOGGER.info("User {} has accessed secured call", auth);
-              return Mono.just(auth + "@" + req);
+    return RequestContext.deferContextual()
+        .map(
+            context -> {
+              if (!context.hasPrincipal()) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
+              final var principal = (AllowedUser) context.principal();
+              return principal.username() + "@" + req;
             });
   }
 
+  @Secured
   @Override
-  public Flux<String> requestN(Integer times) {
-    return Mono.deferContextual(context -> Mono.just(context.get(Authenticator.AUTH_CONTEXT_KEY)))
-        .doOnNext(this::checkPermissions)
-        .cast(String.class)
+  public Flux<String> requestMany(Integer times) {
+    return RequestContext.deferContextual()
         .flatMapMany(
-            auth -> {
+            context -> {
+              if (!context.hasPrincipal()) {
+                throw new ForbiddenException("Insufficient permissions");
+              }
               if (times <= 0) {
                 return Flux.empty();
               }
               return Flux.fromStream(IntStream.range(0, times).mapToObj(String::valueOf));
             });
-  }
-
-  private void checkPermissions(Object authData) {
-    if (authData == null) {
-      throw new ForbiddenException("Not allowed (authData is null)");
-    }
-    if (!authData.equals(ALLOWED_USER)) {
-      throw new ForbiddenException("Not allowed (wrong user)");
-    }
   }
 }

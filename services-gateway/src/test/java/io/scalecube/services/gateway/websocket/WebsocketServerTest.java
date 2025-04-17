@@ -29,7 +29,7 @@ class WebsocketServerTest {
             new Context()
                 .gateway(
                     () ->
-                        new WebsocketGateway.Builder()
+                        WebsocketGateway.builder()
                             .id("WS")
                             .gatewayHandler(new TestGatewaySessionHandler())
                             .build())
@@ -49,9 +49,8 @@ class WebsocketServerTest {
   void testMessageSequence() {
     try (ServiceCall serviceCall =
         new ServiceCall()
-            .transport(
-                new WebsocketGatewayClientTransport.Builder().address(gatewayAddress).build())
-            .router(new StaticAddressRouter(gatewayAddress))) {
+            .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build())
+            .router(StaticAddressRouter.forService(gatewayAddress, "app-service").build())) {
       int count = 1000;
       StepVerifier.create(serviceCall.api(TestService.class).many(count) /*.log("<<<")*/)
           .expectNextSequence(IntStream.range(0, count).boxed().collect(Collectors.toList()))

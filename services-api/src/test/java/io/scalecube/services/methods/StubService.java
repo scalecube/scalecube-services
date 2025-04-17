@@ -10,27 +10,41 @@ public interface StubService {
 
   String NAMESPACE = "v1/stubService";
 
-  @ServiceMethod
-  Mono<String> returnNull();
+  // Invocation methods
 
   @ServiceMethod
-  Flux<String> returnNull2();
+  Mono<String> invokeOneReturnsNull();
 
   @ServiceMethod
-  Flux<String> returnNull3(Flux<String> request);
+  Flux<String> invokeManyReturnsNull();
 
   @ServiceMethod
-  Mono<String> throwException();
+  Flux<String> invokeBidirectionalReturnsNull(Flux<String> request);
 
   @ServiceMethod
-  Flux<String> throwException2();
+  Mono<String> invokeOneThrowsException();
 
   @ServiceMethod
-  Flux<String> throwException3(Flux<String> request);
+  Flux<String> invokeManyThrowsException();
 
   @ServiceMethod
-  Mono<Void> helloAuthContext();
+  Flux<String> invokeBidirectionalThrowsException(Flux<String> request);
 
   @ServiceMethod("hello/:foo/dynamic/:bar")
-  Mono<Void> helloRequestContextWithDynamicQualifier();
+  Mono<Void> invokeDynamicQualifier();
+
+  // Secured methods
+
+  @ServiceMethod
+  Mono<Void> invokeWithAuthContext();
+
+  // Services secured by code in method body
+
+  @ServiceMethod
+  Mono<Void> invokeWithRoleOrPermissions();
+
+  // Services secured by annotations in method body
+
+  @ServiceMethod
+  Mono<Void> invokeWithAllowedRoleAnnotation();
 }

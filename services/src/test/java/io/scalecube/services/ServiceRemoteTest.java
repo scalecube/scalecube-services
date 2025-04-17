@@ -94,7 +94,7 @@ public class ServiceRemoteTest {
     // call the service.
     Mono<GreetingResponse> result =
         Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
-    assertEquals(" hello to: joe", result.block(Duration.ofSeconds(10)).getResult());
+    assertEquals(" hello to: joe", result.block(Duration.ofSeconds(10)).result());
   }
 
   @Test
@@ -169,7 +169,7 @@ public class ServiceRemoteTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(10000)).getResult());
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(10000)).result());
   }
 
   @Test
@@ -198,7 +198,7 @@ public class ServiceRemoteTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)).getResult());
+    assertEquals(" hello to: joe", Mono.from(future).block(Duration.ofSeconds(1)).result());
   }
 
   @Test
@@ -216,7 +216,7 @@ public class ServiceRemoteTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -225,7 +225,7 @@ public class ServiceRemoteTest {
         .assertNext(
             resp -> {
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -244,7 +244,7 @@ public class ServiceRemoteTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -260,7 +260,7 @@ public class ServiceRemoteTest {
               GreetingResponse resp = message.data();
 
               assertEquals("1", resp.sender());
-              assertEquals("hello to: joe", resp.getResult());
+              assertEquals("hello to: joe", resp.result());
             })
         .expectComplete()
         .verify(TIMEOUT);
@@ -461,9 +461,9 @@ public class ServiceRemoteTest {
         service.bidiGreeting(requests.asFlux().onBackpressureBuffer());
 
     StepVerifier.create(responses)
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-1"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-2"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-3"))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
   }
@@ -488,11 +488,11 @@ public class ServiceRemoteTest {
 
     StepVerifier.create(responses)
         .then(() -> requests.emitNext(new GreetingRequest("joe-1"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-1"))
         .then(() -> requests.emitNext(new GreetingRequest("joe-2"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-2"))
         .then(() -> requests.emitNext(new GreetingRequest("joe-3"), FAIL_FAST))
-        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .expectNextMatches(resp -> resp.result().equals(" hello to: joe-3"))
         .then(() -> requests.emitComplete(FAIL_FAST))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
