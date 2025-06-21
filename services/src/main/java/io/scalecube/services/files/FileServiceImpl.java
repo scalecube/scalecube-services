@@ -22,31 +22,31 @@ public class FileServiceImpl implements FileService, FileStreamer {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileServiceImpl.class);
 
-  private static final int DEFAULT_MAX_CHUNK_SIZE = 64 * 1024;
-  private static final String TEMP_DIR = System.getProperty("java.io.tmpdir");
+  private static final int DEFAULT_CHUNK_SIZE = 64 * 1024;
+  private static final String DEFAULT_DIR = System.getProperty("java.io.tmpdir");
+  private static final Duration DEFAULT_TTL = Duration.ofSeconds(600);
 
   private final Path baseDir;
-  private final int maxChunkSize;
+  private final int chunkSize;
+  private final Duration fileTtl;
 
   private String serviceEndpointId;
 
-  /**
-   * Default constructor. {@code baseDir} will be {@code java.io.tmpdir}, {@code maxChunkSize} will
-   * be {@code 64k}.
-   */
   public FileServiceImpl() {
-    this(new File(TEMP_DIR), DEFAULT_MAX_CHUNK_SIZE);
+    this(new File(DEFAULT_DIR), DEFAULT_CHUNK_SIZE, DEFAULT_TTL);
   }
 
   /**
    * Constructor.
    *
    * @param baseDir baseDir for storing files
-   * @param maxChunkSize maximum buffer size for reading file and publishing by flux
+   * @param chunkSize maximum buffer size for reading file and publishing by flux
+   * @param fileTtl file lifetime, {@code null} means forever
    */
-  public FileServiceImpl(File baseDir, int maxChunkSize) {
+  public FileServiceImpl(File baseDir, int chunkSize, Duration fileTtl) {
     this.baseDir = baseDir.toPath();
-    this.maxChunkSize = maxChunkSize;
+    this.chunkSize = chunkSize;
+    this.fileTtl = fileTtl;
   }
 
   @AfterConstruct
@@ -73,7 +73,9 @@ public class FileServiceImpl implements FileService, FileStreamer {
             throw new IllegalArgumentException("Wrong file: " + file);
           }
 
-          if (ttl != null && ttl != Duration.ZERO) {
+          final var actualTtl = ttl != null ? ttl : fileTtl;
+
+          if (actualTtl != null) {
             final var scheduler = Schedulers.single();
             scheduler.schedule(
                 () -> {
@@ -81,7 +83,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
                     LOGGER.warn("Cannot delete file: {}", file);
                   }
                 },
-                ttl.toMillis(),
+                actualTtl.toMillis(),
                 TimeUnit.MILLISECONDS);
           }
 
@@ -100,7 +102,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
               if (!isPathValid(filePath)) {
                 return Flux.error(new FileNotFoundException("File not found: " + name));
               } else {
-                return fluxFrom(filePath, ByteBuffer.allocate(maxChunkSize));
+                return fluxFrom(filePath, ByteBuffer.allocate(chunkSize));
               }
             });
   }
@@ -134,8 +136,8 @@ public class FileServiceImpl implements FileService, FileStreamer {
         channel -> {
           try {
             channel.close();
-          } catch (Throwable e) {
-            LOGGER.warn("Cannot close file: {}", filePath);
+          } catch (Exception e) {
+            LOGGER.warn("Cannot close file: {}", filePath, e);
           }
         });
   }
