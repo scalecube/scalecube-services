@@ -10,6 +10,7 @@
 
   <artifactId>scalecube-services-transport-parent</artifactId>
   <packaging>pom</packaging>
+  <name>${project.artifactId}</name>
 
   <modules>
     <module>services-transport-jackson</module>

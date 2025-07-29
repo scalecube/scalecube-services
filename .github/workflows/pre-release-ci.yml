@@ -38,12 +38,12 @@ jobs:
         with:
           java-version: 17
           distribution: zulu
-          server-id: ossrh
+          server-id: central
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
-      - name: Deploy pre-release version to the Maven Central Repository
+      - name: Deploy pre-release version to Maven Central Repository
         run: |
           pre_release_version=${{ github.event.release.tag_name }}
           echo Pre-release version $pre_release_version
@@ -51,8 +51,8 @@ jobs:
           mvn versions:commit
           mvn deploy -Pdeploy2Maven -DskipTests -B -V
         env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.SONATYPE_CENTRAL_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.SONATYPE_CENTRAL_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
       - name: Rollback pre-release (remove tag)
         if: failure()
