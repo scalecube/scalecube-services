@@ -1,8 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.scalecube.services.auth.Authenticator;
@@ -220,10 +218,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private EventLoopGroup newEventLoopGroup() {
     ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
-    EventLoopGroup eventLoopGroup =
-        Epoll.isAvailable()
-            ? new EpollEventLoopGroup(numOfWorkers, threadFactory)
-            : new NioEventLoopGroup(numOfWorkers, threadFactory);
+    EventLoopGroup eventLoopGroup = new NioEventLoopGroup(numOfWorkers, threadFactory);
     return LoopResources.colocate(eventLoopGroup);
   }
 }

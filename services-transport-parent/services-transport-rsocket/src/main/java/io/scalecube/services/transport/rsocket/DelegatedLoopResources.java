@@ -1,8 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
@@ -48,10 +46,7 @@ public class DelegatedLoopResources implements LoopResources {
    * @return loop resources
    */
   public static DelegatedLoopResources newServerLoopResources(EventLoopGroup workerGroup) {
-    EventLoopGroup bossGroup =
-        Epoll.isAvailable()
-            ? new EpollEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY)
-            : new NioEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY);
+    EventLoopGroup bossGroup = new NioEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY);
     return new DelegatedLoopResources(bossGroup, workerGroup);
   }
 
