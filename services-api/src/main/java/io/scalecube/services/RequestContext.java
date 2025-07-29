@@ -311,8 +311,8 @@ public class RequestContext implements Context {
                 LOGGER.warn(
                     "Insufficient permissions for secured method ({}) -- "
                         + "request context ({}) does not have principal",
-                    context,
-                    context.methodInfo());
+                    context.methodInfo(),
+                    context);
                 throw new ForbiddenException("Insufficient permissions");
               }
 
