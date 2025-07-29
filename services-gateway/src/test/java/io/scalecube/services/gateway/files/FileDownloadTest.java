@@ -7,8 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +58,7 @@ public class FileDownloadTest {
   @BeforeAll
   static void beforeAll() {
     credentialsSupplier = mock(CredentialsSupplier.class);
-    when(credentialsSupplier.credentials(any(String.class), anyList())).thenReturn(Mono.never());
+    when(credentialsSupplier.credentials(anyString(), anyString())).thenReturn(Mono.never());
 
     gateway =
         Microservices.start(

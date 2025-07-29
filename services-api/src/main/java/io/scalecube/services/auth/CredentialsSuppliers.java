@@ -1,7 +1,9 @@
 package io.scalecube.services.auth;
 
-import java.util.List;
-
+/**
+ * Factory for {@link CredentialsSupplier} objects. Responsible for producing {@link
+ * CredentialsSupplier} for service role that is known upfront.
+ */
 public class CredentialsSuppliers {
 
   private final CredentialsSupplier credentialsSupplier;
@@ -10,8 +12,13 @@ public class CredentialsSuppliers {
     this.credentialsSupplier = credentialsSupplier;
   }
 
+  /**
+   * Returns {@link CredentialsSupplier} instance per given {@code serviceRole}.
+   *
+   * @param serviceRole serviceRole
+   * @return {@link CredentialsSupplier} instance
+   */
   public CredentialsSupplier forServiceRole(String serviceRole) {
-    return (service, allowedRoles) ->
-        credentialsSupplier.credentials(service, List.of(serviceRole));
+    return (service, allowedRoles) -> credentialsSupplier.credentials(service, serviceRole);
   }
 }

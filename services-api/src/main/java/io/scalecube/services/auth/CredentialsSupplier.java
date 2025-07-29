@@ -1,6 +1,5 @@
 package io.scalecube.services.auth;
 
-import java.util.List;
 import reactor.core.publisher.Mono;
 
 /**
@@ -14,8 +13,8 @@ public interface CredentialsSupplier {
    * Obtains credentials for the given service role.
    *
    * @param service logical service name
-   * @param serviceRoles allowed roles on the service (optional)
+   * @param serviceRole service role (optional)
    * @return credentials
    */
-  Mono<byte[]> credentials(String service, List<String> serviceRoles);
+  Mono<byte[]> credentials(String service, String serviceRole);
 }

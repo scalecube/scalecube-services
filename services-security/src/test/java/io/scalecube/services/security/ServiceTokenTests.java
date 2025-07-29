@@ -34,7 +34,7 @@ public class ServiceTokenTests {
         () -> CompletableFuture.completedFuture(vaultEnvironment.login());
 
     final var credentialsSupplier =
-        new ServiceTokenCredentialsSupplier(args.environment, vaultAddr, vaultTokenSupplier, null);
+        new ServiceTokenCredentialsSupplier(args.environment, vaultAddr, vaultTokenSupplier);
 
     final var authenticator =
         new ServiceTokenAuthenticator(
@@ -48,8 +48,7 @@ public class ServiceTokenTests {
 
     // Get service token
 
-    final var credentials =
-        credentialsSupplier.credentials(args.service, List.of(args.serviceRole)).block();
+    final var credentials = credentialsSupplier.credentials(args.service, args.serviceRole).block();
 
     // Authenticate
 

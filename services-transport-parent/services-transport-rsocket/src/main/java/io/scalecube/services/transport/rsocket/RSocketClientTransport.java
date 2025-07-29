@@ -99,7 +99,7 @@ public class RSocketClientTransport implements ClientTransport {
       ServiceReference serviceReference,
       Map<Destination, Mono<RSocket>> monoMap) {
     return RSocketConnector.create()
-        .setupPayload(Mono.defer(() -> getCredentials(serviceReference)))
+        .setupPayload(Mono.defer(() -> getCredentials(destination, serviceReference)))
         .connect(() -> clientTransportFactory.clientTransport(destination.address()))
         .doOnSuccess(
             rsocket -> {
@@ -122,13 +122,12 @@ public class RSocketClientTransport implements ClientTransport {
             ex -> LOGGER.warn("Failed to connect ({}), cause: {}", destination, ex.toString()));
   }
 
-  private Mono<Payload> getCredentials(ServiceReference serviceReference) {
-    if (credentialsSupplier == null || !serviceReference.isSecured()) {
+  private Mono<Payload> getCredentials(Destination destination, ServiceReference serviceReference) {
+    if (destination.role() == null) {
       return Mono.just(EmptyPayload.INSTANCE);
     }
-
     return credentialsSupplier
-        .credentials(serviceReference.endpointName(), serviceReference.allowedRoles())
+        .credentials(serviceReference.endpointName(), destination.role())
         .map(data -> data.length != 0 ? DefaultPayload.create(data) : EmptyPayload.INSTANCE)
         .onErrorMap(
             th -> {
