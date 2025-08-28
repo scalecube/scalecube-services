@@ -163,17 +163,23 @@ public final class ServiceMessageCodec {
    */
   public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
       throws MessageCodecException {
-    if (dataType == null
-        || !message.hasData(ByteBuf.class)
-        || ((ByteBuf) message.data()).readableBytes() == 0
-        || ByteBuf.class == dataType) {
+    if (dataType == null || !message.hasData(ByteBuf.class)) {
       return message;
+    }
+
+    final ByteBuf dataBuffer = message.data();
+    if (dataBuffer.readableBytes() == 0 || dataType == ByteBuf.class) {
+      return message;
+    }
+    if (dataType == byte[].class) {
+      final var bytes = new byte[dataBuffer.readableBytes()];
+      dataBuffer.getBytes(dataBuffer.readerIndex(), bytes);
+      return ServiceMessage.from(message).data(bytes).build();
     }
 
     Object data;
     Type targetType = message.isError() ? ErrorData.class : dataType;
 
-    ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);

@@ -5,9 +5,7 @@ import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -102,44 +100,9 @@ public class FileServiceImpl implements FileService, FileStreamer {
               if (!isPathValid(filePath)) {
                 return Flux.error(new FileNotFoundException("File not found: " + name));
               } else {
-                return fluxFrom(filePath, ByteBuffer.allocate(chunkSize));
+                return FileChannelFlux.createFrom(filePath, ByteBuffer.allocate(chunkSize));
               }
             });
-  }
-
-  private static Flux<byte[]> fluxFrom(Path filePath, ByteBuffer chunkBuffer) {
-    return Flux.generate(
-        () -> FileChannel.open(filePath),
-        (channel, sink) -> {
-          try {
-            int read;
-            chunkBuffer.clear();
-            do {
-              read = channel.read(chunkBuffer);
-            } while (read == 0);
-
-            chunkBuffer.flip();
-            if (chunkBuffer.remaining() > 0) {
-              final var bytes = new byte[chunkBuffer.remaining()];
-              chunkBuffer.get(bytes);
-              sink.next(bytes);
-            }
-
-            if (read == -1) {
-              sink.complete();
-            }
-          } catch (IOException e) {
-            sink.error(e);
-          }
-          return channel;
-        },
-        channel -> {
-          try {
-            channel.close();
-          } catch (Exception e) {
-            LOGGER.warn("Cannot close file: {}", filePath, e);
-          }
-        });
   }
 
   private boolean isPathValid(Path filePath) {

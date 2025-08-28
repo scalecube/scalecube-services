@@ -5,6 +5,8 @@ import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
+import static io.scalecube.services.gateway.ReferenceCountUtil.safestRelease;
 import static io.scalecube.services.gateway.http.HttpGateway.SUPPORTED_METHODS;
 
 import io.netty.buffer.ByteBuf;
@@ -13,19 +15,24 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.multipart.FileUpload;
+import io.netty.handler.codec.http.multipart.HttpData;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.gateway.ReferenceCountUtil;
+import io.scalecube.services.files.FileChannelFlux;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.api.DataCodec;
+import java.io.IOException;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +48,7 @@ public class HttpGatewayAcceptor
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
+  private static final long MAX_SERVICE_MESSAGE_SIZE = 1024 * 1024;
 
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
@@ -69,42 +77,89 @@ public class HttpGatewayAcceptor
       return methodNotAllowed(httpResponse);
     }
 
+    if (httpRequest.isMultipart()) {
+      return handleFileUploadRequest(httpRequest, httpResponse);
+    } else {
+      return handleServiceRequest(httpRequest, httpResponse);
+    }
+  }
+
+  private Mono<Void> handleFileUploadRequest(
+      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+    return httpRequest
+        .receiveForm()
+        .flatMap(
+            httpData ->
+                serviceCall
+                    .requestBidirectional(
+                        createFlux(httpData)
+                            .map(
+                                data ->
+                                    toMessage(
+                                        httpRequest,
+                                        builder -> {
+                                          final var filename =
+                                              ((FileUpload) httpData).getFilename();
+                                          builder.header(HEADER_UPLOAD_FILENAME, filename);
+                                          builder.data(data);
+                                        })))
+                    .last()
+                    .flatMap(
+                        response ->
+                            response.isError() // check error
+                                ? error(httpResponse, response)
+                                : response.hasData() // check data
+                                    ? ok(httpResponse, response)
+                                    : noContent(httpResponse)))
+        .then();
+  }
+
+  private Mono<Void> handleServiceRequest(
+      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     return httpRequest
         .receive()
-        .aggregate()
+        .reduceWith(
+            Unpooled::buffer,
+            (acc, byteBuf) -> {
+              final var readableBytes = acc.readableBytes();
+              final var limit = MAX_SERVICE_MESSAGE_SIZE;
+              if (readableBytes >= limit) {
+                throw new RuntimeException(
+                    "Payload too large, size: " + readableBytes + ", limit: " + limit);
+              }
+              return acc.writeBytes(byteBuf);
+            })
         .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
-        .map(ByteBuf::retain)
-        .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
+        .flatMap(
+            data -> {
+              final var message = toMessage(httpRequest, builder -> builder.data(data));
+
+              // Match and handle file request
+
+              final var service = matchFileDownloadRequest(serviceRegistry.lookupService(message));
+              if (service != null) {
+                return handleFileDownloadRequest(service, message, httpResponse);
+              }
+
+              // Handle normal service request
+
+              return serviceCall
+                  .requestOne(message)
+                  .switchIfEmpty(Mono.defer(() -> emptyMessage(message)))
+                  .doOnError(th -> safestRelease(message.data()))
+                  .flatMap(
+                      response ->
+                          response.isError() // check error
+                              ? error(httpResponse, response)
+                              : response.hasData() // check data
+                                  ? ok(httpResponse, response)
+                                  : noContent(httpResponse));
+            })
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
 
-  private Mono<Void> handleRequest(
-      ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    final var message = toMessage(httpRequest, content);
-
-    // Match and handle file request
-
-    final var serviceReference = matchFileRequest(serviceRegistry.lookupService(message));
-    if (serviceReference != null) {
-      return handleFileRequest(serviceReference, message, httpResponse);
-    }
-
-    // Handle normal service request
-
-    return serviceCall
-        .requestOne(message)
-        .switchIfEmpty(Mono.defer(() -> emptyMessage(message)))
-        .doOnError(th -> releaseRequestOnError(message))
-        .flatMap(
-            response ->
-                response.isError() // check error
-                    ? error(httpResponse, response)
-                    : response.hasData() // check data
-                        ? ok(httpResponse, response)
-                        : noContent(httpResponse));
-  }
-
-  private static ServiceMessage toMessage(HttpServerRequest httpRequest, ByteBuf content) {
+  private static ServiceMessage toMessage(
+      HttpServerRequest httpRequest, Consumer<Builder> consumer) {
     final var builder = ServiceMessage.builder();
 
     // Copy http headers to service message
@@ -115,11 +170,14 @@ public class HttpGatewayAcceptor
 
     // Add http method to service message (used by REST services)
 
-    return builder
+    builder
         .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
-        .qualifier(httpRequest.uri().substring(1))
-        .data(content)
-        .build();
+        .qualifier(httpRequest.uri().substring(1));
+    if (consumer != null) {
+      consumer.accept(builder);
+    }
+
+    return builder.build();
   }
 
   private static Mono<ServiceMessage> emptyMessage(ServiceMessage message) {
@@ -169,7 +227,7 @@ public class HttpGatewayAcceptor
     try {
       DataCodec.getInstance(dataFormat).encode(new ByteBufOutputStream(byteBuf), data);
     } catch (Throwable t) {
-      ReferenceCountUtil.safestRelease(byteBuf);
+      safestRelease(byteBuf);
       LOGGER.error("Failed to encode data: {}", data, t);
       return Unpooled.EMPTY_BUFFER;
     }
@@ -177,23 +235,19 @@ public class HttpGatewayAcceptor
     return byteBuf;
   }
 
-  private static void releaseRequestOnError(ServiceMessage request) {
-    ReferenceCountUtil.safestRelease(request.data());
-  }
-
-  private static ServiceReference matchFileRequest(List<ServiceReference> list) {
+  private static ServiceReference matchFileDownloadRequest(List<ServiceReference> list) {
     if (list.size() != 1) {
       return null;
     }
-    final var sr = list.get(0);
-    if ("application/file".equals(sr.tags().get("Content-Type"))) {
-      return sr;
+    final var service = list.get(0);
+    if ("application/file".equals(service.tags().get("Content-Type"))) {
+      return service;
     } else {
       return null;
     }
   }
 
-  private Mono<Void> handleFileRequest(
+  private Mono<Void> handleFileDownloadRequest(
       ServiceReference service, ServiceMessage message, HttpServerResponse response) {
     return serviceCall
         .router(StaticAddressRouter.forService(service.address(), service.endpointName()).build())
@@ -273,6 +327,14 @@ public class HttpGatewayAcceptor
       return "File not found: " + fileName;
     } else {
       return HttpResponseStatus.valueOf(statusCode).reasonPhrase();
+    }
+  }
+
+  private static Flux<byte[]> createFlux(HttpData httpData) {
+    try {
+      return FileChannelFlux.createFrom(httpData.getFile().toPath());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

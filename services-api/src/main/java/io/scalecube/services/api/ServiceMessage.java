@@ -30,6 +30,9 @@ public final class ServiceMessage {
   /** Request method header. */
   public static final String HEADER_REQUEST_METHOD = "requestMethod";
 
+  /** Upload filename header. */
+  public static final String HEADER_UPLOAD_FILENAME = "uploadFilename";
+
   /** Null value for error type. */
   public static final int NULL_ERROR_TYPE = -1;
 
@@ -197,6 +200,15 @@ public final class ServiceMessage {
    */
   public String requestMethod() {
     return headers.get(HEADER_REQUEST_METHOD);
+  }
+
+  /**
+   * Returns upload filename header.
+   *
+   * @return upload filename, or null if such header doesn't exist.
+   */
+  public String uploadFilename() {
+    return headers.get(HEADER_UPLOAD_FILENAME);
   }
 
   @Override

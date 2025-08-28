@@ -1,5 +1,8 @@
 package io.scalecube.services.gateway.files;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
+
+import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.files.AddFileRequest;
 import io.scalecube.services.files.FileService;
@@ -8,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.IntStream;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class ReportServiceImpl implements ReportService {
@@ -45,7 +49,29 @@ public class ReportServiceImpl implements ReportService {
         .map(s -> new ReportResponse().reportPath(s));
   }
 
-  private static File generateFile(final Path file, final int numOfLines) throws IOException {
+  @Override
+  public Mono<String> uploadReport(Flux<byte[]> reportStream) {
+    return RequestContext.deferContextual()
+        .flatMap(
+            requestContext -> {
+              final var filename = requestContext.header(HEADER_UPLOAD_FILENAME);
+              return reportStream.then().then(Mono.just(filename));
+            });
+  }
+
+  @Override
+  public Mono<String> uploadReportError(Flux<byte[]> reportStream) {
+    return RequestContext.deferContextual()
+        .flatMap(
+            requestContext -> {
+              final var filename = requestContext.header(HEADER_UPLOAD_FILENAME);
+              return reportStream
+                  .then()
+                  .then(Mono.error(new RuntimeException("Upload report failed: " + filename)));
+            });
+  }
+
+  public static File generateFile(final Path file, final int numOfLines) throws IOException {
     final var list =
         IntStream.range(0, numOfLines)
             .mapToObj(i -> "export report @ " + System.nanoTime())
