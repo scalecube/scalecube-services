@@ -21,11 +21,9 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
-import java.lang.reflect.Array;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -444,29 +442,6 @@ public class ServiceCall implements AutoCloseable {
         Schedulers.immediate(),
         restMethod(method),
         Collections.emptyList());
-  }
-
-  private static String toString(Object request) {
-    if (request == null) {
-      return "null";
-    }
-    // Handle arrays
-    if (request.getClass().isArray()) {
-      return request.getClass().getComponentType().getSimpleName()
-          + "["
-          + Array.getLength(request)
-          + "]";
-    }
-    // Handle collections
-    if (request instanceof Collection<?> collection) {
-      return collection.getClass().getSimpleName() + "[" + collection.size() + "]";
-    }
-    // Handle maps
-    if (request instanceof Map<?, ?> map) {
-      return map.getClass().getSimpleName() + "[" + map.size() + "]";
-    }
-    // Fallback
-    return String.valueOf(request);
   }
 
   @Override
