@@ -271,7 +271,6 @@ public class ServiceCallRemoteTest {
   public void test_custom_error_mapper() {
     GreetingService service =
         new ServiceCall()
-            .logger("test_custom_error_mapper")
             .errorMapper(
                 message -> {
                   throw new RuntimeException("custom error mapper");

@@ -27,7 +27,7 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
@@ -36,7 +36,7 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
@@ -46,7 +46,7 @@ public class RSocketClientChannel implements ClientChannel {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
+        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 

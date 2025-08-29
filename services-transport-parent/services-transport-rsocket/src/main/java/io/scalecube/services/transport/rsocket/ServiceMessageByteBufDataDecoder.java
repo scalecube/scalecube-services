@@ -6,7 +6,12 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 public class ServiceMessageByteBufDataDecoder implements ServiceMessageDataDecoder {
 
   @Override
-  public ServiceMessage apply(ServiceMessage message, Class<?> dataType) {
-    return ServiceMessageCodec.decodeData(message, dataType);
+  public ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+    return ServiceMessageCodec.decodeData(message, dataType, false);
+  }
+
+  @Override
+  public ServiceMessage copyData(ServiceMessage message, Class<?> dataType) {
+    return ServiceMessageCodec.decodeData(message, dataType, true);
   }
 }

@@ -11,7 +11,7 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
-import io.scalecube.services.transport.rsocket.ServiceMessageCodec;
+import io.scalecube.services.transport.rsocket.ServiceMessageByteBufDataDecoder;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
 import java.util.List;
@@ -37,7 +37,7 @@ public class StreamingServiceTest {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-                .defaultDataDecoder(ServiceMessageCodec::decodeData));
+                .defaultDataDecoder(new ServiceMessageByteBufDataDecoder()));
 
     final Address gatewayAddress = gateway.discoveryAddress();
 
@@ -51,7 +51,7 @@ public class StreamingServiceTest {
                             .options(opts -> opts.metadata(endpoint))
                             .membership(cfg -> cfg.seedMembers(gatewayAddress.toString())))
                 .transport(RSocketServiceTransport::new)
-                .defaultDataDecoder(ServiceMessageCodec::decodeData)
+                .defaultDataDecoder(new ServiceMessageByteBufDataDecoder())
                 .services(new SimpleQuoteService()));
   }
 

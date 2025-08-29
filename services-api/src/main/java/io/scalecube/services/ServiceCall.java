@@ -31,8 +31,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,7 +44,8 @@ public class ServiceCall implements AutoCloseable {
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
-  private Logger logger;
+
+  // private Logger logger;
 
   public ServiceCall() {}
 
@@ -57,7 +56,6 @@ public class ServiceCall implements AutoCloseable {
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
     this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
-    this.logger = other.logger;
   }
 
   /**
@@ -145,42 +143,6 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
-   * Setter for {@link ServiceCall} {@code logger}.
-   *
-   * @param name logger name (optional)
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall logger(String name) {
-    ServiceCall target = new ServiceCall(this);
-    target.logger = name != null ? LoggerFactory.getLogger(name) : null;
-    return target;
-  }
-
-  /**
-   * Setter for {@link ServiceCall} {@code logger}.
-   *
-   * @param clazz logger name (optional)
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall logger(Class<?> clazz) {
-    ServiceCall target = new ServiceCall(this);
-    target.logger = clazz != null ? LoggerFactory.getLogger(clazz) : null;
-    return target;
-  }
-
-  /**
-   * Setter for {@link ServiceCall} {@code logger}.
-   *
-   * @param logger logger (optional)
-   * @return new {@link ServiceCall} instance.
-   */
-  public ServiceCall logger(Logger logger) {
-    ServiceCall target = new ServiceCall(this);
-    target.logger = logger;
-    return target;
-  }
-
-  /**
    * Invokes fire-and-forget request.
    *
    * @param request request message to send.
@@ -209,50 +171,37 @@ public class ServiceCall implements AutoCloseable {
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
-            () -> {
-              ServiceMethodInvoker methodInvoker;
-              if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
-                // local service
-                return methodInvoker
-                    .invokeOne(request)
-                    .map(this::throwIfError)
-                    .contextWrite(
-                        context -> {
-                          if (context.hasKey(RequestContext.class)) {
-                            return context;
-                          } else {
-                            return new RequestContext(context)
-                                .headers(request.headers())
-                                .request(request)
-                                .principal(NULL_PRINCIPAL);
-                          }
-                        });
-              } else {
-                // remote service
-                Objects.requireNonNull(transport, "[requestOne] transport");
-                return Mono.fromCallable(() -> serviceLookup(request))
-                    .flatMap(
-                        serviceReference ->
-                            transport
-                                .create(serviceReference)
-                                .requestResponse(request, responseType)
-                                .map(this::throwIfError));
-              }
-            })
-        .doOnSuccess(
-            response -> {
-              if (logger != null && logger.isDebugEnabled()) {
-                logger.debug(
-                    "[{}] request: {}, response: {}", request.qualifier(), request, response);
-              }
-            })
-        .doOnError(
-            ex -> {
-              if (logger != null) {
-                logger.error("[{}][error] request: {}", request.qualifier(), request, ex);
-              }
-            });
+        () -> {
+          ServiceMethodInvoker methodInvoker;
+          if (serviceRegistry != null
+              && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
+            // local service
+            return methodInvoker
+                .invokeOne(request)
+                .map(this::throwIfError)
+                .contextWrite(
+                    context -> {
+                      if (context.hasKey(RequestContext.class)) {
+                        return context;
+                      } else {
+                        return new RequestContext(context)
+                            .headers(request.headers())
+                            .request(request)
+                            .principal(NULL_PRINCIPAL);
+                      }
+                    });
+          } else {
+            // remote service
+            Objects.requireNonNull(transport, "[requestOne] transport");
+            return Mono.fromCallable(() -> serviceLookup(request))
+                .flatMap(
+                    serviceReference ->
+                        transport
+                            .create(serviceReference)
+                            .requestResponse(request, responseType)
+                            .map(this::throwIfError));
+          }
+        });
   }
 
   /**
@@ -274,55 +223,37 @@ public class ServiceCall implements AutoCloseable {
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
-            () -> {
-              ServiceMethodInvoker methodInvoker;
-              if (serviceRegistry != null
-                  && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
-                // local service
-                return methodInvoker
-                    .invokeMany(request)
-                    .map(this::throwIfError)
-                    .contextWrite(
-                        context -> {
-                          if (context.hasKey(RequestContext.class)) {
-                            return context;
-                          } else {
-                            return new RequestContext(context)
-                                .headers(request.headers())
-                                .request(request)
-                                .principal(NULL_PRINCIPAL);
-                          }
-                        });
-              } else {
-                // remote service
-                Objects.requireNonNull(transport, "[requestMany] transport");
-                return Mono.fromCallable(() -> serviceLookup(request))
-                    .flatMapMany(
-                        serviceReference ->
-                            transport
-                                .create(serviceReference)
-                                .requestStream(request, responseType)
-                                .map(this::throwIfError));
-              }
-            })
-        .doOnSubscribe(
-            s -> {
-              if (logger != null && logger.isDebugEnabled()) {
-                logger.debug("[{}][subscribe] request: {}", request.qualifier(), request);
-              }
-            })
-        .doOnComplete(
-            () -> {
-              if (logger != null && logger.isDebugEnabled()) {
-                logger.debug("[{}][complete] request: {}", request.qualifier(), request);
-              }
-            })
-        .doOnError(
-            ex -> {
-              if (logger != null) {
-                logger.error("[{}][error] request: {}", request.qualifier(), request, ex);
-              }
-            });
+        () -> {
+          ServiceMethodInvoker methodInvoker;
+          if (serviceRegistry != null
+              && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
+            // local service
+            return methodInvoker
+                .invokeMany(request)
+                .map(this::throwIfError)
+                .contextWrite(
+                    context -> {
+                      if (context.hasKey(RequestContext.class)) {
+                        return context;
+                      } else {
+                        return new RequestContext(context)
+                            .headers(request.headers())
+                            .request(request)
+                            .principal(NULL_PRINCIPAL);
+                      }
+                    });
+          } else {
+            // remote service
+            Objects.requireNonNull(transport, "[requestMany] transport");
+            return Mono.fromCallable(() -> serviceLookup(request))
+                .flatMapMany(
+                    serviceReference ->
+                        transport
+                            .create(serviceReference)
+                            .requestStream(request, responseType)
+                            .map(this::throwIfError));
+          }
+        });
   }
 
   /**
@@ -353,7 +284,20 @@ public class ServiceCall implements AutoCloseable {
                 if (serviceRegistry != null
                     && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                   // local service
-                  return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
+                  return methodInvoker
+                      .invokeBidirectional(messages)
+                      .map(this::throwIfError)
+                      .contextWrite(
+                          context -> {
+                            if (context.hasKey(RequestContext.class)) {
+                              return context;
+                            } else {
+                              return new RequestContext(context)
+                                  .headers(request.headers())
+                                  .request(request)
+                                  .principal(NULL_PRINCIPAL);
+                            }
+                          });
                 } else {
                   // remote service
                   Objects.requireNonNull(transport, "[requestBidirectional] transport");
