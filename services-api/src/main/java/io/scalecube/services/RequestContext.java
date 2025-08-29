@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_QUALIFIER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.auth.Principal;
@@ -157,6 +158,15 @@ public class RequestContext implements Context {
    */
   public String requestQualifier() {
     return header(HEADER_QUALIFIER);
+  }
+
+  /**
+   * Returns upload filename from headers.
+   *
+   * @return upload filename, or {@code null} if not found
+   */
+  public String uploadFilename() {
+    return header(HEADER_UPLOAD_FILENAME);
   }
 
   /**
