@@ -156,39 +156,12 @@ public class ServiceMethodInvoker {
         .switchOnFirst(
             (first, messages) -> {
               final var message = first.get();
-              final var request = toRequest(message);
               final var qualifier = message.qualifier();
               final var dataFormat = message.dataFormat();
 
               return messages
                   .map(this::toRequest)
                   .transform(this::invokeRequest)
-                  .doOnSubscribe(
-                      s -> {
-                        if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug(
-                              "[{}][subscribe] request: {}",
-                              message.qualifier(),
-                              toString(request));
-                        }
-                      })
-                  .doOnComplete(
-                      () -> {
-                        if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug(
-                              "[{}][complete] request: {}", message.qualifier(), toString(request));
-                        }
-                      })
-                  .doOnError(
-                      ex -> {
-                        if (logger != null) {
-                          logger.error(
-                              "[{}][error] request: {}",
-                              message.qualifier(),
-                              toString(request),
-                              ex);
-                        }
-                      })
                   .map(response -> toResponse(response, qualifier, dataFormat))
                   .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
                   .subscribeOn(methodInfo.scheduler());
