@@ -284,7 +284,20 @@ public class ServiceCall implements AutoCloseable {
                 if (serviceRegistry != null
                     && (methodInvoker = serviceRegistry.lookupInvoker(request)) != null) {
                   // local service
-                  return methodInvoker.invokeBidirectional(messages).map(this::throwIfError);
+                  return methodInvoker
+                      .invokeBidirectional(messages)
+                      .map(this::throwIfError)
+                      .contextWrite(
+                          context -> {
+                            if (context.hasKey(RequestContext.class)) {
+                              return context;
+                            } else {
+                              return new RequestContext(context)
+                                  .headers(request.headers())
+                                  .request(request)
+                                  .principal(NULL_PRINCIPAL);
+                            }
+                          });
                 } else {
                   // remote service
                   Objects.requireNonNull(transport, "[requestBidirectional] transport");

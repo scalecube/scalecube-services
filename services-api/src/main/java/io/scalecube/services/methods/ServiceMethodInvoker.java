@@ -152,20 +152,61 @@ public class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
-    return Flux.from(publisher)
-        .switchOnFirst(
-            (first, messages) -> {
-              final var message = first.get();
-              final var qualifier = message.qualifier();
-              final var dataFormat = message.dataFormat();
+    return RequestContext.deferContextual()
+        .flatMapMany(
+            context ->
+                Flux.from(publisher)
+                    .switchOnFirst(
+                        (first, messages) -> {
+                          final var message = first.get();
+                          final var request = copyRequest(message);
+                          final var qualifier = message.qualifier();
+                          final var dataFormat = message.dataFormat();
 
-              return messages
-                  .map(this::toRequest)
-                  .transform(this::invokeRequest)
-                  .map(response -> toResponse(response, qualifier, dataFormat))
-                  .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
-                  .subscribeOn(methodInfo.scheduler());
-            });
+                          return mapPrincipal(context)
+                              .flatMapMany(
+                                  principal ->
+                                      requestContext()
+                                          .thenMany(
+                                              Flux.defer(
+                                                  () ->
+                                                      messages
+                                                          .map(this::toRequest)
+                                                          .transform(this::invokeRequest)))
+                                          .contextWrite(
+                                              enhanceRequestContext(context, request, principal)))
+                              .doOnSubscribe(
+                                  s -> {
+                                    if (logger != null && logger.isDebugEnabled()) {
+                                      logger.debug(
+                                          "[{}][subscribe] request: {}",
+                                          qualifier,
+                                          toString(request));
+                                    }
+                                  })
+                              .doOnComplete(
+                                  () -> {
+                                    if (logger != null && logger.isDebugEnabled()) {
+                                      logger.debug(
+                                          "[{}][complete] request: {}",
+                                          qualifier,
+                                          toString(request));
+                                    }
+                                  })
+                              .doOnError(
+                                  ex -> {
+                                    if (logger != null) {
+                                      logger.error(
+                                          "[{}][error] request: {}",
+                                          qualifier,
+                                          toString(request),
+                                          ex);
+                                    }
+                                  })
+                              .map(response -> toResponse(response, qualifier, dataFormat))
+                              .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
+                              .subscribeOn(methodInfo.scheduler());
+                        }));
   }
 
   private Mono<RequestContext> requestContext() {
@@ -227,7 +268,12 @@ public class ServiceMethodInvoker {
   }
 
   private Object toRequest(ServiceMessage message) {
-    final var request = dataDecoder.apply(message, methodInfo.requestType());
+    final var request = dataDecoder.decodeData(message, methodInfo.requestType());
+    return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
+  }
+
+  private Object copyRequest(ServiceMessage message) {
+    final var request = dataDecoder.copyData(message, methodInfo.requestType());
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 

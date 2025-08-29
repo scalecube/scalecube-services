@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static reactor.core.publisher.Sinks.EmitFailureHandler.busyLooping;
 
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.auth.ServiceRolesProcessor;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -759,7 +760,18 @@ public class Microservices implements AutoCloseable {
       if (defaultDataDecoder == null) {
         defaultDataDecoder =
             Optional.ofNullable(ServiceMessageDataDecoder.INSTANCE)
-                .orElse((message, dataType) -> message);
+                .orElse(
+                    new ServiceMessageDataDecoder() {
+                      @Override
+                      public ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+                        return message;
+                      }
+
+                      @Override
+                      public ServiceMessage copyData(ServiceMessage message, Class<?> dataType) {
+                        return message;
+                      }
+                    });
       }
 
       if (name == null) {

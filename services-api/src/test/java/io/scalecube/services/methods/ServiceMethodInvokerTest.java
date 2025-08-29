@@ -36,7 +36,18 @@ class ServiceMethodInvokerTest {
 
   private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("user", List.of("permission"));
 
-  private final ServiceMessageDataDecoder dataDecoder = (message, type) -> message;
+  private final ServiceMessageDataDecoder dataDecoder =
+      new ServiceMessageDataDecoder() {
+        @Override
+        public ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+          return message;
+        }
+
+        @Override
+        public ServiceMessage copyData(ServiceMessage message, Class<?> dataType) {
+          return message;
+        }
+      };
   private final PrincipalMapper principalMapper = context -> Mono.just(PRINCIPAL);
   private final StubService stubService = new StubServiceImpl();
 

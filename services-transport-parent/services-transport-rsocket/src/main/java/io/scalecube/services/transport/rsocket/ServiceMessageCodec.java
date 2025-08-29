@@ -157,13 +157,14 @@ public final class ServiceMessageCodec {
    * Decode message.
    *
    * @param message the original message (with {@link ByteBuf} data)
-   * @param dataType the type of the data.
+   * @param dataType the type of the data
+   * @param copyOnDecode whether to copy the buffer before decoding
    * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
    *     (of type data type)
    * @throws MessageCodecException when decode fails
    */
-  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
-      throws MessageCodecException {
+  public static ServiceMessage decodeData(
+      ServiceMessage message, Type dataType, boolean copyOnDecode) throws MessageCodecException {
     if (dataType == null
         || dataType == ByteBuf.class
         || message.data() == null
@@ -181,7 +182,10 @@ public final class ServiceMessageCodec {
       return ServiceMessage.from(message).data(bytes).build();
     }
 
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
+    try (ByteBufInputStream inputStream =
+        copyOnDecode
+            ? new ByteBufInputStream(Unpooled.copiedBuffer(dataBuffer))
+            : new ByteBufInputStream(dataBuffer, true)) {
       final var targetType = message.isError() ? ErrorData.class : dataType;
       final var dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       final var decodedData = dataCodec.decode(inputStream, targetType);
