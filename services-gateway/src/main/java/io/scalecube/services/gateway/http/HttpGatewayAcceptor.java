@@ -262,13 +262,13 @@ public class HttpGatewayAcceptor
                 throw new RuntimeException("Wrong qualifier: " + qualifier);
               }
 
-              final var fileName = map.get("name");
+              final var filename = map.get("name");
               final var statusCode = toStatusCode(signal);
 
               if (statusCode != HttpResponseStatus.OK.code()) {
                 return response
                     .status(statusCode)
-                    .sendString(Mono.just(errorMessage(statusCode, fileName)))
+                    .sendString(Mono.just(errorMessage(statusCode, filename)))
                     .then();
               }
 
@@ -283,7 +283,7 @@ public class HttpGatewayAcceptor
 
               return response
                   .header("Content-Type", "application/octet-stream")
-                  .header("Content-Disposition", "attachment; filename=" + fileName)
+                  .header("Content-Disposition", "attachment; filename=" + filename)
                   .send(responseFlux)
                   .then();
             })
