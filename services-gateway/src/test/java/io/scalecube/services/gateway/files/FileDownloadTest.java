@@ -118,7 +118,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testExportReport() throws IOException {
+  void testDownloadSuccessfully() throws IOException {
     final var numOfLines = 1000;
     final var reportResponse =
         serviceCall
@@ -178,7 +178,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testAddWrongFile() {
+  void testWrongFile() {
     StepVerifier.create(serviceCall.api(ReportService.class).exportReportWrongFile())
         .expectSubscription()
         .verifyErrorSatisfies(
@@ -219,7 +219,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testWrongFileName() {
+  void testWrongFilename() {
     final var reportResponse =
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
@@ -246,7 +246,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testYetAnotherWrongFileName() {
+  void testAnotherWrongFilename() {
     final var reportResponse =
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
