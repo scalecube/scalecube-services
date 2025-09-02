@@ -31,6 +31,7 @@ import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.api.DataCodec;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
@@ -53,14 +54,17 @@ public class HttpGatewayAcceptor
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
   private final ServiceProviderErrorMapper errorMapper;
+  private final HttpGatewayAuthenticator authenticator;
 
   public HttpGatewayAcceptor(
       ServiceCall serviceCall,
       ServiceRegistry serviceRegistry,
-      ServiceProviderErrorMapper errorMapper) {
+      ServiceProviderErrorMapper errorMapper,
+      HttpGatewayAuthenticator authenticator) {
     this.serviceCall = serviceCall;
     this.serviceRegistry = serviceRegistry;
     this.errorMapper = errorMapper;
+    this.authenticator = authenticator;
   }
 
   @Override
@@ -77,15 +81,22 @@ public class HttpGatewayAcceptor
       return methodNotAllowed(httpResponse);
     }
 
-    if (httpRequest.isMultipart()) {
-      return handleFileUploadRequest(httpRequest, httpResponse);
-    } else {
-      return handleServiceRequest(httpRequest, httpResponse);
-    }
+    return authenticator
+        .authenticate(httpRequest)
+        .flatMap(
+            principal -> {
+              if (httpRequest.isMultipart()) {
+                return handleFileUploadRequest(principal, httpRequest, httpResponse);
+              } else {
+                return handleServiceRequest(principal, httpRequest, httpResponse);
+              }
+            });
   }
 
   private Mono<Void> handleFileUploadRequest(
-      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+      Map<String, String> principal,
+      HttpServerRequest httpRequest,
+      HttpServerResponse httpResponse) {
     return httpRequest
         .receiveForm()
         .flatMap(
@@ -100,8 +111,10 @@ public class HttpGatewayAcceptor
                                         builder -> {
                                           final var filename =
                                               ((FileUpload) httpData).getFilename();
-                                          builder.header(HEADER_UPLOAD_FILENAME, filename);
-                                          builder.data(data);
+                                          builder
+                                              .headers(principal)
+                                              .header(HEADER_UPLOAD_FILENAME, filename)
+                                              .data(data);
                                         })))
                     .last()
                     .flatMap(
@@ -115,7 +128,9 @@ public class HttpGatewayAcceptor
   }
 
   private Mono<Void> handleServiceRequest(
-      HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+      Map<String, String> principal,
+      HttpServerRequest httpRequest,
+      HttpServerResponse httpResponse) {
     return httpRequest
         .receive()
         .reduceWith(
@@ -132,7 +147,8 @@ public class HttpGatewayAcceptor
         .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .flatMap(
             data -> {
-              final var message = toMessage(httpRequest, builder -> builder.data(data));
+              final var message =
+                  toMessage(httpRequest, builder -> builder.headers(principal).data(data));
 
               // Match and handle file request
 
