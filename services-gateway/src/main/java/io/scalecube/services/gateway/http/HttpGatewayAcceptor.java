@@ -30,6 +30,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.api.DataCodec;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -81,10 +82,18 @@ public class HttpGatewayAcceptor
       return methodNotAllowed(httpResponse);
     }
 
-    return authenticator
-        .authenticate(httpRequest)
+    return Mono.defer(() -> authenticator.authenticate(httpRequest))
+        .materialize()
         .flatMap(
-            principal -> {
+            signal -> {
+              if (signal.hasError()) {
+                return error(
+                    httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, signal.getThrowable()));
+              }
+
+              final Map<String, String> principal =
+                  signal.get() != null ? signal.get() : Collections.emptyMap();
+
               if (httpRequest.isMultipart()) {
                 return handleFileUploadRequest(principal, httpRequest, httpResponse);
               } else {
@@ -103,7 +112,7 @@ public class HttpGatewayAcceptor
             httpData ->
                 serviceCall
                     .requestBidirectional(
-                        createFlux(httpData)
+                        createFileFlux(httpData)
                             .map(
                                 data ->
                                     toMessage(
@@ -150,7 +159,7 @@ public class HttpGatewayAcceptor
               final var message =
                   toMessage(httpRequest, builder -> builder.headers(principal).data(data));
 
-              // Match and handle file request
+              // Match and handle file-download request
 
               final var service = matchFileDownloadRequest(serviceRegistry.lookupService(message));
               if (service != null) {
@@ -346,7 +355,7 @@ public class HttpGatewayAcceptor
     }
   }
 
-  private static Flux<byte[]> createFlux(HttpData httpData) {
+  private static Flux<byte[]> createFileFlux(HttpData httpData) {
     try {
       return FileChannelFlux.createFrom(httpData.getFile().toPath());
     } catch (IOException e) {
