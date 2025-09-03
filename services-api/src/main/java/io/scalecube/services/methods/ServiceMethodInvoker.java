@@ -314,7 +314,7 @@ public class ServiceMethodInvoker {
       } else {
         LOGGER.warn(
             "Insufficient permissions for secured method ({}) -- "
-                + "request context ({}) does not have principal"
+                + "request context ({}) does not have principal, "
                 + "and principalMapper is also not set",
             methodInfo,
             context);
