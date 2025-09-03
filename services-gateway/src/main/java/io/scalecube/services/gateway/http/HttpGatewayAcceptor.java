@@ -23,6 +23,7 @@ import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.files.FileChannelFlux;
@@ -71,11 +72,7 @@ public class HttpGatewayAcceptor
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(
-          "Accepted request: {}, headers: {}, params: {}",
-          httpRequest,
-          httpRequest.requestHeaders(),
-          httpRequest.params());
+      LOGGER.debug("Accepted request: {}", httpRequest);
     }
 
     if (!SUPPORTED_METHODS.contains(httpRequest.method())) {
@@ -144,14 +141,14 @@ public class HttpGatewayAcceptor
         .receive()
         .reduceWith(
             Unpooled::buffer,
-            (acc, byteBuf) -> {
-              final var readableBytes = acc.readableBytes();
+            (reduce, byteBuf) -> {
+              final var readableBytes = reduce.readableBytes();
               final var limit = MAX_SERVICE_MESSAGE_SIZE;
               if (readableBytes >= limit) {
-                throw new RuntimeException(
+                throw new BadRequestException(
                     "Payload too large, size: " + readableBytes + ", limit: " + limit);
               }
-              return acc.writeBytes(byteBuf);
+              return reduce.writeBytes(byteBuf);
             })
         .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .flatMap(
