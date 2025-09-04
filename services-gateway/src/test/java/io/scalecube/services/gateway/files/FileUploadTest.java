@@ -26,11 +26,11 @@ import okhttp3.Response;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Mono;
 
 public class FileUploadTest {
-
-  private static final int NUM_OF_LINES = 10000;
 
   private static Microservices gateway;
   private static Microservices microservices;
@@ -81,10 +81,11 @@ public class FileUploadTest {
     }
   }
 
-  @Test
-  public void uploadFileSuccessfully() throws Exception {
+  @ParameterizedTest(name = "Upload file of size {0} bytes")
+  @ValueSource(longs = {64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+  public void uploadSuccessfully(long fileSize) throws Exception {
     final var client = new OkHttpClient();
-    final var file = generateFile(Files.createTempFile("export_report_", null), NUM_OF_LINES);
+    final var file = generateFile(Files.createTempFile("export_report_", null), fileSize);
 
     final var body =
         new MultipartBody.Builder()
@@ -109,9 +110,9 @@ public class FileUploadTest {
   }
 
   @Test
-  public void uploadFileFailed() throws Exception {
+  public void uploadFailed() throws Exception {
     final var client = new OkHttpClient();
-    final var file = generateFile(Files.createTempFile("export_report_", null), NUM_OF_LINES);
+    final var file = generateFile(Files.createTempFile("export_report_", null), 1024);
 
     final var body =
         new MultipartBody.Builder()

@@ -354,7 +354,11 @@ public class HttpGatewayAcceptor
 
   private static Flux<byte[]> createFileFlux(HttpData httpData) {
     try {
-      return FileChannelFlux.createFrom(httpData.getFile().toPath());
+      if (httpData.isInMemory()) {
+        return Flux.just(httpData.get());
+      } else {
+        return FileChannelFlux.createFrom(httpData.getFile().toPath());
+      }
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
