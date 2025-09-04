@@ -15,39 +15,41 @@ public class FileChannelFlux {
   }
 
   public static Flux<byte[]> createFrom(Path filePath) {
-    return createFrom(filePath, ByteBuffer.allocate(DEFAULT_CHUNK_SIZE));
+    return createFrom(filePath, DEFAULT_CHUNK_SIZE);
   }
 
-  public static Flux<byte[]> createFrom(Path filePath, ByteBuffer chunkBuffer) {
-    return Flux.generate(
+  public static Flux<byte[]> createFrom(Path filePath, int chunkSize) {
+    return Flux.using(
         () -> FileChannel.open(filePath),
-        (channel, sink) -> {
-          try {
-            int read;
-            chunkBuffer.clear();
-            do {
-              read = channel.read(chunkBuffer);
-            } while (read == 0);
-
-            chunkBuffer.flip();
-            if (chunkBuffer.remaining() > 0) {
-              final var bytes = new byte[chunkBuffer.remaining()];
-              chunkBuffer.get(bytes);
-              sink.next(bytes);
-            }
-
-            if (read == -1) {
-              sink.complete();
-            }
-          } catch (IOException e) {
-            sink.error(e);
-          }
-          return channel;
+        channel -> {
+          final var chunkBuffer = ByteBuffer.allocate(chunkSize);
+          return Flux.generate(
+              () -> channel,
+              (fc, sink) -> {
+                try {
+                  chunkBuffer.clear();
+                  int read = fc.read(chunkBuffer);
+                  if (read == -1) {
+                    sink.complete();
+                    return fc;
+                  }
+                  if (read > 0) {
+                    chunkBuffer.flip();
+                    byte[] bytes = new byte[chunkBuffer.remaining()];
+                    chunkBuffer.get(bytes);
+                    sink.next(bytes);
+                  }
+                  return fc;
+                } catch (IOException e) {
+                  sink.error(e);
+                  return fc;
+                }
+              });
         },
         channel -> {
           try {
             channel.close();
-          } catch (Exception ex) {
+          } catch (IOException ex) {
             // no-op
           }
         });

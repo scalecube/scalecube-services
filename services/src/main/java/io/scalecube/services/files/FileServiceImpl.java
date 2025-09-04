@@ -5,7 +5,6 @@ import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -100,7 +99,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
               if (!isPathValid(filePath)) {
                 return Flux.error(new FileNotFoundException("File not found: " + name));
               } else {
-                return FileChannelFlux.createFrom(filePath, ByteBuffer.allocate(chunkSize));
+                return FileChannelFlux.createFrom(filePath, chunkSize);
               }
             });
   }

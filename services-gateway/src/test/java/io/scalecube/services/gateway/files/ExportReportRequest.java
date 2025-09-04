@@ -6,7 +6,7 @@ import java.util.StringJoiner;
 public class ExportReportRequest {
 
   private Integer ttl;
-  private Integer numOfLines;
+  private Long fileSize;
 
   public Integer ttl() {
     return ttl;
@@ -21,12 +21,12 @@ public class ExportReportRequest {
     return ttl() != null ? Duration.ofMillis(ttl()) : null;
   }
 
-  public Integer numOfLines() {
-    return numOfLines;
+  public Long fileSize() {
+    return fileSize;
   }
 
-  public ExportReportRequest numOfLines(Integer numOfLines) {
-    this.numOfLines = numOfLines;
+  public ExportReportRequest fileSize(Long fileSize) {
+    this.fileSize = fileSize;
     return this;
   }
 
@@ -34,7 +34,7 @@ public class ExportReportRequest {
   public String toString() {
     return new StringJoiner(", ", ExportReportRequest.class.getSimpleName() + "[", "]")
         .add("ttl=" + ttl)
-        .add("numOfLines=" + numOfLines)
+        .add("fileSize=" + fileSize)
         .toString();
   }
 }

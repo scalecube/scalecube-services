@@ -8,9 +8,9 @@ import io.scalecube.services.files.AddFileRequest;
 import io.scalecube.services.files.FileService;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.stream.IntStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -29,7 +29,7 @@ public class ReportServiceImpl implements ReportService {
         () -> {
           try {
             // Generate file under correct baseDir (java.io.tmpdir)
-            final var numOfLines = request.numOfLines() != null ? request.numOfLines() : 10000;
+            final var numOfLines = request.fileSize() != null ? request.fileSize() : 1024;
             final var file = generateFile(Files.createTempFile("export_report_", null), numOfLines);
             return fileService
                 .addFile(new AddFileRequest(file, request.duration()))
@@ -71,12 +71,29 @@ public class ReportServiceImpl implements ReportService {
             });
   }
 
-  public static File generateFile(final Path file, final int numOfLines) throws IOException {
-    final var list =
-        IntStream.range(0, numOfLines)
-            .mapToObj(i -> "export report @ " + System.nanoTime())
-            .toList();
-    Files.write(file, list);
+  public static File generateFile(final Path file, final long maxSize) throws IOException {
+    String lineTemplate = "export report @ ";
+    byte[] lineBytes;
+    long totalWritten = 0;
+
+    try (var writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
+      while (totalWritten < maxSize) {
+        String line = lineTemplate + System.nanoTime() + "\n";
+        lineBytes = line.getBytes(StandardCharsets.UTF_8);
+
+        if (totalWritten + lineBytes.length > maxSize) {
+          int allowedLength = (int) (maxSize - totalWritten);
+          line = new String(lineBytes, 0, allowedLength, StandardCharsets.UTF_8);
+          writer.write(line);
+          totalWritten += allowedLength;
+          break;
+        } else {
+          writer.write(line);
+          totalWritten += lineBytes.length;
+        }
+      }
+    }
+
     return file.toFile();
   }
 }
