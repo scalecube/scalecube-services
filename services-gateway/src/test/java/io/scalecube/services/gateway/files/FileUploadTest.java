@@ -15,21 +15,22 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.util.StringJoiner;
-import java.util.UUID;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
 public class FileUploadTest {
+
+  private static final int NUM_OF_LINES = 10000;
 
   private static Microservices gateway;
   private static Microservices microservices;
@@ -82,87 +83,57 @@ public class FileUploadTest {
 
   @Test
   public void uploadFileSuccessfully() throws Exception {
-    final var file = generateFile(Files.createTempFile("export_report_", null), 1000);
-    final var fileBytes = Files.readAllBytes(file.toPath());
+    final var client = new OkHttpClient();
+    final var file = generateFile(Files.createTempFile("export_report_", null), NUM_OF_LINES);
 
-    // Build the multipart body manually
-    final var boundary = UUID.randomUUID().toString();
-    final var requestBody = requestBody(boundary, file, fileBytes);
-
-    final var client = HttpClient.newHttpClient();
-
-    final var request =
-        HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:" + httpAddress.port() + "/v1/api/uploadReport"))
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+    final var body =
+        new MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "file", file.getName(), RequestBody.create(file, MediaType.get("application/text")))
             .build();
 
-    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    final var request =
+        new Request.Builder()
+            .url("http://localhost:" + httpAddress.port() + "/v1/api/uploadReport")
+            .post(body)
+            .build();
 
-    assertEquals(HttpResponseStatus.OK.code(), response.statusCode(), "response.statusCode");
-    assertEquals(
-        new StringJoiner("", "\"", "\"").add(file.getName()).toString(),
-        response.body(),
-        "response.body");
+    try (Response response = client.newCall(request).execute()) {
+      assertEquals(HttpResponseStatus.OK.code(), response.code(), "response.code");
+      assertEquals(
+          new StringJoiner("", "\"", "\"").add(file.getName()).toString(),
+          response.body().string(),
+          "response.body");
+    }
   }
 
   @Test
   public void uploadFileFailed() throws Exception {
-    final var file = generateFile(Files.createTempFile("export_report_", null), 1000);
-    final var fileBytes = Files.readAllBytes(file.toPath());
+    final var client = new OkHttpClient();
+    final var file = generateFile(Files.createTempFile("export_report_", null), NUM_OF_LINES);
 
-    // Build the multipart body manually
-    final var boundary = UUID.randomUUID().toString();
-    final var requestBody = requestBody(boundary, file, fileBytes);
-
-    final var client = HttpClient.newHttpClient();
-
-    final var request =
-        HttpRequest.newBuilder()
-            .uri(URI.create("http://localhost:" + httpAddress.port() + "/v1/api/uploadReportError"))
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(requestBody))
+    final var body =
+        new MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "file", file.getName(), RequestBody.create(file, MediaType.get("application/text")))
             .build();
 
-    HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    final var request =
+        new Request.Builder()
+            .url("http://localhost:" + httpAddress.port() + "/v1/api/uploadReportError")
+            .post(body)
+            .build();
 
-    assertEquals(
-        HttpResponseStatus.INTERNAL_SERVER_ERROR.code(),
-        response.statusCode(),
-        "response.statusCode");
-    assertEquals(
-        "{\"errorCode\":500,\"errorMessage\":\"Upload report failed: %s\"}"
-            .formatted(file.getName()),
-        response.body(),
-        "response.body");
-  }
-
-  private static byte[] requestBody(String boundary, File file, byte[] fileBytes)
-      throws IOException {
-    String lineFeed = "\r\n";
-    StringBuilder sb = new StringBuilder();
-    sb.append("--").append(boundary).append(lineFeed);
-    sb.append("Content-Disposition: form-data; name=\"file\"; filename=\"")
-        .append(file.getName())
-        .append("\"")
-        .append(lineFeed);
-    sb.append("Content-Type: ").append(Files.probeContentType(file.toPath())).append(lineFeed);
-    sb.append(lineFeed);
-
-    byte[] fileHeader = sb.toString().getBytes();
-    byte[] boundaryFooter = (lineFeed + "--" + boundary + "--" + lineFeed).getBytes();
-
-    // Concatenate header + file + footer
-    byte[] requestBody = new byte[fileHeader.length + fileBytes.length + boundaryFooter.length];
-    System.arraycopy(fileHeader, 0, requestBody, 0, fileHeader.length);
-    System.arraycopy(fileBytes, 0, requestBody, fileHeader.length, fileBytes.length);
-    System.arraycopy(
-        boundaryFooter,
-        0,
-        requestBody,
-        fileHeader.length + fileBytes.length,
-        boundaryFooter.length);
-    return requestBody;
+    try (Response response = client.newCall(request).execute()) {
+      assertEquals(
+          HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), response.code(), "response.code");
+      assertEquals(
+          "{\"errorCode\":500,\"errorMessage\":\"Upload report failed: %s\"}"
+              .formatted(file.getName()),
+          response.body().string(),
+          "response.body");
+    }
   }
 }
