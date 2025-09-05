@@ -35,6 +35,7 @@ public class HttpGateway implements Gateway {
   private final int port;
   private final Function<ServiceCall, ServiceCall> callFactory;
   private final ServiceProviderErrorMapper errorMapper;
+  private final HttpGatewayAuthenticator authenticator;
   private final boolean corsEnabled;
   private final CorsConfigBuilder corsConfigBuilder;
 
@@ -46,6 +47,7 @@ public class HttpGateway implements Gateway {
     this.port = builder.port;
     this.callFactory = builder.callFactory;
     this.errorMapper = builder.errorMapper;
+    this.authenticator = builder.authenticator;
     this.corsEnabled = builder.corsEnabled;
     this.corsConfigBuilder = builder.corsConfigBuilder;
   }
@@ -76,7 +78,8 @@ public class HttpGateway implements Gateway {
                     }
                   })
               .handle(
-                  new HttpGatewayAcceptor(callFactory.apply(call), serviceRegistry, errorMapper))
+                  new HttpGatewayAcceptor(
+                      callFactory.apply(call), serviceRegistry, errorMapper, authenticator))
               .bind()
               .toFuture()
               .get();
@@ -117,6 +120,7 @@ public class HttpGateway implements Gateway {
     private int port;
     private Function<ServiceCall, ServiceCall> callFactory = call -> call;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+    private HttpGatewayAuthenticator authenticator = HttpGatewayAuthenticator.DEFAULT_INSTANCE;
     private boolean corsEnabled = false;
     private CorsConfigBuilder corsConfigBuilder =
         CorsConfigBuilder.forAnyOrigin()
@@ -155,6 +159,15 @@ public class HttpGateway implements Gateway {
 
     public Builder errorMapper(ServiceProviderErrorMapper errorMapper) {
       this.errorMapper = errorMapper;
+      return this;
+    }
+
+    public HttpGatewayAuthenticator authenticator() {
+      return authenticator;
+    }
+
+    public Builder authenticator(HttpGatewayAuthenticator authenticator) {
+      this.authenticator = authenticator;
       return this;
     }
 

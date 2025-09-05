@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_QUALIFIER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
+import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.auth.Principal;
@@ -12,7 +13,6 @@ import java.math.BigInteger;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.StringJoiner;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -157,6 +157,15 @@ public class RequestContext implements Context {
    */
   public String requestQualifier() {
     return header(HEADER_QUALIFIER);
+  }
+
+  /**
+   * Returns upload filename from headers.
+   *
+   * @return upload filename, or {@code null} if not found
+   */
+  public String uploadFilename() {
+    return header(HEADER_UPLOAD_FILENAME);
   }
 
   /**
@@ -347,12 +356,5 @@ public class RequestContext implements Context {
                 }
               }
             });
-  }
-
-  @Override
-  public String toString() {
-    return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
-        .add("source=" + source)
-        .toString();
   }
 }

@@ -100,7 +100,6 @@ class HttpClientConnectionTest {
 
   private static ServiceCall serviceCall(Address address) {
     return new ServiceCall()
-        .logger("serviceCall")
         .transport(HttpGatewayClientTransport.builder().address(address).build())
         .router(StaticAddressRouter.forService(address, "app-service").build());
   }

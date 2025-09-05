@@ -39,6 +39,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -117,13 +119,13 @@ public class FileDownloadTest {
     }
   }
 
-  @Test
-  void testExportReport() throws IOException {
-    final var numOfLines = 1000;
+  @ParameterizedTest(name = "Download file of size {0} bytes")
+  @ValueSource(longs = {512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+  void testDownloadSuccessfully(long fileSize) throws IOException {
     final var reportResponse =
         serviceCall
             .api(ReportService.class)
-            .exportReport(new ExportReportRequest().numOfLines(numOfLines))
+            .exportReport(new ExportReportRequest().fileSize(fileSize))
             .block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
@@ -133,7 +135,7 @@ public class FileDownloadTest {
         downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
     final var list = Files.readAllLines(file);
 
-    assertEquals(numOfLines, list.size(), "numOfLines");
+    assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
     for (String s : list) {
       assertTrue(s.startsWith("export report @"), "line: " + s);
     }
@@ -141,12 +143,11 @@ public class FileDownloadTest {
 
   @Test
   void testFileExpired() throws InterruptedException {
-    final var numOfLines = 1000;
     final var ttl = 500;
     final var reportResponse =
         serviceCall
             .api(ReportService.class)
-            .exportReport(new ExportReportRequest().numOfLines(numOfLines).ttl(ttl))
+            .exportReport(new ExportReportRequest().ttl(ttl))
             .block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
     assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
@@ -178,7 +179,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testAddWrongFile() {
+  void testWrongFile() {
     StepVerifier.create(serviceCall.api(ReportService.class).exportReportWrongFile())
         .expectSubscription()
         .verifyErrorSatisfies(
@@ -219,7 +220,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testWrongFileName() {
+  void testWrongFilename() {
     final var reportResponse =
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");
@@ -246,7 +247,7 @@ public class FileDownloadTest {
   }
 
   @Test
-  void testYetAnotherWrongFileName() {
+  void testAnotherWrongFilename() {
     final var reportResponse =
         serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
     assertNotNull(reportResponse, "reportResponse");

@@ -47,7 +47,7 @@ public class ServiceTokenAuthenticator implements Authenticator {
 
   @Override
   public Mono<Principal> authenticate(byte[] credentials) {
-    return Mono.fromFuture(tokenResolver.resolve(new String(credentials)))
+    return Mono.fromFuture(tokenResolver.resolveToken(new String(credentials)))
         .retryWhen(retryStrategy)
         .map(JwtToken::payload)
         .map(

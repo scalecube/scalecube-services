@@ -1,5 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
+import static io.scalecube.services.transport.rsocket.ReferenceCountUtil.safestRelease;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toMap;
@@ -102,7 +103,7 @@ public final class ServiceMessageCodec {
         DataCodec dataCodec = getDataCodec(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(dataBuffer);
+        safestRelease(dataBuffer);
         LOGGER.error(
             "Failed to encode service message data on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException("Failed to encode service message data", ex);
@@ -114,8 +115,8 @@ public final class ServiceMessageCodec {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(headersBuffer);
-        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
+        safestRelease(headersBuffer);
+        safestRelease(dataBuffer); // release data buf as well
         LOGGER.error(
             "Failed to encode service message headers on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException("Failed to encode service message headers", ex);
@@ -144,7 +145,7 @@ public final class ServiceMessageCodec {
       try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
-        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
+        safestRelease(dataBuffer); // release data buf as well
         throw new MessageCodecException("Failed to decode service message headers", ex);
       }
     }
@@ -156,32 +157,42 @@ public final class ServiceMessageCodec {
    * Decode message.
    *
    * @param message the original message (with {@link ByteBuf} data)
-   * @param dataType the type of the data.
+   * @param dataType the type of the data
+   * @param copyOnDecode whether to copy the buffer before decoding
    * @return a new Service message that upon {@link ServiceMessage#data()} returns the actual data
    *     (of type data type)
    * @throws MessageCodecException when decode fails
    */
-  public static ServiceMessage decodeData(ServiceMessage message, Type dataType)
-      throws MessageCodecException {
+  public static ServiceMessage decodeData(
+      ServiceMessage message, Type dataType, boolean copyOnDecode) throws MessageCodecException {
     if (dataType == null
-        || !message.hasData(ByteBuf.class)
-        || ((ByteBuf) message.data()).readableBytes() == 0
-        || ByteBuf.class == dataType) {
+        || dataType == ByteBuf.class
+        || message.data() == null
+        || !(message.data() instanceof ByteBuf)) {
       return message;
     }
 
-    Object data;
-    Type targetType = message.isError() ? ErrorData.class : dataType;
+    final ByteBuf dataBuffer = message.data();
+    if (dataBuffer.readableBytes() == 0) {
+      return message;
+    }
+    if (dataType == byte[].class) {
+      final var bytes = new byte[dataBuffer.readableBytes()];
+      dataBuffer.getBytes(dataBuffer.readerIndex(), bytes);
+      return ServiceMessage.from(message).data(bytes).build();
+    }
 
-    ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
-      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
-      data = dataCodec.decode(inputStream, targetType);
+    try (ByteBufInputStream inputStream =
+        copyOnDecode
+            ? new ByteBufInputStream(Unpooled.copiedBuffer(dataBuffer))
+            : new ByteBufInputStream(dataBuffer, true)) {
+      final var targetType = message.isError() ? ErrorData.class : dataType;
+      final var dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
+      final var decodedData = dataCodec.decode(inputStream, targetType);
+      return ServiceMessage.from(message).data(decodedData).build();
     } catch (Throwable ex) {
       throw new MessageCodecException("Failed to decode service message data", ex);
     }
-
-    return ServiceMessage.from(message).data(data).build();
   }
 
   private DataCodec getDataCodec(String contentType) {

@@ -8,8 +8,10 @@ import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
@@ -71,14 +73,18 @@ public class ServiceMethodInvoker {
                           logger.debug(
                               "[{}] request: {}, response: {}",
                               message.qualifier(),
-                              request,
+                              toString(request),
                               response);
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}][error] request: {}", message.qualifier(), request, ex);
+                          logger.error(
+                              "[{}][error] request: {}",
+                              message.qualifier(),
+                              toString(request),
+                              ex);
                         }
                       });
             })
@@ -110,19 +116,27 @@ public class ServiceMethodInvoker {
                   .doOnSubscribe(
                       s -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][subscribe] request: {}", message.qualifier(), request);
+                          logger.debug(
+                              "[{}][subscribe] request: {}",
+                              message.qualifier(),
+                              toString(request));
                         }
                       })
                   .doOnComplete(
                       () -> {
                         if (logger != null && logger.isDebugEnabled()) {
-                          logger.debug("[{}][complete] request: {}", message.qualifier(), request);
+                          logger.debug(
+                              "[{}][complete] request: {}", message.qualifier(), toString(request));
                         }
                       })
                   .doOnError(
                       ex -> {
                         if (logger != null) {
-                          logger.error("[{}][error] request: {}", message.qualifier(), request, ex);
+                          logger.error(
+                              "[{}][error] request: {}",
+                              message.qualifier(),
+                              toString(request),
+                              ex);
                         }
                       });
             })
@@ -138,20 +152,61 @@ public class ServiceMethodInvoker {
    * @return flux of service messages
    */
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher) {
-    return Flux.from(publisher)
-        .switchOnFirst(
-            (first, messages) -> {
-              final var message = first.get();
-              final var qualifier = message.qualifier();
-              final var dataFormat = message.dataFormat();
+    return RequestContext.deferContextual()
+        .flatMapMany(
+            context ->
+                Flux.from(publisher)
+                    .switchOnFirst(
+                        (first, messages) -> {
+                          final var message = first.get();
+                          final var request = copyRequest(message);
+                          final var qualifier = message.qualifier();
+                          final var dataFormat = message.dataFormat();
 
-              return messages
-                  .map(this::toRequest)
-                  .transform(this::invokeRequest)
-                  .map(response -> toResponse(response, qualifier, dataFormat))
-                  .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
-                  .subscribeOn(methodInfo.scheduler());
-            });
+                          return mapPrincipal(context)
+                              .flatMapMany(
+                                  principal ->
+                                      requestContext()
+                                          .thenMany(
+                                              Flux.defer(
+                                                  () ->
+                                                      messages
+                                                          .map(this::toRequest)
+                                                          .transform(this::invokeRequest)))
+                                          .contextWrite(
+                                              enhanceRequestContext(context, request, principal)))
+                              .doOnSubscribe(
+                                  s -> {
+                                    if (logger != null && logger.isDebugEnabled()) {
+                                      logger.debug(
+                                          "[{}][subscribe] request: {}",
+                                          qualifier,
+                                          toString(request));
+                                    }
+                                  })
+                              .doOnComplete(
+                                  () -> {
+                                    if (logger != null && logger.isDebugEnabled()) {
+                                      logger.debug(
+                                          "[{}][complete] request: {}",
+                                          qualifier,
+                                          toString(request));
+                                    }
+                                  })
+                              .doOnError(
+                                  ex -> {
+                                    if (logger != null) {
+                                      logger.error(
+                                          "[{}][error] request: {}",
+                                          qualifier,
+                                          toString(request),
+                                          ex);
+                                    }
+                                  })
+                              .map(response -> toResponse(response, qualifier, dataFormat))
+                              .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
+                              .subscribeOn(methodInfo.scheduler());
+                        }));
   }
 
   private Mono<RequestContext> requestContext() {
@@ -213,7 +268,12 @@ public class ServiceMethodInvoker {
   }
 
   private Object toRequest(ServiceMessage message) {
-    final var request = dataDecoder.apply(message, methodInfo.requestType());
+    final var request = dataDecoder.decodeData(message, methodInfo.requestType());
+    return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
+  }
+
+  private Object copyRequest(ServiceMessage message) {
+    final var request = dataDecoder.copyData(message, methodInfo.requestType());
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
@@ -254,7 +314,7 @@ public class ServiceMethodInvoker {
       } else {
         LOGGER.warn(
             "Insufficient permissions for secured method ({}) -- "
-                + "request context ({}) does not have principal"
+                + "request context ({}) does not have principal, "
                 + "and principalMapper is also not set",
             methodInfo,
             context);
@@ -264,5 +324,28 @@ public class ServiceMethodInvoker {
 
     return Mono.defer(() -> principalMapper.map(context))
         .switchIfEmpty(Mono.just(context.principal()));
+  }
+
+  private static String toString(Object request) {
+    if (request == null) {
+      return "null";
+    }
+    // Handle arrays
+    if (request.getClass().isArray()) {
+      return request.getClass().getComponentType().getSimpleName()
+          + "["
+          + Array.getLength(request)
+          + "]";
+    }
+    // Handle collections
+    if (request instanceof Collection<?> collection) {
+      return collection.getClass().getSimpleName() + "[" + collection.size() + "]";
+    }
+    // Handle maps
+    if (request instanceof Map<?, ?> map) {
+      return map.getClass().getSimpleName() + "[" + map.size() + "]";
+    }
+    // Fallback
+    return String.valueOf(request);
   }
 }
