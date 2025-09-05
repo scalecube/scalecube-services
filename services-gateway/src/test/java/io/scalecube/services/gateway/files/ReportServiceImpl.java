@@ -30,8 +30,8 @@ public class ReportServiceImpl implements ReportService {
         () -> {
           try {
             // Generate file under correct baseDir (java.io.tmpdir)
-            final var numOfLines = request.fileSize() != null ? request.fileSize() : 1024;
-            final var file = generateFile(Files.createTempFile("export_report_", null), numOfLines);
+            final var fileSize = request.fileSize() != null ? request.fileSize() : 1024;
+            final var file = generateFile(Files.createTempFile("export_report_", null), fileSize);
             return fileService
                 .addFile(new AddFileRequest(file, request.duration()))
                 .map(s -> new ReportResponse().reportPath(s));
@@ -94,17 +94,8 @@ public class ReportServiceImpl implements ReportService {
       while (totalWritten < maxSize) {
         String line = lineTemplate + System.nanoTime() + "\n";
         lineBytes = line.getBytes(StandardCharsets.UTF_8);
-
-        if (totalWritten + lineBytes.length > maxSize) {
-          int allowedLength = (int) (maxSize - totalWritten);
-          line = new String(lineBytes, 0, allowedLength, StandardCharsets.UTF_8);
-          writer.write(line);
-          totalWritten += allowedLength;
-          break;
-        } else {
-          writer.write(line);
-          totalWritten += lineBytes.length;
-        }
+        writer.write(line);
+        totalWritten += lineBytes.length;
       }
     }
 

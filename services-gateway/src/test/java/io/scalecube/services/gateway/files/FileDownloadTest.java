@@ -135,7 +135,7 @@ public class FileDownloadTest {
         downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
     final var list = Files.readAllLines(file);
 
-    assertEquals(fileSize, file.toFile().length(), "fileSize");
+    assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
     for (String s : list) {
       assertTrue(s.startsWith("export report @"), "line: " + s);
     }
