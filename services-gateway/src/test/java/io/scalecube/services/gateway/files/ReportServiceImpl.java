@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.files;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
+import static java.nio.file.StandardOpenOption.APPEND;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
@@ -50,13 +51,26 @@ public class ReportServiceImpl implements ReportService {
   }
 
   @Override
-  public Mono<String> uploadReport(Flux<byte[]> reportStream) {
+  public Mono<String> uploadReport(Flux<byte[]> fileStream) {
     return RequestContext.deferContextual()
         .flatMap(
-            requestContext -> {
-              final var filename = requestContext.header(HEADER_UPLOAD_FILENAME);
-              return reportStream.then().then(Mono.just(filename));
-            });
+            context ->
+                Mono.using(
+                    () -> Files.createTempFile("upload-", ".tmp"),
+                    tempFile ->
+                        fileStream
+                            .flatMap(
+                                bytes ->
+                                    Mono.fromCallable(
+                                        () -> {
+                                          Files.write(tempFile, bytes, APPEND);
+                                          return bytes;
+                                        }))
+                            .then()
+                            .thenReturn(tempFile.getFileName().toString()),
+                    tempFile -> {
+                      // no-op
+                    }));
   }
 
   @Override

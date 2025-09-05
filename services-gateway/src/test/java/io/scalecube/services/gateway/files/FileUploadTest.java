@@ -2,6 +2,8 @@ package io.scalecube.services.gateway.files;
 
 import static io.scalecube.services.gateway.files.ReportServiceImpl.generateFile;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -15,8 +17,10 @@ import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import java.util.StringJoiner;
+import java.nio.file.Path;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -102,10 +106,10 @@ public class FileUploadTest {
 
     try (Response response = client.newCall(request).execute()) {
       assertEquals(HttpResponseStatus.OK.code(), response.code(), "response.code");
-      assertEquals(
-          new StringJoiner("", "\"", "\"").add(file.getName()).toString(),
-          response.body().string(),
-          "response.body");
+      final var responseBody = response.body().string();
+      assertNotNull(responseBody, "response.body");
+      final var uploadFile = new File("/tmp", responseBody.replace("\"", "")).toPath();
+      assertFilesEqual(file.toPath(), uploadFile);
     }
   }
 
@@ -135,6 +139,17 @@ public class FileUploadTest {
               .formatted(file.getName()),
           response.body().string(),
           "response.body");
+    }
+  }
+
+  private static void assertFilesEqual(Path expected, Path actual) {
+    try {
+      long mismatch = Files.mismatch(expected, actual);
+      if (mismatch != -1) {
+        fail("Files differ at byte position " + mismatch);
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }
