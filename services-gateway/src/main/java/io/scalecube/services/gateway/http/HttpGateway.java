@@ -126,6 +126,8 @@ public class HttpGateway implements Gateway {
         CorsConfigBuilder.forAnyOrigin()
             .allowedRequestMethods(SUPPORTED_METHODS.toArray(HttpMethod[]::new))
             .allowNullOrigin()
+            .allowedRequestHeaders("*")
+            .exposeHeaders("*")
             .maxAge(3600);
 
     private Builder() {}
