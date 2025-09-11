@@ -313,10 +313,7 @@ public class ServiceMethodInvoker {
         return Mono.just(context.principal());
       } else {
         LOGGER.warn(
-            "Insufficient permissions for secured method ({}) -- "
-                + "request context ({}) does not have principal, "
-                + "and principalMapper is also not set",
-            methodInfo,
+            "Insufficient permissions -- principal is missing or invalid, request context: {}",
             context);
         throw new ForbiddenException("Insufficient permissions");
       }
