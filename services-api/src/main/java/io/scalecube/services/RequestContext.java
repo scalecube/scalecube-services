@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.MaskUtil.mask;
 import static io.scalecube.services.api.ServiceMessage.HEADER_QUALIFIER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
@@ -10,9 +11,11 @@ import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.methods.MethodInfo;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.StringJoiner;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,26 +23,30 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 /**
- * Represents request-specific context that holds metadata related to the current request. It acts
- * as a wrapper around an existing {@link Context} and provides additional methods for accessing and
- * managing request-specific data such as headers, principal, method information, and path
- * variables.
+ * Request-scoped context that wraps Reactor {@link Context} and provides typed accessors for
+ * request metadata (headers, principal, method info, etc.).
  */
 public class RequestContext implements Context {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RequestContext.class);
 
+  private static final Object HEADERS_KEY = new Object();
+  private static final Object REQUEST_KEY = new Object();
+  private static final Object PRINCIPAL_KEY = new Object();
+  private static final Object METHOD_INFO_KEY = new Object();
+  private static final Object PATH_VARS_KEY = new Object();
+
   private final Context source;
 
-  /** Creates new {@code RequestContext} with an empty base context. */
+  /** Creates new {@code RequestContext} with empty base context. */
   public RequestContext() {
     this(Context.empty());
   }
 
   /**
-   * Creates new {@code RequestContext} based on an existing context.
+   * Creates new {@code RequestContext} based on existing context.
    *
-   * @param source the source context to wrap
+   * @param source source context to wrap
    */
   public RequestContext(Context source) {
     this.source = Objects.requireNonNull(source, "source");
@@ -98,7 +105,7 @@ public class RequestContext implements Context {
    * @return headers, or {@code null} if not set
    */
   public Map<String, String> headers() {
-    return source.getOrDefault("headers", null);
+    return source.getOrDefault(HEADERS_KEY, Collections.emptyMap());
   }
 
   /**
@@ -108,7 +115,7 @@ public class RequestContext implements Context {
    * @return new {@code RequestContext} instance with updated headers
    */
   public RequestContext headers(Map<String, String> headers) {
-    return put("headers", headers);
+    return put(HEADERS_KEY, headers);
   }
 
   /**
@@ -117,7 +124,7 @@ public class RequestContext implements Context {
    * @return request, or {@code null} if not set
    */
   public Object request() {
-    return source.getOrDefault("request", null);
+    return source.getOrDefault(REQUEST_KEY, null);
   }
 
   /**
@@ -127,7 +134,7 @@ public class RequestContext implements Context {
    * @return new {@code RequestContext} instance with updated request
    */
   public RequestContext request(Object request) {
-    return put("request", request);
+    return put(REQUEST_KEY, request);
   }
 
   /**
@@ -137,8 +144,7 @@ public class RequestContext implements Context {
    * @return header value, or {@code null} if not found
    */
   public String header(String name) {
-    final var headers = headers();
-    return headers != null ? headers.get(name) : null;
+    return headers().get(name);
   }
 
   /**
@@ -174,7 +180,7 @@ public class RequestContext implements Context {
    * @return {@link Principal} associated with the request, or {@code null} if not set
    */
   public Principal principal() {
-    return getOrDefault("principal", null);
+    return getOrDefault(PRINCIPAL_KEY, null);
   }
 
   /**
@@ -184,7 +190,7 @@ public class RequestContext implements Context {
    * @return new {@code RequestContext} instance with the updated principal
    */
   public RequestContext principal(Principal principal) {
-    return put("principal", principal);
+    return put(PRINCIPAL_KEY, principal);
   }
 
   /**
@@ -204,7 +210,7 @@ public class RequestContext implements Context {
    * @return {@link MethodInfo} associated with the request, or {@code null} if not set
    */
   public MethodInfo methodInfo() {
-    return getOrDefault("methodInfo", null);
+    return getOrDefault(METHOD_INFO_KEY, null);
   }
 
   /**
@@ -214,7 +220,7 @@ public class RequestContext implements Context {
    * @return new {@code RequestContext} instance with the updated {@link MethodInfo}
    */
   public RequestContext methodInfo(MethodInfo methodInfo) {
-    return put("methodInfo", methodInfo);
+    return put(METHOD_INFO_KEY, methodInfo);
   }
 
   /**
@@ -223,7 +229,7 @@ public class RequestContext implements Context {
    * @return path variables, or {@code null} if not set
    */
   public Map<String, String> pathVars() {
-    return get("pathVars");
+    return source.getOrDefault(PATH_VARS_KEY, Collections.emptyMap());
   }
 
   /**
@@ -232,7 +238,7 @@ public class RequestContext implements Context {
    * @return path variables, or {@code null} if not set
    */
   public RequestContext pathVars(Map<String, String> pathVars) {
-    return put("pathVars", pathVars);
+    return put(PATH_VARS_KEY, pathVars);
   }
 
   /**
@@ -242,8 +248,7 @@ public class RequestContext implements Context {
    * @return path variable value, or {@code null} if not found
    */
   public String pathVar(String name) {
-    final var pathVars = pathVars();
-    return pathVars != null ? pathVars.get(name) : null;
+    return pathVars().get(name);
   }
 
   /**
@@ -281,13 +286,12 @@ public class RequestContext implements Context {
       return (T) new BigInteger(s);
     }
 
-    throw new IllegalArgumentException("Wrong pathVar type: " + type);
+    throw new IllegalArgumentException("Unsupported pathVar type: " + type);
   }
 
   /**
-   * Retrieves {@link RequestContext} from the reactor context in deferred manner.
-   *
-   * @return {@link Mono} emitting the {@code RequestContext}, or error - if it is missing
+   * Retrieves {@link RequestContext} from the reactor context, wrapping the existing context if
+   * necessary.
    */
   public static Mono<RequestContext> deferContextual() {
     return Mono.deferContextual(context -> Mono.just(context.get(RequestContext.class)));
@@ -318,9 +322,8 @@ public class RequestContext implements Context {
             context -> {
               if (!context.hasPrincipal()) {
                 LOGGER.warn(
-                    "Insufficient permissions for secured method ({}) -- "
-                        + "request context ({}) does not have principal",
-                    context.methodInfo(),
+                    "Insufficient permissions -- "
+                        + "request context does not have principal, request context: {}",
                     context);
                 throw new ForbiddenException("Insufficient permissions");
               }
@@ -333,11 +336,10 @@ public class RequestContext implements Context {
                   && !allowedRoles.isEmpty()
                   && !allowedRoles.contains(principal.role())) {
                 LOGGER.warn(
-                    "Insufficient permissions for secured method ({}) -- "
-                        + "principal role '{}' is not allowed (principal: {})",
-                    context.methodInfo(),
+                    "Insufficient permissions -- "
+                        + "principal role '{}' is not allowed, request context: {}",
                     principal.role(),
-                    principal);
+                    context);
                 throw new ForbiddenException("Insufficient permissions");
               }
 
@@ -346,15 +348,25 @@ public class RequestContext implements Context {
                 for (var allowedPermission : allowedPermissions) {
                   if (!principal.hasPermission(allowedPermission)) {
                     LOGGER.warn(
-                        "Insufficient permissions for secured method ({}) -- "
-                            + "allowed permission '{}' is missing (principal: {})",
-                        context.methodInfo(),
+                        "Insufficient permissions -- "
+                            + "allowed permission '{}' is missing, request context: {}",
                         allowedPermission,
-                        principal);
+                        context);
                     throw new ForbiddenException("Insufficient permissions");
                   }
                 }
               }
             });
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
+        .add("principal=" + principal())
+        .add("methodInfo=" + methodInfo())
+        .add("headers=" + mask(headers()))
+        .add("pathVars=" + mask(pathVars()))
+        .add("sourceKeys=" + source.stream().map(Entry::getKey).toList())
+        .toString();
   }
 }
