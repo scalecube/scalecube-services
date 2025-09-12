@@ -138,16 +138,11 @@ public final class ServiceMessageCodec {
       throws MessageCodecException {
     ServiceMessage.Builder builder = ServiceMessage.builder();
 
-    if (dataBuffer.isReadable()) {
-      builder.data(dataBuffer);
-    }
-    if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
-        builder.headers(headersCodec.decode(stream));
-      } catch (Throwable ex) {
-        safestRelease(dataBuffer); // release data buf as well
-        throw new MessageCodecException("Failed to decode service message headers", ex);
-      }
+    try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
+      builder.headers(headersCodec.decode(stream)).data(dataBuffer);
+    } catch (Throwable ex) {
+      safestRelease(dataBuffer); // release data buf as well
+      throw new MessageCodecException("Failed to decode service message headers", ex);
     }
 
     return builder.build();
@@ -173,13 +168,18 @@ public final class ServiceMessageCodec {
     }
 
     final ByteBuf dataBuffer = message.data();
-    if (dataBuffer.readableBytes() == 0) {
-      return message;
-    }
+
     if (dataType == byte[].class) {
       final var bytes = new byte[dataBuffer.readableBytes()];
       dataBuffer.getBytes(dataBuffer.readerIndex(), bytes);
+      if (!copyOnDecode) {
+        safestRelease(dataBuffer);
+      }
       return ServiceMessage.from(message).data(bytes).build();
+    }
+
+    if (dataBuffer.readableBytes() == 0) {
+      return ServiceMessage.from(message).data(null).build();
     }
 
     try (ByteBufInputStream inputStream =
