@@ -86,7 +86,7 @@ public class FileUploadTest {
   }
 
   @ParameterizedTest(name = "Upload file of size {0} bytes")
-  @ValueSource(longs = {64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+  @ValueSource(longs = {0, 64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
   public void uploadSuccessfully(long fileSize) throws Exception {
     final var client = new OkHttpClient();
     final var file = generateFile(Files.createTempFile("export_report_", null), fileSize);
