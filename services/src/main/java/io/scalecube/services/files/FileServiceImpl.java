@@ -3,6 +3,7 @@ package io.scalecube.services.files;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
+import io.scalecube.services.api.ServiceMessage;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
@@ -90,17 +91,28 @@ public class FileServiceImpl implements FileService, FileStreamer {
   }
 
   @Override
-  public Flux<byte[]> streamFile() {
+  public Flux<ServiceMessage> streamFile() {
     return RequestContext.deferContextual()
         .flatMapMany(
             context -> {
-              final var name = context.pathVar("name");
-              final var filePath = baseDir.resolve(name);
-              if (!isPathValid(filePath)) {
-                return Flux.error(new FileNotFoundException("File not found: " + name));
-              } else {
-                return FileChannelFlux.createFrom(filePath, chunkSize);
+              final var headers = context.headers();
+              final var filename = context.pathVar("filename");
+              final var path = baseDir.resolve(filename);
+
+              if (!isPathValid(path)) {
+                return Flux.error(new FileNotFoundException("File not found: " + filename));
               }
+
+              final var message =
+                  ServiceMessage.from(headers)
+                      .header("Content-Type", "application/octet-stream")
+                      .header("Content-Disposition", "attachment; filename=" + filename)
+                      .build();
+
+              return Flux.just(message)
+                  .concatWith(
+                      FileChannelFlux.createFrom(path, chunkSize)
+                          .map(bytes -> ServiceMessage.from(headers).data(bytes).build()));
             });
   }
 

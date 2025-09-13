@@ -8,10 +8,8 @@ import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
@@ -73,7 +71,7 @@ public class ServiceMethodInvoker {
                           logger.debug(
                               "[{}] request: {}, response: {}",
                               message.qualifier(),
-                              toString(request),
+                              ServiceMessage.toString(request),
                               response);
                         }
                       })
@@ -83,7 +81,7 @@ public class ServiceMethodInvoker {
                           logger.error(
                               "[{}][error] request: {}",
                               message.qualifier(),
-                              toString(request),
+                              ServiceMessage.toString(request),
                               ex);
                         }
                       });
@@ -119,14 +117,16 @@ public class ServiceMethodInvoker {
                           logger.debug(
                               "[{}][subscribe] request: {}",
                               message.qualifier(),
-                              toString(request));
+                              ServiceMessage.toString(request));
                         }
                       })
                   .doOnComplete(
                       () -> {
                         if (logger != null && logger.isDebugEnabled()) {
                           logger.debug(
-                              "[{}][complete] request: {}", message.qualifier(), toString(request));
+                              "[{}][complete] request: {}",
+                              message.qualifier(),
+                              ServiceMessage.toString(request));
                         }
                       })
                   .doOnError(
@@ -135,7 +135,7 @@ public class ServiceMethodInvoker {
                           logger.error(
                               "[{}][error] request: {}",
                               message.qualifier(),
-                              toString(request),
+                              ServiceMessage.toString(request),
                               ex);
                         }
                       });
@@ -181,7 +181,7 @@ public class ServiceMethodInvoker {
                                       logger.debug(
                                           "[{}][subscribe] request: {}",
                                           qualifier,
-                                          toString(request));
+                                          ServiceMessage.toString(request));
                                     }
                                   })
                               .doOnComplete(
@@ -190,7 +190,7 @@ public class ServiceMethodInvoker {
                                       logger.debug(
                                           "[{}][complete] request: {}",
                                           qualifier,
-                                          toString(request));
+                                          ServiceMessage.toString(request));
                                     }
                                   })
                               .doOnError(
@@ -199,7 +199,7 @@ public class ServiceMethodInvoker {
                                       logger.error(
                                           "[{}][error] request: {}",
                                           qualifier,
-                                          toString(request),
+                                          ServiceMessage.toString(request),
                                           ex);
                                     }
                                   })
@@ -321,28 +321,5 @@ public class ServiceMethodInvoker {
 
     return Mono.defer(() -> principalMapper.map(context))
         .switchIfEmpty(Mono.just(context.principal()));
-  }
-
-  private static String toString(Object request) {
-    if (request == null) {
-      return "null";
-    }
-    // Handle arrays
-    if (request.getClass().isArray()) {
-      return request.getClass().getComponentType().getSimpleName()
-          + "["
-          + Array.getLength(request)
-          + "]";
-    }
-    // Handle collections
-    if (request instanceof Collection<?> collection) {
-      return collection.getClass().getSimpleName() + "[" + collection.size() + "]";
-    }
-    // Handle maps
-    if (request instanceof Map<?, ?> map) {
-      return map.getClass().getSimpleName() + "[" + map.size() + "]";
-    }
-    // Fallback
-    return String.valueOf(request);
   }
 }

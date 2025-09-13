@@ -5,18 +5,18 @@ import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Mono;
 
 /**
- * Service interface for adding files locally, those added files will be accessible by {@link
+ * Service interface for adding files locally. Added files will be accessible by {@link
  * FileStreamer}. Typical usage: client defines an app service with injected {@link FileService},
  * client generates a file in the app service, then calls {@link #addFile(AddFileRequest)}, then
  * returns result (file path qualifier) all the way back to the caller of app service. On the caller
- * side file path qualifier gets combined with http-gateway address, and then url for file streaming
- * is ready. Then caller side has time to download a file until file gets expired.
+ * side file path qualifier gets combined with http-gateway address, and then url for file download
+ * is ready.
  */
 @Service
 public interface FileService {
 
   /**
-   * Adding file and returning path qualifier for the added file. {@link AddFileRequest} must
+   * Adds a file and returning path qualifier for the added file. {@link AddFileRequest} must
    * contain {@code file} that exists, that is not directory, and must have valid path, another
    * parameter - {@code ttl} (optional) represents time after which file will be deleted. Returned
    * file path qualifier comes as: {@code v1/scalecube.endpoints/${microservices:id}/files/:name},

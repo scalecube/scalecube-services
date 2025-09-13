@@ -20,12 +20,11 @@ import io.netty.handler.codec.http.multipart.FileUpload;
 import io.netty.handler.codec.http.multipart.HttpData;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.api.DynamicQualifier;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.files.FileChannelFlux;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -40,9 +39,9 @@ import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.Signal;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
@@ -281,80 +280,34 @@ public class HttpGatewayAcceptor
         .requestMany(message)
         .switchOnFirst(
             (signal, flux) -> {
-              final var qualifier = message.qualifier();
-              final var map =
-                  DynamicQualifier.from("v1/endpoints/:endpointId/files/:name")
-                      .matchQualifier(qualifier);
-              if (map == null) {
-                throw new RuntimeException("Wrong qualifier: " + qualifier);
+              if (signal.hasError()) {
+                throw Exceptions.propagate(signal.getThrowable());
               }
 
-              final var filename = map.get("name");
-              final var statusCode = toStatusCode(signal);
-
-              if (statusCode != HttpResponseStatus.OK.code()) {
-                return response
-                    .status(statusCode)
-                    .sendString(Mono.just(errorMessage(statusCode, filename)))
-                    .then();
+              if (!signal.hasValue()) {
+                throw new InternalServiceException("File stream is missing or invalid");
               }
 
-              final Flux<ByteBuf> responseFlux =
-                  flux.map(
-                      sm -> {
-                        if (sm.isError()) {
-                          throw new RuntimeException("File stream was interrupted");
-                        }
-                        return sm.data();
-                      });
+              final var downloadMessage = signal.get();
+              if (downloadMessage.isError()) {
+                return error(response, downloadMessage);
+              }
+
+              downloadMessage.headers().forEach(response::header);
 
               return response
-                  .header("Content-Type", "application/octet-stream")
-                  .header("Content-Disposition", "attachment; filename=" + filename)
-                  .send(responseFlux)
+                  .send(
+                      flux.skip(1)
+                          .map(
+                              sm -> {
+                                if (sm.isError()) {
+                                  throw new RuntimeException("File stream was interrupted");
+                                }
+                                return sm.data();
+                              }))
                   .then();
             })
         .then();
-  }
-
-  private static int toStatusCode(Signal<? extends ServiceMessage> signal) {
-    if (signal.hasError()) {
-      return toStatusCode(signal.getThrowable());
-    }
-
-    if (!signal.hasValue()) {
-      return HttpResponseStatus.NO_CONTENT.code();
-    }
-
-    return toStatusCode(signal.get());
-  }
-
-  private static int toStatusCode(Throwable throwable) {
-    if (throwable instanceof ServiceException e) {
-      return e.errorCode();
-    } else {
-      return HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
-    }
-  }
-
-  private static int toStatusCode(ServiceMessage serviceMessage) {
-    if (serviceMessage == null || !serviceMessage.hasData()) {
-      return HttpResponseStatus.NO_CONTENT.code();
-    }
-
-    if (serviceMessage.isError()) {
-      return HttpResponseStatus.INTERNAL_SERVER_ERROR.code();
-    }
-
-    return HttpResponseStatus.OK.code();
-  }
-
-  private static String errorMessage(int statusCode, String fileName) {
-    if (statusCode == 500) {
-      return "File not found: " + fileName;
-    } else {
-      return HttpResponseStatus.valueOf(statusCode).reasonPhrase();
-    }
   }
 
   private static Flux<byte[]> createFileFlux(HttpData httpData) {
