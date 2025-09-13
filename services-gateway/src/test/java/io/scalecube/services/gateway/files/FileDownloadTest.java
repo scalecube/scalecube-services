@@ -5,6 +5,7 @@ import static java.nio.file.StandardOpenOption.WRITE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -38,10 +39,10 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -119,170 +120,213 @@ public class FileDownloadTest {
     }
   }
 
-  @ParameterizedTest(name = "Download file of size {0} bytes")
-  @ValueSource(longs = {512, 1024, 1024 * 1024, 10 * 1024 * 1024})
-  void testDownloadSuccessfully(long fileSize) throws IOException {
-    final var reportResponse =
-        serviceCall
-            .api(ReportService.class)
-            .exportReport(new ExportReportRequest().fileSize(fileSize))
-            .block(TIMEOUT);
-    assertNotNull(reportResponse, "reportResponse");
-    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+  @Nested
+  class FileServiceTests {
 
-    final var file =
-        downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
-    final var list = Files.readAllLines(file);
+    @ParameterizedTest(name = "Download file of size {0} bytes")
+    @ValueSource(longs = {512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+    void testDownloadSuccessfully(long fileSize) throws Exception {
+      final var reportResponse =
+          serviceCall
+              .api(ReportService.class)
+              .exportReport(new ExportReportRequest().fileSize(fileSize))
+              .block(TIMEOUT);
+      assertNotNull(reportResponse, "reportResponse");
+      assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+      assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
-    assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
-    for (String s : list) {
-      assertTrue(s.startsWith("export report @"), "line: " + s);
+      final var file =
+          downloadFile(
+              "http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
+      final var list = Files.readAllLines(file);
+
+      assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
+      for (String s : list) {
+        assertTrue(s.startsWith("export report @"), "line: " + s);
+      }
     }
-  }
 
-  @Test
-  void testFileExpired() throws InterruptedException {
-    final var ttl = 500;
-    final var reportResponse =
-        serviceCall
-            .api(ReportService.class)
-            .exportReport(new ExportReportRequest().ttl(ttl))
-            .block(TIMEOUT);
-    assertNotNull(reportResponse, "reportResponse");
-    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+    @Test
+    void testFileExpired() throws Exception {
+      final var ttl = 500;
+      final var reportResponse =
+          serviceCall
+              .api(ReportService.class)
+              .exportReport(new ExportReportRequest().ttl(ttl))
+              .block(TIMEOUT);
+      assertNotNull(reportResponse, "reportResponse");
+      assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+      assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
 
-    // Download file first time
+      // Download file first time
 
-    downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
-
-    // Await file expiration
-
-    Thread.sleep(ttl * 3);
-
-    // Verify that file is expired
-
-    try {
       downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
-      fail("Expected exception");
-    } catch (Exception e) {
-      final var cause = getRootCause(e);
-      assertInstanceOf(IOException.class, cause);
-      final var ex = (IOException) cause;
-      final var errorType = InternalServiceException.ERROR_TYPE;
-      final var message = ex.getMessage();
-      assertTrue(
-          message.startsWith("No Content-Disposition header in response [" + errorType),
-          "message: " + message);
+
+      // Await file expiration
+
+      Thread.sleep(ttl * 3);
+
+      // Verify that file is expired
+
+      try {
+        downloadFile("http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
+        fail("Expected exception");
+      } catch (Exception e) {
+        final var cause = getRootCause(e);
+        assertInstanceOf(IOException.class, cause);
+        final var ex = (IOException) cause;
+        final var errorType = InternalServiceException.ERROR_TYPE;
+        final var message = ex.getMessage();
+        assertTrue(
+            message.startsWith("No Content-Disposition header in response [" + errorType),
+            "message: " + message);
+      }
+    }
+
+    @Test
+    void testWrongFile() {
+      StepVerifier.create(serviceCall.api(ReportService.class).exportReportWrongFile())
+          .expectSubscription()
+          .verifyErrorSatisfies(
+              ex -> {
+                assertInstanceOf(InternalServiceException.class, ex, "exceptionType");
+                final var serviceException = (InternalServiceException) ex;
+                assertEquals(500, serviceException.errorCode());
+                assertTrue(serviceException.getMessage().startsWith("Wrong file: target"));
+              });
+    }
+
+    @Test
+    void testFileNotFound() {
+      final var reportResponse =
+          serviceCall
+              .api(ReportService.class)
+              .exportReport(new ExportReportRequest())
+              .block(TIMEOUT);
+      assertNotNull(reportResponse, "reportResponse");
+      assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+      assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+
+      final var reportPath = reportResponse.reportPath();
+      final var s = reportPath.substring(reportPath.lastIndexOf("/"));
+      final var newReportPath =
+          reportPath.replace(s, "/file_must_not_be_found_" + System.currentTimeMillis());
+
+      try {
+        downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+        fail("Expected exception");
+      } catch (Exception e) {
+        final var cause = getRootCause(e);
+        assertInstanceOf(IOException.class, cause);
+        final var ex = (IOException) cause;
+        final var errorType = InternalServiceException.ERROR_TYPE;
+        final var message = ex.getMessage();
+        assertTrue(
+            message.startsWith("No Content-Disposition header in response [" + errorType),
+            "message: " + message);
+      }
+    }
+
+    @Test
+    void testWrongFilename() {
+      final var reportResponse =
+          serviceCall
+              .api(ReportService.class)
+              .exportReport(new ExportReportRequest())
+              .block(TIMEOUT);
+      assertNotNull(reportResponse, "reportResponse");
+      assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+      assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+
+      final var reportPath = reportResponse.reportPath();
+      final var s = reportPath.substring(reportPath.lastIndexOf("/"));
+      final var newReportPath = reportPath.replace(s, "");
+
+      try {
+        downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+        fail("Expected exception");
+      } catch (Exception e) {
+        final var cause = getRootCause(e);
+        assertInstanceOf(IOException.class, cause);
+        final var ex = (IOException) cause;
+        final var errorType = ServiceUnavailableException.ERROR_TYPE;
+        final var message = ex.getMessage();
+        assertTrue(
+            message.startsWith("No Content-Disposition header in response [" + errorType),
+            "message: " + message);
+      }
+    }
+
+    @Test
+    void testAnotherWrongFilename() {
+      final var reportResponse =
+          serviceCall
+              .api(ReportService.class)
+              .exportReport(new ExportReportRequest())
+              .block(TIMEOUT);
+      assertNotNull(reportResponse, "reportResponse");
+      assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
+      assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+
+      final var reportPath = reportResponse.reportPath();
+      final var s = reportPath.substring(reportPath.lastIndexOf("/"));
+      final var newReportPath = reportPath.replace(s, "/");
+
+      try {
+        downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
+        fail("Expected exception");
+      } catch (Exception e) {
+        final var cause = getRootCause(e);
+        assertInstanceOf(IOException.class, cause);
+        final var ex = (IOException) cause;
+        final var errorType = ServiceUnavailableException.ERROR_TYPE;
+        final var message = ex.getMessage();
+        assertTrue(
+            message.startsWith("No Content-Disposition header in response [" + errorType),
+            "message: " + message);
+      }
     }
   }
 
-  @Test
-  void testWrongFile() {
-    StepVerifier.create(serviceCall.api(ReportService.class).exportReportWrongFile())
-        .expectSubscription()
-        .verifyErrorSatisfies(
-            ex -> {
-              assertInstanceOf(InternalServiceException.class, ex, "exceptionType");
-              final var serviceException = (InternalServiceException) ex;
-              assertEquals(500, serviceException.errorCode());
-              assertTrue(serviceException.getMessage().startsWith("Wrong file: target"));
-            });
-  }
+  @Nested
+  class DirectDownloadTests {
 
-  @Test
-  void testFileNotFound() {
-    final var reportResponse =
-        serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
-    assertNotNull(reportResponse, "reportResponse");
-    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
+    @ParameterizedTest(name = "Fail on download: {0}")
+    @ValueSource(
+        strings = {
+          "immediateErrorOnDownload",
+          "emptyOnDownload",
+          "missingContentDispositionHeaderOnDownload"
+        })
+    void failOnDownload(String path) {
+      final var exception =
+          assertThrows(
+              IOException.class,
+              () -> downloadFile("http://localhost:" + httpAddress.port() + "/v1/api/" + path));
+      assertTrue(exception.getMessage().contains("No Content-Disposition header"));
+    }
 
-    final var reportPath = reportResponse.reportPath();
-    final var s = reportPath.substring(reportPath.lastIndexOf("/"));
-    final var newReportPath =
-        reportPath.replace(s, "/file_must_not_be_found_" + System.currentTimeMillis());
+    @ParameterizedTest(name = "Download file of size {0} bytes")
+    @ValueSource(longs = {0, 64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+    void successfulDownload(long fileSize) throws Exception {
+      final var file =
+          downloadFile(
+              "http://localhost:" + httpAddress.port() + "/v1/api/successfulDownload/" + fileSize);
+      final var list = Files.readAllLines(file);
 
-    try {
-      downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
-      fail("Expected exception");
-    } catch (Exception e) {
-      final var cause = getRootCause(e);
-      assertInstanceOf(IOException.class, cause);
-      final var ex = (IOException) cause;
-      final var errorType = InternalServiceException.ERROR_TYPE;
-      final var message = ex.getMessage();
-      assertTrue(
-          message.startsWith("No Content-Disposition header in response [" + errorType),
-          "message: " + message);
+      assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
+      for (String s : list) {
+        assertTrue(s.startsWith("export report @"), "line: " + s);
+      }
     }
   }
 
-  @Test
-  void testWrongFilename() {
-    final var reportResponse =
-        serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
-    assertNotNull(reportResponse, "reportResponse");
-    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
-
-    final var reportPath = reportResponse.reportPath();
-    final var s = reportPath.substring(reportPath.lastIndexOf("/"));
-    final var newReportPath = reportPath.replace(s, "");
-
-    try {
-      downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
-      fail("Expected exception");
-    } catch (Exception e) {
-      final var cause = getRootCause(e);
-      assertInstanceOf(IOException.class, cause);
-      final var ex = (IOException) cause;
-      final var errorType = ServiceUnavailableException.ERROR_TYPE;
-      final var message = ex.getMessage();
-      assertTrue(
-          message.startsWith("No Content-Disposition header in response [" + errorType),
-          "message: " + message);
-    }
-  }
-
-  @Test
-  void testAnotherWrongFilename() {
-    final var reportResponse =
-        serviceCall.api(ReportService.class).exportReport(new ExportReportRequest()).block(TIMEOUT);
-    assertNotNull(reportResponse, "reportResponse");
-    assertNotNull(reportResponse.reportPath(), "reportResponse.reportPath");
-    assertTrue(reportResponse.reportPath().matches("^v1/endpoints/.*/files/.*$"));
-
-    final var reportPath = reportResponse.reportPath();
-    final var s = reportPath.substring(reportPath.lastIndexOf("/"));
-    final var newReportPath = reportPath.replace(s, "/");
-
-    try {
-      downloadFile("http://localhost:" + httpAddress.port() + "/" + newReportPath);
-      fail("Expected exception");
-    } catch (Exception e) {
-      final var cause = getRootCause(e);
-      assertInstanceOf(IOException.class, cause);
-      final var ex = (IOException) cause;
-      final var errorType = ServiceUnavailableException.ERROR_TYPE;
-      final var message = ex.getMessage();
-      assertTrue(
-          message.startsWith("No Content-Disposition header in response [" + errorType),
-          "message: " + message);
-    }
-  }
-
-  private static Path downloadFile(String reportUrl) {
-    try {
-      return HttpClient.newHttpClient()
-          .send(
-              HttpRequest.newBuilder().uri(URI.create(reportUrl)).build(),
-              HttpResponse.BodyHandlers.ofFileDownload(Path.of("target"), CREATE, WRITE))
-          .body();
-    } catch (Exception e) {
-      throw Exceptions.propagate(e);
-    }
+  private static Path downloadFile(String reportUrl) throws Exception {
+    return HttpClient.newHttpClient()
+        .send(
+            HttpRequest.newBuilder().uri(URI.create(reportUrl)).build(),
+            HttpResponse.BodyHandlers.ofFileDownload(Path.of("target"), CREATE, WRITE))
+        .body();
   }
 
   private static Throwable getRootCause(Throwable throwable) {

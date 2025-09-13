@@ -1,5 +1,7 @@
 package io.scalecube.services.api;
 
+import java.lang.reflect.Array;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -50,13 +52,23 @@ public final class ServiceMessage {
   }
 
   /**
-   * Instantiates new message with the same data and headers as at given message.
+   * Instantiates new message builder with the same data and headers as at given message.
    *
    * @param message the message to be copied
-   * @return a new message, with the same data and headers
+   * @return message builder
    */
   public static Builder from(ServiceMessage message) {
     return ServiceMessage.builder().data(message.data()).headers(message.headers());
+  }
+
+  /**
+   * Instantiates new message builder with the headers as at given message.
+   *
+   * @param headers the headers to be copied
+   * @return message builder
+   */
+  public static Builder from(Map<String, String> headers) {
+    return ServiceMessage.builder().headers(headers);
   }
 
   /**
@@ -81,7 +93,7 @@ public final class ServiceMessage {
   /**
    * Instantiates new empty message builder.
    *
-   * @return new builder
+   * @return new message builder
    */
   public static Builder builder() {
     return new Builder();
@@ -196,7 +208,7 @@ public final class ServiceMessage {
   /**
    * Returns request method header.
    *
-   * @return request method, or null if such header doesn't exist.
+   * @return request method, or null if does not exist
    */
   public String requestMethod() {
     return headers.get(HEADER_REQUEST_METHOD);
@@ -205,7 +217,7 @@ public final class ServiceMessage {
   /**
    * Returns upload filename header.
    *
-   * @return upload filename, or null if such header doesn't exist.
+   * @return request method, or null if does not exist
    */
   public String uploadFilename() {
     return headers.get(HEADER_UPLOAD_FILENAME);
@@ -213,10 +225,33 @@ public final class ServiceMessage {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", "ServiceMessage" + "[", "]")
-        .add("headers(" + headers.size() + ")")
-        .add("data=" + data)
+    return new StringJoiner(", ", ServiceMessage.class.getSimpleName() + "[", "]")
+        .add("headers[" + headers.size() + "]")
+        .add("data=" + toString(data))
         .toString();
+  }
+
+  public static String toString(Object request) {
+    if (request == null) {
+      return "null";
+    }
+    // Handle arrays
+    if (request.getClass().isArray()) {
+      return request.getClass().getComponentType().getSimpleName()
+          + "["
+          + Array.getLength(request)
+          + "]";
+    }
+    // Handle collections
+    if (request instanceof Collection<?> collection) {
+      return collection.getClass().getSimpleName() + "[" + collection.size() + "]";
+    }
+    // Handle maps
+    if (request instanceof Map<?, ?> map) {
+      return map.getClass().getSimpleName() + "[" + map.size() + "]";
+    }
+    // Fallback
+    return String.valueOf(request);
   }
 
   public static class Builder {

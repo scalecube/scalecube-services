@@ -5,7 +5,9 @@ import static java.nio.file.StandardOpenOption.APPEND;
 
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.files.AddFileRequest;
+import io.scalecube.services.files.FileChannelFlux;
 import io.scalecube.services.files.FileService;
 import java.io.File;
 import java.io.IOException;
@@ -82,6 +84,63 @@ public class ReportServiceImpl implements ReportService {
               return reportStream
                   .then()
                   .then(Mono.error(new RuntimeException("Upload report failed: " + filename)));
+            });
+  }
+
+  @Override
+  public Flux<ServiceMessage> immediateErrorOnDownload() {
+    return Flux.error(new RuntimeException("Immediate error on download"));
+  }
+
+  @Override
+  public Flux<ServiceMessage> emptyOnDownload() {
+    return Flux.empty();
+  }
+
+  @Override
+  public Flux<ServiceMessage> missingContentDispositionHeaderOnDownload() {
+    return RequestContext.deferContextual()
+        .flatMapMany(
+            context -> {
+              final var headers = context.headers();
+
+              final var message =
+                  ServiceMessage.from(headers)
+                      // .header("Content-Type", "application/octet-stream")
+                      // .header("Content-Disposition", "attachment; filename=" + name)
+                      .build();
+
+              return Flux.just(message)
+                  .concatWith(
+                      Flux.just(new byte[0])
+                          .map(bytes -> ServiceMessage.from(headers).data(bytes).build()));
+            });
+  }
+
+  @Override
+  public Flux<ServiceMessage> successfulDownload() {
+    return RequestContext.deferContextual()
+        .flatMapMany(
+            context -> {
+              final var fileSize = context.pathVar("fileSize", Long.class);
+              final var headers = context.headers();
+              final File file;
+              try {
+                file = generateFile(Files.createTempFile("export_report_", null), fileSize);
+              } catch (IOException e) {
+                throw new RuntimeException(e);
+              }
+
+              final var message =
+                  ServiceMessage.from(headers)
+                      .header("Content-Type", "application/octet-stream")
+                      .header("Content-Disposition", "attachment; filename=" + file.getName())
+                      .build();
+
+              return Flux.just(message)
+                  .concatWith(
+                      FileChannelFlux.createFrom(file.toPath())
+                          .map(bytes -> ServiceMessage.from(headers).data(bytes).build()));
             });
   }
 
