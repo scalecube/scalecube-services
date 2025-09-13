@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import reactor.netty.DisposableServer;
 import reactor.netty.http.server.HttpServer;
+import reactor.netty.http.server.HttpServerFormDecoderProvider;
 import reactor.netty.resources.LoopResources;
 
 public class HttpGateway implements Gateway {
@@ -38,6 +39,7 @@ public class HttpGateway implements Gateway {
   private final HttpGatewayAuthenticator authenticator;
   private final boolean corsEnabled;
   private final CorsConfigBuilder corsConfigBuilder;
+  private final Consumer<HttpServerFormDecoderProvider.Builder> formDecoderBuilder;
 
   private DisposableServer server;
   private LoopResources loopResources;
@@ -50,6 +52,7 @@ public class HttpGateway implements Gateway {
     this.authenticator = builder.authenticator;
     this.corsEnabled = builder.corsEnabled;
     this.corsConfigBuilder = builder.corsConfigBuilder;
+    this.formDecoderBuilder = builder.formDecoderBuilder;
   }
 
   public static Builder builder() {
@@ -80,6 +83,12 @@ public class HttpGateway implements Gateway {
               .handle(
                   new HttpGatewayAcceptor(
                       callFactory.apply(call), serviceRegistry, errorMapper, authenticator))
+              .httpFormDecoder(
+                  builder -> {
+                    if (formDecoderBuilder != null) {
+                      formDecoderBuilder.accept(builder);
+                    }
+                  })
               .bind()
               .toFuture()
               .get();
@@ -129,6 +138,8 @@ public class HttpGateway implements Gateway {
             .allowedRequestHeaders("*")
             .exposeHeaders("*")
             .maxAge(3600);
+    private Consumer<HttpServerFormDecoderProvider.Builder> formDecoderBuilder =
+        builder -> builder.maxSize(100 * 1024 * 1024);
 
     private Builder() {}
 
@@ -193,6 +204,15 @@ public class HttpGateway implements Gateway {
 
     public Builder corsConfigBuilder(Consumer<CorsConfigBuilder> consumer) {
       consumer.accept(corsConfigBuilder);
+      return this;
+    }
+
+    public Consumer<HttpServerFormDecoderProvider.Builder> formDecoderBuilder() {
+      return formDecoderBuilder;
+    }
+
+    public Builder formDecoderBuilder(Consumer<HttpServerFormDecoderProvider.Builder> consumer) {
+      this.formDecoderBuilder = consumer;
       return this;
     }
 

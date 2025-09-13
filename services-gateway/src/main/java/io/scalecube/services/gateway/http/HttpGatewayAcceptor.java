@@ -13,7 +13,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.multipart.FileUpload;
@@ -52,7 +51,6 @@ public class HttpGatewayAcceptor
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
   private static final long MAX_SERVICE_MESSAGE_SIZE = 1024 * 1024;
-  private static final long MAX_FILE_UPLOAD_SIZE = 100 * 1024 * 1024;
 
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
@@ -104,21 +102,20 @@ public class HttpGatewayAcceptor
       Map<String, String> principal,
       HttpServerRequest httpRequest,
       HttpServerResponse httpResponse) {
-    return Mono.fromRunnable(() -> validateFileUploadRequest(httpRequest))
-        .thenMany(httpRequest.receiveForm())
-        .doOnNext(HttpGatewayAcceptor::doPostFileUploadCheck)
+    return httpRequest
+        .receiveForm()
+        .cast(FileUpload.class)
         .flatMap(
-            httpData ->
+            fileUpload ->
                 serviceCall
                     .requestBidirectional(
-                        createFileFlux(httpData)
+                        createFileFlux(fileUpload)
                             .map(
                                 data ->
                                     toMessage(
                                         httpRequest,
                                         builder -> {
-                                          final var filename =
-                                              ((FileUpload) httpData).getFilename();
+                                          final var filename = fileUpload.getFilename();
                                           builder
                                               .headers(principal)
                                               .header(HEADER_UPLOAD_FILENAME, filename)
@@ -132,7 +129,7 @@ public class HttpGatewayAcceptor
                                 : response.hasData() // check data
                                     ? ok(httpResponse, response)
                                     : noContent(httpResponse))
-                    .doFinally(signalType -> httpData.delete()))
+                    .doFinally(signalType -> fileUpload.delete()))
         .then()
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
@@ -319,31 +316,6 @@ public class HttpGatewayAcceptor
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }
-  }
-
-  private static void validateFileUploadRequest(HttpServerRequest httpRequest) {
-    final var contentLengthHeader =
-        httpRequest.requestHeaders().get(HttpHeaderNames.CONTENT_LENGTH);
-    final var contentLength =
-        contentLengthHeader != null ? Long.parseLong(contentLengthHeader) : -1L;
-    final var limit = MAX_FILE_UPLOAD_SIZE;
-    if (contentLength > limit) {
-      throw new BadRequestException(
-          "File upload is too large, size: " + contentLength + ", limit: " + limit);
-    }
-  }
-
-  private static void doPostFileUploadCheck(HttpData httpData) {
-    if (!(httpData instanceof FileUpload)) {
-      throw new BadRequestException("File upload is missing or invalid");
-    }
-    final long fileSize = httpData.length();
-    final var limit = MAX_FILE_UPLOAD_SIZE;
-    if (fileSize > limit) {
-      httpData.delete();
-      throw new BadRequestException(
-          "File upload is too large, size: " + fileSize + ", limit: " + limit);
     }
   }
 }
