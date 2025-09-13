@@ -138,10 +138,9 @@ public class FileDownloadTest {
       final var file =
           downloadFile(
               "http://localhost:" + httpAddress.port() + "/" + reportResponse.reportPath());
-      final var list = Files.readAllLines(file);
-
+      assertTrue(Files.exists(file), "File does not exist");
       assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
-      for (String s : list) {
+      for (String s : Files.readAllLines(file)) {
         assertTrue(s.startsWith("export report @"), "line: " + s);
       }
     }
@@ -312,10 +311,9 @@ public class FileDownloadTest {
       final var file =
           downloadFile(
               "http://localhost:" + httpAddress.port() + "/v1/api/successfulDownload/" + fileSize);
-      final var list = Files.readAllLines(file);
-
+      assertTrue(Files.exists(file), "File does not exist");
       assertTrue(file.toFile().length() >= fileSize, "fileSize: " + file.toFile().length());
-      for (String s : list) {
+      for (String s : Files.readAllLines(file)) {
         assertTrue(s.startsWith("export report @"), "line: " + s);
       }
     }
