@@ -34,6 +34,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -320,10 +321,11 @@ public class FileDownloadTest {
   }
 
   private static Path downloadFile(String reportUrl) throws Exception {
+    Path tmpPath = Paths.get(System.getProperty("java.io.tmpdir"));
     return HttpClient.newHttpClient()
         .send(
             HttpRequest.newBuilder().uri(URI.create(reportUrl)).build(),
-            HttpResponse.BodyHandlers.ofFileDownload(Path.of("target"), CREATE, WRITE))
+            HttpResponse.BodyHandlers.ofFileDownload(tmpPath, CREATE, WRITE))
         .body();
   }
 
