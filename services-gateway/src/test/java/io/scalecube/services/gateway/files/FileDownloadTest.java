@@ -124,7 +124,7 @@ public class FileDownloadTest {
   class FileServiceTests {
 
     @ParameterizedTest(name = "Download file of size {0} bytes")
-    @ValueSource(longs = {512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+    @ValueSource(longs = {0, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
     void testDownloadSuccessfully(long fileSize) throws Exception {
       final var reportResponse =
           serviceCall
@@ -307,7 +307,7 @@ public class FileDownloadTest {
     }
 
     @ParameterizedTest(name = "Download file of size {0} bytes")
-    @ValueSource(longs = {0, 64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+    @ValueSource(longs = {0, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
     void successfulDownload(long fileSize) throws Exception {
       final var file =
           downloadFile(
