@@ -96,17 +96,17 @@ public class FileServiceImpl implements FileService, FileStreamer {
         .flatMapMany(
             context -> {
               final var headers = context.headers();
-              final var name = context.pathVar("name");
-              final var path = baseDir.resolve(name);
+              final var filename = context.pathVar("filename");
+              final var path = baseDir.resolve(filename);
 
               if (!isPathValid(path)) {
-                return Flux.error(new FileNotFoundException("File not found: " + name));
+                return Flux.error(new FileNotFoundException("File not found: " + filename));
               }
 
               final var message =
                   ServiceMessage.from(headers)
                       .header("Content-Type", "application/octet-stream")
-                      .header("Content-Disposition", "attachment; filename=" + name)
+                      .header("Content-Disposition", "attachment; filename=" + filename)
                       .build();
 
               return Flux.just(message)

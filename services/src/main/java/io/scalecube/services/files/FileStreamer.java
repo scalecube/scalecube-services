@@ -21,6 +21,6 @@ public interface FileStreamer {
   @Tag(key = "Content-Type", value = "application/file")
   @RestMethod("GET")
   @ResponseType(byte[].class)
-  @ServiceMethod("${microservices:id}/files/:name")
+  @ServiceMethod("${microservices:id}/files/:filename")
   Flux<ServiceMessage> streamFile();
 }
