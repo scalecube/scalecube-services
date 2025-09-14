@@ -21,6 +21,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
@@ -31,10 +33,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.core.publisher.Mono;
 
 public class FileUploadTest {
+
+  private static final int MAX_SIZE = 15 * 1024 * 1024;
+  private static final int SIZE_OVER_LIMIT = MAX_SIZE << 1;
 
   private static Microservices gateway;
   private static Microservices microservices;
@@ -56,7 +62,12 @@ public class FileUploadTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(
                     () -> new RSocketServiceTransport().credentialsSupplier(credentialsSupplier))
-                .gateway(() -> HttpGateway.builder().id("HTTP").build()));
+                .gateway(
+                    () ->
+                        HttpGateway.builder()
+                            .id("HTTP")
+                            .formDecoderBuilder(builder -> builder.maxSize(MAX_SIZE))
+                            .build()));
 
     microservices =
         Microservices.start(
@@ -85,9 +96,9 @@ public class FileUploadTest {
     }
   }
 
-  @ParameterizedTest(name = "Upload file of size {0} bytes")
-  @ValueSource(longs = {0, 64, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
-  public void uploadSuccessfully(long fileSize) throws Exception {
+  @ParameterizedTest(name = "Upload successfully, size: {0} bytes")
+  @ValueSource(longs = {0, 512, 1024, 1024 * 1024, 10 * 1024 * 1024})
+  void uploadSuccessfully(long fileSize) throws Exception {
     final var client = new OkHttpClient();
     final var file = generateFile(Files.createTempFile("export_report_", null), fileSize);
 
@@ -113,10 +124,11 @@ public class FileUploadTest {
     }
   }
 
-  @Test
-  public void uploadFailed() throws Exception {
+  @ParameterizedTest
+  @MethodSource("uploadFailedSource")
+  void uploadFailed(UploadFailedArgs args) throws Exception {
     final var client = new OkHttpClient();
-    final var file = generateFile(Files.createTempFile("export_report_", null), 1024);
+    final var file = generateFile(Files.createTempFile("export_report_", null), args.fileSize());
 
     final var body =
         new MultipartBody.Builder()
@@ -135,8 +147,47 @@ public class FileUploadTest {
       assertEquals(
           HttpResponseStatus.INTERNAL_SERVER_ERROR.code(), response.code(), "response.code");
       assertEquals(
-          "{\"errorCode\":500,\"errorMessage\":\"Upload report failed: %s\"}"
-              .formatted(file.getName()),
+          "{\"errorCode\":%s,\"errorMessage\":\"%s\"}"
+              .formatted(args.errorCode(), args.errorMessageFunc().apply(file)),
+          response.body().string(),
+          "response.body");
+    }
+  }
+
+  @Test
+  void onlySingleFileAllowed() throws Exception {
+    final var client = new OkHttpClient();
+
+    final var fileSize = 1024 * 1024;
+    final var file1 = generateFile(Files.createTempFile("export_report_1_", null), fileSize);
+    final var file2 = generateFile(Files.createTempFile("export_report_2_", null), fileSize);
+
+    final var body =
+        new MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "file",
+                file1.getName(),
+                RequestBody.create(file1, MediaType.get("application/text")))
+            .addFormDataPart(
+                "file",
+                file2.getName(),
+                RequestBody.create(file2, MediaType.get("application/text")))
+            .build();
+
+    final var request =
+        new Request.Builder()
+            .url("http://localhost:" + httpAddress.port() + "/v1/api/uploadReportError")
+            .post(body)
+            .build();
+
+    try (Response response = client.newCall(request).execute()) {
+      assertEquals(HttpResponseStatus.BAD_REQUEST.code(), response.code(), "response.code");
+      assertEquals(
+          "{"
+              + "\"errorCode\":400,"
+              + "\"errorMessage\":\"Exactly one file-upload part is expected (received: 2)\""
+              + "}",
           response.body().string(),
           "response.body");
     }
@@ -152,4 +203,19 @@ public class FileUploadTest {
       throw new RuntimeException(e);
     }
   }
+
+  private static Stream<UploadFailedArgs> uploadFailedSource() {
+    return Stream.of(
+        new UploadFailedArgs(
+            1024 * 1024,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR.code(),
+            file -> "Upload report failed: " + file.getName()),
+        new UploadFailedArgs(
+            SIZE_OVER_LIMIT,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR.code(),
+            file -> "java.io.IOException: Size exceed allowed maximum capacity"));
+  }
+
+  private record UploadFailedArgs(
+      long fileSize, int errorCode, Function<File, String> errorMessageFunc) {}
 }
