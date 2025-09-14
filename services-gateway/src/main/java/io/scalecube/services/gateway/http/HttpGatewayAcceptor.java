@@ -104,32 +104,57 @@ public class HttpGatewayAcceptor
       HttpServerResponse httpResponse) {
     return httpRequest
         .receiveForm()
-        .cast(FileUpload.class)
+        .map(
+            data -> {
+              if (!(data instanceof FileUpload file)) {
+                throw new BadRequestException(
+                    "Non file-upload part is not allowed, name=" + data.getName());
+              }
+              return file.retain();
+            })
+        .collectList()
         .flatMap(
-            fileUpload ->
-                serviceCall
-                    .requestBidirectional(
-                        createFileFlux(fileUpload)
-                            .map(
-                                data ->
-                                    toMessage(
-                                        httpRequest,
-                                        builder -> {
-                                          final var filename = fileUpload.getFilename();
+            files -> {
+              if (files.size() != 1) {
+                return Mono.error(
+                    new BadRequestException(
+                        "Exactly one file-upload part is expected (received: "
+                            + files.size()
+                            + ")"));
+              }
+
+              final var fileUpload = files.get(0);
+              final var filename = fileUpload.getFilename();
+
+              return serviceCall
+                  .requestBidirectional(
+                      createFileFlux(fileUpload)
+                          .map(
+                              data ->
+                                  toMessage(
+                                      httpRequest,
+                                      builder ->
                                           builder
                                               .headers(principal)
                                               .header(HEADER_UPLOAD_FILENAME, filename)
-                                              .data(data);
-                                        })))
-                    .last()
-                    .flatMap(
-                        response ->
-                            response.isError() // check error
-                                ? error(httpResponse, response)
-                                : response.hasData() // check data
-                                    ? ok(httpResponse, response)
-                                    : noContent(httpResponse))
-                    .doFinally(signalType -> fileUpload.delete()))
+                                              .data(data))))
+                  .last()
+                  .flatMap(
+                      response ->
+                          response.isError() // check error
+                              ? error(httpResponse, response)
+                              : response.hasData() // check data
+                                  ? ok(httpResponse, response)
+                                  : noContent(httpResponse))
+                  .doFinally(
+                      signalType -> {
+                        try {
+                          fileUpload.delete();
+                        } finally {
+                          safestRelease(fileUpload);
+                        }
+                      });
+            })
         .then()
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
@@ -147,7 +172,11 @@ public class HttpGatewayAcceptor
               final var limit = MAX_SERVICE_MESSAGE_SIZE;
               if (readableBytes >= limit) {
                 throw new BadRequestException(
-                    "Service message is too large, size: " + readableBytes + ", limit: " + limit);
+                    "Service message is too large (size: "
+                        + readableBytes
+                        + ", limit: "
+                        + limit
+                        + ")");
               }
               return reduce.writeBytes(byteBuf);
             })

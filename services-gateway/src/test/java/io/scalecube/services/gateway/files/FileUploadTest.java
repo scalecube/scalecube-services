@@ -39,8 +39,8 @@ import reactor.core.publisher.Mono;
 
 public class FileUploadTest {
 
-  private static final int MAX_SIZE = 15 * 1024 * 1024;
-  private static final int SIZE_OVER_LIMIT = MAX_SIZE + 1024 * 1024;
+  private static final int MAX_SIZE = 10 * 1024 * 1024;
+  private static final int SIZE_OVER_LIMIT = MAX_SIZE << 1;
 
   private static Microservices gateway;
   private static Microservices microservices;
@@ -184,7 +184,10 @@ public class FileUploadTest {
     try (Response response = client.newCall(request).execute()) {
       assertEquals(HttpResponseStatus.BAD_REQUEST.code(), response.code(), "response.code");
       assertEquals(
-          "{\"errorCode\":400,\"errorMessage\":\"Too many file-upload parts\"}",
+          "{"
+              + "\"errorCode\":400,"
+              + "\"errorMessage\":\"Exactly one file-upload part is expected (received: 2)\""
+              + "}",
           response.body().string(),
           "response.body");
     }
@@ -203,10 +206,13 @@ public class FileUploadTest {
 
   private static Stream<UploadFailedArgs> uploadFailedSource() {
     return Stream.of(
-        new UploadFailedArgs(1024 * 1024, 500, file -> "Upload report failed: " + file.getName()),
+        new UploadFailedArgs(
+            1024 * 1024,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR.code(),
+            file -> "Upload report failed: " + file.getName()),
         new UploadFailedArgs(
             SIZE_OVER_LIMIT,
-            500,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR.code(),
             file -> "java.io.IOException: Size exceed allowed maximum capacity"));
   }
 
