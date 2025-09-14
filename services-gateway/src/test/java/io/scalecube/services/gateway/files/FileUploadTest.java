@@ -39,7 +39,7 @@ import reactor.core.publisher.Mono;
 
 public class FileUploadTest {
 
-  private static final int MAX_SIZE = 10 * 1024 * 1024;
+  private static final int MAX_SIZE = 15 * 1024 * 1024;
   private static final int SIZE_OVER_LIMIT = MAX_SIZE << 1;
 
   private static Microservices gateway;
