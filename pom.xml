@@ -57,7 +57,7 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.7.2</scalecube-cluster.version>
+    <scalecube-cluster.version>2.7.4</scalecube-cluster.version>
     <scalecube-security.version>1.1.6</scalecube-security.version>
 
     <reactor.version>2024.0.8</reactor.version>
