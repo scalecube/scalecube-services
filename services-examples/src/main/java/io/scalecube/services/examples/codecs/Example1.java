@@ -12,7 +12,6 @@ import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 public class Example1 {
 
   public static final String JSON = "application/json";
-  public static final String PROTOSTUFF = "application/protostuff";
   public static final String OCTET_STREAM = "application/octet-stream";
 
   /**
@@ -31,7 +30,7 @@ public class Example1 {
                             .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
-            // .defaultContentType(PROTOSTUFF) // set explicit default data format
+            // .defaultContentType(JSON) // set explicit default data format
             );
 
     final Address seedAddress = seed.discoveryAddress();
@@ -51,7 +50,7 @@ public class Example1 {
 
     seed.call()
         .api(GreetingsService.class)
-        .sayHello("joe (on default dataFormat PROTOSTUFF)")
+        .sayHello("joe (on JSON dataFormat)")
         .subscribe(consumer -> System.out.println(consumer.message()));
 
     seed.call()
