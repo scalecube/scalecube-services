@@ -19,7 +19,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-security-tokens</artifactId>
+      <artifactId>scalecube-security-jwt</artifactId>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>

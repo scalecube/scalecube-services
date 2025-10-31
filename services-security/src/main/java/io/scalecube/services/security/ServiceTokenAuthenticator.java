@@ -1,8 +1,8 @@
 package io.scalecube.services.security;
 
-import io.scalecube.security.tokens.jwt.JwtToken;
-import io.scalecube.security.tokens.jwt.JwtTokenResolver;
-import io.scalecube.security.tokens.jwt.JwtUnavailableException;
+import io.scalecube.security.jwt.JwtToken;
+import io.scalecube.security.jwt.JwtTokenResolver;
+import io.scalecube.security.jwt.JwtUnavailableException;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.auth.ServicePrincipal;
