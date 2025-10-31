@@ -172,7 +172,6 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 **Message codec providers:**
 
 * scalecube-services-transport-jackson: using Jackson to encode / decode service messages. https://github.com/FasterXML
-* scalecube-services-transport-protostuff: using protostuff to encode / decode service messages. https://github.com/protostuff
 
 **Service discovery providers:**
 
