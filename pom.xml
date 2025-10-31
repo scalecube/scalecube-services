@@ -58,7 +58,7 @@
 
   <properties>
     <scalecube-cluster.version>2.7.4</scalecube-cluster.version>
-    <scalecube-security.version>1.1.7</scalecube-security.version>
+    <scalecube-security.version>1.1.8</scalecube-security.version>
 
     <reactor.version>2024.0.8</reactor.version>
     <netty.version>4.2.6.Final</netty.version>
@@ -95,7 +95,7 @@
       <!-- Scalecube-Security -->
       <dependency>
         <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-security-tokens</artifactId>
+        <artifactId>scalecube-security-jwt</artifactId>
         <version>${scalecube-security.version}</version>
       </dependency>
       <dependency>
