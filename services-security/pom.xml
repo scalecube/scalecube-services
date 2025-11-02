@@ -28,12 +28,6 @@
     <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-testlib</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-security-tests</artifactId>
       <version>${scalecube-security.version}</version>
       <scope>test</scope>

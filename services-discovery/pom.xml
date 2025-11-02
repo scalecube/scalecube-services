@@ -23,12 +23,6 @@
     <!-- Tests -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-testlib</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-codec-jackson</artifactId>
       <scope>test</scope>
     </dependency>

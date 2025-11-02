@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+
+  <Properties>
+    <Property name="patternLayout">%level{length=1} %d{ISO8601} %c{1.} %m [%t]%n</Property>
+  </Properties>
+
+  <Appenders>
+    <Console name="STDOUT" target="SYSTEM_OUT">
+      <PatternLayout pattern="${patternLayout}"/>
+    </Console>
+  </Appenders>
+
+  <Loggers>
+    <Logger name="io.scalecube.services" level="${env:servicesLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.services.gateway" level="${env:gatewayLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.transport" level="${env:servicesTransportLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.cluster" level="${env:clusterLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.config" level="${env:configLogLevel:-INFO}"/>
+    <Logger name="io.scalecube.config.audit" level="${env:configAuditLogLevel:-INFO}"/>
+    <Logger name="reactor.util" level="${env:reactorUtilLogLevel:-WARN}"/>
+    <Logger name="reactor.core" level="${env:reactorCoreLogLevel:-WARN}"/>
+    <Logger name="reactor.netty" level="${env:reactorNettyLogLevel:-ERROR}"/>
+    <Logger name="io.netty" level="${env:nettyLogLevel:-ERROR}"/>
+    <logger name="io.rsocket.transport.netty" level="${env:rsocketTransportNettyLogLevel:-WARN}"/>
+    <logger name="io.rsocket.FrameLogger" level="${env:rsocketFrameLoggerLogLevel:-WARN}"/>
+    <logger name="io.rsocket" level="${env:rsocketLogLevel:-INFO}"/>
+
+    <Root level="${env:logLevel:-DEBUG}">
+      <AppenderRef ref="${env:logAppender:-STDOUT}"/>
+    </Root>
+  </Loggers>
+
+</Configuration>
