@@ -21,13 +21,6 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    <!-- Tests -->
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-testlib</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
 </project>

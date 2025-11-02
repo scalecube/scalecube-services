@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent</artifactId>
-    <version>0.3.12</version>
+    <version>0.3.14</version>
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -59,20 +61,7 @@
   <properties>
     <scalecube-cluster.version>2.7.4</scalecube-cluster.version>
     <scalecube-security.version>1.1.8</scalecube-security.version>
-
-    <reactor.version>2024.0.8</reactor.version>
-    <netty.version>4.2.6.Final</netty.version>
-    <jackson.version>2.19.2</jackson.version>
-    <rsocket.version>1.1.5</rsocket.version>
-    <jsr305.version>3.0.2</jsr305.version>
-    <slf4j.version>1.7.36</slf4j.version>
-
-    <mockito-junit.version>4.6.1</mockito-junit.version>
-    <junit-jupiter.version>5.8.2</junit-jupiter.version>
-    <hamcrest.version>1.3</hamcrest.version>
-    <log4j.version>2.17.2</log4j.version>
-    <vault-java-driver.version>5.1.0</vault-java-driver.version>
-    <testcontainers.version>1.20.4</testcontainers.version>
+    <scalecube-test-support.version>0.1.0</scalecube-test-support.version>
 
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
@@ -87,7 +76,6 @@
     <module>services-discovery</module>
     <module>services-security</module>
     <module>services-examples</module>
-    <module>services-testlib</module>
   </modules>
 
   <dependencyManagement>
@@ -120,88 +108,15 @@
         <artifactId>scalecube-transport-netty</artifactId>
         <version>${scalecube-cluster.version}</version>
       </dependency>
-
-      <!-- Reactor -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-bom</artifactId>
-        <version>${reactor.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- Netty -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${netty.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- Logging -->
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>${slf4j.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-bom</artifactId>
-        <version>${log4j.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- RSocket -->
-      <dependency>
-        <groupId>io.rsocket</groupId>
-        <artifactId>rsocket-bom</artifactId>
-        <version>${rsocket.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-
-      <!-- Jackson -->
-      <dependency>
-        <groupId>com.fasterxml.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>${jackson.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
-    <!-- Test scope -->
+    <!-- Tests -->
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>${junit-jupiter.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <version>${mockito-junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-test</artifactId>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-test-support</artifactId>
+      <version>${scalecube-test-support.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

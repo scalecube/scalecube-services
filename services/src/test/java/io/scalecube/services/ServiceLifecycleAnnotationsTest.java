@@ -9,7 +9,6 @@ import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Service;
-import org.apache.logging.log4j.core.util.Throwables;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -73,11 +72,18 @@ public class ServiceLifecycleAnnotationsTest {
                             })
                         .build()))) {
     } catch (Exception ex) {
-      assertSame(exception, Throwables.getRootCause(ex));
+      assertSame(exception, getRootCause(ex));
     }
 
     verify(afterConstruct, times(1)).invoke();
     verify(beforeDestroy, times(1)).invoke();
+  }
+
+  private static Throwable getRootCause(Throwable t) {
+    while (t.getCause() != null) {
+      t = t.getCause();
+    }
+    return t;
   }
 
   @Service("service")
