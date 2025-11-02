@@ -59,9 +59,9 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.7.4</scalecube-cluster.version>
-    <scalecube-security.version>1.1.8</scalecube-security.version>
-    <scalecube-test-support.version>0.1.0</scalecube-test-support.version>
+    <scalecube-cluster.version>2.7.5</scalecube-cluster.version>
+    <scalecube-security.version>1.1.9</scalecube-security.version>
+    <scalecube-test-support.version>0.1.1</scalecube-test-support.version>
 
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
