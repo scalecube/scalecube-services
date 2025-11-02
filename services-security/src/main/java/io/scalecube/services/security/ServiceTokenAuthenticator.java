@@ -1,7 +1,7 @@
 package io.scalecube.services.security;
 
-import io.scalecube.security.jwt.JwksTokenResolver;
 import io.scalecube.security.jwt.JwtToken;
+import io.scalecube.security.jwt.JwtTokenResolver;
 import io.scalecube.security.jwt.JwtUnavailableException;
 import io.scalecube.services.auth.Authenticator;
 import io.scalecube.services.auth.Principal;
@@ -18,7 +18,7 @@ import reactor.util.retry.Retry;
  */
 public class ServiceTokenAuthenticator implements Authenticator {
 
-  private final JwksTokenResolver tokenResolver;
+  private final JwtTokenResolver tokenResolver;
   private final Retry retryStrategy;
 
   /**
@@ -26,7 +26,7 @@ public class ServiceTokenAuthenticator implements Authenticator {
    *
    * @param tokenResolver token resolver
    */
-  public ServiceTokenAuthenticator(JwksTokenResolver tokenResolver) {
+  public ServiceTokenAuthenticator(JwtTokenResolver tokenResolver) {
     this(tokenResolver, 5, Duration.ofSeconds(3));
   }
 
@@ -38,7 +38,7 @@ public class ServiceTokenAuthenticator implements Authenticator {
    * @param retryFixedDelay delay between retry attempts
    */
   public ServiceTokenAuthenticator(
-      JwksTokenResolver tokenResolver, int retryMaxAttempts, Duration retryFixedDelay) {
+      JwtTokenResolver tokenResolver, int retryMaxAttempts, Duration retryFixedDelay) {
     this.tokenResolver = tokenResolver;
     this.retryStrategy =
         Retry.fixedDelay(retryMaxAttempts, retryFixedDelay)
