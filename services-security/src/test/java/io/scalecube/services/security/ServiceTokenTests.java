@@ -3,8 +3,8 @@ package io.scalecube.services.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import io.scalecube.security.jwt.Auth0JwtTokenResolver;
 import io.scalecube.security.jwt.JwksKeyProvider;
-import io.scalecube.security.jwt.JwksTokenResolver;
 import io.scalecube.services.methods.ServiceRoleDefinition;
 import io.scalecube.services.security.environment.IntegrationEnvironmentFixture;
 import io.scalecube.services.security.environment.VaultEnvironment;
@@ -38,7 +38,7 @@ public class ServiceTokenTests {
 
     final var authenticator =
         new ServiceTokenAuthenticator(
-            new JwksTokenResolver(
+            new Auth0JwtTokenResolver(
                 JwksKeyProvider.builder().jwksUri(vaultEnvironment.jwksUri()).build()));
 
     // Install service roles
