@@ -8,6 +8,7 @@ import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.auth.Secured;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import reactor.core.scheduler.Scheduler;
@@ -27,8 +28,7 @@ public class MethodInfo {
   private final Secured secured;
   private final Scheduler scheduler;
   private final String restMethod;
-  private final Collection<String> allowedRoles;
-  private final Collection<String> allowedPermissions;
+  private final Map<String, Collection<String>> allowedRoles;
 
   /**
    * Create a new service info.
@@ -73,11 +73,9 @@ public class MethodInfo {
     this.scheduler = scheduler;
     this.restMethod = restMethod;
     this.allowedRoles =
-        serviceRoles.stream().map(ServiceRoleDefinition::role).collect(Collectors.toSet());
-    this.allowedPermissions =
         serviceRoles.stream()
-            .flatMap(definition -> definition.permissions().stream())
-            .collect(Collectors.toSet());
+            .collect(
+                Collectors.toMap(ServiceRoleDefinition::role, ServiceRoleDefinition::permissions));
   }
 
   public String serviceName() {
@@ -137,11 +135,11 @@ public class MethodInfo {
   }
 
   public Collection<String> allowedRoles() {
-    return allowedRoles;
+    return allowedRoles.keySet();
   }
 
-  public Collection<String> allowedPermissions() {
-    return allowedPermissions;
+  public Collection<String> allowedPermissions(String role) {
+    return allowedRoles.get(role);
   }
 
   @Override
@@ -161,7 +159,6 @@ public class MethodInfo {
         .add("scheduler=" + scheduler)
         .add("restMethod=" + restMethod)
         .add("allowedRoles=" + allowedRoles)
-        .add("allowedPermissions=" + allowedPermissions)
         .toString();
   }
 }

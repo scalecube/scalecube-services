@@ -19,4 +19,9 @@ public interface SecuredService {
 
   @ServiceMethod
   Mono<Void> writeWithAllowedRoleAnnotation();
+
+  // Multiple roles
+
+  @ServiceMethod
+  Mono<String> invokeByMultipleRoles();
 }

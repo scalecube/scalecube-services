@@ -57,4 +57,16 @@ public class SecuredServiceImpl implements SecuredService {
   public Mono<Void> writeWithAllowedRoleAnnotation() {
     return Mono.empty();
   }
+
+  @Secured
+  @AllowedRole(
+      name = "gateway",
+      permissions = {"gateway:read"})
+  @AllowedRole(
+      name = "operations",
+      permissions = {"operations:read"})
+  @Override
+  public Mono<String> invokeByMultipleRoles() {
+    return Mono.empty();
+  }
 }

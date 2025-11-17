@@ -5,9 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -278,6 +278,50 @@ final class AuthTest {
       StepVerifier.create(serviceCall.api(SecuredService.class).writeWithAllowedRoleAnnotation())
           .verifyComplete();
     }
+
+    @ParameterizedTest
+    @MethodSource("multipleRolesSuccessfulSource")
+    void authenticateSuccessfullyByMultipleRoles(String role, TokenCredentials tokenCredentials) {
+      serviceCall = serviceCall((service, roles) -> credentials(tokenCredentials), role);
+      StepVerifier.create(serviceCall.api(SecuredService.class).invokeByMultipleRoles())
+          .verifyComplete();
+    }
+
+    @ParameterizedTest
+    @MethodSource("multipleRolesFailedSource")
+    void authenticationFailedByMultipleRoles(String role, TokenCredentials tokenCredentials) {
+      serviceCall = serviceCall((service, roles) -> credentials(tokenCredentials), role);
+      StepVerifier.create(serviceCall.api(SecuredService.class).invokeByMultipleRoles())
+          .verifyErrorSatisfies(
+              ex -> {
+                final var exception = (ForbiddenException) ex;
+                assertEquals(403, exception.errorCode(), "errorCode");
+                assertEquals("Insufficient permissions", exception.getMessage(), "errorMessage");
+              });
+    }
+
+    private static Stream<Arguments> multipleRolesSuccessfulSource() {
+      return Stream.of(
+          Arguments.of(
+              "gateway",
+              new TokenCredentials(
+                  VALID_TOKEN, "gateway", List.of("gateway:read", "gateway:write"))),
+          Arguments.of(
+              "operations",
+              new TokenCredentials(
+                  VALID_TOKEN, "operations", List.of("operations:read", "operations:write"))));
+    }
+
+    private static Stream<Arguments> multipleRolesFailedSource() {
+      return Stream.of(
+          Arguments.of(
+              "gateway",
+              new TokenCredentials(VALID_TOKEN, "gateway", List.of("gateway:non-exiting-list"))),
+          Arguments.of(
+              "operations",
+              new TokenCredentials(
+                  VALID_TOKEN, "operations", List.of("operations:non-exiting-list"))));
+    }
   }
 
   private static Mono<byte[]> credentials(TokenCredentials tokenCredentials) {
@@ -354,13 +398,11 @@ final class AuthTest {
     mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
     mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.setVisibility(PropertyAccessor.ALL, Visibility.ANY);
+    mapper.setSerializationInclusion(Include.NON_NULL);
     mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
     mapper.activateDefaultTyping(
-        LaissezFaireSubTypeValidator.instance,
-        DefaultTyping.JAVA_LANG_OBJECT,
-        JsonTypeInfo.As.WRAPPER_OBJECT);
+        LaissezFaireSubTypeValidator.instance, DefaultTyping.JAVA_LANG_OBJECT, As.WRAPPER_OBJECT);
     mapper.findAndRegisterModules();
     return mapper;
   }
