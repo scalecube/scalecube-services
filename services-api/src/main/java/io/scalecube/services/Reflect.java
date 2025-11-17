@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -221,28 +220,9 @@ public final class Reflect {
    * @return service name
    */
   public static Collection<Method> serviceMethods(Class<?> serviceInterface) {
-    final var methodList =
-        Arrays.stream(serviceInterface.getMethods())
-            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-            .toList();
-
-    //noinspection unused
-    final var collect =
-        methodList.stream()
-            .collect(
-                Collectors.toMap(
-                    method ->
-                        String.join(":", Reflect.methodName(method), Reflect.restMethod(method)),
-                    Function.identity(),
-                    (method, duplicate) -> {
-                      throw new IllegalArgumentException(
-                          "Duplicate method found for method: "
-                              + method
-                              + ", duplicate: "
-                              + duplicate);
-                    }));
-
-    return methodList;
+    return Arrays.stream(serviceInterface.getMethods())
+        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+        .toList();
   }
 
   /**
