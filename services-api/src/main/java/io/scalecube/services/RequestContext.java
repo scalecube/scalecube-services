@@ -331,6 +331,7 @@ public class RequestContext implements Context {
               final var principal = context.principal();
               final var methodInfo = context.methodInfo();
 
+              final var role = principal.role();
               final var allowedRoles = methodInfo.allowedRoles();
               if (allowedRoles != null
                   && !allowedRoles.isEmpty()
@@ -338,12 +339,12 @@ public class RequestContext implements Context {
                 LOGGER.warn(
                     "Insufficient permissions -- "
                         + "principal role '{}' is not allowed, request context: {}",
-                    principal.role(),
+                    role,
                     context);
                 throw new ForbiddenException("Insufficient permissions");
               }
 
-              final var allowedPermissions = methodInfo.allowedPermissions();
+              final var allowedPermissions = methodInfo.allowedPermissions(role);
               if (allowedPermissions != null && !allowedPermissions.isEmpty()) {
                 for (var allowedPermission : allowedPermissions) {
                   if (!principal.hasPermission(allowedPermission)) {
