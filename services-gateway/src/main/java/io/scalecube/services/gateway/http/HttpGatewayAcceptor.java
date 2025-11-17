@@ -255,7 +255,8 @@ public class HttpGatewayAcceptor
             ? encodeData(response.data(), response.dataFormatOrDefault())
             : ((ByteBuf) response.data());
 
-    // send with publisher (defer buffer cleanup to netty)
+    // Send with publisher (defer buffer cleanup to netty)
+
     return httpResponse.status(status).send(Mono.just(content)).then();
   }
 
@@ -269,7 +270,8 @@ public class HttpGatewayAcceptor
             ? ((ByteBuf) response.data())
             : encodeData(response.data(), response.dataFormatOrDefault());
 
-    // send with publisher (defer buffer cleanup to netty)
+    // Send with publisher (defer buffer cleanup to netty)
+
     return httpResponse.status(OK).send(Mono.just(content)).then();
   }
 

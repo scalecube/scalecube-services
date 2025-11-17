@@ -8,6 +8,7 @@ import static io.netty.handler.codec.http.HttpMethod.TRACE;
 import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeData;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpMethod;
@@ -93,7 +94,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
         () -> {
           final var httpClient = httpClientReference.get();
           final var method = message.headers().getOrDefault("http.method", "POST");
-          final var queryParams = extractPrefix(message.headers(), "http.query.");
+          final var queryParams = headersByPrefix(message.headers(), "http.query");
 
           return httpClient
               .request(HttpMethod.valueOf(method))
@@ -101,29 +102,23 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
               .send((request, outbound) -> send(message, request, outbound))
               .responseSingle(
                   (clientResponse, mono) ->
-                      mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
+                      mono.defaultIfEmpty(Unpooled.EMPTY_BUFFER)
+                          .map(ByteBuf::retain)
+                          .map(data -> toMessage(clientResponse, data)))
               .map(msg -> decodeData(msg, responseType));
         });
   }
 
   private Mono<Void> send(
       ServiceMessage message, HttpClientRequest request, NettyOutbound outbound) {
-    // Extract custom headers
-    final var messageHeaders = message.headers();
-    final var httpHeaders = extractPrefix(messageHeaders, "http.header.");
-
-    // Apply HTTP headers first
-    httpHeaders.forEach(request::header);
-
-    // Apply remaining message headers (skip http.*)
-    messageHeaders.entrySet().stream()
-        .filter(e -> !e.getKey().startsWith("http."))
-        .forEach(e -> request.header(e.getKey(), e.getValue()));
+    // Populate HTTP request headers
+    message.headers().forEach(request::header);
 
     if (BODYLESS_METHODS.contains(request.method())) {
       return outbound.then();
     }
 
+    // Send with publisher (defer buffer cleanup to netty)
     return outbound.sendObject(Mono.just(clientCodec.encode(message))).then();
   }
 
@@ -139,18 +134,18 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   }
 
   private static ServiceMessage toMessage(HttpClientResponse httpResponse, ByteBuf data) {
-    ServiceMessage.Builder builder =
-        ServiceMessage.builder().qualifier(httpResponse.uri()).data(data);
+    final var builder =
+        ServiceMessage.builder()
+            .qualifier(httpResponse.uri())
+            .data(data != Unpooled.EMPTY_BUFFER ? data : null);
 
-    HttpResponseStatus status = httpResponse.status();
-    if (isError(status)) {
-      builder.header(ServiceMessage.HEADER_ERROR_TYPE, status.code());
+    if (isError(httpResponse.status())) {
+      builder.header(ServiceMessage.HEADER_ERROR_TYPE, httpResponse.status().code());
     }
 
-    // prepare response headers
+    // Populate HTTP response headers
     httpResponse
         .responseHeaders()
-        .entries()
         .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
 
     return builder.build();
@@ -179,15 +174,16 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
     return uri;
   }
 
-  private static Map<String, String> extractPrefix(Map<String, String> headers, String prefix) {
+  private static Map<String, String> headersByPrefix(Map<String, String> headers, String prefix) {
     if (headers == null || headers.isEmpty()) {
       return Map.of();
     }
+    final var finalPrefix = prefix + ".";
     final var result = new HashMap<String, String>();
     headers.forEach(
         (k, v) -> {
-          if (k.startsWith(prefix)) {
-            result.put(k.substring(prefix.length()), v);
+          if (k.startsWith(finalPrefix)) {
+            result.put(k.substring(finalPrefix.length()), v);
           }
         });
     return result;
