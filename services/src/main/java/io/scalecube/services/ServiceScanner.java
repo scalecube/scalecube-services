@@ -32,7 +32,7 @@ public class ServiceScanner {
               final var namespace = Reflect.serviceName(serviceInterface);
 
               final var methodDefinitions =
-                  Reflect.serviceMethods(serviceInterface).values().stream()
+                  Reflect.serviceMethods(serviceInterface).stream()
                       .map(
                           method -> {
                             // validate method
@@ -113,7 +113,7 @@ public class ServiceScanner {
                   serviceInterface ->
                       Reflect.serviceMethods(serviceInterface)
                           .forEach(
-                              (key, method) -> {
+                              method -> {
                                 // validate method
                                 Reflect.validateMethodOrThrow(method);
 

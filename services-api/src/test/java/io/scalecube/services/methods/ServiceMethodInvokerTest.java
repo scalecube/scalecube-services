@@ -368,7 +368,11 @@ class ServiceMethodInvokerTest {
   private static MethodInfo getMethodInfo(Object serviceInstance, String methodName) {
     final var serviceInstanceClass = serviceInstance.getClass();
     final Class<?> serviceInterface = Reflect.serviceInterfaces(serviceInstance).toList().get(0);
-    final var method = Reflect.serviceMethods(serviceInterface).get(methodName);
+    final var method =
+        Reflect.serviceMethods(serviceInterface).stream()
+            .filter(m -> m.getName().equals(methodName))
+            .findFirst()
+            .get();
 
     // get service instance method
     Method serviceMethod;

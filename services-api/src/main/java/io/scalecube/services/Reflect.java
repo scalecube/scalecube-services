@@ -220,10 +220,29 @@ public final class Reflect {
    * @param serviceInterface with {@link Service} annotation
    * @return service name
    */
-  public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-    return Arrays.stream(serviceInterface.getMethods())
-        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
+  public static Collection<Method> serviceMethods(Class<?> serviceInterface) {
+    final var methodList =
+        Arrays.stream(serviceInterface.getMethods())
+            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+            .toList();
+
+    //noinspection unused
+    final var collect =
+        methodList.stream()
+            .collect(
+                Collectors.toMap(
+                    method ->
+                        String.join(":", Reflect.methodName(method), Reflect.restMethod(method)),
+                    Function.identity(),
+                    (method, duplicate) -> {
+                      throw new IllegalArgumentException(
+                          "Duplicate method found for method: "
+                              + method
+                              + ", duplicate: "
+                              + duplicate);
+                    }));
+
+    return methodList;
   }
 
   /**
