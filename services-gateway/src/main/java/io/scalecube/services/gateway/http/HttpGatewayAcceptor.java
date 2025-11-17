@@ -214,13 +214,17 @@ public class HttpGatewayAcceptor
       HttpServerRequest httpRequest, Consumer<Builder> consumer) {
     final var builder = ServiceMessage.builder();
 
-    // Copy http headers to service message
+    // Copy HTTP method
+
+    builder.header("http.method", httpRequest.method().name());
+
+    // Copy HTTP headers to service message
 
     for (var httpHeader : httpRequest.requestHeaders()) {
-      builder.header(httpHeader.getKey(), httpHeader.getValue());
+      builder.header("http.header." + httpHeader.getKey(), httpHeader.getValue());
     }
 
-    // Add http method to service message (used by REST services)
+    // Add HTTP method to service message (used by REST services)
 
     builder
         .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
