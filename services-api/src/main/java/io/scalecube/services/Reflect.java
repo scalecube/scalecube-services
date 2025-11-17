@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -220,10 +219,10 @@ public final class Reflect {
    * @param serviceInterface with {@link Service} annotation
    * @return service name
    */
-  public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
+  public static Collection<Method> serviceMethods(Class<?> serviceInterface) {
     return Arrays.stream(serviceInterface.getMethods())
         .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
+        .toList();
   }
 
   /**

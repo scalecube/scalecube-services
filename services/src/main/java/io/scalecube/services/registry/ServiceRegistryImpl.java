@@ -152,7 +152,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
             serviceInterface ->
                 Reflect.serviceMethods(serviceInterface)
                     .forEach(
-                        (key, method) -> {
+                        method -> {
                           // validate method
                           Reflect.validateMethodOrThrow(method);
 
