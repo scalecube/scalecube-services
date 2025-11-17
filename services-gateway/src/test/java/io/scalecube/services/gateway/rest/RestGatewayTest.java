@@ -1,50 +1,51 @@
 package io.scalecube.services.gateway.rest;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInstance.Lifecycle;
 import reactor.test.StepVerifier;
 
 public class RestGatewayTest {
 
   private static Microservices gateway;
   private static Microservices microservices;
-  private static HttpClient httpClient;
 
-  private final ObjectMapper objectMapper = objectMapper();
-  private static String httpGatewayAddress;
+  private static final ObjectMapper objectMapper = objectMapper();
+  private static Address gatewayAddress;
+  private static StaticAddressRouter router;
 
   @BeforeAll
   static void beforeAll() {
@@ -61,7 +62,8 @@ public class RestGatewayTest {
                 .gateway(() -> HttpGateway.builder().id("HTTP").build())
                 .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
-    httpGatewayAddress = "http://localhost:" + gateway.gateway("HTTP").address().port();
+    gatewayAddress = Address.from("localhost:" + gateway.gateway("HTTP").address().port());
+    router = StaticAddressRouter.forService(gatewayAddress, "app-service").build();
 
     microservices =
         Microservices.start(
@@ -78,8 +80,6 @@ public class RestGatewayTest {
                 .services(new GreetingServiceImpl())
                 .services(ServiceInfo.fromServiceInstance(new RestServiceImpl()).build())
                 .services(ServiceInfo.fromServiceInstance(new RoutingServiceImpl()).build()));
-
-    httpClient = HttpClient.newHttpClient();
   }
 
   @AfterAll
@@ -98,201 +98,277 @@ public class RestGatewayTest {
     mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
     mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.setVisibility(PropertyAccessor.ALL, Visibility.ANY);
+    mapper.setSerializationInclusion(Include.NON_NULL);
     mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
     mapper.registerModule(new JavaTimeModule());
     return mapper;
   }
 
   @Nested
+  @TestInstance(Lifecycle.PER_CLASS)
   class GatewayTests {
 
-    @Test
-    void testOptions() throws Exception {
-      final var fooParam = "options" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(
-                  new URI(httpGatewayAddress + "/v1/restService/options/" + fooParam))
-              .method("OPTIONS", BodyPublishers.noBody())
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          fooParam,
-          objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(),
-          "response");
+    private ServiceCall serviceCall;
+
+    @BeforeAll
+    void beforeAll() {
+      serviceCall =
+          new ServiceCall()
+              .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build())
+              .router(router);
+    }
+
+    @AfterAll
+    void afterAll() {
+      if (serviceCall != null) {
+        serviceCall.close();
+      }
     }
 
     @Test
-    void testGet() throws Exception {
-      final var fooParam = "get" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/get/" + fooParam))
-              .method("GET", BodyPublishers.noBody())
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          fooParam,
-          objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(),
-          "response");
+    void testOptions() {
+      final var param = "options" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "OPTIONS")
+                      .qualifier("v1/restService/options/" + param)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testHead() throws Exception {
-      final var fooParam = "head" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/head/" + fooParam))
-              .method("HEAD", BodyPublishers.noBody())
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals("", httpResponse.body(), "response");
+    void testGet() {
+      final var param = "get" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "GET")
+                      .qualifier("v1/restService/get/" + param)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testPost() throws Exception {
+    void testHead() {
+      final var param = "head" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "HEAD")
+                      .qualifier("v1/restService/head/" + param)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
+    }
+
+    @Test
+    void testPost() {
       final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "post" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/post/" + fooParam))
-              .method(
-                  "POST",
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          name, objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(), "response");
+      final var param = "post" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "POST")
+                      .qualifier("v1/restService/post/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(name, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testPut() throws Exception {
+    void testPut() {
       final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "put" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/put/" + fooParam))
-              .method(
-                  "PUT",
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          name, objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(), "response");
+      final var param = "put" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "PUT")
+                      .qualifier("v1/restService/put/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(name, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testPatch() throws Exception {
+    void testPatch() {
       final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "patch" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/patch/" + fooParam))
-              .method(
-                  "PATCH",
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          name, objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(), "response");
+      final var param = "patch" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "PATCH")
+                      .qualifier("v1/restService/patch/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(name, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testDelete() throws Exception {
+    void testDelete() {
       final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "delete" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/delete/" + fooParam))
-              .method(
-                  "DELETE",
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          name, objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(), "response");
+      final var param = "delete" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "DELETE")
+                      .qualifier("v1/restService/delete/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testTrace() throws Exception {
-      final var fooParam = "trace" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(new URI(httpGatewayAddress + "/v1/restService/trace/" + fooParam))
-              .method("TRACE", BodyPublishers.noBody())
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          fooParam,
-          objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(),
-          "response");
+    void testTrace() {
+      final var param = "trace" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "TRACE")
+                      .qualifier("v1/restService/trace/" + param)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
   }
 
   @Nested
+  @TestInstance(Lifecycle.PER_CLASS)
   class RoutingTests {
 
-    @Test
-    void testMatchByGetMethod() throws Exception {
-      final var fooParam = "get" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(
-                  new URI(httpGatewayAddress + "/v1/routingService/find/" + fooParam))
-              .method("GET", BodyPublishers.noBody())
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          fooParam,
-          objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(),
-          "response");
+    private ServiceCall serviceCall;
+
+    @BeforeAll
+    void beforeAll() {
+      serviceCall =
+          new ServiceCall()
+              .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build())
+              .router(router);
+    }
+
+    @AfterAll
+    void afterAll() {
+      if (serviceCall != null) {
+        serviceCall.close();
+      }
     }
 
     @Test
-    void testMatchByPostMethod() throws Exception {
-      final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "post" + System.currentTimeMillis();
-      final var httpRequest =
-          HttpRequest.newBuilder(
-                  new URI(httpGatewayAddress + "/v1/routingService/update/" + fooParam))
-              .method(
-                  "POST",
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(HttpResponseStatus.OK.code(), httpResponse.statusCode(), "statusCode");
-      assertEquals(
-          name, objectMapper.readValue(httpResponse.body(), SomeResponse.class).name(), "response");
+    void testMatchByGetMethod() {
+      final var param = "get" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "GET")
+                      .qualifier("v1/routingService/find/" + param)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     @Test
-    void testNoMatchByRestMethod() throws Exception {
+    void testMatchByPostMethod() {
       final var name = "name" + System.currentTimeMillis();
-      final var fooParam = "post" + System.currentTimeMillis();
+      final var param = "post" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "POST")
+                      .qualifier("v1/routingService/update/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(name, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
+    }
+
+    @Test
+    void testNoMatchByRestMethod() {
+      final var name = "name" + System.currentTimeMillis();
+      final var param = "post" + System.currentTimeMillis();
       final var nonMatchedRestMethod = "PUT";
-      final var httpRequest =
-          HttpRequest.newBuilder(
-                  new URI(httpGatewayAddress + "/v1/routingService/update/" + fooParam))
-              .method(
-                  nonMatchedRestMethod,
-                  BodyPublishers.ofString(
-                      objectMapper.writeValueAsString(new SomeRequest().name(name))))
-              .build();
-      final var httpResponse = httpClient.send(httpRequest, BodyHandlers.ofString());
-      assertEquals(
-          HttpResponseStatus.SERVICE_UNAVAILABLE.code(), httpResponse.statusCode(), "statusCode");
-      assertTrue(
-          objectMapper
-              .readValue(httpResponse.body(), ErrorData.class)
-              .getErrorMessage()
-              .startsWith("No reachable member with such service"));
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", nonMatchedRestMethod)
+                      .qualifier("v1/routingService/update/" + param)
+                      .data(new SomeRequest().name(name))
+                      .build(),
+                  SomeResponse.class))
+          .verifyErrorSatisfies(
+              ex -> {
+                final var exception = (ServiceUnavailableException) ex;
+                assertEquals(503, exception.errorCode(), "errorCode");
+                assertThat(
+                    exception.getMessage(),
+                    Matchers.startsWith("No reachable member with such service"));
+              });
     }
 
     @Test

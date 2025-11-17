@@ -26,7 +26,7 @@ public interface RestService {
   Mono<SomeResponse> patch(SomeRequest request);
 
   @ServiceMethod("delete/:foo")
-  Mono<SomeResponse> delete(SomeRequest request);
+  Mono<SomeResponse> delete();
 
   @ServiceMethod("trace/:foo")
   Mono<SomeResponse> trace();

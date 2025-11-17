@@ -91,15 +91,16 @@ public class RestServiceImpl implements RestService {
   }
 
   @Override
-  public Mono<SomeResponse> delete(SomeRequest request) {
+  public Mono<SomeResponse> delete() {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              assertNotNull(context.pathVar("foo"));
+              final var foo = context.pathVar("foo");
+              assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
               assertEquals("DELETE", context.requestMethod());
-              return new SomeResponse().name(request.name());
+              return new SomeResponse().name(foo);
             });
   }
 
