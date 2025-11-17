@@ -1,7 +1,9 @@
 package io.scalecube.services;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -46,6 +48,35 @@ public final class MaskUtil {
     }
     return map.entrySet().stream()
         .collect(Collectors.toMap(Entry::getKey, entry -> mask(entry.getValue())))
+        .toString();
+  }
+
+  /**
+   * Mask sensitive data by replacing part of string with an asterisk symbol.
+   *
+   * @param map map sensitive data to be masked
+   * @param sensitiveKeys keys whose corresponding values should be masked
+   * @return string representation
+   */
+  public static String mask(Map<?, ?> map, Set<String> sensitiveKeys) {
+    if (map == null || map.isEmpty()) {
+      return String.valueOf(map);
+    }
+
+    return map.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                entry -> String.valueOf(entry.getKey()),
+                entry -> {
+                  final var key = String.valueOf(entry.getKey());
+                  final var value = String.valueOf(entry.getValue());
+                  if (entry.getKey() == null || entry.getValue() == null) {
+                    return value;
+                  }
+                  return sensitiveKeys.contains(key) ? MaskUtil.mask(value) : value;
+                },
+                (v1, v2) -> v1,
+                LinkedHashMap::new))
         .toString();
   }
 }
