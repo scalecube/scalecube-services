@@ -111,8 +111,17 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   private Mono<Void> send(
       ServiceMessage message, HttpClientRequest request, NettyOutbound outbound) {
-    // Populate HTTP request headers
-    message.headers().forEach(request::header);
+    // Extract custom headers
+    final var messageHeaders = message.headers();
+    final var httpHeaders = headersByPrefix(messageHeaders, "http.header");
+
+    // Apply HTTP headers first
+    httpHeaders.forEach(request::header);
+
+    // Apply remaining message headers (skip http.*)
+    messageHeaders.entrySet().stream()
+        .filter(e -> !e.getKey().startsWith("http."))
+        .forEach(e -> request.header(e.getKey(), e.getValue()));
 
     if (BODYLESS_METHODS.contains(request.method())) {
       return outbound.then();
