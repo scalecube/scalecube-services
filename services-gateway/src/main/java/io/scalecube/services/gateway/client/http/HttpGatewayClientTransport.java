@@ -1,10 +1,16 @@
 package io.scalecube.services.gateway.client.http;
 
+import static io.netty.handler.codec.http.HttpMethod.DELETE;
+import static io.netty.handler.codec.http.HttpMethod.GET;
+import static io.netty.handler.codec.http.HttpMethod.HEAD;
+import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
+import static io.netty.handler.codec.http.HttpMethod.TRACE;
 import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeData;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
@@ -14,14 +20,17 @@ import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
 import java.lang.reflect.Type;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.NettyOutbound;
@@ -33,12 +42,11 @@ import reactor.netty.resources.LoopResources;
 
 public final class HttpGatewayClientTransport implements ClientChannel, ClientTransport {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayClientTransport.class);
-
   private static final String CONTENT_TYPE = "application/json";
   private static final HttpGatewayClientCodec CLIENT_CODEC =
       new HttpGatewayClientCodec(DataCodec.getInstance(CONTENT_TYPE));
   private static final int CONNECT_TIMEOUT_MILLIS = (int) Duration.ofSeconds(5).toMillis();
+  private static final Set<HttpMethod> BODYLESS_METHODS = Set.of(GET, HEAD, DELETE, OPTIONS, TRACE);
 
   private final GatewayClientCodec clientCodec;
   private final LoopResources loopResources;
@@ -80,14 +88,17 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage request, Type responseType) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType) {
     return Mono.defer(
         () -> {
-          final HttpClient httpClient = httpClientReference.get();
+          final var httpClient = httpClientReference.get();
+          final var method = message.headers().getOrDefault("http.method", "POST");
+          final var queryParams = extractPrefix(message.headers(), "http.query.");
+
           return httpClient
-              .post()
-              .uri("/" + request.qualifier())
-              .send((clientRequest, outbound) -> send(request, clientRequest, outbound))
+              .request(HttpMethod.valueOf(method))
+              .uri(applyQueryParams("/" + message.qualifier(), queryParams))
+              .send((request, outbound) -> send(message, request, outbound))
               .responseSingle(
                   (clientResponse, mono) ->
                       mono.map(ByteBuf::retain).map(data -> toMessage(clientResponse, data)))
@@ -96,12 +107,24 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   }
 
   private Mono<Void> send(
-      ServiceMessage request, HttpClientRequest clientRequest, NettyOutbound outbound) {
-    LOGGER.debug("Sending request: {}", request);
-    // prepare request headers
-    request.headers().forEach(clientRequest::header);
-    // send with publisher (defer buffer cleanup to netty)
-    return outbound.sendObject(Mono.just(clientCodec.encode(request))).then();
+      ServiceMessage message, HttpClientRequest request, NettyOutbound outbound) {
+    // Extract custom headers
+    final var messageHeaders = message.headers();
+    final var httpHeaders = extractPrefix(messageHeaders, "http.header.");
+
+    // Apply HTTP headers first
+    httpHeaders.forEach(request::header);
+
+    // Apply remaining message headers (skip http.*)
+    messageHeaders.entrySet().stream()
+        .filter(e -> !e.getKey().startsWith("http."))
+        .forEach(e -> request.header(e.getKey(), e.getValue()));
+
+    if (BODYLESS_METHODS.contains(request.method())) {
+      return outbound.then();
+    }
+
+    return outbound.sendObject(Mono.just(clientCodec.encode(message))).then();
   }
 
   @Override
@@ -129,14 +152,45 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
         .responseHeaders()
         .entries()
         .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
-    ServiceMessage message = builder.build();
 
-    LOGGER.debug("Received response: {}", message);
-    return message;
+    return builder.build();
   }
 
   private static boolean isError(HttpResponseStatus status) {
     return status.code() >= 400 && status.code() <= 599;
+  }
+
+  private static String applyQueryParams(String uri, Map<String, String> queryParams) {
+    if (queryParams != null && !queryParams.isEmpty()) {
+      final var queryString =
+          queryParams.entrySet().stream()
+              .map(
+                  e -> {
+                    final var key = e.getKey();
+                    final var value = e.getValue();
+                    final var charset = StandardCharsets.UTF_8;
+                    return URLEncoder.encode(key, charset)
+                        + "="
+                        + URLEncoder.encode(value, charset);
+                  })
+              .collect(Collectors.joining("&"));
+      uri += "?" + queryString;
+    }
+    return uri;
+  }
+
+  private static Map<String, String> extractPrefix(Map<String, String> headers, String prefix) {
+    if (headers == null || headers.isEmpty()) {
+      return Map.of();
+    }
+    final var result = new HashMap<String, String>();
+    headers.forEach(
+        (k, v) -> {
+          if (k.startsWith(prefix)) {
+            result.put(k.substring(prefix.length()), v);
+          }
+        });
+    return result;
   }
 
   @Override

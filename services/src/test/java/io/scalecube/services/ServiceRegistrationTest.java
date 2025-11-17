@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.rest;
+package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -8,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
-import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
@@ -117,7 +116,7 @@ public class ServiceRegistrationTest {
   interface EchoService {
 
     @ServiceMethod("get/:foo")
-    Mono<SomeResponse> echo();
+    Mono<String> echo();
   }
 
   @Service("v1/service")
@@ -125,11 +124,11 @@ public class ServiceRegistrationTest {
 
     @RestMethod("GET")
     @ServiceMethod("get/:foo")
-    Mono<SomeResponse> echo();
+    Mono<String> echo();
 
     @RestMethod("GET")
     @ServiceMethod("get/:foo")
-    Mono<SomeResponse> ping();
+    Mono<String> ping();
   }
 
   @Service("v1/service")
@@ -137,11 +136,11 @@ public class ServiceRegistrationTest {
 
     @RestMethod("GET")
     @ServiceMethod("echo/:foo")
-    Mono<SomeResponse> echo();
+    Mono<String> echo();
 
     @RestMethod("POST")
     @ServiceMethod("echo/:foo")
-    Mono<SomeResponse> ping();
+    Mono<String> ping();
   }
 
   @Service("v1/service")
@@ -149,7 +148,7 @@ public class ServiceRegistrationTest {
 
     @RestMethod("POST")
     @ServiceMethod("account/:foo")
-    Mono<SomeResponse> account();
+    Mono<String> account();
   }
 
   @Service("v1/service")
@@ -157,6 +156,6 @@ public class ServiceRegistrationTest {
 
     @RestMethod("PUT")
     @ServiceMethod("account/:foo")
-    Mono<SomeResponse> account();
+    Mono<String> account();
   }
 }
