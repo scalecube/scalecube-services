@@ -1,9 +1,12 @@
 package io.scalecube.services.gateway.rest;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_ERROR_TYPE;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -43,7 +46,6 @@ public class RestGatewayTest {
   private static Microservices gateway;
   private static Microservices microservices;
 
-  private static final ObjectMapper objectMapper = objectMapper();
   private static Address gatewayAddress;
   private static StaticAddressRouter router;
 
@@ -167,18 +169,26 @@ public class RestGatewayTest {
     @Test
     void testHead() {
       final var param = "head" + System.currentTimeMillis();
+      final var customHeader1 = "customHeader-" + System.currentTimeMillis();
+      final var customHeader2 = "customHeader-" + System.currentTimeMillis();
+      final var queryParam1 = "queryParam-" + System.currentTimeMillis();
+      final var queryParam2 = "queryParam-" + System.currentTimeMillis();
       StepVerifier.create(
               serviceCall.requestOne(
                   ServiceMessage.builder()
                       .header("http.method", "HEAD")
+                      .header("http.header.X-Custom-Header-1", customHeader1)
+                      .header("http.header.X-Custom-Header-2", customHeader2)
+                      .header("http.query.param1", queryParam1)
+                      .header("http.query.param2", queryParam2)
                       .qualifier("v1/restService/head/" + param)
                       .build(),
                   SomeResponse.class))
           .assertNext(
               message -> {
-                final var someResponse = message.<SomeResponse>data();
-                assertNotNull(someResponse, "data");
-                assertEquals(param, someResponse.name(), "someResponse.name");
+                assertNull(message.data(), "data");
+                assertNotNull(message.headers(), "headers");
+                assertThat(message.headers(), not(hasKey(HEADER_ERROR_TYPE)));
               })
           .verifyComplete();
     }
@@ -384,9 +394,10 @@ public class RestGatewayTest {
             .expectErrorSatisfies(
                 ex -> {
                   final var exception = (ServiceUnavailableException) ex;
-                  final var errorMessage = exception.getMessage();
                   assertEquals(503, exception.errorCode());
-                  assertTrue(errorMessage.startsWith("No reachable member with such service"));
+                  assertThat(
+                      exception.getMessage(),
+                      Matchers.startsWith("No reachable member with such service"));
                 })
             .verify(Duration.ofSeconds(3));
       }

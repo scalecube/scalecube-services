@@ -148,8 +148,9 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
             .qualifier(httpResponse.uri())
             .data(data != Unpooled.EMPTY_BUFFER ? data : null);
 
-    if (isError(httpResponse.status())) {
-      builder.header(ServiceMessage.HEADER_ERROR_TYPE, httpResponse.status().code());
+    final var status = httpResponse.status();
+    if (isError(status)) {
+      builder.header(ServiceMessage.HEADER_ERROR_TYPE, status.code());
     }
 
     // Populate HTTP response headers
