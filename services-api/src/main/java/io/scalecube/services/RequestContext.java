@@ -9,8 +9,6 @@ import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.methods.MethodInfo;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -228,8 +226,8 @@ public class RequestContext implements Context {
    *
    * @return path parameters, or {@code null} if not set
    */
-  public Map<String, String> pathParams() {
-    return source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap());
+  public TypedParameters pathParams() {
+    return new TypedParameters(source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap()));
   }
 
   /**
@@ -239,54 +237,6 @@ public class RequestContext implements Context {
    */
   public RequestContext pathParams(Map<String, String> pathParams) {
     return put(PATH_PARAMS_KEY, pathParams);
-  }
-
-  /**
-   * Returns specific path parameter by name.
-   *
-   * @param name name of the path parameter
-   * @return path parameter value, or {@code null} if not found
-   */
-  public String pathParam(String name) {
-    return pathParams().get(name);
-  }
-
-  /**
-   * Returns specific path parameter by name, and converts it to the specified type.
-   *
-   * @param name name of the path parameter
-   * @param type expected type of the path parameter
-   * @param <T> type parameter
-   * @return converted path parameter, or {@code null} if not found
-   */
-  public <T> T pathParam(String name, Class<T> type) {
-    final var s = pathParam(name);
-    if (s == null) {
-      return null;
-    }
-
-    if (type == String.class) {
-      //noinspection unchecked
-      return (T) s;
-    }
-    if (type == Integer.class) {
-      //noinspection unchecked
-      return (T) Integer.valueOf(s);
-    }
-    if (type == Long.class) {
-      //noinspection unchecked
-      return (T) Long.valueOf(s);
-    }
-    if (type == BigDecimal.class) {
-      //noinspection unchecked
-      return (T) new BigDecimal(s);
-    }
-    if (type == BigInteger.class) {
-      //noinspection unchecked
-      return (T) new BigInteger(s);
-    }
-
-    throw new IllegalArgumentException("Unsupported pathParam type: " + type);
   }
 
   /**
@@ -366,7 +316,7 @@ public class RequestContext implements Context {
         .add("principal=" + principal())
         .add("methodInfo=" + methodInfo())
         .add("headers=" + mask(headers()))
-        .add("pathParams=" + mask(pathParams()))
+        .add("pathParams=" + source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap()))
         .add("sourceKeys=" + source.stream().map(Entry::getKey).toList())
         .toString();
   }

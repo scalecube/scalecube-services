@@ -169,7 +169,8 @@ public class PlaceholderQualifierTest {
 
     @Override
     public Mono<String> helloWithPathParam() {
-      return RequestContext.deferContextual().map(context -> id + "|" + context.pathParam("name"));
+      return RequestContext.deferContextual()
+          .map(context -> id + "|" + context.pathParams().stringValue("name"));
     }
   }
 }

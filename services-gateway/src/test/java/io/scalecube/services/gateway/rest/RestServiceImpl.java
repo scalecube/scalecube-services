@@ -17,7 +17,8 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathParam("foo");
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -31,7 +32,8 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathParam("foo");
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -45,7 +47,8 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathParam("foo");
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
               assertEquals("head123456", foo, "pathParam");
               final var headers = context.headers();
               assertNotNull(headers);
@@ -70,7 +73,9 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              assertNotNull(context.pathParam("foo"));
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
+              assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
               assertEquals("POST", context.requestMethod());
@@ -83,7 +88,9 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              assertNotNull(context.pathParam("foo"));
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
+              assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
               assertEquals("PUT", context.requestMethod());
@@ -96,7 +103,9 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              assertNotNull(context.pathParam("foo"));
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
+              assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
               assertEquals("PATCH", context.requestMethod());
@@ -109,7 +118,8 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathParam("foo");
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -123,7 +133,8 @@ public class RestServiceImpl implements RestService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathParam("foo");
+              final var pathParams = context.pathParams();
+              final var foo = pathParams.stringValue("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));

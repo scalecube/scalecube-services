@@ -122,7 +122,8 @@ public class ReportServiceImpl implements ReportService {
     return RequestContext.deferContextual()
         .flatMapMany(
             context -> {
-              final var fileSize = context.pathParam("fileSize", Long.class);
+              final var pathParams = context.pathParams();
+              final var fileSize = pathParams.longValue("fileSize");
               final var headers = context.headers();
               final File file;
               try {
