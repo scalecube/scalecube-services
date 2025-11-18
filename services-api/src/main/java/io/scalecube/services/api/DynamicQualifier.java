@@ -98,7 +98,7 @@ public final class DynamicQualifier {
   }
 
   /**
-   * Size of qualifier. This is a number of {@code /} symbols.
+   * Size of qualifier. A number of {@code /} symbols.
    *
    * @return result
    */
@@ -136,10 +136,10 @@ public final class DynamicQualifier {
     return map;
   }
 
-  private static int sizeOf(String value) {
+  private static int sizeOf(String path) {
     int count = 0;
-    for (int i = 0, length = value.length(); i < length; i++) {
-      if (value.charAt(i) == '/') {
+    for (int i = 0, length = path.length(); i < length; i++) {
+      if (path.charAt(i) == '/') {
         count++;
       }
     }
