@@ -275,6 +275,29 @@ public class RestGatewayTest {
               })
           .verifyComplete();
     }
+
+    @Test
+    void testAttributesPropagation() {
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "GET")
+                      .header("http.header.X-String-Header", "abc")
+                      .header("http.header.X-Int-Header", "123456789")
+                      .header("http.query.debug", "true")
+                      .header("http.query.x", "1")
+                      .header("http.query.y", "2")
+                      .qualifier("v1/restService/propagate/123/bar456/baz789")
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertNotNull(someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
+    }
   }
 
   @Nested

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.services.RequestContext;
+import java.util.UUID;
 import reactor.core.publisher.Mono;
 
 public class RestServiceImpl implements RestService {
@@ -140,6 +141,37 @@ public class RestServiceImpl implements RestService {
               assertThat(context.headers().size(), greaterThan(0));
               assertEquals("TRACE", context.requestMethod());
               return new SomeResponse().name(foo);
+            });
+  }
+
+  @Override
+  public Mono<SomeResponse> propagateRequestAttributes() {
+    return RequestContext.deferContextual()
+        .map(
+            context -> {
+              final var pathParams = context.pathParams();
+              assertEquals(123, pathParams.intValue("foo"), "foo");
+              assertEquals("bar456", pathParams.stringValue("bar"), "bar");
+              assertEquals("baz789", pathParams.stringValue("baz"), "baz");
+
+              final var headers = context.headers();
+              assertEquals("GET", headers.get("http.method"));
+              assertEquals("abc", headers.get("http.header.X-String-Header"));
+              assertEquals("123456789", headers.get("http.header.X-Int-Header"));
+              assertEquals("true", headers.get("http.query.debug"));
+              assertEquals("1", headers.get("http.query.x"));
+              assertEquals("2", headers.get("http.query.y"));
+
+              final var httpHeaders = context.headerParams("http.header");
+              assertEquals("abc", httpHeaders.stringValue("X-String-Header"));
+              assertEquals(123456789, httpHeaders.intValue("X-Int-Header"));
+
+              final var queryParams = context.headerParams("http.query");
+              assertEquals(true, queryParams.booleanValue("debug"));
+              assertEquals(1, queryParams.intValue("x"));
+              assertEquals(2, queryParams.intValue("y"));
+
+              return new SomeResponse().name(UUID.randomUUID().toString());
             });
   }
 }

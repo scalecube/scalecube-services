@@ -10,6 +10,7 @@ import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.methods.MethodInfo;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -100,17 +101,40 @@ public class RequestContext implements Context {
   /**
    * Returns request headers.
    *
-   * @return headers, or {@code null} if not set
+   * @return headers, or empty map if not set
    */
   public Map<String, String> headers() {
     return source.getOrDefault(HEADERS_KEY, Collections.emptyMap());
   }
 
   /**
+   * Returns typed access to all request headers.
+   *
+   * @return typed parameters for headers
+   */
+  public TypedParameters headerParams() {
+    return new TypedParameters(headers());
+  }
+
+  /**
+   * Returns typed access to request headers filtered by the given prefix. Headers matching
+   * "{prefix}." are included with the prefix stripped from the key.
+   *
+   * @param prefix header prefix to filter by (if null or empty, returns all headers)
+   * @return typed parameters for filtered headers
+   */
+  public TypedParameters headerParams(String prefix) {
+    if (prefix == null || prefix.isEmpty()) {
+      return headerParams();
+    }
+    return new TypedParameters(filterByPrefix(headers(), prefix));
+  }
+
+  /**
    * Puts request headers to the context.
    *
    * @param headers headers
-   * @return new {@code RequestContext} instance with updated headers
+   * @return new {@code RequestContext}
    */
   public RequestContext headers(Map<String, String> headers) {
     return put(HEADERS_KEY, headers);
@@ -129,7 +153,7 @@ public class RequestContext implements Context {
    * Puts request to the context.
    *
    * @param request request
-   * @return new {@code RequestContext} instance with updated request
+   * @return new {@code RequestContext}
    */
   public RequestContext request(Object request) {
     return put(REQUEST_KEY, request);
@@ -185,7 +209,7 @@ public class RequestContext implements Context {
    * Puts principal to the context.
    *
    * @param principal principal
-   * @return new {@code RequestContext} instance with the updated principal
+   * @return new {@code RequestContext}
    */
   public RequestContext principal(Principal principal) {
     return put(PRINCIPAL_KEY, principal);
@@ -224,7 +248,7 @@ public class RequestContext implements Context {
   /**
    * Returns path parameters associated with the request.
    *
-   * @return path parameters, or {@code null} if not set
+   * @return path parameters, or empty map if not set
    */
   public TypedParameters pathParams() {
     return new TypedParameters(source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap()));
@@ -233,7 +257,7 @@ public class RequestContext implements Context {
   /**
    * Puts path parameters associated with the request.
    *
-   * @return path parameters, or {@code null} if not set
+   * @return new {@code RequestContext}
    */
   public RequestContext pathParams(Map<String, String> pathParams) {
     return put(PATH_PARAMS_KEY, pathParams);
@@ -308,6 +332,21 @@ public class RequestContext implements Context {
                 }
               }
             });
+  }
+
+  private static Map<String, String> filterByPrefix(Map<String, String> map, String prefix) {
+    if (map == null || map.isEmpty()) {
+      return Map.of();
+    }
+    final var finalPrefix = prefix + ".";
+    final var result = new HashMap<String, String>();
+    map.forEach(
+        (k, v) -> {
+          if (k.startsWith(finalPrefix)) {
+            result.put(k.substring(finalPrefix.length()), v);
+          }
+        });
+    return result;
   }
 
   @Override
