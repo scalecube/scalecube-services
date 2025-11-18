@@ -8,13 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
@@ -92,19 +85,6 @@ public class RestGatewayTest {
     if (microservices != null) {
       microservices.close();
     }
-  }
-
-  private static ObjectMapper objectMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    mapper.setVisibility(PropertyAccessor.ALL, Visibility.ANY);
-    mapper.setSerializationInclusion(Include.NON_NULL);
-    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
-    mapper.registerModule(new JavaTimeModule());
-    return mapper;
   }
 
   @Nested
@@ -186,7 +166,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
-                assertNull(message.data(), "data");
+                assertNull(message.data(), "data"); // this is HEAD
                 assertNotNull(message.headers(), "headers");
                 assertThat(message.headers(), not(hasKey(HEADER_ERROR_TYPE)));
               })
