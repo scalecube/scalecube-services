@@ -46,7 +46,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var foo = context.pathVar("foo");
-              assertNotNull(foo);
+              assertEquals("head123456", foo, "pathParam");
               final var headers = context.headers();
               assertNotNull(headers);
               assertThat(context.headers().size(), greaterThan(0));

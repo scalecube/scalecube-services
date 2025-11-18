@@ -168,7 +168,7 @@ public class RestGatewayTest {
 
     @Test
     void testHead() {
-      final var param = "head" + System.currentTimeMillis();
+      final var param = "head123456";
       final var customHeader1 = "customHeader-" + System.currentTimeMillis();
       final var customHeader2 = "customHeader-" + System.currentTimeMillis();
       final var queryParam1 = "queryParam-" + System.currentTimeMillis();

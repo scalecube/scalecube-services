@@ -113,11 +113,13 @@ public final class DynamicQualifier {
    * @return matched path variables key-value map, or null if no matching occurred
    */
   public Map<String, String> matchQualifier(String qualifier) {
-    if (size != sizeOf(qualifier)) {
+    final var path = qualifier.split("\\?")[0];
+
+    if (size != sizeOf(path)) {
       return null;
     }
 
-    final var matcher = pattern.matcher(qualifier);
+    final var matcher = pattern.matcher(path);
     if (!matcher.matches()) {
       return null;
     }

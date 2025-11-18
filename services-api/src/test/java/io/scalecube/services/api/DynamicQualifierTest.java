@@ -101,4 +101,25 @@ class DynamicQualifierTest {
     assertEquals("456", map.get("bar"));
     assertEquals("678", map.get("baz"));
   }
+
+  @Test
+  void testMatchWithQueryString() {
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
+    final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456?x=1&y=2");
+
+    assertNotNull(map);
+    assertEquals("123", map.get("foo"));
+    assertEquals("456", map.get("bar"));
+  }
+
+  @Test
+  void testMatchMultipleVariablesWithQueryStringIgnored() {
+    final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
+
+    final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456?debug=true");
+
+    assertNotNull(map);
+    assertEquals("123", map.get("foo"));
+    assertEquals("456", map.get("bar"));
+  }
 }
