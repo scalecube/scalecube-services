@@ -89,9 +89,9 @@ public final class DynamicQualifier {
   }
 
   /**
-   * Returns path variable names.
+   * Returns path parameter names.
    *
-   * @return path variable names
+   * @return path parameter names
    */
   public List<String> pathParams() {
     return pathParams;
@@ -107,10 +107,10 @@ public final class DynamicQualifier {
   }
 
   /**
-   * Matches input qualifier against this dynamic qualifier.
+   * Matches given qualifier string with this {@link DynamicQualifier}.
    *
-   * @param qualifier qualifier
-   * @return matched path variables key-value map, or null if no matching occurred
+   * @param qualifier qualifier string
+   * @return matched path parameters key-value map, or null if no matching occurred
    */
   public Map<String, String> matchQualifier(String qualifier) {
     final var path = qualifier.split("\\?")[0];

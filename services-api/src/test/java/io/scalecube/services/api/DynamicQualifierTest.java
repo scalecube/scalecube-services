@@ -82,7 +82,7 @@ class DynamicQualifierTest {
   }
 
   @Test
-  void testMatchSinglePathVariable() {
+  void testMatchSinglePathParam() {
     final var userName = UUID.randomUUID().toString();
     final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/bar/:userName");
     final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/bar/" + userName);
@@ -92,7 +92,7 @@ class DynamicQualifierTest {
   }
 
   @Test
-  void testMatchMultiplePathVariables() {
+  void testMatchMultiplePathParams() {
     final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar/baz/:baz");
     final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456/baz/678");
     assertNotNull(map);
@@ -113,7 +113,7 @@ class DynamicQualifierTest {
   }
 
   @Test
-  void testMatchMultipleVariablesWithQueryStringIgnored() {
+  void testMatchMultipleWithQueryStringIgnored() {
     final var qualifier = DynamicQualifier.from("v1/this.is.namespace/foo/:foo/bar/:bar");
 
     final var map = qualifier.matchQualifier("v1/this.is.namespace/foo/123/bar/456?debug=true");
