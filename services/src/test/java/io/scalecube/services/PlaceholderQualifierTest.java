@@ -86,7 +86,7 @@ public class PlaceholderQualifierTest {
   }
 
   @Test
-  void shouldRouteByPlaceholderQualifierWithPathVar() {
+  void shouldRouteByPlaceholderQualifierWithPathParam() {
     final var foo1Id = providerFoo1.id();
     final var name1 = "name1";
     final String foo1Result =
@@ -150,7 +150,7 @@ public class PlaceholderQualifierTest {
     Mono<String> hello();
 
     @ServiceMethod("hello/${microservices:id}/:name")
-    Mono<String> helloWithPathVar();
+    Mono<String> helloWithPathParam();
   }
 
   public static class FooServiceImpl implements FooService {
@@ -168,8 +168,8 @@ public class PlaceholderQualifierTest {
     }
 
     @Override
-    public Mono<String> helloWithPathVar() {
-      return RequestContext.deferContextual().map(context -> id + "|" + context.pathVar("name"));
+    public Mono<String> helloWithPathParam() {
+      return RequestContext.deferContextual().map(context -> id + "|" + context.pathParam("name"));
     }
   }
 }

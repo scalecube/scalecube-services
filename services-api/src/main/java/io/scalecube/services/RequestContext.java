@@ -34,7 +34,7 @@ public class RequestContext implements Context {
   private static final Object REQUEST_KEY = new Object();
   private static final Object PRINCIPAL_KEY = new Object();
   private static final Object METHOD_INFO_KEY = new Object();
-  private static final Object PATH_VARS_KEY = new Object();
+  private static final Object PATH_PARAMS_KEY = new Object();
 
   private final Context source;
 
@@ -224,43 +224,43 @@ public class RequestContext implements Context {
   }
 
   /**
-   * Returns path variables associated with the request.
+   * Returns path parameters associated with the request.
    *
-   * @return path variables, or {@code null} if not set
+   * @return path parameters, or {@code null} if not set
    */
-  public Map<String, String> pathVars() {
-    return source.getOrDefault(PATH_VARS_KEY, Collections.emptyMap());
+  public Map<String, String> pathParams() {
+    return source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap());
   }
 
   /**
-   * Puts path variables associated with the request.
+   * Puts path parameters associated with the request.
    *
-   * @return path variables, or {@code null} if not set
+   * @return path parameters, or {@code null} if not set
    */
-  public RequestContext pathVars(Map<String, String> pathVars) {
-    return put(PATH_VARS_KEY, pathVars);
+  public RequestContext pathParams(Map<String, String> pathParams) {
+    return put(PATH_PARAMS_KEY, pathParams);
   }
 
   /**
-   * Returns specific path variable by name.
+   * Returns specific path parameter by name.
    *
-   * @param name name of the path variable
-   * @return path variable value, or {@code null} if not found
+   * @param name name of the path parameter
+   * @return path parameter value, or {@code null} if not found
    */
-  public String pathVar(String name) {
-    return pathVars().get(name);
+  public String pathParam(String name) {
+    return pathParams().get(name);
   }
 
   /**
-   * Returns specific path variable by name, and converts it to the specified type.
+   * Returns specific path parameter by name, and converts it to the specified type.
    *
-   * @param name name of the path variable
-   * @param type expected type of the variable
+   * @param name name of the path parameter
+   * @param type expected type of the path parameter
    * @param <T> type parameter
-   * @return converted path variable, or {@code null} if not found
+   * @return converted path parameter, or {@code null} if not found
    */
-  public <T> T pathVar(String name, Class<T> type) {
-    final var s = pathVar(name);
+  public <T> T pathParam(String name, Class<T> type) {
+    final var s = pathParam(name);
     if (s == null) {
       return null;
     }
@@ -286,7 +286,7 @@ public class RequestContext implements Context {
       return (T) new BigInteger(s);
     }
 
-    throw new IllegalArgumentException("Unsupported pathVar type: " + type);
+    throw new IllegalArgumentException("Unsupported pathParam type: " + type);
   }
 
   /**
@@ -366,7 +366,7 @@ public class RequestContext implements Context {
         .add("principal=" + principal())
         .add("methodInfo=" + methodInfo())
         .add("headers=" + mask(headers()))
-        .add("pathVars=" + mask(pathVars()))
+        .add("pathParams=" + mask(pathParams()))
         .add("sourceKeys=" + source.stream().map(Entry::getKey).toList())
         .toString();
   }

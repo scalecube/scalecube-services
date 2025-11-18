@@ -14,7 +14,7 @@ public class RoutingServiceImpl implements RoutingService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              final var foo = context.pathVar("foo");
+              final var foo = context.pathParam("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
@@ -28,7 +28,7 @@ public class RoutingServiceImpl implements RoutingService {
     return RequestContext.deferContextual()
         .map(
             context -> {
-              assertNotNull(context.pathVar("foo"));
+              assertNotNull(context.pathParam("foo"));
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
               assertEquals("POST", context.requestMethod());
