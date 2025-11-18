@@ -25,7 +25,7 @@ public final class DynamicQualifier {
 
   private final String qualifier;
   private final Pattern pattern;
-  private final List<String> pathVariables;
+  private final List<String> pathParams;
   private final int size;
 
   private DynamicQualifier(String qualifier) {
@@ -34,9 +34,9 @@ public final class DynamicQualifier {
 
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
-        final var pathVar = s.substring(1);
-        builder.append("(?<").append(pathVar).append(">.+)");
-        list.add(pathVar);
+        final var param = s.substring(1);
+        builder.append("(?<").append(param).append(">.+)");
+        list.add(param);
       } else {
         builder.append(s);
       }
@@ -46,7 +46,7 @@ public final class DynamicQualifier {
 
     this.qualifier = qualifier;
     this.pattern = Pattern.compile(builder.toString());
-    this.pathVariables = Collections.unmodifiableList(list);
+    this.pathParams = Collections.unmodifiableList(list);
     this.size = sizeOf(qualifier);
   }
 
@@ -93,8 +93,8 @@ public final class DynamicQualifier {
    *
    * @return path variable names
    */
-  public List<String> pathVariables() {
-    return pathVariables;
+  public List<String> pathParams() {
+    return pathParams;
   }
 
   /**
@@ -125,12 +125,12 @@ public final class DynamicQualifier {
     }
 
     final var map = new LinkedHashMap<String, String>();
-    for (var pathVar : pathVariables) {
-      final var value = matcher.group(pathVar);
+    for (var param : pathParams) {
+      final var value = matcher.group(param);
       if (value == null || value.isEmpty()) {
-        throw new IllegalArgumentException("Wrong path variable: " + pathVar);
+        throw new IllegalArgumentException("Wrong path param: " + param);
       }
-      map.put(pathVar, value);
+      map.put(param, value);
     }
 
     return map;
@@ -167,7 +167,7 @@ public final class DynamicQualifier {
     return new StringJoiner(", ", DynamicQualifier.class.getSimpleName() + "[", "]")
         .add("qualifier='" + qualifier + "'")
         .add("pattern=" + pattern)
-        .add("pathVariables=" + pathVariables)
+        .add("pathParams=" + pathParams)
         .add("size=" + size)
         .toString();
   }
