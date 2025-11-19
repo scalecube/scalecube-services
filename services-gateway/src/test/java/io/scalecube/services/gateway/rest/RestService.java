@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.rest;
 
+import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Mono;
@@ -26,8 +27,12 @@ public interface RestService {
   Mono<SomeResponse> patch(SomeRequest request);
 
   @ServiceMethod("delete/:foo")
-  Mono<SomeResponse> delete(SomeRequest request);
+  Mono<SomeResponse> delete();
 
   @ServiceMethod("trace/:foo")
   Mono<SomeResponse> trace();
+
+  @RestMethod("GET")
+  @ServiceMethod("propagate/:foo/:bar/:baz")
+  Mono<SomeResponse> propagateRequestAttributes();
 }

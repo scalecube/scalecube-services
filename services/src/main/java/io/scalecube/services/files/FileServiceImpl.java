@@ -96,7 +96,8 @@ public class FileServiceImpl implements FileService, FileStreamer {
         .flatMapMany(
             context -> {
               final var headers = context.headers();
-              final var filename = context.pathVar("filename");
+              final var pathParams = context.pathParams();
+              final var filename = pathParams.getString("filename");
               final var path = baseDir.resolve(filename);
 
               if (!isPathValid(path)) {

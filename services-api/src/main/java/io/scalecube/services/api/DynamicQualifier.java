@@ -25,7 +25,7 @@ public final class DynamicQualifier {
 
   private final String qualifier;
   private final Pattern pattern;
-  private final List<String> pathVariables;
+  private final List<String> pathParams;
   private final int size;
 
   private DynamicQualifier(String qualifier) {
@@ -34,9 +34,9 @@ public final class DynamicQualifier {
 
     for (var s : qualifier.split("/")) {
       if (s.startsWith(":")) {
-        final var pathVar = s.substring(1);
-        builder.append("(?<").append(pathVar).append(">.+)");
-        list.add(pathVar);
+        final var param = s.substring(1);
+        builder.append("(?<").append(param).append(">.+)");
+        list.add(param);
       } else {
         builder.append(s);
       }
@@ -46,7 +46,7 @@ public final class DynamicQualifier {
 
     this.qualifier = qualifier;
     this.pattern = Pattern.compile(builder.toString());
-    this.pathVariables = Collections.unmodifiableList(list);
+    this.pathParams = Collections.unmodifiableList(list);
     this.size = sizeOf(qualifier);
   }
 
@@ -89,16 +89,16 @@ public final class DynamicQualifier {
   }
 
   /**
-   * Returns path variable names.
+   * Returns path parameter names.
    *
-   * @return path variable names
+   * @return path parameter names
    */
-  public List<String> pathVariables() {
-    return pathVariables;
+  public List<String> pathParams() {
+    return pathParams;
   }
 
   /**
-   * Size of qualifier. This is a number of {@code /} symbols.
+   * Size of qualifier. A number of {@code /} symbols.
    *
    * @return result
    */
@@ -107,37 +107,39 @@ public final class DynamicQualifier {
   }
 
   /**
-   * Matches input qualifier against this dynamic qualifier.
+   * Matches given qualifier string with this {@link DynamicQualifier}.
    *
-   * @param qualifier qualifier
-   * @return matched path variables key-value map, or null if no matching occurred
+   * @param qualifier qualifier string
+   * @return matched path parameters key-value map, or null if no matching occurred
    */
   public Map<String, String> matchQualifier(String qualifier) {
-    if (size != sizeOf(qualifier)) {
+    final var path = qualifier.split("\\?")[0];
+
+    if (size != sizeOf(path)) {
       return null;
     }
 
-    final var matcher = pattern.matcher(qualifier);
+    final var matcher = pattern.matcher(path);
     if (!matcher.matches()) {
       return null;
     }
 
     final var map = new LinkedHashMap<String, String>();
-    for (var pathVar : pathVariables) {
-      final var value = matcher.group(pathVar);
+    for (var param : pathParams) {
+      final var value = matcher.group(param);
       if (value == null || value.isEmpty()) {
-        throw new IllegalArgumentException("Wrong path variable: " + pathVar);
+        throw new IllegalArgumentException("Wrong path param: " + param);
       }
-      map.put(pathVar, value);
+      map.put(param, value);
     }
 
     return map;
   }
 
-  private static int sizeOf(String value) {
+  private static int sizeOf(String path) {
     int count = 0;
-    for (int i = 0, length = value.length(); i < length; i++) {
-      if (value.charAt(i) == '/') {
+    for (int i = 0, length = path.length(); i < length; i++) {
+      if (path.charAt(i) == '/') {
         count++;
       }
     }
@@ -165,7 +167,7 @@ public final class DynamicQualifier {
     return new StringJoiner(", ", DynamicQualifier.class.getSimpleName() + "[", "]")
         .add("qualifier='" + qualifier + "'")
         .add("pattern=" + pattern)
-        .add("pathVariables=" + pathVariables)
+        .add("pathParams=" + pathParams)
         .add("size=" + size)
         .toString();
   }

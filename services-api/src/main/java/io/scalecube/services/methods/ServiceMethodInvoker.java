@@ -255,15 +255,15 @@ public class ServiceMethodInvoker {
       RequestContext context, Object request, Principal principal) {
     final var dynamicQualifier = methodInfo.dynamicQualifier();
 
-    Map<String, String> pathVars = null;
+    Map<String, String> pathParams = null;
     if (dynamicQualifier != null) {
-      pathVars = dynamicQualifier.matchQualifier(context.requestQualifier());
+      pathParams = dynamicQualifier.matchQualifier(context.requestQualifier());
     }
 
     return new RequestContext(context)
         .request(request)
         .principal(principal)
-        .pathVars(pathVars)
+        .pathParams(pathParams)
         .methodInfo(methodInfo);
   }
 

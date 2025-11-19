@@ -78,7 +78,7 @@ class ServiceRegistryImplTest {
                           new HashMap<>(),
                           List.of(
                               ServiceMethodDefinition.fromAction("hello"),
-                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello/:pathParam")))))
               .build());
     }
 
@@ -136,7 +136,7 @@ class ServiceRegistryImplTest {
                           new HashMap<>(),
                           List.of(
                               ServiceMethodDefinition.fromAction("hello"),
-                              ServiceMethodDefinition.fromAction("hello/:pathVar")))))
+                              ServiceMethodDefinition.fromAction("hello/:pathParam")))))
               .build());
     }
     assertEquals(
@@ -194,8 +194,8 @@ class ServiceRegistryImplTest {
 
     String NAMESPACE = "greeting";
 
-    @ServiceMethod("hello/:pathVar")
-    default Mono<String> helloPathVar() {
+    @ServiceMethod("hello/:pathParam")
+    default Mono<String> helloPathParam() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
@@ -210,14 +210,14 @@ class ServiceRegistryImplTest {
     String NAMESPACE = "v1/api";
 
     @RestMethod("POST")
-    @ServiceMethod("foo/:pathVar")
-    default Mono<String> updateWithPathVar() {
+    @ServiceMethod("foo/:pathParam")
+    default Mono<String> updateWithPathParam() {
       return Mono.just("" + System.currentTimeMillis());
     }
 
     @RestMethod("POST")
     @ServiceMethod("foo/update")
-    default Mono<String> updateWithoutPathVar() {
+    default Mono<String> updateWithoutPathParam() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }
@@ -228,14 +228,14 @@ class ServiceRegistryImplTest {
     String NAMESPACE = "v1/api";
 
     @RestMethod("PUT")
-    @ServiceMethod("foo/:pathVar")
-    default Mono<String> updateWithPathVar() {
+    @ServiceMethod("foo/:pathParam")
+    default Mono<String> updateWithPathParam() {
       return Mono.just("" + System.currentTimeMillis());
     }
 
     @RestMethod("PUT")
     @ServiceMethod("foo/update")
-    default Mono<String> updateWithoutPathVar() {
+    default Mono<String> updateWithoutPathParam() {
       return Mono.just("" + System.currentTimeMillis());
     }
   }

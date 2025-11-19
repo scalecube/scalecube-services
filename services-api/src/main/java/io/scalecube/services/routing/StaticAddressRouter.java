@@ -81,7 +81,7 @@ public class StaticAddressRouter implements Router {
     /**
      * Setter for whether to apply behavior of {@link CredentialsSupplier}, or not. If it is known
      * upfront that destination service is secured, then set this flag to {@code true}, in such case
-     * {@link CredentialsSupplier#credentials(String)} will be invoked.
+     * {@link CredentialsSupplier#credentials(String, String)}} will be invoked.
      *
      * @param secured secured flag
      * @return this
@@ -93,7 +93,7 @@ public class StaticAddressRouter implements Router {
 
     /**
      * Setter for {@code serviceRole} property, will be used in the invocation of {@link
-     * CredentialsSupplier#credentials(String)}.
+     * CredentialsSupplier#credentials(String, String)}.
      *
      * @param serviceRole serviceRole
      * @return this
@@ -105,7 +105,7 @@ public class StaticAddressRouter implements Router {
 
     /**
      * Setter for {@code serviceName} property, will be used in the invocation of {@link
-     * CredentialsSupplier#credentials(String)}.
+     * CredentialsSupplier#credentials(String, String)}.
      *
      * @param serviceName serviceName
      * @return this

@@ -9,9 +9,8 @@ import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.methods.MethodInfo;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -34,7 +33,7 @@ public class RequestContext implements Context {
   private static final Object REQUEST_KEY = new Object();
   private static final Object PRINCIPAL_KEY = new Object();
   private static final Object METHOD_INFO_KEY = new Object();
-  private static final Object PATH_VARS_KEY = new Object();
+  private static final Object PATH_PARAMS_KEY = new Object();
 
   private final Context source;
 
@@ -102,17 +101,40 @@ public class RequestContext implements Context {
   /**
    * Returns request headers.
    *
-   * @return headers, or {@code null} if not set
+   * @return headers, or empty map if not set
    */
   public Map<String, String> headers() {
     return source.getOrDefault(HEADERS_KEY, Collections.emptyMap());
   }
 
   /**
+   * Returns typed access to all request headers.
+   *
+   * @return typed parameters for headers
+   */
+  public TypedParameters headerParams() {
+    return new TypedParameters(headers());
+  }
+
+  /**
+   * Returns typed access to request headers filtered by the given prefix. Headers matching
+   * "{prefix}." are included with the prefix stripped from the key.
+   *
+   * @param prefix header prefix to filter by (if null or empty, returns all headers)
+   * @return typed parameters for filtered headers
+   */
+  public TypedParameters headerParams(String prefix) {
+    if (prefix == null || prefix.isEmpty()) {
+      return headerParams();
+    }
+    return new TypedParameters(filterByPrefix(headers(), prefix));
+  }
+
+  /**
    * Puts request headers to the context.
    *
    * @param headers headers
-   * @return new {@code RequestContext} instance with updated headers
+   * @return new {@code RequestContext}
    */
   public RequestContext headers(Map<String, String> headers) {
     return put(HEADERS_KEY, headers);
@@ -131,7 +153,7 @@ public class RequestContext implements Context {
    * Puts request to the context.
    *
    * @param request request
-   * @return new {@code RequestContext} instance with updated request
+   * @return new {@code RequestContext}
    */
   public RequestContext request(Object request) {
     return put(REQUEST_KEY, request);
@@ -187,7 +209,7 @@ public class RequestContext implements Context {
    * Puts principal to the context.
    *
    * @param principal principal
-   * @return new {@code RequestContext} instance with the updated principal
+   * @return new {@code RequestContext}
    */
   public RequestContext principal(Principal principal) {
     return put(PRINCIPAL_KEY, principal);
@@ -224,69 +246,21 @@ public class RequestContext implements Context {
   }
 
   /**
-   * Returns path variables associated with the request.
+   * Returns path parameters associated with the request.
    *
-   * @return path variables, or {@code null} if not set
+   * @return path parameters, or empty map if not set
    */
-  public Map<String, String> pathVars() {
-    return source.getOrDefault(PATH_VARS_KEY, Collections.emptyMap());
+  public TypedParameters pathParams() {
+    return new TypedParameters(source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap()));
   }
 
   /**
-   * Puts path variables associated with the request.
+   * Puts path parameters associated with the request.
    *
-   * @return path variables, or {@code null} if not set
+   * @return new {@code RequestContext}
    */
-  public RequestContext pathVars(Map<String, String> pathVars) {
-    return put(PATH_VARS_KEY, pathVars);
-  }
-
-  /**
-   * Returns specific path variable by name.
-   *
-   * @param name name of the path variable
-   * @return path variable value, or {@code null} if not found
-   */
-  public String pathVar(String name) {
-    return pathVars().get(name);
-  }
-
-  /**
-   * Returns specific path variable by name, and converts it to the specified type.
-   *
-   * @param name name of the path variable
-   * @param type expected type of the variable
-   * @param <T> type parameter
-   * @return converted path variable, or {@code null} if not found
-   */
-  public <T> T pathVar(String name, Class<T> type) {
-    final var s = pathVar(name);
-    if (s == null) {
-      return null;
-    }
-
-    if (type == String.class) {
-      //noinspection unchecked
-      return (T) s;
-    }
-    if (type == Integer.class) {
-      //noinspection unchecked
-      return (T) Integer.valueOf(s);
-    }
-    if (type == Long.class) {
-      //noinspection unchecked
-      return (T) Long.valueOf(s);
-    }
-    if (type == BigDecimal.class) {
-      //noinspection unchecked
-      return (T) new BigDecimal(s);
-    }
-    if (type == BigInteger.class) {
-      //noinspection unchecked
-      return (T) new BigInteger(s);
-    }
-
-    throw new IllegalArgumentException("Unsupported pathVar type: " + type);
+  public RequestContext pathParams(Map<String, String> pathParams) {
+    return put(PATH_PARAMS_KEY, pathParams);
   }
 
   /**
@@ -360,13 +334,28 @@ public class RequestContext implements Context {
             });
   }
 
+  private static Map<String, String> filterByPrefix(Map<String, String> map, String prefix) {
+    if (map == null || map.isEmpty()) {
+      return Map.of();
+    }
+    final var finalPrefix = prefix + ".";
+    final var result = new HashMap<String, String>();
+    map.forEach(
+        (k, v) -> {
+          if (k.startsWith(finalPrefix)) {
+            result.put(k.substring(finalPrefix.length()), v);
+          }
+        });
+    return result;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", RequestContext.class.getSimpleName() + "[", "]")
         .add("principal=" + principal())
         .add("methodInfo=" + methodInfo())
         .add("headers=" + mask(headers()))
-        .add("pathVars=" + mask(pathVars()))
+        .add("pathParams=" + source.getOrDefault(PATH_PARAMS_KEY, Collections.emptyMap()))
         .add("sourceKeys=" + source.stream().map(Entry::getKey).toList())
         .toString();
   }
