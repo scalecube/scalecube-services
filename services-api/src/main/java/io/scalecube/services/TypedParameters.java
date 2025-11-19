@@ -14,35 +14,35 @@ public class TypedParameters {
     this.params = new LinkedHashMap<>(params != null ? params : Map.of());
   }
 
-  public Integer intValue(String name) {
+  public Integer getInt(String name) {
     return get(name, Integer::parseInt);
   }
 
-  public Long longValue(String name) {
+  public Long getLong(String name) {
     return get(name, Long::parseLong);
   }
 
-  public BigInteger bigInteger(String name) {
+  public BigInteger getBigInteger(String name) {
     return get(name, BigInteger::new);
   }
 
-  public Double doubleValue(String name) {
+  public Double getDouble(String name) {
     return get(name, Double::parseDouble);
   }
 
-  public BigDecimal bigDecimal(String name) {
+  public BigDecimal getBigDecimal(String name) {
     return get(name, BigDecimal::new);
   }
 
-  public <T extends Enum<T>> T enumValue(String name, Function<String, T> enumFunc) {
+  public <T extends Enum<T>> T getEnum(String name, Function<String, T> enumFunc) {
     return get(name, enumFunc);
   }
 
-  public Boolean booleanValue(String name) {
+  public Boolean getBoolean(String name) {
     return get(name, Boolean::parseBoolean);
   }
 
-  public String stringValue(String name) {
+  public String getString(String name) {
     return get(name, s -> s);
   }
 

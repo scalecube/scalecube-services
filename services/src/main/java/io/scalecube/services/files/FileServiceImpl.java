@@ -97,7 +97,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
             context -> {
               final var headers = context.headers();
               final var pathParams = context.pathParams();
-              final var filename = pathParams.stringValue("filename");
+              final var filename = pathParams.getString("filename");
               final var path = baseDir.resolve(filename);
 
               if (!isPathValid(path)) {

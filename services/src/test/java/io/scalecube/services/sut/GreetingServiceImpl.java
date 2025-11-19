@@ -205,6 +205,6 @@ public final class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<String> helloDynamicQualifier(Long value) {
     return RequestContext.deferContextual()
-        .map(context -> context.pathParams().stringValue("someVar") + "@" + value);
+        .map(context -> context.pathParams().getString("someVar") + "@" + value);
   }
 }

@@ -19,7 +19,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -34,7 +34,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -49,7 +49,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertEquals("head123456", foo, "pathParam");
               final var headers = context.headers();
               assertNotNull(headers);
@@ -75,7 +75,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -90,7 +90,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -105,7 +105,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -120,7 +120,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -135,7 +135,7 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertThat(context.headers().size(), greaterThan(0));
@@ -150,9 +150,9 @@ public class RestServiceImpl implements RestService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              assertEquals(123, pathParams.intValue("foo"), "foo");
-              assertEquals("bar456", pathParams.stringValue("bar"), "bar");
-              assertEquals("baz789", pathParams.stringValue("baz"), "baz");
+              assertEquals(123, pathParams.getInt("foo"), "foo");
+              assertEquals("bar456", pathParams.getString("bar"), "bar");
+              assertEquals("baz789", pathParams.getString("baz"), "baz");
 
               final var headers = context.headers();
               assertEquals("GET", headers.get("http.method"));
@@ -163,13 +163,13 @@ public class RestServiceImpl implements RestService {
               assertEquals("2", headers.get("http.query.y"));
 
               final var httpHeaders = context.headerParams("http.header");
-              assertEquals("abc", httpHeaders.stringValue("X-String-Header"));
-              assertEquals(123456789, httpHeaders.intValue("X-Int-Header"));
+              assertEquals("abc", httpHeaders.getString("X-String-Header"));
+              assertEquals(123456789, httpHeaders.getInt("X-Int-Header"));
 
               final var queryParams = context.headerParams("http.query");
-              assertEquals(true, queryParams.booleanValue("debug"));
-              assertEquals(1, queryParams.intValue("x"));
-              assertEquals(2, queryParams.intValue("y"));
+              assertEquals(true, queryParams.getBoolean("debug"));
+              assertEquals(1, queryParams.getInt("x"));
+              assertEquals(2, queryParams.getInt("y"));
 
               return new SomeResponse().name(UUID.randomUUID().toString());
             });

@@ -15,7 +15,7 @@ public class RoutingServiceImpl implements RoutingService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);
@@ -30,7 +30,7 @@ public class RoutingServiceImpl implements RoutingService {
         .map(
             context -> {
               final var pathParams = context.pathParams();
-              final var foo = pathParams.stringValue("foo");
+              final var foo = pathParams.getString("foo");
               assertNotNull(foo);
               assertNotNull(context.headers());
               assertTrue(context.headers().size() > 0);

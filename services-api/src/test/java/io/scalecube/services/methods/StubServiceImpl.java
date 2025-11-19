@@ -53,8 +53,8 @@ public class StubServiceImpl implements StubService {
               assertNotNull(context.principal(), "principal");
               final var pathParams = context.pathParams();
               assertNotNull(pathParams, "pathParams");
-              assertNotNull(pathParams.stringValue("foo"), "pathParam[foo]");
-              assertNotNull(pathParams.stringValue("bar"), "pathParam[bar]");
+              assertNotNull(pathParams.getString("foo"), "pathParam[foo]");
+              assertNotNull(pathParams.getString("bar"), "pathParam[bar]");
             })
         .then();
   }
