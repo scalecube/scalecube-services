@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +148,8 @@ public class Microservices implements AutoCloseable {
       microservices.processServiceRoles();
       microservices.startListen();
       LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
+    } catch (ConcurrentModificationException ex) {
+      throw Exceptions.propagate(ex);
     } catch (Exception ex) {
       if (microservices != null) {
         microservices.close();
@@ -750,7 +753,7 @@ public class Microservices implements AutoCloseable {
 
     private Context conclude() {
       if (!isConcluded.compareAndSet(false, true)) {
-        throw new IllegalStateException("Context is already concluded");
+        throw new ConcurrentModificationException("Context is already concluded");
       }
 
       if (defaultErrorMapper == null) {
