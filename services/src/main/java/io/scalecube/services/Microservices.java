@@ -149,7 +149,7 @@ public class Microservices implements AutoCloseable {
       microservices.startListen();
       LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
     } catch (ConcurrentModificationException ex) {
-      throw Exceptions.propagate(ex);
+      throw ex;
     } catch (Exception ex) {
       if (microservices != null) {
         microservices.close();
