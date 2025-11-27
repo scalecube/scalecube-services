@@ -1,5 +1,6 @@
 package io.scalecube.services.methods;
 
+import static io.scalecube.services.Reflect.toClass;
 import static io.scalecube.services.api.DynamicQualifier.isDynamicQualifier;
 
 import io.scalecube.services.CommunicationMode;
@@ -23,7 +24,7 @@ public class MethodInfo {
   private final boolean isReturnTypeServiceMessage;
   private final CommunicationMode communicationMode;
   private final int parameterCount;
-  private final Class<?> requestType;
+  private final Type requestType;
   private final boolean isRequestTypeServiceMessage;
   private final Secured secured;
   private final Scheduler scheduler;
@@ -53,7 +54,7 @@ public class MethodInfo {
       boolean isReturnTypeServiceMessage,
       CommunicationMode communicationMode,
       int parameterCount,
-      Class<?> requestType,
+      Type requestType,
       boolean isRequestTypeServiceMessage,
       Secured secured,
       Scheduler scheduler,
@@ -115,10 +116,10 @@ public class MethodInfo {
   }
 
   public boolean isRequestTypeVoid() {
-    return requestType.isAssignableFrom(Void.TYPE);
+    return Void.TYPE.isAssignableFrom(toClass(requestType));
   }
 
-  public Class<?> requestType() {
+  public Type requestType() {
     return requestType;
   }
 

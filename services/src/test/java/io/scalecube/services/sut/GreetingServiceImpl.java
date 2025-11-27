@@ -207,4 +207,9 @@ public final class GreetingServiceImpl implements GreetingService {
     return RequestContext.deferContextual()
         .map(context -> context.pathParams().getString("someVar") + "@" + value);
   }
+
+  @Override
+  public Mono<MyPojo> greetingsWithGenerics(Base<MyPojo> request) {
+    return Mono.just(request.obj);
+  }
 }

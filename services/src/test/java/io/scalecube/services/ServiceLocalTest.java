@@ -10,6 +10,8 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
+import io.scalecube.services.sut.GreetingService.Base;
+import io.scalecube.services.sut.GreetingService.MyPojo;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
@@ -394,5 +396,20 @@ public class ServiceLocalTest {
 
   private static GreetingService createProxy(Microservices gateway) {
     return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+  }
+
+  @Test
+  public void test_generics_in_request() {
+    GreetingService service = createProxy(microservices);
+
+    final var pojo = new MyPojo("Joe", "NY");
+    // call the service.
+    final Mono<MyPojo> response =
+        service.greetingsWithGenerics(new Base<MyPojo>().object(pojo).format("plain"));
+    var result = response.block(TIMEOUT.plusMillis(500));
+
+    // print the greeting.
+    System.out.println("test_generics_in_request : " + result);
+    assertEquals(pojo, result);
   }
 }

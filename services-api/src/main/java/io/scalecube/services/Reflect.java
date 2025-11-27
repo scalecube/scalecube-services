@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.reactivestreams.Publisher;
@@ -51,8 +52,8 @@ public final class Reflect {
     }
 
     Type type = method.getGenericReturnType();
-    if (type instanceof ParameterizedType) {
-      Type actualReturnType = ((ParameterizedType) type).getActualTypeArguments()[0];
+    if (type instanceof ParameterizedType pt) {
+      Type actualReturnType = isAsyncContainer(type) ? pt.getActualTypeArguments()[0] : pt;
 
       if (ServiceMessage.class.equals(actualReturnType)) {
         return Object.class;
@@ -92,17 +93,13 @@ public final class Reflect {
    * @param method in inspection
    * @return type of method parameter
    */
-  public static Class<?> requestType(Method method) {
+  public static Type requestType(Method method) {
     if (method.getParameterTypes().length > 0) {
       if (method.isAnnotationPresent(RequestType.class)) {
         return method.getAnnotation(RequestType.class).value();
       } else {
         if (method.getGenericParameterTypes()[0] instanceof ParameterizedType) {
-          try {
-            return Class.forName(parameterizedRequestType(method).getTypeName());
-          } catch (ClassNotFoundException e) {
-            return Object.class;
-          }
+          return parameterizedRequestType(method);
         } else if (ServiceMessage.class.equals(method.getParameterTypes()[0])) {
           return Object.class;
         } else {
@@ -146,8 +143,8 @@ public final class Reflect {
   public static Type parameterizedType(Object object) {
     if (object != null) {
       Type type = object.getClass().getGenericSuperclass();
-      if (type instanceof ParameterizedType) {
-        return ((ParameterizedType) type).getActualTypeArguments()[0];
+      if (type instanceof ParameterizedType pt) {
+        return isAsyncContainer(type) ? pt.getActualTypeArguments()[0] : pt;
       }
     }
     return Object.class;
@@ -161,12 +158,30 @@ public final class Reflect {
   public static Type parameterizedRequestType(Method method) {
     if (method != null && method.getGenericParameterTypes().length > 0) {
       Type type = method.getGenericParameterTypes()[0];
-      if (type instanceof ParameterizedType) {
-        return ((ParameterizedType) type).getActualTypeArguments()[0];
+      if (type instanceof ParameterizedType pt) {
+        return isAsyncContainer(type) ? pt.getActualTypeArguments()[0] : pt;
       }
     }
 
     return Object.class;
+  }
+
+  private static boolean isAsyncContainer(Type type) {
+    Class<?> raw = toClass(type);
+
+    if (raw == null) {
+      return false;
+    }
+
+    return Publisher.class.isAssignableFrom(raw)
+        || Stream.class.isAssignableFrom(raw)
+        || Future.class.isAssignableFrom(raw);
+  }
+
+  public static Class<?> toClass(Type type) {
+    if (type instanceof Class<?> c) return c;
+    if (type instanceof ParameterizedType pt) return (Class<?>) pt.getRawType();
+    return null;
   }
 
   /**

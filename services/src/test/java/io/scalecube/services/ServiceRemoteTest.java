@@ -17,6 +17,7 @@ import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
+import io.scalecube.services.sut.GreetingService.MyPojo;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
@@ -569,6 +570,17 @@ public class ServiceRemoteTest {
 
     StepVerifier.create(gateway.call().requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
+        .verifyComplete();
+  }
+
+  @Test
+  public void test_generics_in_request() {
+    final var service = gateway.call().api(GreetingService.class);
+    final var pojo = new GreetingService.MyPojo("Joe", "NY");
+
+    StepVerifier.create(
+            service.greetingsWithGenerics(new GreetingService.Base<MyPojo>().object(pojo)))
+        .assertNext(result -> assertEquals(pojo, result))
         .verifyComplete();
   }
 
