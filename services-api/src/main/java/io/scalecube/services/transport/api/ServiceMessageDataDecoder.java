@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.api.ServiceMessage;
+import java.lang.reflect.Type;
 import java.util.ServiceLoader;
 import java.util.stream.StreamSupport;
 
@@ -11,7 +12,7 @@ public interface ServiceMessageDataDecoder {
           .findFirst()
           .orElse(null);
 
-  ServiceMessage decodeData(ServiceMessage message, Class<?> dataType);
+  ServiceMessage decodeData(ServiceMessage message, Type type);
 
-  ServiceMessage copyData(ServiceMessage message, Class<?> dataType);
+  ServiceMessage copyData(ServiceMessage message, Type type);
 }

@@ -20,6 +20,7 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.lang.reflect.Type;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Duration;
@@ -766,12 +767,12 @@ public class Microservices implements AutoCloseable {
                 .orElse(
                     new ServiceMessageDataDecoder() {
                       @Override
-                      public ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+                      public ServiceMessage decodeData(ServiceMessage message, Type type) {
                         return message;
                       }
 
                       @Override
-                      public ServiceMessage copyData(ServiceMessage message, Class<?> dataType) {
+                      public ServiceMessage copyData(ServiceMessage message, Type type) {
                         return message;
                       }
                     });

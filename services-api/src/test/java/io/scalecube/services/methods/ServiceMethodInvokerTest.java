@@ -17,6 +17,7 @@ import io.scalecube.services.auth.PrincipalMapper;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -39,12 +40,12 @@ class ServiceMethodInvokerTest {
   private final ServiceMessageDataDecoder dataDecoder =
       new ServiceMessageDataDecoder() {
         @Override
-        public ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+        public ServiceMessage decodeData(ServiceMessage message, Type type) {
           return message;
         }
 
         @Override
-        public ServiceMessage copyData(ServiceMessage message, Class<?> dataType) {
+        public ServiceMessage copyData(ServiceMessage message, Type type) {
           return message;
         }
       };
