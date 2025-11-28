@@ -179,8 +179,12 @@ public final class Reflect {
   }
 
   public static Class<?> toClass(Type type) {
-    if (type instanceof Class<?> c) return c;
-    if (type instanceof ParameterizedType pt) return (Class<?>) pt.getRawType();
+    if (type instanceof ParameterizedType pt) {
+      return (Class<?>) pt.getRawType();
+    }
+    if (type instanceof Class<?> c) {
+      return c;
+    }
     return null;
   }
 
