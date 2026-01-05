@@ -226,7 +226,8 @@ public class HttpGatewayAcceptor
 
     // Copy HTTP query params to service message
 
-    final var queryParams = matchQueryParams(httpRequest.uri());
+    final var uri = httpRequest.uri();
+    final var queryParams = matchQueryParams(uri);
     queryParams.forEach((param, value) -> builder.header("http.query." + param, value));
 
     // Add HTTP method to service message (used by REST services)
@@ -234,7 +235,7 @@ public class HttpGatewayAcceptor
     builder
         .header("http.method", httpRequest.method().name())
         .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
-        .qualifier(httpRequest.uri().substring(1));
+        .qualifier(stripQueryParams(uri.substring(1)));
 
     if (consumer != null) {
       consumer.accept(builder);
@@ -255,6 +256,14 @@ public class HttpGatewayAcceptor
             Collectors.toMap(
                 parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
                 parts -> URLDecoder.decode(parts[1], StandardCharsets.UTF_8)));
+  }
+
+  private static String stripQueryParams(String uri) {
+    final var index = uri.indexOf('?');
+    if (index < 0) {
+      return uri; // no query params
+    }
+    return uri.substring(0, index);
   }
 
   private static Mono<ServiceMessage> emptyMessage(ServiceMessage message) {

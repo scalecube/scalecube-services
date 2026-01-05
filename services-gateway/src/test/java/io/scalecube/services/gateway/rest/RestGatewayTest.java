@@ -298,6 +298,24 @@ public class RestGatewayTest {
               })
           .verifyComplete();
     }
+
+    @Test
+    void testQueryParams() {
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "GET")
+                      .qualifier("v1/restService/queryParams?x=1&y=2&debug=true")
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertNotNull(someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
+    }
   }
 
   @Nested

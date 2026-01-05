@@ -35,4 +35,8 @@ public interface RestService {
   @RestMethod("GET")
   @ServiceMethod("propagate/:foo/:bar/:baz")
   Mono<SomeResponse> propagateRequestAttributes();
+
+  @RestMethod("GET")
+  @ServiceMethod("queryParams")
+  Mono<SomeResponse> queryParams();
 }
