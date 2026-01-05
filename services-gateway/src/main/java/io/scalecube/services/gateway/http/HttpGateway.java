@@ -35,6 +35,7 @@ public class HttpGateway implements Gateway {
   private final String id;
   private final int port;
   private final Function<ServiceCall, ServiceCall> callFactory;
+  private final HttpGatewayMessageHandler messageHandler;
   private final ServiceProviderErrorMapper errorMapper;
   private final HttpGatewayAuthenticator authenticator;
   private final boolean corsEnabled;
@@ -48,6 +49,7 @@ public class HttpGateway implements Gateway {
     this.id = builder.id;
     this.port = builder.port;
     this.callFactory = builder.callFactory;
+    this.messageHandler = builder.messageHandler;
     this.errorMapper = builder.errorMapper;
     this.authenticator = builder.authenticator;
     this.corsEnabled = builder.corsEnabled;
@@ -82,7 +84,11 @@ public class HttpGateway implements Gateway {
                   })
               .handle(
                   new HttpGatewayAcceptor(
-                      callFactory.apply(call), serviceRegistry, errorMapper, authenticator))
+                      callFactory.apply(call),
+                      serviceRegistry,
+                      messageHandler,
+                      errorMapper,
+                      authenticator))
               .httpFormDecoder(
                   builder -> {
                     if (formDecoderBuilder != null) {
@@ -128,6 +134,7 @@ public class HttpGateway implements Gateway {
     private String id = "http@" + Integer.toHexString(hashCode());
     private int port;
     private Function<ServiceCall, ServiceCall> callFactory = call -> call;
+    private HttpGatewayMessageHandler messageHandler = HttpGatewayMessageHandler.DEFAULT_INSTANCE;
     private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
     private HttpGatewayAuthenticator authenticator = HttpGatewayAuthenticator.DEFAULT_INSTANCE;
     private boolean corsEnabled = false;
@@ -163,6 +170,15 @@ public class HttpGateway implements Gateway {
 
     public Builder serviceCall(Function<ServiceCall, ServiceCall> operator) {
       callFactory = callFactory.andThen(operator);
+      return this;
+    }
+
+    public HttpGatewayMessageHandler messageHandler() {
+      return messageHandler;
+    }
+
+    public Builder messageHandler(HttpGatewayMessageHandler messageHandler) {
+      this.messageHandler = messageHandler;
       return this;
     }
 

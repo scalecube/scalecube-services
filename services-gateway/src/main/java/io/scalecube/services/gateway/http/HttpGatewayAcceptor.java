@@ -58,16 +58,19 @@ public class HttpGatewayAcceptor
 
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
+  private final HttpGatewayMessageHandler messageHandler;
   private final ServiceProviderErrorMapper errorMapper;
   private final HttpGatewayAuthenticator authenticator;
 
   public HttpGatewayAcceptor(
       ServiceCall serviceCall,
       ServiceRegistry serviceRegistry,
+      HttpGatewayMessageHandler messageHandler,
       ServiceProviderErrorMapper errorMapper,
       HttpGatewayAuthenticator authenticator) {
     this.serviceCall = serviceCall;
     this.serviceRegistry = serviceRegistry;
+    this.messageHandler = messageHandler;
     this.errorMapper = errorMapper;
     this.authenticator = authenticator;
   }
@@ -149,7 +152,7 @@ public class HttpGatewayAcceptor
                               ? error(httpResponse, response)
                               : response.hasData() // check data
                                   ? ok(httpResponse, response)
-                                  : noContent(httpResponse))
+                                  : noContent(httpResponse, response))
                   .doFinally(
                       signalType -> {
                         try {
@@ -190,6 +193,8 @@ public class HttpGatewayAcceptor
               final var message =
                   toMessage(httpRequest, builder -> builder.headers(principal).data(data));
 
+              messageHandler.onRequest(httpRequest, data, message);
+
               // Match and handle file-download request
 
               final var service = matchFileDownloadRequest(serviceRegistry.lookupService(message));
@@ -209,7 +214,7 @@ public class HttpGatewayAcceptor
                               ? error(httpResponse, response)
                               : response.hasData() // check data
                                   ? ok(httpResponse, response)
-                                  : noContent(httpResponse));
+                                  : noContent(httpResponse, response));
             })
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
@@ -280,7 +285,7 @@ public class HttpGatewayAcceptor
         .send();
   }
 
-  private static Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
+  private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
     int code = response.errorType();
     HttpResponseStatus status = HttpResponseStatus.valueOf(code);
 
@@ -289,20 +294,25 @@ public class HttpGatewayAcceptor
             ? encodeData(response.data(), response.dataFormatOrDefault())
             : ((ByteBuf) response.data());
 
+    messageHandler.onError(httpResponse, content, response);
+
     // Send with publisher (defer buffer cleanup to netty)
 
     return httpResponse.status(status).send(Mono.just(content)).then();
   }
 
-  private static Mono<Void> noContent(HttpServerResponse httpResponse) {
+  private Mono<Void> noContent(HttpServerResponse httpResponse, ServiceMessage response) {
+    messageHandler.onResponse(httpResponse, Unpooled.EMPTY_BUFFER, response);
     return httpResponse.status(NO_CONTENT).send();
   }
 
-  private static Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
+  private Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
     ByteBuf content =
         response.hasData(ByteBuf.class)
             ? ((ByteBuf) response.data())
             : encodeData(response.data(), response.dataFormatOrDefault());
+
+    messageHandler.onResponse(httpResponse, content, response);
 
     // Send with publisher (defer buffer cleanup to netty)
 
