@@ -24,6 +24,9 @@ import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -129,12 +132,12 @@ public class RestGatewayTest {
 
     @Test
     void testGet() {
-      final var param = "get" + System.currentTimeMillis();
+      final var param = "test|12345";
       StepVerifier.create(
               serviceCall.requestOne(
                   ServiceMessage.builder()
                       .header("http.method", "GET")
-                      .qualifier("v1/restService/get/" + param)
+                      .qualifier("v1/restService/get/" + URLEncoder.encode(param, StandardCharsets.UTF_8))
                       .build(),
                   SomeResponse.class))
           .assertNext(

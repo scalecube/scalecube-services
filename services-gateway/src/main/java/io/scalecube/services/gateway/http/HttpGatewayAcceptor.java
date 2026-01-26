@@ -30,6 +30,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.api.DataCodec;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -231,7 +232,7 @@ public class HttpGatewayAcceptor
 
     // Copy HTTP query params to service message
 
-    final var uri = httpRequest.uri();
+    final var uri = URI.create(httpRequest.uri()).getPath();
     final var queryParams = matchQueryParams(uri);
     queryParams.forEach((param, value) -> builder.header("http.query." + param, value));
 
