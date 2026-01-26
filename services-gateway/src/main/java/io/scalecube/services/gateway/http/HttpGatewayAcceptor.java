@@ -233,7 +233,6 @@ public class HttpGatewayAcceptor
     // Copy HTTP query params to service message
 
     final var uri = URI.create(httpRequest.uri());
-
     final var queryParams = matchQueryParams(uri.getQuery());
     queryParams.forEach((param, value) -> builder.header("http.query." + param, value));
 

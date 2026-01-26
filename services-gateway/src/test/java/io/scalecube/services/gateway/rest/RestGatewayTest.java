@@ -132,12 +132,12 @@ public class RestGatewayTest {
 
     @Test
     void testGet() {
-      final var param = "test|12345";
+      final var param = "get" + System.currentTimeMillis();
       StepVerifier.create(
               serviceCall.requestOne(
                   ServiceMessage.builder()
                       .header("http.method", "GET")
-                      .qualifier("v1/restService/get/" + URLEncoder.encode(param, StandardCharsets.UTF_8))
+                      .qualifier("v1/restService/get/" + param)
                       .build(),
                   SomeResponse.class))
           .assertNext(
@@ -425,6 +425,30 @@ public class RestGatewayTest {
                 })
             .verify(Duration.ofSeconds(3));
       }
+    }
+
+    @Test
+    void testUrlEncoding() {
+      final var param = "user|1234";
+      StepVerifier.create(
+          serviceCall.requestOne(
+            ServiceMessage.builder()
+              .header("http.method", "GET")
+              .qualifier(encodeUri("v1/restService/encoding/" + param) + "?" +
+                encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc"))
+              .build(),
+            SomeResponse.class))
+        .assertNext(
+          message -> {
+            final var someResponse = message.<SomeResponse>data();
+            assertNotNull(someResponse, "data");
+            assertEquals(param, someResponse.name(), "someResponse.name");
+          })
+        .verifyComplete();
+    }
+
+    private static String encodeUri(String uri) {
+      return URLEncoder.encode(uri, StandardCharsets.UTF_8);
     }
   }
 }
