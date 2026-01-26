@@ -30,6 +30,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.api.DataCodec;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -231,8 +232,8 @@ public class HttpGatewayAcceptor
 
     // Copy HTTP query params to service message
 
-    final var uri = httpRequest.uri();
-    final var queryParams = matchQueryParams(uri);
+    final var uri = URI.create(httpRequest.uri());
+    final var queryParams = matchQueryParams(uri.getQuery());
     queryParams.forEach((param, value) -> builder.header("http.query." + param, value));
 
     // Add HTTP method to service message (used by REST services)
@@ -240,7 +241,7 @@ public class HttpGatewayAcceptor
     builder
         .header("http.method", httpRequest.method().name())
         .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
-        .qualifier(stripQueryParams(uri.substring(1)));
+        .qualifier(uri.getPath().substring(1));
 
     if (consumer != null) {
       consumer.accept(builder);
@@ -249,26 +250,17 @@ public class HttpGatewayAcceptor
     return builder.build();
   }
 
-  private static Map<String, String> matchQueryParams(String uri) {
-    final var index = uri.indexOf('?');
-    if (index < 0 || index == uri.length() - 1) {
+  private static Map<String, String> matchQueryParams(String queryString) {
+    if (queryString == null) {
       return Collections.emptyMap(); // no query params
     }
-    return Arrays.stream(uri.substring(index + 1).split("&"))
+    return Arrays.stream(queryString.split("&"))
         .map(s -> s.split("=", 2))
         .filter(parts -> parts.length == 2)
         .collect(
             Collectors.toMap(
                 parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
                 parts -> URLDecoder.decode(parts[1], StandardCharsets.UTF_8)));
-  }
-
-  private static String stripQueryParams(String uri) {
-    final var index = uri.indexOf('?');
-    if (index < 0) {
-      return uri; // no query params
-    }
-    return uri.substring(0, index);
   }
 
   private static Mono<ServiceMessage> emptyMessage(ServiceMessage message) {

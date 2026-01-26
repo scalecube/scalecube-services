@@ -39,4 +39,8 @@ public interface RestService {
   @RestMethod("GET")
   @ServiceMethod("queryParams")
   Mono<SomeResponse> queryParams();
+
+  @RestMethod("GET")
+  @ServiceMethod("encoding/:foo")
+  Mono<SomeResponse> encoding();
 }

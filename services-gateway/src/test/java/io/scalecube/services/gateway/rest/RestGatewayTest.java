@@ -24,6 +24,9 @@ import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -422,6 +425,30 @@ public class RestGatewayTest {
                 })
             .verify(Duration.ofSeconds(3));
       }
+    }
+
+    @Test
+    void testUrlEncoding() {
+      final var param = "user|1234";
+      StepVerifier.create(
+          serviceCall.requestOne(
+            ServiceMessage.builder()
+              .header("http.method", "GET")
+              .qualifier(encodeUri("v1/restService/encoding/" + param) + "?" +
+                encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc"))
+              .build(),
+            SomeResponse.class))
+        .assertNext(
+          message -> {
+            final var someResponse = message.<SomeResponse>data();
+            assertNotNull(someResponse, "data");
+            assertEquals(param, someResponse.name(), "someResponse.name");
+          })
+        .verifyComplete();
+    }
+
+    private static String encodeUri(String uri) {
+      return URLEncoder.encode(uri, StandardCharsets.UTF_8);
     }
   }
 }

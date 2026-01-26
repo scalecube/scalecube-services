@@ -187,4 +187,19 @@ public class RestServiceImpl implements RestService {
               return new SomeResponse().name(UUID.randomUUID().toString());
             });
   }
+
+  @Override
+  public Mono<SomeResponse> encoding() {
+    return RequestContext.deferContextual()
+      .map(
+        context -> {
+          final var pathParams = context.pathParams();
+          final var foo = pathParams.getString("foo");
+          final var queryParams = context.headerParams("http.query");
+          assertEquals("test|1234", queryParams.getString("x"));
+          assertEquals("foo#bar", queryParams.getString("y"));
+          assertEquals("Asc", queryParams.getString("orderBy[direction]"));
+          return new SomeResponse().name(foo);
+        });
+  }
 }
