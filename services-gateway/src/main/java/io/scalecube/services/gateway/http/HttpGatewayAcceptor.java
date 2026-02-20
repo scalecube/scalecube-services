@@ -145,7 +145,8 @@ public class HttpGatewayAcceptor
                                           builder
                                               .headers(principal)
                                               .header(HEADER_UPLOAD_FILENAME, filename)
-                                              .data(data))))
+                                              .data(data))),
+                      false)
                   .last()
                   .flatMap(
                       response ->
@@ -206,7 +207,7 @@ public class HttpGatewayAcceptor
               // Handle normal service request
 
               return serviceCall
-                  .requestOne(message)
+                  .requestOne(message, false)
                   .switchIfEmpty(Mono.defer(() -> emptyMessage(message)))
                   .doOnError(th -> safestRelease(message.data()))
                   .flatMap(
@@ -341,7 +342,7 @@ public class HttpGatewayAcceptor
       ServiceReference service, ServiceMessage message, HttpServerResponse response) {
     return serviceCall
         .router(StaticAddressRouter.forService(service.address(), service.endpointName()).build())
-        .requestMany(message)
+        .requestMany(message, false)
         .switchOnFirst(
             (signal, flux) -> {
               if (signal.hasError()) {

@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.rest;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_ERROR_TYPE;
+import static io.scalecube.services.transport.api.ServiceMessageDataDecoder.INSTANCE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
@@ -13,6 +14,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingServiceImpl;
@@ -24,7 +26,6 @@ import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -115,12 +116,14 @@ public class RestGatewayTest {
     void testOptions() {
       final var param = "options" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "OPTIONS")
-                      .qualifier("v1/restService/options/" + param)
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "OPTIONS")
+                          .qualifier("v1/restService/options/" + param)
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -134,12 +137,14 @@ public class RestGatewayTest {
     void testGet() {
       final var param = "get" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "GET")
-                      .qualifier("v1/restService/get/" + param)
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "GET")
+                          .qualifier("v1/restService/get/" + param)
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -157,16 +162,18 @@ public class RestGatewayTest {
       final var queryParam1 = "queryParam-" + System.currentTimeMillis();
       final var queryParam2 = "queryParam-" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "HEAD")
-                      .header("http.header.X-Custom-Header-1", customHeader1)
-                      .header("http.header.X-Custom-Header-2", customHeader2)
-                      .header("http.query.param1", queryParam1)
-                      .header("http.query.param2", queryParam2)
-                      .qualifier("v1/restService/head/" + param)
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "HEAD")
+                          .header("http.header.X-Custom-Header-1", customHeader1)
+                          .header("http.header.X-Custom-Header-2", customHeader2)
+                          .header("http.query.param1", queryParam1)
+                          .header("http.query.param2", queryParam2)
+                          .qualifier("v1/restService/head/" + param)
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 assertNull(message.data(), "data"); // this is HEAD
@@ -181,13 +188,15 @@ public class RestGatewayTest {
       final var name = "name" + System.currentTimeMillis();
       final var param = "post" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "POST")
-                      .qualifier("v1/restService/post/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "POST")
+                          .qualifier("v1/restService/post/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -202,13 +211,15 @@ public class RestGatewayTest {
       final var name = "name" + System.currentTimeMillis();
       final var param = "put" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "PUT")
-                      .qualifier("v1/restService/put/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "PUT")
+                          .qualifier("v1/restService/put/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -223,13 +234,15 @@ public class RestGatewayTest {
       final var name = "name" + System.currentTimeMillis();
       final var param = "patch" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "PATCH")
-                      .qualifier("v1/restService/patch/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "PATCH")
+                          .qualifier("v1/restService/patch/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -244,13 +257,15 @@ public class RestGatewayTest {
       final var name = "name" + System.currentTimeMillis();
       final var param = "delete" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "DELETE")
-                      .qualifier("v1/restService/delete/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "DELETE")
+                          .qualifier("v1/restService/delete/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -264,12 +279,14 @@ public class RestGatewayTest {
     void testTrace() {
       final var param = "trace" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "TRACE")
-                      .qualifier("v1/restService/trace/" + param)
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "TRACE")
+                          .qualifier("v1/restService/trace/" + param)
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -282,17 +299,19 @@ public class RestGatewayTest {
     @Test
     void testAttributesPropagation() {
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "GET")
-                      .header("http.header.X-String-Header", "abc")
-                      .header("http.header.X-Int-Header", "123456789")
-                      .header("http.query.debug", "true")
-                      .header("http.query.x", "1")
-                      .header("http.query.y", "2")
-                      .qualifier("v1/restService/propagate/123/bar456/baz789")
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "GET")
+                          .header("http.header.X-String-Header", "abc")
+                          .header("http.header.X-Int-Header", "123456789")
+                          .header("http.query.debug", "true")
+                          .header("http.query.x", "1")
+                          .header("http.query.y", "2")
+                          .qualifier("v1/restService/propagate/123/bar456/baz789")
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -305,12 +324,14 @@ public class RestGatewayTest {
     @Test
     void testQueryParams() {
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "GET")
-                      .qualifier("v1/restService/queryParams?x=1&y=2&debug=true")
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "GET")
+                          .qualifier("v1/restService/queryParams?x=1&y=2&debug=true")
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -346,12 +367,14 @@ public class RestGatewayTest {
     void testMatchByGetMethod() {
       final var param = "get" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "GET")
-                      .qualifier("v1/routingService/find/" + param)
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "GET")
+                          .qualifier("v1/routingService/find/" + param)
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -366,13 +389,15 @@ public class RestGatewayTest {
       final var name = "name" + System.currentTimeMillis();
       final var param = "post" + System.currentTimeMillis();
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", "POST")
-                      .qualifier("v1/routingService/update/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "POST")
+                          .qualifier("v1/routingService/update/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
@@ -388,21 +413,24 @@ public class RestGatewayTest {
       final var param = "post" + System.currentTimeMillis();
       final var nonMatchedRestMethod = "PUT";
       StepVerifier.create(
-              serviceCall.requestOne(
-                  ServiceMessage.builder()
-                      .header("http.method", nonMatchedRestMethod)
-                      .qualifier("v1/routingService/update/" + param)
-                      .data(new SomeRequest().name(name))
-                      .build(),
-                  SomeResponse.class))
-          .verifyErrorSatisfies(
-              ex -> {
-                final var exception = (ServiceUnavailableException) ex;
-                assertEquals(503, exception.errorCode(), "errorCode");
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", nonMatchedRestMethod)
+                          .qualifier("v1/routingService/update/" + param)
+                          .data(new SomeRequest().name(name))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, ErrorData.class)))
+          .assertNext(
+              msg -> {
+                final ErrorData errorData = msg.data();
+                assertEquals(503, errorData.getErrorCode(), "errorCode");
                 assertThat(
-                    exception.getMessage(),
+                    errorData.getErrorMessage(),
                     Matchers.startsWith("No reachable member with such service"));
-              });
+              })
+          .verifyComplete();
     }
 
     @Test
@@ -431,20 +459,24 @@ public class RestGatewayTest {
     void testUrlEncoding() {
       final var param = "user|1234";
       StepVerifier.create(
-          serviceCall.requestOne(
-            ServiceMessage.builder()
-              .header("http.method", "GET")
-              .qualifier(encodeUri("v1/restService/encoding/" + param) + "?" +
-                encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc"))
-              .build(),
-            SomeResponse.class))
-        .assertNext(
-          message -> {
-            final var someResponse = message.<SomeResponse>data();
-            assertNotNull(someResponse, "data");
-            assertEquals(param, someResponse.name(), "someResponse.name");
-          })
-        .verifyComplete();
+              serviceCall
+                  .requestOne(
+                      ServiceMessage.builder()
+                          .header("http.method", "GET")
+                          .qualifier(
+                              encodeUri("v1/restService/encoding/" + param)
+                                  + "?"
+                                  + encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc"))
+                          .build(),
+                      false)
+                  .map(msg -> INSTANCE.decodeData(msg, SomeResponse.class)))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     private static String encodeUri(String uri) {

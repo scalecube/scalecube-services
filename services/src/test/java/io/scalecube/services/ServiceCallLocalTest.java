@@ -67,7 +67,7 @@ public class ServiceCallLocalTest {
     ServiceCall serviceCall = provider.call().router(RoundRobinServiceRouter.class);
 
     // call the service.
-    Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
+    Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, false);
 
     ServiceMessage message = Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
 
@@ -102,7 +102,7 @@ public class ServiceCallLocalTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(provider.call().requestOne(GREETING_FAIL_REQ)).block(timeout));
+            () -> Mono.from(provider.call().requestOne(GREETING_FAIL_REQ, false)).block(timeout));
     assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
@@ -113,14 +113,15 @@ public class ServiceCallLocalTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(provider.call().requestOne(GREETING_ERROR_REQ)).block(timeout));
+            () -> Mono.from(provider.call().requestOne(GREETING_ERROR_REQ, false)).block(timeout));
   }
 
   @Test
   public void test_local_async_greeting_return_GreetingResponse() {
 
     // When
-    Publisher<ServiceMessage> resultFuture = provider.call().requestOne(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> resultFuture =
+        provider.call().requestOne(GREETING_REQUEST_REQ, false);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
@@ -135,7 +136,7 @@ public class ServiceCallLocalTest {
     ServiceCall service = provider.call();
 
     // call the service.
-    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ, false);
 
     Throwable exception =
         assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofMillis(500)));
@@ -145,7 +146,7 @@ public class ServiceCallLocalTest {
   @Test
   public void test_local_async_greeting_return_Message() {
 
-    ServiceMessage result = provider.call().requestOne(GREETING_REQUEST_REQ).block(timeout);
+    ServiceMessage result = provider.call().requestOne(GREETING_REQUEST_REQ, false).block(timeout);
 
     // print the greeting.
     GreetingResponse responseData = result.data();
@@ -156,10 +157,7 @@ public class ServiceCallLocalTest {
 
   @Test
   public void test_remote_mono_empty_request_response_greeting_messsage() {
-    StepVerifier.create(
-            provider
-                .call()
-                .requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
+    StepVerifier.create(provider.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, true))
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .expectComplete()
         .verify(timeout);
@@ -172,7 +170,7 @@ public class ServiceCallLocalTest {
 
     try {
       // call the service.
-      Mono.from(service.requestOne(NOT_FOUND_REQ)).block(timeout);
+      Mono.from(service.requestOne(NOT_FOUND_REQ, false)).block(timeout);
       fail("Expected no-service-found exception");
     } catch (Exception ex) {
       assertEquals(ServiceUnavailableException.class, ex.getClass());

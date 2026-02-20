@@ -89,7 +89,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return Mono.defer(
         () -> {
           final var httpClient = httpClientReference.get();
@@ -105,7 +105,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
                       mono.defaultIfEmpty(Unpooled.EMPTY_BUFFER)
                           .map(ByteBuf::retain)
                           .map(data -> toMessage(clientResponse, data)))
-              .map(msg -> decodeData(msg, responseType));
+              .map(msg -> decodeData(msg, null));
         });
   }
 
@@ -132,13 +132,12 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   }
 
   @Override
-  public Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
     return Flux.error(new UnsupportedOperationException("requestStream is not supported"));
   }
 
   @Override
-  public Flux<ServiceMessage> requestChannel(
-      Publisher<ServiceMessage> publisher, Type responseType) {
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return Flux.error(new UnsupportedOperationException("requestChannel is not supported"));
   }
 

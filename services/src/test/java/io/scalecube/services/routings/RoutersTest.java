@@ -147,15 +147,9 @@ public class RoutersTest {
 
     // call the service.
     GreetingResponse result1 =
-        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-            .timeout(TIMEOUT)
-            .block()
-            .data();
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, true)).timeout(TIMEOUT).block().data();
     GreetingResponse result2 =
-        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-            .timeout(TIMEOUT)
-            .block()
-            .data();
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, true)).timeout(TIMEOUT).block().data();
 
     assertNotEquals(result1.sender(), result2.sender());
   }
@@ -222,10 +216,7 @@ public class RoutersTest {
     // call the service.
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
-          Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
-              .timeout(TIMEOUT)
-              .block()
-              .data();
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ, true)).timeout(TIMEOUT).block().data();
       assertEquals("2", result.sender());
     }
   }
@@ -249,9 +240,9 @@ public class RoutersTest {
     // call the service.
     for (int i = 0; i < 1e2; i++) {
       GreetingResponse resultForFransin =
-          service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(TIMEOUT).data();
+          service.requestOne(GREETING_REQUEST_REQ2, true).block(TIMEOUT).data();
       GreetingResponse resultForJoe =
-          service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(TIMEOUT).data();
+          service.requestOne(GREETING_REQUEST_REQ, true).block(TIMEOUT).data();
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
@@ -271,7 +262,7 @@ public class RoutersTest {
 
     int n = (int) 1e3;
     for (int i = 0; i < n; i++) {
-      ServiceMessage message = service.requestOne(req, GreetingResponse.class).block(TIMEOUT);
+      ServiceMessage message = service.requestOne(req, true).block(TIMEOUT);
       if (message.data().toString().contains("SERVICE_B_TALKING")) {
         serviceBCount.incrementAndGet();
       }

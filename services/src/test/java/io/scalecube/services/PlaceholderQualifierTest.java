@@ -68,8 +68,7 @@ public class PlaceholderQualifierTest {
     final String foo1Result =
         gateway
             .call()
-            .requestOne(
-                ServiceMessage.builder().qualifier("v1/api/hello/" + foo1Id).build(), String.class)
+            .requestOne(ServiceMessage.builder().qualifier("v1/api/hello/" + foo1Id).build(), true)
             .block()
             .data();
     assertEquals(foo1Id, foo1Result);
@@ -78,8 +77,7 @@ public class PlaceholderQualifierTest {
     final String foo2Result =
         gateway
             .call()
-            .requestOne(
-                ServiceMessage.builder().qualifier("v1/api/hello/" + foo2Id).build(), String.class)
+            .requestOne(ServiceMessage.builder().qualifier("v1/api/hello/" + foo2Id).build(), true)
             .block()
             .data();
     assertEquals(foo2Id, foo2Result);
@@ -94,7 +92,7 @@ public class PlaceholderQualifierTest {
             .call()
             .requestOne(
                 ServiceMessage.builder().qualifier("v1/api/hello/" + foo1Id + "/" + name1).build(),
-                String.class)
+                true)
             .block()
             .data();
     assertEquals(foo1Id + "|" + name1, foo1Result);
@@ -106,7 +104,7 @@ public class PlaceholderQualifierTest {
             .call()
             .requestOne(
                 ServiceMessage.builder().qualifier("v1/api/hello/" + foo2Id + "/" + name2).build(),
-                String.class)
+                true)
             .block()
             .data();
     assertEquals(foo2Id + "|" + name2, foo2Result);

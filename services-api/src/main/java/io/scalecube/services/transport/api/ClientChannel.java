@@ -1,16 +1,15 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.api.ServiceMessage;
-import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ClientChannel {
 
-  Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType);
+  Mono<ServiceMessage> requestResponse(ServiceMessage message);
 
-  Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType);
+  Flux<ServiceMessage> requestStream(ServiceMessage message);
 
-  Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher, Type responseType);
+  Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher);
 }

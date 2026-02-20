@@ -37,7 +37,8 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
             ServiceMessage.builder()
                 .qualifier(GreetingService.SERVICE_NAME, "greeting")
                 .data("joe")
-                .build())
+                .build(),
+            true)
         .map(ServiceMessage::data);
   }
 }

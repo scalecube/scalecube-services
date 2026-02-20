@@ -21,6 +21,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -44,6 +45,7 @@ public class ServiceCall implements AutoCloseable {
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
+  private ServiceMessageDataDecoder dataDecoder = ServiceMessageDataDecoder.INSTANCE;
 
   // private Logger logger;
 
@@ -55,6 +57,7 @@ public class ServiceCall implements AutoCloseable {
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
+    this.dataDecoder = other.dataDecoder;
     this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
@@ -143,33 +146,35 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
+   * Setter for {@code dataDecoder}.
+   *
+   * @param dataDecoder dataDecoder.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall dataDecoder(ServiceMessageDataDecoder dataDecoder) {
+    ServiceCall target = new ServiceCall(this);
+    target.dataDecoder = dataDecoder;
+    return target;
+  }
+
+  /**
    * Invokes fire-and-forget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return requestOne(request, Void.class).then();
+    return requestOne(request, true).then();
   }
 
   /**
    * Invokes request-and-reply request.
    *
    * @param request request message to send.
+   * @param decodeData should decode data.
    * @return mono publisher completing with single response message or with error.
    */
-  public Mono<ServiceMessage> requestOne(ServiceMessage request) {
-    return requestOne(request, null);
-  }
-
-  /**
-   * Invokes request-and-reply request.
-   *
-   * @param request request message to send.
-   * @param responseType type of response (optional).
-   * @return mono publisher completing with single response message or with error.
-   */
-  public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
+  public Mono<ServiceMessage> requestOne(ServiceMessage request, boolean decodeData) {
     return Mono.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
@@ -178,6 +183,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeOne(request)
+                .map(msg -> decodeData ? dataDecoder.decodeData(msg, getDataType(msg, null)) : msg)
                 .map(this::throwIfError)
                 .contextWrite(
                     context -> {
@@ -198,7 +204,12 @@ public class ServiceCall implements AutoCloseable {
                     serviceReference ->
                         transport
                             .create(serviceReference)
-                            .requestResponse(request, responseType)
+                            .requestResponse(request)
+                            .map(
+                                msg ->
+                                    decodeData
+                                        ? dataDecoder.decodeData(msg, getDataType(msg, null))
+                                        : msg)
                             .map(this::throwIfError));
           }
         });
@@ -208,20 +219,10 @@ public class ServiceCall implements AutoCloseable {
    * Issues request to service which returns stream of service messages back.
    *
    * @param request request message to send.
+   * @param decodeData should decode data.
    * @return flux publisher of service responses.
    */
-  public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-    return requestMany(request, null);
-  }
-
-  /**
-   * Issues request to service which returns stream of service messages back.
-   *
-   * @param request request with given headers.
-   * @param responseType type of responses (optional).
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
+  public Flux<ServiceMessage> requestMany(ServiceMessage request, boolean decodeData) {
     return Flux.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
@@ -230,6 +231,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeMany(request)
+                .map(msg -> decodeData ? dataDecoder.decodeData(msg, getDataType(msg, null)) : msg)
                 .map(this::throwIfError)
                 .contextWrite(
                     context -> {
@@ -250,7 +252,12 @@ public class ServiceCall implements AutoCloseable {
                     serviceReference ->
                         transport
                             .create(serviceReference)
-                            .requestStream(request, responseType)
+                            .requestStream(request)
+                            .map(
+                                msg ->
+                                    decodeData
+                                        ? dataDecoder.decodeData(msg, getDataType(msg, null))
+                                        : msg)
                             .map(this::throwIfError));
           }
         });
@@ -260,21 +267,11 @@ public class ServiceCall implements AutoCloseable {
    * Issues stream of service requests to service which returns stream of service messages back.
    *
    * @param publisher of service requests.
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
-    return requestBidirectional(publisher, null);
-  }
-
-  /**
-   * Issues stream of service requests to service which returns stream of service messages back.
-   *
-   * @param publisher of service requests.
-   * @param responseType type of responses (optional).
+   * @param decodeData should decode data.
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(
-      Publisher<ServiceMessage> publisher, Type responseType) {
+      Publisher<ServiceMessage> publisher, boolean decodeData) {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) -> {
@@ -286,6 +283,11 @@ public class ServiceCall implements AutoCloseable {
                   // local service
                   return methodInvoker
                       .invokeBidirectional(messages)
+                      .map(
+                          msg ->
+                              decodeData
+                                  ? dataDecoder.decodeData(msg, getDataType(msg, null))
+                                  : msg)
                       .map(this::throwIfError)
                       .contextWrite(
                           context -> {
@@ -306,7 +308,12 @@ public class ServiceCall implements AutoCloseable {
                           serviceReference ->
                               transport
                                   .create(serviceReference)
-                                  .requestChannel(messages, responseType)
+                                  .requestChannel(messages)
+                                  .map(
+                                      msg ->
+                                          decodeData
+                                              ? dataDecoder.decodeData(msg, getDataType(msg, null))
+                                              : msg)
                                   .map(this::throwIfError));
                 }
               }
@@ -343,23 +350,28 @@ public class ServiceCall implements AutoCloseable {
               switch (methodInfo.communicationMode()) {
                 case REQUEST_RESPONSE:
                   return serviceCall
-                      .requestOne(toServiceMessage(methodInfo, request), returnType)
+                      .requestOne(toServiceMessage(methodInfo, request), false)
+                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
+                      .map(this::throwIfError)
                       .transform(asMono(isReturnTypeServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
-                      .requestMany(toServiceMessage(methodInfo, request), returnType)
+                      .requestMany(toServiceMessage(methodInfo, request), false)
+                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
+                      .map(this::throwIfError)
                       .transform(asFlux(isReturnTypeServiceMessage));
 
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must
                   // be a publisher - its safe to cast.
-                  //noinspection rawtypes
                   return serviceCall
                       .requestBidirectional(
-                          Flux.from((Publisher) request)
+                          Flux.from((Publisher<?>) request)
                               .map(data -> toServiceMessage(methodInfo, data)),
-                          returnType)
+                          false)
+                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
+                      .map(message -> throwIfError(message))
                       .transform(asFlux(isReturnTypeServiceMessage));
 
                 default:
@@ -459,6 +471,13 @@ public class ServiceCall implements AutoCloseable {
         Schedulers.immediate(),
         restMethod(method),
         Collections.emptyList());
+  }
+
+  private static Type getDataType(ServiceMessage message, Type defaultType) {
+    final var dataType = message.header(ServiceMessage.HEADER_DATA_TYPE);
+    final var type = TypeUtils.parseTypeDescriptor(dataType);
+    final var resultType = type != null ? type : defaultType;
+    return resultType == null && message.isError() ? ErrorData.class : resultType;
   }
 
   @Override

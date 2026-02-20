@@ -191,7 +191,7 @@ class WebsocketLocalGatewayTest {
     String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
     ServiceMessage request =
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
-    StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
+    StepVerifier.create(serviceCall.requestOne(request, true))
         .expectSubscription()
         .expectNextMatches(
             resp -> {
@@ -218,7 +218,7 @@ class WebsocketLocalGatewayTest {
     final var request =
         ServiceMessage.builder().qualifier("greeting/hello/" + value).data(data).build();
 
-    StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
+    StepVerifier.create(serviceCall.requestOne(request, true).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
   }

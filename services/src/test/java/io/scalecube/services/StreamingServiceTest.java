@@ -126,7 +126,7 @@ public class StreamingServiceTest {
         ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot").data(batchSize).build();
 
     List<ServiceMessage> serviceMessages =
-        serviceCall.requestMany(message).take(Duration.ofSeconds(5)).collectList().block();
+        serviceCall.requestMany(message, false).take(Duration.ofSeconds(5)).collectList().block();
 
     assertEquals(batchSize, serviceMessages.size());
   }
@@ -146,7 +146,7 @@ public class StreamingServiceTest {
         ServiceMessage.builder().qualifier(QuoteService.NAME, "justOne").build();
 
     ServiceMessage message =
-        service.requestOne(justOne, String.class).timeout(Duration.ofSeconds(3)).block();
+        service.requestOne(justOne, true).timeout(Duration.ofSeconds(3)).block();
 
     assertNotNull(message);
     assertEquals("1", message.<String>data());
@@ -160,7 +160,11 @@ public class StreamingServiceTest {
         ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled").data(1000).build();
 
     List<ServiceMessage> list =
-        serviceCall.requestMany(scheduled).take(Duration.ofMillis(500)).collectList().block();
+        serviceCall
+            .requestMany(scheduled, false)
+            .take(Duration.ofMillis(500))
+            .collectList()
+            .block();
 
     assertTrue(list.size() > 1, "list.size");
   }
@@ -173,7 +177,7 @@ public class StreamingServiceTest {
     ServiceMessage scheduled =
         ServiceMessage.builder().qualifier(QuoteService.NAME, "unknonwn").build();
     try {
-      service.requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
+      service.requestMany(scheduled, false).blockFirst(Duration.ofSeconds(3));
       fail("Expected no-reachable-service-exception");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().contains("No reachable member with such service"));
@@ -190,7 +194,11 @@ public class StreamingServiceTest {
         ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot").data(batchSize).build();
 
     List<ServiceMessage> serviceMessages =
-        serviceCall.requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
+        serviceCall
+            .requestMany(message, false)
+            .timeout(Duration.ofSeconds(5))
+            .collectList()
+            .block();
 
     assertEquals(batchSize, serviceMessages.size());
   }

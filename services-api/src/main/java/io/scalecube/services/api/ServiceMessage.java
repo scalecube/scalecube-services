@@ -1,5 +1,6 @@
 package io.scalecube.services.api;
 
+import io.scalecube.services.TypeUtils;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Collections;
@@ -83,10 +84,12 @@ public final class ServiceMessage {
    */
   public static ServiceMessage error(
       String qualifier, int errorType, int errorCode, String errorMessage) {
+    final var errorData = new ErrorData(errorCode, errorMessage);
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
-        .data(new ErrorData(errorCode, errorMessage))
+        .data(errorData)
+        .dataType(TypeUtils.getTypeDescriptor(errorData))
         .build();
   }
 
@@ -126,6 +129,15 @@ public final class ServiceMessage {
    */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
+  }
+
+  /**
+   * Returns data type of the message data.
+   *
+   * @return data type of the data
+   */
+  public String dataType() {
+    return header(HEADER_DATA_TYPE);
   }
 
   /**
@@ -275,14 +287,13 @@ public final class ServiceMessage {
     /**
      * Setter for {@code dataType}.
      *
-     * @deprecated in future releases will be dropped without replacement
      * @param dataType data type; no null
      * @return this
      */
-    @Deprecated
-    public Builder dataType(Class<?> dataType) {
-      Objects.requireNonNull(dataType, "dataType");
-      headers.put(HEADER_DATA_TYPE, dataType.getName());
+    public Builder dataType(String dataType) {
+      if (dataType != null) {
+        headers.put(HEADER_DATA_TYPE, dataType);
+      }
       return this;
     }
 

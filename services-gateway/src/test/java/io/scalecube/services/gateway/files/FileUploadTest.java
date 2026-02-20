@@ -119,7 +119,7 @@ public class FileUploadTest {
       assertEquals(HttpResponseStatus.OK.code(), response.code(), "response.code");
       final var responseBody = response.body().string();
       assertNotNull(responseBody, "response.body");
-      final var uploadFile = new File("/tmp", responseBody.replace("\"", "")).toPath();
+      final var uploadFile = new File(file.getParent(), responseBody.replace("\"", "")).toPath();
       assertFilesEqual(file.toPath(), uploadFile);
     }
   }

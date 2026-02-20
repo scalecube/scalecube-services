@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.websocket;
 
+import static io.scalecube.services.api.ServiceMessage.HEADER_DATA_TYPE;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 
@@ -82,6 +84,7 @@ public final class GatewayMessages {
   public static ServiceMessage newResponseMessage(
       long sid, ServiceMessage message, boolean isErrorResponse) {
     if (isErrorResponse) {
+      // todo .removeHeader(HEADER_DATA_TYPE)
       return ServiceMessage.from(message)
           .header(STREAM_ID_FIELD, sid)
           .header(SIGNAL_FIELD, Signal.ERROR.code())

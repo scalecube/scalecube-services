@@ -80,7 +80,7 @@ public class WebsocketGatewayAuthTest {
 
   @Test
   void createSessionSuccessfully() {
-    StepVerifier.create(serviceCall.requestOne(createSessionRequest(ALLOWED_USER), String.class))
+    StepVerifier.create(serviceCall.requestOne(createSessionRequest(ALLOWED_USER), true))
         .expectNextCount(1)
         .expectComplete()
         .verify();
@@ -88,8 +88,7 @@ public class WebsocketGatewayAuthTest {
 
   @Test
   void createSessionForbiddenUser() {
-    StepVerifier.create(
-            serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), String.class))
+    StepVerifier.create(serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), true))
         .expectErrorSatisfies(
             th -> {
               UnauthorizedException e = (UnauthorizedException) th;
@@ -114,7 +113,7 @@ public class WebsocketGatewayAuthTest {
   @Test
   void securedMethodAuthenticated() {
     // authenticate session
-    serviceCall.requestOne(createSessionRequest(ALLOWED_USER), String.class).block(TIMEOUT);
+    serviceCall.requestOne(createSessionRequest(ALLOWED_USER), true).block(TIMEOUT);
     // call secured service
     final String req = "echo";
     StepVerifier.create(securedService.requestOne(req))
@@ -126,8 +125,7 @@ public class WebsocketGatewayAuthTest {
   @Test
   void securedMethodAuthenticatedInvalidUser() {
     // authenticate session
-    StepVerifier.create(
-            serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), String.class))
+    StepVerifier.create(serviceCall.requestOne(createSessionRequest("fake" + ALLOWED_USER), true))
         .expectErrorSatisfies(th -> assertInstanceOf(UnauthorizedException.class, th))
         .verify();
     // call secured service
@@ -157,7 +155,7 @@ public class WebsocketGatewayAuthTest {
   @Test
   void securedMethodAuthenticatedReqStream() {
     // authenticate session
-    serviceCall.requestOne(createSessionRequest(ALLOWED_USER), String.class).block(TIMEOUT);
+    serviceCall.requestOne(createSessionRequest(ALLOWED_USER), true).block(TIMEOUT);
     // call secured service
     Integer times = 10;
     StepVerifier.create(securedService.requestMany(times))
