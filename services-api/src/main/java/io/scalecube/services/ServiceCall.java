@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import reactor.core.Exceptions;
@@ -47,7 +48,7 @@ public class ServiceCall implements AutoCloseable {
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
   private ServiceMessageDataDecoder dataDecoder = ServiceMessageDataDecoder.INSTANCE;
 
-  // private Logger logger;
+  private final Map<String, Type> resolvedTypes = new ConcurrentHashMap<>();
 
   public ServiceCall() {}
 
@@ -483,10 +484,19 @@ public class ServiceCall implements AutoCloseable {
     return dataDecoder.decodeData(message, type);
   }
 
-  private static Type getDataType(ServiceMessage message) {
+  private Type getDataType(ServiceMessage message) {
     final var dataType = message.header(ServiceMessage.HEADER_DATA_TYPE);
-    final var type = TypeUtil.parseTypeDescriptor(dataType);
-    return type != null ? type : Object.class;
+
+    if (dataType == null) {
+      return Object.class;
+    }
+
+    return resolvedTypes.computeIfAbsent(
+        dataType,
+        s -> {
+          final var type = TypeUtil.parseTypeDescriptor(dataType);
+          return type != null ? type : Object.class;
+        });
   }
 
   @Override
