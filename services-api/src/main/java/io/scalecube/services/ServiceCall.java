@@ -10,6 +10,7 @@ import static io.scalecube.services.Reflect.restMethod;
 import static io.scalecube.services.Reflect.serviceName;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
@@ -192,7 +193,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeOne(request)
-                .map(message -> decodeData(message, responseType))
+                .map(message -> onMessage(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -213,7 +214,7 @@ public class ServiceCall implements AutoCloseable {
                         transport
                             .create(serviceReference)
                             .requestResponse(request)
-                            .map(message -> decodeData(message, responseType)));
+                            .map(message -> onMessage(message, responseType)));
           }
         });
   }
@@ -244,7 +245,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeMany(request)
-                .map(message -> decodeData(message, responseType))
+                .map(message -> onMessage(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -265,7 +266,7 @@ public class ServiceCall implements AutoCloseable {
                         transport
                             .create(serviceReference)
                             .requestStream(request)
-                            .map(message -> decodeData(message, responseType)));
+                            .map(message -> onMessage(message, responseType)));
           }
         });
   }
@@ -300,7 +301,7 @@ public class ServiceCall implements AutoCloseable {
                   // local service
                   return methodInvoker
                       .invokeBidirectional(messages)
-                      .map(message -> decodeData(message, responseType))
+                      .map(message -> onMessage(message, responseType))
                       .contextWrite(
                           context -> {
                             if (context.hasKey(RequestContext.class)) {
@@ -321,7 +322,7 @@ public class ServiceCall implements AutoCloseable {
                               transport
                                   .create(serviceReference)
                                   .requestChannel(messages)
-                                  .map(message -> decodeData(message, responseType)));
+                                  .map(message -> onMessage(message, responseType)));
                 }
               }
               return messages;
@@ -467,17 +468,19 @@ public class ServiceCall implements AutoCloseable {
         Collections.emptyList());
   }
 
-  private ServiceMessage decodeData(ServiceMessage message, Type returnType) {
+  private ServiceMessage onMessage(ServiceMessage message, Type returnType) {
     if (returnType == null) {
       return message;
     }
 
     if (message.isError()) {
-      throw Exceptions.propagate(errorMapper.toError(message));
+      throw Exceptions.propagate(
+          errorMapper.toError(dataDecoder.decodeData(message, ErrorData.class)));
     }
 
-    return dataDecoder.decodeData(
-        message, returnType != Object.class ? returnType : getDataType(message));
+    final var type = returnType != Object.class ? returnType : getDataType(message);
+
+    return dataDecoder.decodeData(message, type);
   }
 
   private static Type getDataType(ServiceMessage message) {
