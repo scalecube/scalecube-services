@@ -237,7 +237,7 @@ public class ServiceRemoteTest {
     StepVerifier.create(
             serviceCall.requestOne(
                 ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage").build(),
-                true))
+                GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());
@@ -253,7 +253,7 @@ public class ServiceRemoteTest {
     StepVerifier.create(
             serviceCall.requestOne(
                 ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage2").build(),
-                true))
+                GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());
@@ -568,7 +568,7 @@ public class ServiceRemoteTest {
     final var request =
         ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
 
-    StepVerifier.create(gateway.call().requestOne(request, true).map(ServiceMessage::data))
+    StepVerifier.create(gateway.call().requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
   }

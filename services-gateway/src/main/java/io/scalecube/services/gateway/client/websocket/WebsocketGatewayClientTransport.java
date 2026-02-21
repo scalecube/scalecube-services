@@ -9,7 +9,6 @@ import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
-import io.scalecube.services.gateway.client.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import java.time.Duration;
@@ -125,7 +124,6 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
               .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
-              .map(msg -> ServiceMessageCodec.decodeData(msg, null))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))
               .doFinally(s -> session.removeProcessor(sid));
         });
@@ -141,7 +139,6 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
               .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
-              .map(msg -> ServiceMessageCodec.decodeData(msg, null))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))
               .doFinally(s -> session.removeProcessor(sid));
         });

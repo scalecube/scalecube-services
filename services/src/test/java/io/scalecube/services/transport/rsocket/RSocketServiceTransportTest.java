@@ -82,7 +82,7 @@ public class RSocketServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call();
-    sub1.set(serviceCall.requestOne(JUST_NEVER, false).doOnError(exceptionHolder::set).subscribe());
+    sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
         .listenDiscovery()
@@ -114,11 +114,7 @@ public class RSocketServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call();
-    sub1.set(
-        serviceCall
-            .requestMany(JUST_MANY_NEVER, false)
-            .doOnError(exceptionHolder::set)
-            .subscribe());
+    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
         .listenDiscovery()
@@ -149,7 +145,7 @@ public class RSocketServiceTransportTest {
     ServiceCall serviceCall = gateway.call();
     sub1.set(
         serviceCall
-            .requestMany(ONLY_ONE_AND_THEN_NEVER, false)
+            .requestMany(ONLY_ONE_AND_THEN_NEVER)
             .doOnError(exceptionHolder::set)
             .subscribe());
 

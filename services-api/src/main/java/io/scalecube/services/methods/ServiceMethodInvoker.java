@@ -11,7 +11,6 @@ import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Objects;
 import org.reactivestreams.Publisher;
@@ -88,8 +87,7 @@ public class ServiceMethodInvoker {
                         }
                       });
             })
-        .map(
-            response -> toResponse(methodInfo, response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
@@ -143,8 +141,7 @@ public class ServiceMethodInvoker {
                         }
                       });
             })
-        .map(
-            response -> toResponse(methodInfo, response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
         .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
@@ -207,9 +204,7 @@ public class ServiceMethodInvoker {
                                           ex);
                                     }
                                   })
-                              .map(
-                                  response ->
-                                      toResponse(methodInfo, response, qualifier, dataFormat))
+                              .map(response -> toResponse(response, qualifier, dataFormat))
                               .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
                               .subscribeOn(methodInfo.scheduler());
                         }));
@@ -283,16 +278,17 @@ public class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private static ServiceMessage toResponse(
-      MethodInfo methodInfo, Object response, String qualifier, String dataFormat) {
-    final var dataType = getDataType(methodInfo, response);
+  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+    final var dataType = getDataType(response);
 
     if (response instanceof ServiceMessage message) {
       final var builder = ServiceMessage.from(message).qualifier(qualifier).dataType(dataType);
-      return dataFormat != null && !dataFormat.equals(message.dataFormat())
-          ? builder.dataFormat(dataFormat).build()
-          : builder.build();
+      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
+        builder.dataFormat(dataFormat);
+      }
+      return builder.build();
     }
+
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .dataType(dataType)
@@ -301,28 +297,10 @@ public class ServiceMethodInvoker {
         .build();
   }
 
-  private static String getDataType(MethodInfo methodInfo, Object response) {
-    // if dataType ==
-
-
-//    if (methodInfo.isRequestTypeServiceMessage()
-//        || Object.class == methodInfo.parameterizedReturnType()) {
-//      return null;
-//    }
-
-//    System.err.println("methodInfo=" +methodInfo);
-//    System.err.println("response=" +response);
-
-
-//    if (methodInfo.isRequestTypeServiceMessage()) {
-//     return null;
-//    }
-
-    if (response instanceof ServiceMessage message) {
-      return getDataType(methodInfo, message.data());
-    }
-
-    return TypeUtils.getTypeDescriptor(response);
+  private static String getDataType(Object response) {
+    return response instanceof ServiceMessage message
+        ? getDataType(message.data())
+        : TypeUtils.getTypeDescriptor(response);
   }
 
   public Object service() {

@@ -66,7 +66,7 @@ public class Example2 {
     ServiceMessage request =
         ServiceMessage.builder().qualifier(SERVICE_QUALIFIER).data("joe").build();
     // Execute the Greeting Service to emit a single Greeting response
-    Publisher<ServiceMessage> publisher = service.requestOne(request, false);
+    Publisher<ServiceMessage> publisher = service.requestOne(request, Greeting.class);
 
     // Convert the Publisher using the Mono API which ensures it will emit 0 or 1 item.
     Mono.from(publisher)

@@ -93,11 +93,12 @@ public class ServiceCallRemoteTest {
     ServiceCall serviceCall = gateway.call();
 
     // call the service.
-    Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, true);
+    Publisher<ServiceMessage> future =
+        serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
     ServiceMessage message = Mono.from(future).block(TIMEOUT);
 
-    assertEquals("hello unknown", message.data());
+    assertEquals("hello unknown", ((GreetingResponse) message.data()).result());
   }
 
   @Test
@@ -108,7 +109,8 @@ public class ServiceCallRemoteTest {
 
   @Test
   public void test_remote_mono_empty_request_response_greeting_messsage() {
-    StepVerifier.create(gateway.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, true))
+    StepVerifier.create(
+            gateway.call().requestOne(GREETING_EMPTY_REQUEST_RESPONSE, EmptyGreetingResponse.class))
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .expectComplete()
         .verify(TIMEOUT);
@@ -118,7 +120,7 @@ public class ServiceCallRemoteTest {
   public void test_remote_failing_void_greeting() {
 
     // When
-    StepVerifier.create(gateway.call().requestOne(GREETING_FAILING_VOID_REQ, true))
+    StepVerifier.create(gateway.call().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(TIMEOUT);
   }
@@ -137,7 +139,9 @@ public class ServiceCallRemoteTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, true)).block(TIMEOUT));
+            () ->
+                Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
+                    .block(TIMEOUT));
     assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
@@ -148,14 +152,16 @@ public class ServiceCallRemoteTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, true)).block(TIMEOUT));
+            () ->
+                Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
+                    .block(TIMEOUT));
     assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
   @Test
   public void test_remote_async_greeting_return_string() {
 
-    Publisher<ServiceMessage> resultFuture = gateway.call().requestOne(GREETING_REQ, true);
+    Publisher<ServiceMessage> resultFuture = gateway.call().requestOne(GREETING_REQ, String.class);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(TIMEOUT);
@@ -168,7 +174,8 @@ public class ServiceCallRemoteTest {
   public void test_remote_async_greeting_return_GreetingResponse() {
 
     // When
-    Publisher<ServiceMessage> result = gateway.call().requestOne(GREETING_REQUEST_REQ, true);
+    Publisher<ServiceMessage> result =
+        gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     // Then
     GreetingResponse greeting = Mono.from(result).block(TIMEOUT).data();
@@ -181,7 +188,7 @@ public class ServiceCallRemoteTest {
     ServiceCall service = gateway.call();
 
     // call the service.
-    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ, true);
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
     Throwable exception =
         assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofMillis(500)));
     assertTrue(exception.getMessage().contains("Timeout on blocking read"));
@@ -193,7 +200,7 @@ public class ServiceCallRemoteTest {
     ServiceCall service = gateway.call();
 
     // call the service.
-    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_REQ, true);
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_REQ);
 
     Mono.from(future)
         .doOnNext(
@@ -209,7 +216,8 @@ public class ServiceCallRemoteTest {
   @Test
   public void test_remote_dispatcher_remote_greeting_request_completes_before_timeout() {
 
-    Publisher<ServiceMessage> result = gateway.call().requestOne(GREETING_REQUEST_REQ, true);
+    Publisher<ServiceMessage> result =
+        gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     GreetingResponse greetings = Mono.from(result).block(TIMEOUT).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.result());
@@ -226,8 +234,7 @@ public class ServiceCallRemoteTest {
                 ServiceMessage.builder()
                     .qualifier(QuoteService.NAME, "onlyOneAndThenNever")
                     .data(null)
-                    .build(),
-                false);
+                    .build());
 
     // Add service to cluster AFTER creating a call object.
     // (prove address lookup occur only after subscription)
@@ -251,7 +258,7 @@ public class ServiceCallRemoteTest {
     for (int i = 0; i < 100; i++) {
       //noinspection ConstantConditions
       long first =
-          call.requestMany(request, false)
+          call.requestMany(request, Long.class)
               .map(ServiceMessage::<Long>data)
               .filter(k -> k != 0)
               .take(1)

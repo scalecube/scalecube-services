@@ -10,7 +10,6 @@ import static io.scalecube.services.Reflect.restMethod;
 import static io.scalecube.services.Reflect.serviceName;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
-import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
@@ -164,17 +163,27 @@ public class ServiceCall implements AutoCloseable {
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return requestOne(request, true).then();
+    return requestOne(request, Void.class).then();
   }
 
   /**
    * Invokes request-and-reply request.
    *
    * @param request request message to send.
-   * @param decodeData should decode data.
    * @return mono publisher completing with single response message or with error.
    */
-  public Mono<ServiceMessage> requestOne(ServiceMessage request, boolean decodeData) {
+  public Mono<ServiceMessage> requestOne(ServiceMessage request) {
+    return requestOne(request, null);
+  }
+
+  /**
+   * Invokes request-and-reply request.
+   *
+   * @param request request message to send.
+   * @param responseType type of response (optional).
+   * @return mono publisher completing with single response message or with error.
+   */
+  public Mono<ServiceMessage> requestOne(ServiceMessage request, Type responseType) {
     return Mono.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
@@ -183,8 +192,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeOne(request)
-                .map(msg -> decodeData ? dataDecoder.decodeData(msg, getDataType(msg, null)) : msg)
-                .map(this::throwIfError)
+                .map(message -> decodeData(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -205,12 +213,7 @@ public class ServiceCall implements AutoCloseable {
                         transport
                             .create(serviceReference)
                             .requestResponse(request)
-                            .map(
-                                msg ->
-                                    decodeData
-                                        ? dataDecoder.decodeData(msg, getDataType(msg, null))
-                                        : msg)
-                            .map(this::throwIfError));
+                            .map(message -> decodeData(message, responseType)));
           }
         });
   }
@@ -219,10 +222,20 @@ public class ServiceCall implements AutoCloseable {
    * Issues request to service which returns stream of service messages back.
    *
    * @param request request message to send.
-   * @param decodeData should decode data.
    * @return flux publisher of service responses.
    */
-  public Flux<ServiceMessage> requestMany(ServiceMessage request, boolean decodeData) {
+  public Flux<ServiceMessage> requestMany(ServiceMessage request) {
+    return requestMany(request, null);
+  }
+
+  /**
+   * Issues request to service which returns stream of service messages back.
+   *
+   * @param request request with given headers.
+   * @param responseType type of responses (optional).
+   * @return flux publisher of service responses.
+   */
+  public Flux<ServiceMessage> requestMany(ServiceMessage request, Type responseType) {
     return Flux.defer(
         () -> {
           ServiceMethodInvoker methodInvoker;
@@ -231,8 +244,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeMany(request)
-                .map(msg -> decodeData ? dataDecoder.decodeData(msg, getDataType(msg, null)) : msg)
-                .map(this::throwIfError)
+                .map(message -> decodeData(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -253,12 +265,7 @@ public class ServiceCall implements AutoCloseable {
                         transport
                             .create(serviceReference)
                             .requestStream(request)
-                            .map(
-                                msg ->
-                                    decodeData
-                                        ? dataDecoder.decodeData(msg, getDataType(msg, null))
-                                        : msg)
-                            .map(this::throwIfError));
+                            .map(message -> decodeData(message, responseType)));
           }
         });
   }
@@ -267,11 +274,21 @@ public class ServiceCall implements AutoCloseable {
    * Issues stream of service requests to service which returns stream of service messages back.
    *
    * @param publisher of service requests.
-   * @param decodeData should decode data.
+   * @return flux publisher of service responses.
+   */
+  public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
+    return requestBidirectional(publisher, null);
+  }
+
+  /**
+   * Issues stream of service requests to service which returns stream of service messages back.
+   *
+   * @param publisher of service requests.
+   * @param responseType type of responses (optional).
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(
-      Publisher<ServiceMessage> publisher, boolean decodeData) {
+      Publisher<ServiceMessage> publisher, Type responseType) {
     return Flux.from(publisher)
         .switchOnFirst(
             (first, messages) -> {
@@ -283,12 +300,7 @@ public class ServiceCall implements AutoCloseable {
                   // local service
                   return methodInvoker
                       .invokeBidirectional(messages)
-                      .map(
-                          msg ->
-                              decodeData
-                                  ? dataDecoder.decodeData(msg, getDataType(msg, null))
-                                  : msg)
-                      .map(this::throwIfError)
+                      .map(message -> decodeData(message, responseType))
                       .contextWrite(
                           context -> {
                             if (context.hasKey(RequestContext.class)) {
@@ -309,12 +321,7 @@ public class ServiceCall implements AutoCloseable {
                               transport
                                   .create(serviceReference)
                                   .requestChannel(messages)
-                                  .map(
-                                      msg ->
-                                          decodeData
-                                              ? dataDecoder.decodeData(msg, getDataType(msg, null))
-                                              : msg)
-                                  .map(this::throwIfError));
+                                  .map(message -> decodeData(message, responseType)));
                 }
               }
               return messages;
@@ -350,16 +357,12 @@ public class ServiceCall implements AutoCloseable {
               switch (methodInfo.communicationMode()) {
                 case REQUEST_RESPONSE:
                   return serviceCall
-                      .requestOne(toServiceMessage(methodInfo, request), false)
-                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
-                      .map(this::throwIfError)
+                      .requestOne(toServiceMessage(methodInfo, request), returnType)
                       .transform(asMono(isReturnTypeServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
-                      .requestMany(toServiceMessage(methodInfo, request), false)
-                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
-                      .map(this::throwIfError)
+                      .requestMany(toServiceMessage(methodInfo, request), returnType)
                       .transform(asFlux(isReturnTypeServiceMessage));
 
                 case REQUEST_CHANNEL:
@@ -369,9 +372,7 @@ public class ServiceCall implements AutoCloseable {
                       .requestBidirectional(
                           Flux.from((Publisher<?>) request)
                               .map(data -> toServiceMessage(methodInfo, data)),
-                          false)
-                      .map(msg -> dataDecoder.decodeData(msg, getDataType(msg, returnType)))
-                      .map(message -> throwIfError(message))
+                          returnType)
                       .transform(asFlux(isReturnTypeServiceMessage));
 
                 default:
@@ -450,13 +451,6 @@ public class ServiceCall implements AutoCloseable {
             : mono.mapNotNull(ServiceMessage::data);
   }
 
-  private ServiceMessage throwIfError(ServiceMessage message) {
-    if (message.isError() && message.hasData(ErrorData.class)) {
-      throw Exceptions.propagate(errorMapper.toError(message));
-    }
-    return message;
-  }
-
   private static MethodInfo getMethodInfo(Class<?> serviceInterface, Method method) {
     return new MethodInfo(
         serviceName(serviceInterface),
@@ -473,11 +467,23 @@ public class ServiceCall implements AutoCloseable {
         Collections.emptyList());
   }
 
-  private static Type getDataType(ServiceMessage message, Type defaultType) {
+  private ServiceMessage decodeData(ServiceMessage message, Type returnType) {
+    if (returnType == null) {
+      return message;
+    }
+
+    if (message.isError()) {
+      throw Exceptions.propagate(errorMapper.toError(message));
+    }
+
+    return dataDecoder.decodeData(
+        message, returnType != Object.class ? returnType : getDataType(message));
+  }
+
+  private static Type getDataType(ServiceMessage message) {
     final var dataType = message.header(ServiceMessage.HEADER_DATA_TYPE);
     final var type = TypeUtils.parseTypeDescriptor(dataType);
-    final var resultType = type != null ? type : defaultType;
-    return resultType == null && message.isError() ? ErrorData.class : resultType;
+    return type != null ? type : Object.class;
   }
 
   @Override

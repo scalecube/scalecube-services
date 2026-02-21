@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.http;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
-import static io.scalecube.services.transport.api.ServiceMessageDataDecoder.INSTANCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.Address;
@@ -194,10 +193,7 @@ class HttpGatewayTest {
     String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
     ServiceMessage request =
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
-    StepVerifier.create(
-            serviceCall
-                .requestOne(request, false)
-                .map(msg -> INSTANCE.decodeData(msg, EmptyGreetingResponse.class)))
+    StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
         .expectSubscription()
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
@@ -217,11 +213,7 @@ class HttpGatewayTest {
     final var request =
         ServiceMessage.builder().qualifier("greeting/hello/" + value).data(data).build();
 
-    StepVerifier.create(
-            serviceCall
-                .requestOne(request, false)
-                .map(msg -> INSTANCE.decodeData(msg, String.class))
-                .map(ServiceMessage::data))
+    StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
   }
