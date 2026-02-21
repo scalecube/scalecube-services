@@ -8,11 +8,36 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/** Supports for arrays, List, Set, Map, CustomObject. */
-public class TypeUtils {
+/**
+ * Utility for converting runtime objects to string type descriptors and parses such descriptors
+ * back into {@link java.lang.reflect.Type} instances.
+ *
+ * <p>Intended for transferring type metadata inside {@link
+ * io.scalecube.services.api.ServiceMessage} to support encoding/decoding.
+ *
+ * <p>Supported descriptor forms:
+ *
+ * <ul>
+ *   <li>Primitive types
+ *   <li>Fully-qualified class names
+ *   <li>Arrays (including multi-dimensional)
+ *   <li>Parameterized {@code List/Set/Map}
+ * </ul>
+ *
+ * <p>Generic parameters are inferred from the first element ({@code List/Set}) or first entry
+ * ({@code Map}). Empty collections produce raw class names without generics.
+ *
+ * <p>Descriptors do not preserve concrete collection implementations. Only {@code List/Set/Map}
+ * interfaces are used in parameterized descriptors.
+ *
+ * <p>Descriptors containing "null" (e.g. due to null collection elements) are considered invalid
+ * and cannot be parsed.
+ */
+public class TypeUtil {
 
   // Map for primitive types
   private static final Map<String, Class<?>> PRIMITIVE_CLASSES = new HashMap<>();
+
   static {
     PRIMITIVE_CLASSES.put("int", int.class);
     PRIMITIVE_CLASSES.put("long", long.class);
@@ -25,6 +50,25 @@ public class TypeUtils {
     PRIMITIVE_CLASSES.put("void", void.class);
   }
 
+  /**
+   * Returns string descriptor representing the runtime type of the given object.
+   *
+   * <p>Behavior:
+   *
+   * <ul>
+   *   <li>null -> null
+   *   <li>Arrays -> component type descriptor with "[]" per dimension
+   *   <li>Non-empty {@code List/Set} -> {@code java.util.List/Set<element-type>}
+   *   <li>Non-empty {@code Map} -> {@code java.util.Map<key-type, value-type>}
+   *   <li>All other objects -> fully-qualified class name
+   * </ul>
+   *
+   * <p>For collections, generic types are inferred from the first element or entry only. If the
+   * first element or key/value is null, the descriptor will contain "null".
+   *
+   * @param object object to describe (may be null)
+   * @return descriptor string or null
+   */
   public static String getTypeDescriptor(Object object) {
     if (object == null) {
       return null;
@@ -33,7 +77,7 @@ public class TypeUtils {
     final var clazz = object.getClass();
 
     if (clazz.isArray()) {
-      return clazz.getComponentType().getName() + "[]";
+      return getArrayDescriptor(clazz);
     }
 
     if (List.class.isAssignableFrom(clazz) && object instanceof List<?> list && !list.isEmpty()) {
@@ -56,6 +100,25 @@ public class TypeUtils {
     return clazz.getName();
   }
 
+  /**
+   * Parses type descriptor string into {@link java.lang.reflect.Type} instance.
+   *
+   * <p>Recognized forms:
+   *
+   * <ul>
+   *   <li>Primitive names
+   *   <li>Fully-qualified class names
+   *   <li>Array descriptors
+   *   <li>Parameterized {@code List/Set/Map}
+   * </ul>
+   *
+   * <p>Supports arbitrary nesting of the above forms.
+   *
+   * @param descriptor descriptor string (may be null)
+   * @return {@link java.lang.reflect.Type} instance, or null if descriptor is null
+   * @throws IllegalArgumentException if the descriptor is syntactically invalid or references an
+   *     unknown type
+   */
   public static Type parseTypeDescriptor(String descriptor) {
     if (descriptor == null) {
       return null;
@@ -87,6 +150,12 @@ public class TypeUtils {
     }
 
     return loadClass(descriptor);
+  }
+
+  private static String getArrayDescriptor(Class<?> arrayClass) {
+    return arrayClass.isArray()
+        ? getArrayDescriptor(arrayClass.getComponentType()) + "[]"
+        : arrayClass.getName();
   }
 
   private static String extractGeneric(String descriptor) {
@@ -124,15 +193,18 @@ public class TypeUtils {
   }
 
   private static Class<?> loadClass(String name) {
-    // Check primitives first
     if (PRIMITIVE_CLASSES.containsKey(name)) {
       return PRIMITIVE_CLASSES.get(name);
+    }
+
+    if (name == null || name.trim().isEmpty() || "null".equals(name)) {
+      throw new IllegalArgumentException("Invalid type name: " + name);
     }
 
     try {
       return Class.forName(name);
     } catch (ClassNotFoundException e) {
-      throw new RuntimeException("Class not found: " + name, e);
+      throw new IllegalArgumentException("Invalid or unknown type: " + name, e);
     }
   }
 

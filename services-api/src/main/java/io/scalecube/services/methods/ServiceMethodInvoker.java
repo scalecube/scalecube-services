@@ -2,7 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.RequestContext;
-import io.scalecube.services.TypeUtils;
+import io.scalecube.services.TypeUtil;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Principal;
 import io.scalecube.services.auth.PrincipalMapper;
@@ -300,7 +300,7 @@ public class ServiceMethodInvoker {
   private static String getDataType(Object response) {
     return response instanceof ServiceMessage message
         ? getDataType(message.data())
-        : TypeUtils.getTypeDescriptor(response);
+        : TypeUtil.getTypeDescriptor(response);
   }
 
   public Object service() {

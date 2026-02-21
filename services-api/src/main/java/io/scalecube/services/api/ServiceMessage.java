@@ -1,6 +1,6 @@
 package io.scalecube.services.api;
 
-import io.scalecube.services.TypeUtils;
+import io.scalecube.services.TypeUtil;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,7 +89,7 @@ public final class ServiceMessage {
         .qualifier(qualifier)
         .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
         .data(errorData)
-        .dataType(TypeUtils.getTypeDescriptor(errorData))
+        .dataType(TypeUtil.getTypeDescriptor(errorData))
         .build();
   }
 

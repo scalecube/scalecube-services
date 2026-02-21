@@ -485,7 +485,7 @@ public class ServiceCall implements AutoCloseable {
 
   private static Type getDataType(ServiceMessage message) {
     final var dataType = message.header(ServiceMessage.HEADER_DATA_TYPE);
-    final var type = TypeUtils.parseTypeDescriptor(dataType);
+    final var type = TypeUtil.parseTypeDescriptor(dataType);
     return type != null ? type : Object.class;
   }
 
