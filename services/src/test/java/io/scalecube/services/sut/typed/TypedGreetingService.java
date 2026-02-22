@@ -13,8 +13,8 @@ public interface TypedGreetingService {
   Flux<Shape> helloPolymorph();
 
   @ServiceMethod
-  Flux<Object> helloMultitype(String t);
+  Flux<Object> helloMultitype();
 
   @ServiceMethod
-  Flux<?> helloWildcardMultitype(String t);
+  Flux<?> helloWildcardMultitype();
 }

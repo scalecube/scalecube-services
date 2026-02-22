@@ -19,7 +19,7 @@ import io.scalecube.services.sut.typed.EndOfDayEvent;
 import io.scalecube.services.sut.typed.Rectangle;
 import io.scalecube.services.sut.typed.Square;
 import io.scalecube.services.sut.typed.StartOfDayEvent;
-import io.scalecube.services.sut.typed.TradeExecutedEvent;
+import io.scalecube.services.sut.typed.TradeEvent;
 import io.scalecube.services.sut.typed.TypedGreetingService;
 import io.scalecube.services.sut.typed.TypedGreetingServiceImpl;
 import java.math.BigDecimal;
@@ -442,18 +442,7 @@ public class ServiceLocalTest {
   public void test_multitype() {
     final var greetingService = api(TypedGreetingService.class);
 
-    StepVerifier.create(greetingService.helloMultitype("shape"))
-        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
-        .assertNext(
-            shape -> {
-              assertEquals(1.0, ((Rectangle) shape).height());
-              assertEquals(1.0, ((Rectangle) shape).width());
-            })
-        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
-        .thenCancel()
-        .verify();
-
-    StepVerifier.create(greetingService.helloMultitype("trade_event"))
+    StepVerifier.create(greetingService.helloMultitype())
         .assertNext(
             event -> {
               final var sodEvent = (StartOfDayEvent) event;
@@ -472,7 +461,7 @@ public class ServiceLocalTest {
             })
         .assertNext(
             event -> {
-              final var executedEvent = (TradeExecutedEvent) event;
+              final var executedEvent = (TradeEvent) event;
               assertEquals(1, executedEvent.timestamp());
               assertEquals(3, executedEvent.trackingNumber());
               assertEquals(3, executedEvent.eventId());
@@ -488,18 +477,7 @@ public class ServiceLocalTest {
   public void test_wildcard_multitype() {
     final var greetingService = api(TypedGreetingService.class);
 
-    StepVerifier.create(greetingService.helloWildcardMultitype("shape"))
-        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
-        .assertNext(
-            shape -> {
-              assertEquals(1.0, ((Rectangle) shape).height());
-              assertEquals(1.0, ((Rectangle) shape).width());
-            })
-        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
-        .thenCancel()
-        .verify();
-
-    StepVerifier.create(greetingService.helloMultitype("trade_event"))
+    StepVerifier.create(greetingService.helloWildcardMultitype())
         .assertNext(
             event -> {
               final var sodEvent = (StartOfDayEvent) event;
@@ -518,7 +496,7 @@ public class ServiceLocalTest {
             })
         .assertNext(
             event -> {
-              final var executedEvent = (TradeExecutedEvent) event;
+              final var executedEvent = (TradeEvent) event;
               assertEquals(1, executedEvent.timestamp());
               assertEquals(3, executedEvent.trackingNumber());
               assertEquals(3, executedEvent.eventId());
