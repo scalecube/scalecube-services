@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -77,7 +78,10 @@ public class TypeUtil {
     final var clazz = object.getClass();
 
     if (clazz.isArray()) {
-      return getArrayDescriptor(clazz);
+      final var firstElement = getFirstArrayElement(object);
+      return firstElement != null
+          ? getTypeDescriptor(firstElement) + "[]"
+          : getArrayDescriptor(clazz);
     }
 
     if (List.class.isAssignableFrom(clazz) && object instanceof List<?> list && !list.isEmpty()) {
@@ -152,10 +156,25 @@ public class TypeUtil {
     return loadClass(descriptor);
   }
 
-  private static String getArrayDescriptor(Class<?> arrayClass) {
-    return arrayClass.isArray()
-        ? getArrayDescriptor(arrayClass.getComponentType()) + "[]"
-        : arrayClass.getName();
+  private static String getArrayDescriptor(Class<?> clazz) {
+    return clazz.isArray() ? getArrayDescriptor(clazz.getComponentType()) + "[]" : clazz.getName();
+  }
+
+  private static Object getFirstArrayElement(Object array) {
+    if (array == null || !array.getClass().isArray()) {
+      return null;
+    }
+    int length = Array.getLength(array);
+    if (length == 0) {
+      return null;
+    }
+    for (int i = 0; i < length; i++) {
+      Object element = Array.get(array, i);
+      if (element != null) {
+        return element;
+      }
+    }
+    return null;
   }
 
   private static String extractGeneric(String descriptor) {
