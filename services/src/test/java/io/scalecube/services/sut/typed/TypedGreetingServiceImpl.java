@@ -7,13 +7,13 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
 
   @Override
   public Flux<Shape> helloPolymorph() {
-    return Flux.just(new Circle(1.0), new Rectangle(1.0, 2.0), new Square(5.0));
+    return Flux.just(new Circle(1.0), new Rectangle(1.0, 1.0), new Square(1.0));
   }
 
   @Override
   public Flux<Object> helloMultitype(String t) {
     if ("shape".equals(t)) {
-      return Flux.just(new Circle(1.0), new Rectangle(1.0, 2.0), new Square(5.0));
+      return Flux.just(new Circle(1.0), new Rectangle(1.0, 1.0), new Square(1.0));
     }
     if ("trade_event".equals(t)) {
       return Flux.just(new StartOfDayEvent(), new EndOfDayEvent(), new TradeExecutedEvent());
@@ -26,8 +26,8 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
     return Flux.just(
         // shapes
         new Circle(1.0),
-        new Rectangle(1.0, 2.0),
-        new Square(5.0),
+        new Rectangle(1.0, 1.0),
+        new Square(1.0),
         // events
         new StartOfDayEvent(),
         new EndOfDayEvent(),
