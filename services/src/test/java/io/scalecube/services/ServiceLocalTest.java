@@ -7,12 +7,12 @@ import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
 
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.sut.BasePojo;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
-import io.scalecube.services.sut.GreetingService.Base;
-import io.scalecube.services.sut.GreetingService.MyPojo;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.sut.MyPojo;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -405,7 +405,7 @@ public class ServiceLocalTest {
     final var pojo = new MyPojo("Joe", "NY");
     // call the service.
     final Mono<MyPojo> response =
-        service.greetingsWithGenerics(new Base<MyPojo>().object(pojo).format("plain"));
+        service.greetingsWithGenerics(new BasePojo<MyPojo>().object(pojo).format("plain"));
     var result = response.block(TIMEOUT.plusMillis(500));
 
     // print the greeting.

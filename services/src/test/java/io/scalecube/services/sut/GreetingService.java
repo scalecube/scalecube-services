@@ -104,23 +104,6 @@ public interface GreetingService {
   @ServiceMethod("hello/:someVar")
   Mono<String> helloDynamicQualifier(Long value);
 
-  public static class Base<T> {
-    T obj;
-    String format;
-
-    public Base object(T obj) {
-      this.obj = obj;
-      return this;
-    }
-
-    public Base format(String format) {
-      this.format = format;
-      return this;
-    }
-  }
-
   @ServiceMethod
-  Mono<MyPojo> greetingsWithGenerics(Base<MyPojo> request);
-
-  public record MyPojo(String name, String address) {}
+  Mono<MyPojo> greetingsWithGenerics(BasePojo<MyPojo> request);
 }
