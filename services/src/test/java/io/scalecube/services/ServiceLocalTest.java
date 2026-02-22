@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
@@ -14,10 +15,14 @@ import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.MyPojo;
 import io.scalecube.services.sut.typed.Circle;
+import io.scalecube.services.sut.typed.EndOfDayEvent;
 import io.scalecube.services.sut.typed.Rectangle;
 import io.scalecube.services.sut.typed.Square;
+import io.scalecube.services.sut.typed.StartOfDayEvent;
+import io.scalecube.services.sut.typed.TradeExecutedEvent;
 import io.scalecube.services.sut.typed.TypedGreetingService;
 import io.scalecube.services.sut.typed.TypedGreetingServiceImpl;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -429,6 +434,52 @@ public class ServiceLocalTest {
               assertEquals(1.0, ((Rectangle) shape).width());
             })
         .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void test_multitype() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloMultitype("shape"))
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .assertNext(
+            shape -> {
+              assertEquals(1.0, ((Rectangle) shape).height());
+              assertEquals(1.0, ((Rectangle) shape).width());
+            })
+        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
+        .thenCancel()
+        .verify();
+
+    StepVerifier.create(greetingService.helloMultitype("trade_event"))
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeExecutedEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
+            })
         .thenCancel()
         .verify();
   }

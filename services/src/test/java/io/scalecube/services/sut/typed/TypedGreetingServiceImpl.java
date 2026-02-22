@@ -22,7 +22,7 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
       return Flux.just(
           new StartOfDayEvent(1, 1, 1, LocalDateTime.now(Clock.systemUTC())),
           new EndOfDayEvent(1, 2, 2, LocalDateTime.now(Clock.systemUTC())),
-          new TradeExecutedEvent(1, 3, 3, new BigDecimal("100"), new BigDecimal("100"), 100500));
+          new TradeExecutedEvent(1, 3, 3, new BigDecimal("100"), new BigDecimal("100"), 100));
     }
     throw new IllegalArgumentException("Unsupported type: " + t);
   }
