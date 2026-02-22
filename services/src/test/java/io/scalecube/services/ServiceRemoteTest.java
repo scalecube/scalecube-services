@@ -10,6 +10,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.sut.BasePojo;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.EmptyGreetingRequest;
@@ -17,8 +18,8 @@ import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
-import io.scalecube.services.sut.GreetingService.MyPojo;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.sut.MyPojo;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.time.Duration;
@@ -576,10 +577,10 @@ public class ServiceRemoteTest {
   @Test
   public void test_generics_in_request() {
     final var service = gateway.call().api(GreetingService.class);
-    final var pojo = new GreetingService.MyPojo("Joe", "NY");
+    final var pojo = new MyPojo("Joe", "NY");
 
     StepVerifier.create(
-            service.greetingsWithGenerics(new GreetingService.Base<MyPojo>().object(pojo)))
+            service.greetingsWithGenerics(new BasePojo<MyPojo>().object(pojo)))
         .assertNext(result -> assertEquals(pojo, result))
         .verifyComplete();
   }
