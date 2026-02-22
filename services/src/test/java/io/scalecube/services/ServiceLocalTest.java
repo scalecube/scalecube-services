@@ -13,6 +13,11 @@ import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.MyPojo;
+import io.scalecube.services.sut.typed.Circle;
+import io.scalecube.services.sut.typed.Rectangle;
+import io.scalecube.services.sut.typed.Square;
+import io.scalecube.services.sut.typed.TypedGreetingService;
+import io.scalecube.services.sut.typed.TypedGreetingServiceImpl;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
@@ -21,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.Many;
 import reactor.test.StepVerifier;
 
 public class ServiceLocalTest {
@@ -31,7 +37,9 @@ public class ServiceLocalTest {
 
   @BeforeEach
   public void setUp() {
-    microservices = Microservices.start(new Context().services(new GreetingServiceImpl()));
+    microservices =
+        Microservices.start(
+            new Context().services(new GreetingServiceImpl(), new TypedGreetingServiceImpl()));
   }
 
   @AfterEach
@@ -43,7 +51,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() {
-    GreetingService service = microservices.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -59,7 +67,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_async_greeting() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
@@ -76,7 +84,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_no_params() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
@@ -94,7 +102,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_void_greeting() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(TIMEOUT);
@@ -104,7 +112,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_failing_void_greeting() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -117,7 +125,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_throwing_void_greeting() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -131,7 +139,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_async_greeting_return_GreetingResponse() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
@@ -150,7 +158,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_greeting_request_timeout_expires() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Throwable exception =
@@ -167,7 +175,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_async_greeting_return_Message() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
@@ -185,7 +193,7 @@ public class ServiceLocalTest {
 
   @Test
   public void test_local_greeting_message() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     ServiceMessage request = ServiceMessage.builder().data(new GreetingRequest("joe")).build();
 
@@ -251,7 +259,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_expect_IllegalArgumentException() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
@@ -267,7 +275,7 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_message_expect_IllegalArgumentException() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
@@ -287,9 +295,9 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_expect_NotAuthorized() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
-    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
+    Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
     // call the service.
     Flux<GreetingResponse> responses =
         service.bidiGreetingNotAuthorized(requests.asFlux().onBackpressureBuffer());
@@ -307,9 +315,9 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_message_expect_NotAuthorized() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
-    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().directBestEffort();
+    Many<GreetingRequest> requests = Sinks.many().multicast().directBestEffort();
 
     // call the service.
     Flux<GreetingResponse> responses =
@@ -330,9 +338,9 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_expect_GreetingResponse() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
-    Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
+    Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
 
     // call the service.
 
@@ -356,9 +364,9 @@ public class ServiceLocalTest {
   @Test
   public void test_local_bidi_greeting_expect_message_GreetingResponse() {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
-    Sinks.Many<GreetingRequest> requests = Sinks.many().unicast().onBackpressureBuffer();
+    Many<GreetingRequest> requests = Sinks.many().unicast().onBackpressureBuffer();
     // call the service.
     Flux<GreetingResponse> responses =
         service
@@ -394,13 +402,9 @@ public class ServiceLocalTest {
         .verifyComplete();
   }
 
-  private static GreetingService createProxy(Microservices gateway) {
-    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
-  }
-
   @Test
   public void test_generics_in_request() {
-    GreetingService service = createProxy(microservices);
+    GreetingService service = api(GreetingService.class);
 
     final var pojo = new MyPojo("Joe", "NY");
     // call the service.
@@ -411,5 +415,25 @@ public class ServiceLocalTest {
     // print the greeting.
     System.out.println("test_generics_in_request : " + result);
     assertEquals(pojo, result);
+  }
+
+  @Test
+  public void test_polymorph() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloPolymorph())
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .assertNext(
+            shape -> {
+              assertEquals(1.0, ((Rectangle) shape).height());
+              assertEquals(1.0, ((Rectangle) shape).width());
+            })
+        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
+        .thenCancel()
+        .verify();
+  }
+
+  private <T> T api(Class<T> api) {
+    return microservices.call().api(api);
   }
 }

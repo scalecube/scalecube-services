@@ -9,6 +9,7 @@ public class Circle extends Shape {
   public Circle() {}
 
   public Circle(double radius) {
+    super("C");
     this.radius = radius;
   }
 

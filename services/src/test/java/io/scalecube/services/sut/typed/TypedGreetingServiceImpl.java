@@ -1,5 +1,8 @@
 package io.scalecube.services.sut.typed;
 
+import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -16,7 +19,10 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
       return Flux.just(new Circle(1.0), new Rectangle(1.0, 1.0), new Square(1.0));
     }
     if ("trade_event".equals(t)) {
-      return Flux.just(new StartOfDayEvent(), new EndOfDayEvent(), new TradeExecutedEvent());
+      return Flux.just(
+          new StartOfDayEvent(1, 1, 1, LocalDateTime.now(Clock.systemUTC())),
+          new EndOfDayEvent(1, 2, 2, LocalDateTime.now(Clock.systemUTC())),
+          new TradeExecutedEvent(1, 3, 3, new BigDecimal("100"), new BigDecimal("100"), 100500));
     }
     throw new IllegalArgumentException("Unsupported type: " + t);
   }
@@ -29,13 +35,14 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
         new Rectangle(1.0, 1.0),
         new Square(1.0),
         // events
-        new StartOfDayEvent(),
-        new EndOfDayEvent(),
-        new TradeExecutedEvent());
+        new StartOfDayEvent(1, 1, 1, LocalDateTime.now(Clock.systemUTC())),
+        new EndOfDayEvent(1, 2, 2, LocalDateTime.now(Clock.systemUTC())),
+        new TradeExecutedEvent(1, 3, 3, new BigDecimal("100"), new BigDecimal("100"), 100500));
   }
 
   @Override
   public Mono<Object[]> helloMultitypeArray(String t) {
-    return null;
+    return Mono.just(
+        new Object[] {new BigDecimal("1"), new BigDecimal("2"), new BigDecimal("3"), 42});
   }
 }
