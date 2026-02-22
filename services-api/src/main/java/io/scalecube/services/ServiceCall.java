@@ -25,6 +25,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -479,7 +480,10 @@ public class ServiceCall implements AutoCloseable {
           errorMapper.toError(dataDecoder.decodeData(message, ErrorData.class)));
     }
 
-    final var type = returnType != Object.class ? returnType : getDataType(message);
+    final var type =
+        (returnType != Object.class && !(returnType instanceof WildcardType))
+            ? returnType
+            : getDataType(message);
 
     return dataDecoder.decodeData(message, type);
   }
