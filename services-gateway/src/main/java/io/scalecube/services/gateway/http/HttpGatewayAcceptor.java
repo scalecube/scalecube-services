@@ -4,6 +4,8 @@ import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.scalecube.services.api.ServiceMessage.HEADER_DATA_TYPE;
+import static io.scalecube.services.api.ServiceMessage.HEADER_PROPAGATE_DATA_TYPE_HEADER;
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
 import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
 import static io.scalecube.services.gateway.ReferenceCountUtil.safestRelease;
@@ -243,6 +245,14 @@ public class HttpGatewayAcceptor
         .header(HEADER_REQUEST_METHOD, httpRequest.method().name())
         .qualifier(uri.getPath().substring(1));
 
+    // Add propagate-data-type header (used by encoding/decoding)
+
+    final var propagateDataType =
+        httpRequest.requestHeaders().get(HEADER_PROPAGATE_DATA_TYPE_HEADER);
+    if (propagateDataType != null) {
+      builder.header(HEADER_PROPAGATE_DATA_TYPE_HEADER, propagateDataType);
+    }
+
     if (consumer != null) {
       consumer.accept(builder);
     }
@@ -306,9 +316,20 @@ public class HttpGatewayAcceptor
 
     messageHandler.onResponse(httpResponse, content, response);
 
+    httpResponse = httpResponse.status(OK);
+
+    // Handle propagate-data-type header (used by encoding/decoding)
+
+    if (response.propagateDataType()) {
+      final var dataType = response.dataType();
+      if (dataType != null) {
+        httpResponse.addHeader(HEADER_DATA_TYPE, dataType);
+      }
+    }
+
     // Send with publisher (defer buffer cleanup to netty)
 
-    return httpResponse.status(OK).send(Mono.just(content)).then();
+    return httpResponse.send(Mono.just(content)).then();
   }
 
   private static ByteBuf encodeData(Object data, String dataFormat) {

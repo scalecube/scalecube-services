@@ -87,7 +87,7 @@ public class ServiceMethodInvoker {
                         }
                       });
             })
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.headers()))
         .onErrorResume(ex -> Mono.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
@@ -141,7 +141,7 @@ public class ServiceMethodInvoker {
                         }
                       });
             })
-        .map(response -> toResponse(response, message.qualifier(), message.dataFormat()))
+        .map(response -> toResponse(response, message.headers()))
         .onErrorResume(ex -> Flux.just(errorMapper.toMessage(message.qualifier(), ex)))
         .subscribeOn(methodInfo.scheduler());
   }
@@ -162,7 +162,6 @@ public class ServiceMethodInvoker {
                           final var message = first.get();
                           final var request = copyRequest(message);
                           final var qualifier = message.qualifier();
-                          final var dataFormat = message.dataFormat();
 
                           return mapPrincipal(context)
                               .flatMapMany(
@@ -204,7 +203,7 @@ public class ServiceMethodInvoker {
                                           ex);
                                     }
                                   })
-                              .map(response -> toResponse(response, qualifier, dataFormat))
+                              .map(response -> toResponse(response, message.headers()))
                               .onErrorResume(ex -> Flux.just(errorMapper.toMessage(qualifier, ex)))
                               .subscribeOn(methodInfo.scheduler());
                         }));
@@ -278,23 +277,14 @@ public class ServiceMethodInvoker {
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
   }
 
-  private ServiceMessage toResponse(Object response, String qualifier, String dataFormat) {
+  private ServiceMessage toResponse(Object response, Map<String, String> headers) {
     final var dataType = getDataType(response);
 
     if (response instanceof ServiceMessage message) {
-      final var builder = ServiceMessage.from(message).qualifier(qualifier).dataType(dataType);
-      if (dataFormat != null && !dataFormat.equals(message.dataFormat())) {
-        builder.dataFormat(dataFormat);
-      }
-      return builder.build();
+      return ServiceMessage.from(message).dataType(dataType).build();
     }
 
-    return ServiceMessage.builder()
-        .qualifier(qualifier)
-        .dataType(dataType)
-        .data(response)
-        .dataFormatIfAbsent(dataFormat)
-        .build();
+    return ServiceMessage.builder().headers(headers).dataType(dataType).data(response).build();
   }
 
   private static String getDataType(Object response) {

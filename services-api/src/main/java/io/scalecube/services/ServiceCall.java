@@ -8,6 +8,7 @@ import static io.scalecube.services.Reflect.parameterizedReturnType;
 import static io.scalecube.services.Reflect.requestType;
 import static io.scalecube.services.Reflect.restMethod;
 import static io.scalecube.services.Reflect.serviceName;
+import static io.scalecube.services.api.ServiceMessage.HEADER_PROPAGATE_DATA_TYPE_HEADER;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.api.ErrorData;
@@ -391,18 +392,15 @@ public class ServiceCall implements AutoCloseable {
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
-    if (request instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) request)
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .headers(credentials)
-          .dataFormatIfAbsent(contentType)
-          .build();
-    }
+    final var builder =
+        request instanceof ServiceMessage
+            ? ServiceMessage.from((ServiceMessage) request)
+            : ServiceMessage.builder().data(request);
 
-    return ServiceMessage.builder()
+    return builder
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .headers(credentials)
-        .data(request)
+        .header(HEADER_PROPAGATE_DATA_TYPE_HEADER, true)
         .dataFormatIfAbsent(contentType)
         .build();
   }
