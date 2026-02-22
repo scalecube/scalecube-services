@@ -1,6 +1,5 @@
 package io.scalecube.services.api;
 
-import io.scalecube.services.TypeUtil;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Collections;
@@ -84,12 +83,10 @@ public final class ServiceMessage {
    */
   public static ServiceMessage error(
       String qualifier, int errorType, int errorCode, String errorMessage) {
-    final var errorData = new ErrorData(errorCode, errorMessage);
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
-        .data(errorData)
-        .dataType(TypeUtil.getTypeDescriptor(errorData))
+        .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
 

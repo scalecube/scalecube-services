@@ -479,9 +479,8 @@ public class ServiceCall implements AutoCloseable {
           errorMapper.toError(dataDecoder.decodeData(message, ErrorData.class)));
     }
 
-    final var type = returnType != Object.class ? returnType : getDataType(message);
-
-    return dataDecoder.decodeData(message, type);
+    return dataDecoder.decodeData(
+        message, TypeUtil.isWildcardType(returnType) ? getDataType(message) : returnType);
   }
 
   private Type getDataType(ServiceMessage message) {

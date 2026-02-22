@@ -474,15 +474,35 @@ public class ServiceLocalTest {
   }
 
   @Test
-  public void test_array_multitype() {
+  public void test_wildcard_multitype() {
     final var greetingService = api(TypedGreetingService.class);
 
-    StepVerifier.create(greetingService.helloArrayMultitype())
+    StepVerifier.create(greetingService.helloWildcardMultitype())
         .assertNext(
-            objects -> {
-              assertEquals(1, ((Circle) objects[0]).radius());
-              assertEquals(2, ((Circle) objects[1]).radius());
-              assertEquals(3, ((Circle) objects[2]).radius());
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
             })
         .thenCancel()
         .verify();
