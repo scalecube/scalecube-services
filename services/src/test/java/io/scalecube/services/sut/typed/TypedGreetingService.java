@@ -3,7 +3,6 @@ package io.scalecube.services.sut.typed;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Service(TypedGreetingService.SERVICE_NAME)
 public interface TypedGreetingService {
@@ -18,7 +17,4 @@ public interface TypedGreetingService {
 
   @ServiceMethod
   Flux<?> helloWildcardMultitype(String t);
-
-  @ServiceMethod
-  Mono<Object[]> helloMultitypeArray(String t);
 }

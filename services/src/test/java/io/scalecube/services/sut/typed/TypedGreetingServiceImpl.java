@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class TypedGreetingServiceImpl implements TypedGreetingService {
 
@@ -38,11 +37,5 @@ public class TypedGreetingServiceImpl implements TypedGreetingService {
         new StartOfDayEvent(1, 1, 1, LocalDateTime.now(Clock.systemUTC())),
         new EndOfDayEvent(1, 2, 2, LocalDateTime.now(Clock.systemUTC())),
         new TradeExecutedEvent(1, 3, 3, new BigDecimal("100"), new BigDecimal("100"), 100500));
-  }
-
-  @Override
-  public Mono<Object[]> helloMultitypeArray(String t) {
-    return Mono.just(
-        new Object[] {new BigDecimal("1"), new BigDecimal("2"), new BigDecimal("3"), 42});
   }
 }
