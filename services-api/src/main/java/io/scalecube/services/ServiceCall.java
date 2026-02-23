@@ -8,6 +8,7 @@ import static io.scalecube.services.Reflect.parameterizedReturnType;
 import static io.scalecube.services.Reflect.requestType;
 import static io.scalecube.services.Reflect.restMethod;
 import static io.scalecube.services.Reflect.serviceName;
+import static io.scalecube.services.TypeUtil.isWildcardType;
 import static io.scalecube.services.api.ServiceMessage.HEADER_PROPAGATE_DATA_TYPE_HEADER;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
@@ -468,17 +469,16 @@ public class ServiceCall implements AutoCloseable {
   }
 
   private ServiceMessage onMessage(ServiceMessage message, Type returnType) {
-    if (returnType == null) {
-      return message;
+    if (returnType != null) {
+      final var dataType = isWildcardType(returnType) ? getDataType(message) : returnType;
+      message = dataDecoder.decodeData(message, dataType);
     }
 
-    if (message.isError()) {
-      throw Exceptions.propagate(
-          errorMapper.toError(dataDecoder.decodeData(message, ErrorData.class)));
+    if (message.isError() && message.hasData(ErrorData.class)) {
+      throw Exceptions.propagate(errorMapper.toError(message));
     }
 
-    return dataDecoder.decodeData(
-        message, TypeUtil.isWildcardType(returnType) ? getDataType(message) : returnType);
+    return message;
   }
 
   private Type getDataType(ServiceMessage message) {
