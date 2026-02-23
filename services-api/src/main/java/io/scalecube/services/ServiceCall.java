@@ -469,19 +469,15 @@ public class ServiceCall implements AutoCloseable {
   }
 
   private ServiceMessage onMessage(ServiceMessage message, Type returnType) {
-    if (returnType == null) {
-      return throwIfError(message);
-    } else {
-      return throwIfError(
-          dataDecoder.decodeData(
-              message, isWildcardType(returnType) ? getDataType(message) : returnType));
+    if (returnType != null) {
+      final var dataType = isWildcardType(returnType) ? getDataType(message) : returnType;
+      message = dataDecoder.decodeData(message, dataType);
     }
-  }
 
-  private ServiceMessage throwIfError(ServiceMessage message) {
     if (message.isError() && message.hasData(ErrorData.class)) {
       throw Exceptions.propagate(errorMapper.toError(message));
     }
+
     return message;
   }
 
