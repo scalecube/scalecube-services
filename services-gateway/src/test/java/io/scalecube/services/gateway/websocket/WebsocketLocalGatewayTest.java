@@ -5,6 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -25,7 +26,14 @@ import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
+import io.scalecube.services.gateway.sut.typed.Circle;
+import io.scalecube.services.gateway.sut.typed.EndOfDayEvent;
+import io.scalecube.services.gateway.sut.typed.Rectangle;
+import io.scalecube.services.gateway.sut.typed.Square;
+import io.scalecube.services.gateway.sut.typed.StartOfDayEvent;
+import io.scalecube.services.gateway.sut.typed.TradeEvent;
 import io.scalecube.services.routing.StaticAddressRouter;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,6 +53,7 @@ class WebsocketLocalGatewayTest {
 
   private ServiceCall serviceCall;
   private GreetingService greetingService;
+  private TypedGreetingService typedGreetingService;
   private ErrorService errorService;
 
   @BeforeAll
@@ -62,7 +71,7 @@ class WebsocketLocalGatewayTest {
                             .errorMapper(ERROR_MAPPER)
                             .build())
                 .defaultLogger("gateway")
-                .services(new GreetingServiceImpl())
+                .services(new GreetingServiceImpl(), new TypedGreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
                         .errorMapper(ERROR_MAPPER)
@@ -79,6 +88,7 @@ class WebsocketLocalGatewayTest {
             .router(router)
             .transport(WebsocketGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
+    typedGreetingService = serviceCall.api(TypedGreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }
 
@@ -221,5 +231,99 @@ class WebsocketLocalGatewayTest {
     StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
+  }
+
+  @Test
+  public void shouldReturnPolymorph() {
+    StepVerifier.create(typedGreetingService.helloPolymorph())
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .assertNext(
+            shape -> {
+              assertEquals(1.0, ((Rectangle) shape).height());
+              assertEquals(1.0, ((Rectangle) shape).width());
+            })
+        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnListPolymorph() {
+    StepVerifier.create(typedGreetingService.helloListPolymorph())
+        .assertNext(
+            shapes -> {
+              assertEquals(1.0, ((Circle) shapes.get(0)).radius());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).height());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).width());
+              assertEquals(1.0, ((Square) shapes.get(2)).side());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnMultitype() {
+    StepVerifier.create(typedGreetingService.helloMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnWildcardMultitype() {
+    StepVerifier.create(typedGreetingService.helloWildcardMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
+            })
+        .thenCancel()
+        .verify();
   }
 }

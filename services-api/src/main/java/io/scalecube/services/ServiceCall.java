@@ -8,6 +8,7 @@ import static io.scalecube.services.Reflect.parameterizedReturnType;
 import static io.scalecube.services.Reflect.requestType;
 import static io.scalecube.services.Reflect.restMethod;
 import static io.scalecube.services.Reflect.serviceName;
+import static io.scalecube.services.api.ServiceMessage.HEADER_PROPAGATE_DATA_TYPE_HEADER;
 import static io.scalecube.services.auth.Principal.NULL_PRINCIPAL;
 
 import io.scalecube.services.api.ErrorData;
@@ -21,6 +22,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
@@ -29,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import reactor.core.Exceptions;
@@ -44,8 +47,9 @@ public class ServiceCall implements AutoCloseable {
   private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
   private Map<String, String> credentials = Collections.emptyMap();
   private String contentType = ServiceMessage.DEFAULT_DATA_FORMAT;
+  private ServiceMessageDataDecoder dataDecoder = ServiceMessageDataDecoder.INSTANCE;
 
-  // private Logger logger;
+  private final Map<String, Type> resolvedTypes = new ConcurrentHashMap<>();
 
   public ServiceCall() {}
 
@@ -55,6 +59,7 @@ public class ServiceCall implements AutoCloseable {
     this.router = other.router;
     this.errorMapper = other.errorMapper;
     this.contentType = other.contentType;
+    this.dataDecoder = other.dataDecoder;
     this.credentials = Collections.unmodifiableMap(new HashMap<>(other.credentials));
   }
 
@@ -143,6 +148,18 @@ public class ServiceCall implements AutoCloseable {
   }
 
   /**
+   * Setter for {@code dataDecoder}.
+   *
+   * @param dataDecoder dataDecoder.
+   * @return new {@link ServiceCall} instance.
+   */
+  public ServiceCall dataDecoder(ServiceMessageDataDecoder dataDecoder) {
+    ServiceCall target = new ServiceCall(this);
+    target.dataDecoder = dataDecoder;
+    return target;
+  }
+
+  /**
    * Invokes fire-and-forget request.
    *
    * @param request request message to send.
@@ -178,7 +195,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeOne(request)
-                .map(this::throwIfError)
+                .map(message -> onMessage(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -198,8 +215,8 @@ public class ServiceCall implements AutoCloseable {
                     serviceReference ->
                         transport
                             .create(serviceReference)
-                            .requestResponse(request, responseType)
-                            .map(this::throwIfError));
+                            .requestResponse(request)
+                            .map(message -> onMessage(message, responseType)));
           }
         });
   }
@@ -230,7 +247,7 @@ public class ServiceCall implements AutoCloseable {
             // local service
             return methodInvoker
                 .invokeMany(request)
-                .map(this::throwIfError)
+                .map(message -> onMessage(message, responseType))
                 .contextWrite(
                     context -> {
                       if (context.hasKey(RequestContext.class)) {
@@ -250,8 +267,8 @@ public class ServiceCall implements AutoCloseable {
                     serviceReference ->
                         transport
                             .create(serviceReference)
-                            .requestStream(request, responseType)
-                            .map(this::throwIfError));
+                            .requestStream(request)
+                            .map(message -> onMessage(message, responseType)));
           }
         });
   }
@@ -286,7 +303,7 @@ public class ServiceCall implements AutoCloseable {
                   // local service
                   return methodInvoker
                       .invokeBidirectional(messages)
-                      .map(this::throwIfError)
+                      .map(message -> onMessage(message, responseType))
                       .contextWrite(
                           context -> {
                             if (context.hasKey(RequestContext.class)) {
@@ -306,8 +323,8 @@ public class ServiceCall implements AutoCloseable {
                           serviceReference ->
                               transport
                                   .create(serviceReference)
-                                  .requestChannel(messages, responseType)
-                                  .map(this::throwIfError));
+                                  .requestChannel(messages)
+                                  .map(message -> onMessage(message, responseType)));
                 }
               }
               return messages;
@@ -354,10 +371,9 @@ public class ServiceCall implements AutoCloseable {
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must
                   // be a publisher - its safe to cast.
-                  //noinspection rawtypes
                   return serviceCall
                       .requestBidirectional(
-                          Flux.from((Publisher) request)
+                          Flux.from((Publisher<?>) request)
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
                       .transform(asFlux(isReturnTypeServiceMessage));
@@ -376,18 +392,15 @@ public class ServiceCall implements AutoCloseable {
   }
 
   private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object request) {
-    if (request instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) request)
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .headers(credentials)
-          .dataFormatIfAbsent(contentType)
-          .build();
-    }
+    final var builder =
+        request instanceof ServiceMessage
+            ? ServiceMessage.from((ServiceMessage) request)
+            : ServiceMessage.builder().data(request);
 
-    return ServiceMessage.builder()
+    return builder
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .headers(credentials)
-        .data(request)
+        .header(HEADER_PROPAGATE_DATA_TYPE_HEADER, true)
         .dataFormatIfAbsent(contentType)
         .build();
   }
@@ -438,13 +451,6 @@ public class ServiceCall implements AutoCloseable {
             : mono.mapNotNull(ServiceMessage::data);
   }
 
-  private ServiceMessage throwIfError(ServiceMessage message) {
-    if (message.isError() && message.hasData(ErrorData.class)) {
-      throw Exceptions.propagate(errorMapper.toError(message));
-    }
-    return message;
-  }
-
   private static MethodInfo getMethodInfo(Class<?> serviceInterface, Method method) {
     return new MethodInfo(
         serviceName(serviceInterface),
@@ -459,6 +465,35 @@ public class ServiceCall implements AutoCloseable {
         Schedulers.immediate(),
         restMethod(method),
         Collections.emptyList());
+  }
+
+  private ServiceMessage onMessage(ServiceMessage message, Type returnType) {
+    if (returnType == null) {
+      return message;
+    }
+
+    if (message.isError()) {
+      throw Exceptions.propagate(
+          errorMapper.toError(dataDecoder.decodeData(message, ErrorData.class)));
+    }
+
+    return dataDecoder.decodeData(
+        message, TypeUtil.isWildcardType(returnType) ? getDataType(message) : returnType);
+  }
+
+  private Type getDataType(ServiceMessage message) {
+    final var dataType = message.header(ServiceMessage.HEADER_DATA_TYPE);
+
+    if (dataType == null) {
+      return Object.class;
+    }
+
+    return resolvedTypes.computeIfAbsent(
+        dataType,
+        s -> {
+          final var type = TypeUtil.parseTypeDescriptor(dataType);
+          return type != null ? type : Object.class;
+        });
   }
 
   @Override

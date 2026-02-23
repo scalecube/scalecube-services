@@ -24,7 +24,6 @@ import io.scalecube.services.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
-
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -430,21 +429,25 @@ public class RestGatewayTest {
     @Test
     void testUrlEncoding() {
       final var param = "user|1234";
+      final var qualifier =
+          encodeUri("v1/restService/encoding/" + param)
+              + "?"
+              + encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc");
+
       StepVerifier.create(
-          serviceCall.requestOne(
-            ServiceMessage.builder()
-              .header("http.method", "GET")
-              .qualifier(encodeUri("v1/restService/encoding/" + param) + "?" +
-                encodeUri("x=test|1234&y=foo#bar&orderBy[direction]=Asc"))
-              .build(),
-            SomeResponse.class))
-        .assertNext(
-          message -> {
-            final var someResponse = message.<SomeResponse>data();
-            assertNotNull(someResponse, "data");
-            assertEquals(param, someResponse.name(), "someResponse.name");
-          })
-        .verifyComplete();
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "GET")
+                      .qualifier(qualifier)
+                      .build(),
+                  SomeResponse.class))
+          .assertNext(
+              message -> {
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
+                assertEquals(param, someResponse.name(), "someResponse.name");
+              })
+          .verifyComplete();
     }
 
     private static String encodeUri(String uri) {

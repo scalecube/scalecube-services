@@ -209,7 +209,7 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Mono<MyPojo> greetingsWithGenerics(Base<MyPojo> request) {
+  public Mono<MyPojo> greetingsWithGenerics(BasePojo<MyPojo> request) {
     return Mono.just(request.obj);
   }
 }

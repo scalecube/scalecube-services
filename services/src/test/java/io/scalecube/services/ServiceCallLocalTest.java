@@ -102,7 +102,9 @@ public class ServiceCallLocalTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(provider.call().requestOne(GREETING_FAIL_REQ)).block(timeout));
+            () ->
+                Mono.from(provider.call().requestOne(GREETING_FAIL_REQ, Object.class))
+                    .block(timeout));
     assertEquals("GreetingRequest[name='joe', duration=null]", exception.getMessage());
   }
 
@@ -113,7 +115,9 @@ public class ServiceCallLocalTest {
     Throwable exception =
         assertThrows(
             ServiceException.class,
-            () -> Mono.from(provider.call().requestOne(GREETING_ERROR_REQ)).block(timeout));
+            () ->
+                Mono.from(provider.call().requestOne(GREETING_ERROR_REQ, Object.class))
+                    .block(timeout));
   }
 
   @Test

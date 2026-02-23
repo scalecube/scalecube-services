@@ -6,7 +6,6 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.api.ClientChannel;
-import java.lang.reflect.Type;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,30 +22,26 @@ public class RSocketClientChannel implements ClientChannel {
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage message, Type responseType) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return rsocket
         .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
   @Override
-  public Flux<ServiceMessage> requestStream(ServiceMessage message, Type responseType) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 
   @Override
-  public Flux<ServiceMessage> requestChannel(
-      Publisher<ServiceMessage> publisher, Type responseType) {
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return rsocket
         .flatMapMany(rsocket -> rsocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage)
-        .map(msg -> ServiceMessageCodec.decodeData(msg, responseType, false))
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
   }
 

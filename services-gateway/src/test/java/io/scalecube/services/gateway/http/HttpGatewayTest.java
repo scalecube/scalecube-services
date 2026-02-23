@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.http;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -21,6 +22,10 @@ import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
+import io.scalecube.services.gateway.sut.typed.Circle;
+import io.scalecube.services.gateway.sut.typed.Rectangle;
+import io.scalecube.services.gateway.sut.typed.Square;
+import io.scalecube.services.gateway.sut.typed.StartOfDayEvent;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
@@ -44,6 +49,7 @@ class HttpGatewayTest {
 
   private ServiceCall serviceCall;
   private GreetingService greetingService;
+  private TypedGreetingService typedGreetingService;
   private ErrorService errorService;
 
   @BeforeAll
@@ -74,7 +80,7 @@ class HttpGatewayTest {
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
                 .defaultLogger("microservices")
-                .services(new GreetingServiceImpl())
+                .services(new GreetingServiceImpl(), new TypedGreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
                         .errorMapper(ERROR_MAPPER)
@@ -88,6 +94,7 @@ class HttpGatewayTest {
             .router(router)
             .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
+    typedGreetingService = serviceCall.api(TypedGreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }
 
@@ -216,5 +223,57 @@ class HttpGatewayTest {
     StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
+  }
+
+  @Test
+  public void shouldReturnPolymorph() {
+    StepVerifier.create(typedGreetingService.helloPolymorph())
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnListPolymorph() {
+    StepVerifier.create(typedGreetingService.helloListPolymorph())
+        .assertNext(
+            shapes -> {
+              assertEquals(1.0, ((Circle) shapes.get(0)).radius());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).height());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).width());
+              assertEquals(1.0, ((Square) shapes.get(2)).side());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnMultitype() {
+    StepVerifier.create(typedGreetingService.helloMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnWildcardMultitype() {
+    StepVerifier.create(typedGreetingService.helloWildcardMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .thenCancel()
+        .verify();
   }
 }

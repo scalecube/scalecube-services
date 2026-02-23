@@ -327,6 +327,7 @@ public class Microservices implements AutoCloseable {
     return new ServiceCall()
         .transport(clientTransport)
         .serviceRegistry(context.serviceRegistry)
+        .dataDecoder(context.defaultDataDecoder)
         .router(Routers.getRouter(RoundRobinServiceRouter.class));
   }
 

@@ -16,12 +16,8 @@ public final class ServiceMessage {
   /** Qualifier header. */
   public static final String HEADER_QUALIFIER = "q";
 
-  /**
-   * This is a system header which used by transport for serialization and deserialization purpose.
-   * It is not supposed to be used by application directly and it is subject to changes in future
-   * releases.
-   */
-  public static final String HEADER_DATA_TYPE = "type";
+  /** Data type header. */
+  public static final String HEADER_DATA_TYPE = "dataType";
 
   /** Data format header. */
   public static final String HEADER_DATA_FORMAT = "dataFormat";
@@ -34,6 +30,9 @@ public final class ServiceMessage {
 
   /** Upload filename header. */
   public static final String HEADER_UPLOAD_FILENAME = "uploadFilename";
+
+  /** Propagate data-type header. */
+  public static final String HEADER_PROPAGATE_DATA_TYPE_HEADER = "propagateDataType";
 
   /** Null value for error type. */
   public static final int NULL_ERROR_TYPE = -1;
@@ -126,6 +125,15 @@ public final class ServiceMessage {
    */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
+  }
+
+  /**
+   * Returns data type of the message data.
+   *
+   * @return data type of the data
+   */
+  public String dataType() {
+    return header(HEADER_DATA_TYPE);
   }
 
   /**
@@ -223,6 +231,16 @@ public final class ServiceMessage {
     return headers.get(HEADER_UPLOAD_FILENAME);
   }
 
+  /**
+   * Returns whether data type header should be propagated downstream.
+   *
+   * @return whether data type header should be propagated downstream
+   */
+  public boolean propagateDataType() {
+    final var s = headers.get(HEADER_PROPAGATE_DATA_TYPE_HEADER);
+    return Boolean.parseBoolean(s);
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", ServiceMessage.class.getSimpleName() + "[", "]")
@@ -275,14 +293,13 @@ public final class ServiceMessage {
     /**
      * Setter for {@code dataType}.
      *
-     * @deprecated in future releases will be dropped without replacement
      * @param dataType data type; no null
      * @return this
      */
-    @Deprecated
-    public Builder dataType(Class<?> dataType) {
-      Objects.requireNonNull(dataType, "dataType");
-      headers.put(HEADER_DATA_TYPE, dataType.getName());
+    public Builder dataType(String dataType) {
+      if (dataType != null) {
+        headers.put(HEADER_DATA_TYPE, dataType);
+      }
       return this;
     }
 

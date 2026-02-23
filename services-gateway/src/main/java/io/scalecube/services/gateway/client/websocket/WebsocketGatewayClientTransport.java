@@ -9,10 +9,8 @@ import io.scalecube.services.Address;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.client.GatewayClientCodec;
-import io.scalecube.services.gateway.client.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
-import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -117,7 +115,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage request, Type responseType) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     return Mono.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -126,14 +124,13 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
               .then(session.<ServiceMessage>newMonoProcessor(sid).asMono())
-              .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))
               .doFinally(s -> session.removeProcessor(sid));
         });
   }
 
   @Override
-  public Flux<ServiceMessage> requestStream(ServiceMessage request, Type responseType) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     return Flux.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -142,15 +139,13 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
               .thenMany(session.<ServiceMessage>newUnicastProcessor(sid).asFlux())
-              .map(msg -> ServiceMessageCodec.decodeData(msg, responseType))
               .doOnCancel(() -> session.cancel(sid, request.qualifier()))
               .doFinally(s -> session.removeProcessor(sid));
         });
   }
 
   @Override
-  public Flux<ServiceMessage> requestChannel(
-      Publisher<ServiceMessage> publisher, Type responseType) {
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return Flux.error(new UnsupportedOperationException("requestChannel is not supported"));
   }
 
