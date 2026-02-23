@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.websocket;
 
-import static io.scalecube.services.api.ServiceMessage.HEADER_DATA_TYPE;
+import static io.scalecube.services.api.ServiceMessage.HEADER_ERROR_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
@@ -83,14 +83,25 @@ public final class GatewayMessages {
    */
   public static ServiceMessage newResponseMessage(
       long sid, ServiceMessage message, boolean isErrorResponse) {
+    final var builder =
+        ServiceMessage.builder()
+            .qualifier(message.qualifier())
+            .data(message.data())
+            .dataFormat(message.dataFormat())
+            .header(STREAM_ID_FIELD, sid);
+
+    if (message.propagateDataType()) {
+      builder.dataType(message.dataType());
+    }
+
     if (isErrorResponse) {
-      // todo .removeHeader(HEADER_DATA_TYPE)
-      return ServiceMessage.from(message)
-          .header(STREAM_ID_FIELD, sid)
+      return builder
+          .header(HEADER_ERROR_TYPE, message.errorType())
           .header(SIGNAL_FIELD, Signal.ERROR.code())
           .build();
     }
-    return ServiceMessage.from(message).header(STREAM_ID_FIELD, sid).build();
+
+    return builder.build();
   }
 
   /**

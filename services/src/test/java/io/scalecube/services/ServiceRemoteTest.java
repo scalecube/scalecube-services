@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static reactor.core.publisher.Sinks.EmitFailureHandler.FAIL_FAST;
@@ -10,6 +11,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.sut.BasePojo;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.EmptyGreetingRequest;
@@ -17,10 +19,19 @@ import io.scalecube.services.sut.EmptyGreetingResponse;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
-import io.scalecube.services.sut.GreetingService.MyPojo;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.sut.MyPojo;
+import io.scalecube.services.sut.typed.Circle;
+import io.scalecube.services.sut.typed.EndOfDayEvent;
+import io.scalecube.services.sut.typed.Rectangle;
+import io.scalecube.services.sut.typed.Square;
+import io.scalecube.services.sut.typed.StartOfDayEvent;
+import io.scalecube.services.sut.typed.TradeEvent;
+import io.scalecube.services.sut.typed.TypedGreetingService;
+import io.scalecube.services.sut.typed.TypedGreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -83,14 +94,14 @@ public class ServiceRemoteTest {
         new Context()
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
-            .services(new GreetingServiceImpl()));
+            .services(new GreetingServiceImpl(), new TypedGreetingServiceImpl()));
   }
 
   @Test
   public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofMillis(500);
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<GreetingResponse> result =
@@ -101,7 +112,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_void_greeting() throws Exception {
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
@@ -112,7 +123,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_failing_void_greeting() {
 
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.
@@ -123,7 +134,7 @@ public class ServiceRemoteTest {
 
   @Test
   public void test_remote_throwing_void_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.
@@ -135,7 +146,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_async_greeting_return_string() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
@@ -145,7 +156,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_async_greeting_no_params() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
@@ -156,7 +167,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_greeting_no_params_fire_and_forget() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     service.notifyGreeting();
@@ -165,7 +176,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_greeting_return_GreetingResponse() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
@@ -176,7 +187,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_greeting_request_timeout_expires() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Publisher<GreetingResponse> result =
@@ -194,7 +205,7 @@ public class ServiceRemoteTest {
   @Test
   public void test_remote_async_greeting_return_Message() {
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
@@ -204,7 +215,7 @@ public class ServiceRemoteTest {
 
   @Test
   public void test_remote_greeting_message() {
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     ServiceMessage request = ServiceMessage.builder().data(new GreetingRequest("joe")).build();
 
@@ -237,7 +248,7 @@ public class ServiceRemoteTest {
     StepVerifier.create(
             serviceCall.requestOne(
                 ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage").build(),
-                true))
+                GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());
@@ -253,7 +264,7 @@ public class ServiceRemoteTest {
     StepVerifier.create(
             serviceCall.requestOne(
                 ServiceMessage.from(request).qualifier("v1/greetings/greetingMessage2").build(),
-                true))
+                GreetingResponse.class))
         .assertNext(
             message -> {
               assertEquals(GreetingResponse.class, message.data().getClass());
@@ -362,7 +373,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_expect_IllegalArgumentException() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
@@ -379,7 +390,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_message_expect_IllegalArgumentException() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
@@ -401,7 +412,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_expect_NotAuthorized() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
     // call the service.
@@ -422,7 +433,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_message_expect_NotAuthorized() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().directBestEffort();
 
@@ -446,7 +457,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_expect_GreetingResponse() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     Sinks.Many<GreetingRequest> requests = Sinks.many().multicast().onBackpressureBuffer();
 
@@ -473,7 +484,7 @@ public class ServiceRemoteTest {
   public void test_remote_bidi_greeting_message_expect_GreetingResponse() {
 
     // get a proxy to the service api.
-    GreetingService service = createProxy();
+    GreetingService service = api(GreetingService.class);
 
     Sinks.Many<GreetingRequest> requests = Sinks.many().unicast().onBackpressureBuffer();
 
@@ -521,7 +532,7 @@ public class ServiceRemoteTest {
 
   @Test
   public void test_remote_mono_empty_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
@@ -531,7 +542,7 @@ public class ServiceRemoteTest {
 
   @Test
   public void test_remote_mono_empty_request_response_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.emptyGreeting(new EmptyGreetingRequest()))
@@ -542,7 +553,7 @@ public class ServiceRemoteTest {
 
   @Test
   public void test_remote_flux_empty_greeting() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingFluxEmpty(new GreetingRequest("empty")))
@@ -552,7 +563,7 @@ public class ServiceRemoteTest {
 
   @Disabled("https://github.com/scalecube/scalecube-services/issues/742")
   public void test_many_stream_block_first() {
-    GreetingService service = gateway.call().api(GreetingService.class);
+    GreetingService service = api(GreetingService.class);
 
     for (int i = 0; i < 100; i++) {
       //noinspection ConstantConditions
@@ -568,24 +579,109 @@ public class ServiceRemoteTest {
     final var request =
         ServiceMessage.builder().qualifier("v1/greetings/hello/" + value).data(data).build();
 
-    StepVerifier.create(gateway.call().requestOne(request, true).map(ServiceMessage::data))
+    StepVerifier.create(gateway.call().requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
   }
 
   @Test
   public void test_generics_in_request() {
-    final var service = gateway.call().api(GreetingService.class);
-    final var pojo = new GreetingService.MyPojo("Joe", "NY");
+    final var service = api(GreetingService.class);
+    final var pojo = new MyPojo("Joe", "NY");
 
-    StepVerifier.create(
-            service.greetingsWithGenerics(new GreetingService.Base<MyPojo>().object(pojo)))
+    StepVerifier.create(service.greetingsWithGenerics(new BasePojo<MyPojo>().object(pojo)))
         .assertNext(result -> assertEquals(pojo, result))
         .verifyComplete();
   }
 
-  private GreetingService createProxy() {
-    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+  @Test
+  public void test_polymorph() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloPolymorph())
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .assertNext(
+            shape -> {
+              assertEquals(1.0, ((Rectangle) shape).height());
+              assertEquals(1.0, ((Rectangle) shape).width());
+            })
+        .assertNext(shape -> assertEquals(1.0, ((Square) shape).side()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void test_multitype() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void test_wildcard_multitype() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloWildcardMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .assertNext(
+            event -> {
+              final var eodEvent = (EndOfDayEvent) event;
+              assertEquals(1, eodEvent.timestamp());
+              assertEquals(2, eodEvent.trackingNumber());
+              assertEquals(2, eodEvent.eventId());
+              assertNotNull(eodEvent.eodTime());
+            })
+        .assertNext(
+            event -> {
+              final var executedEvent = (TradeEvent) event;
+              assertEquals(1, executedEvent.timestamp());
+              assertEquals(3, executedEvent.trackingNumber());
+              assertEquals(3, executedEvent.eventId());
+              assertEquals(new BigDecimal("100"), executedEvent.price());
+              assertEquals(new BigDecimal("100"), executedEvent.quantity());
+              assertEquals(100, executedEvent.tradeId());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  private <T> T api(Class<T> api) {
+    return gateway.call().api(api);
   }
 
   private static ServiceDiscovery serviceDiscovery(ServiceEndpoint endpoint) {

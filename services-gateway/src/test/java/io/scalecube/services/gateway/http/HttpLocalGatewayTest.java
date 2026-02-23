@@ -1,8 +1,8 @@
 package io.scalecube.services.gateway.http;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
-import static io.scalecube.services.transport.api.ServiceMessageDataDecoder.INSTANCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -21,6 +21,8 @@ import io.scalecube.services.gateway.ErrorService;
 import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
+import io.scalecube.services.gateway.sut.typed.Circle;
+import io.scalecube.services.gateway.sut.typed.StartOfDayEvent;
 import io.scalecube.services.routing.StaticAddressRouter;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
@@ -41,6 +43,7 @@ class HttpLocalGatewayTest {
 
   private ServiceCall serviceCall;
   private GreetingService greetingService;
+  private TypedGreetingService typedGreetingService;
   private ErrorService errorService;
 
   @BeforeAll
@@ -50,7 +53,7 @@ class HttpLocalGatewayTest {
             new Context()
                 .gateway(() -> HttpGateway.builder().id("HTTP").build())
                 .defaultLogger("gateway")
-                .services(new GreetingServiceImpl())
+                .services(new GreetingServiceImpl(), new TypedGreetingServiceImpl())
                 .services(
                     ServiceInfo.fromServiceInstance(new ErrorServiceImpl())
                         .errorMapper(ERROR_MAPPER)
@@ -66,6 +69,7 @@ class HttpLocalGatewayTest {
             .router(router)
             .transport(HttpGatewayClientTransport.builder().address(gatewayAddress).build());
     greetingService = serviceCall.api(GreetingService.class);
+    typedGreetingService = serviceCall.api(TypedGreetingService.class);
     errorService = serviceCall.errorMapper(ERROR_MAPPER).api(ErrorService.class);
   }
 
@@ -168,10 +172,7 @@ class HttpLocalGatewayTest {
     String qualifier = Qualifier.asString(GreetingService.NAMESPACE, "empty/wrappedPojo");
     ServiceMessage request =
         ServiceMessage.builder().qualifier(qualifier).data(new EmptyGreetingRequest()).build();
-    StepVerifier.create(
-            serviceCall
-                .requestOne(request, false)
-                .map(msg -> INSTANCE.decodeData(msg, EmptyGreetingResponse.class)))
+    StepVerifier.create(serviceCall.requestOne(request, EmptyGreetingResponse.class))
         .expectSubscription()
         .expectNextMatches(resp -> resp.data() instanceof EmptyGreetingResponse)
         .thenCancel()
@@ -191,12 +192,46 @@ class HttpLocalGatewayTest {
     final var request =
         ServiceMessage.builder().qualifier("greeting/hello/" + value).data(data).build();
 
-    StepVerifier.create(
-            serviceCall
-                .requestOne(request, false)
-                .map(msg -> INSTANCE.decodeData(msg, String.class))
-                .map(ServiceMessage::data))
+    StepVerifier.create(serviceCall.requestOne(request, String.class).map(ServiceMessage::data))
         .assertNext(result -> assertEquals(value + "@" + data, result))
         .verifyComplete();
+  }
+
+  @Test
+  public void shouldReturnPolymorph() {
+    StepVerifier.create(typedGreetingService.helloPolymorph())
+        .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnMultitype() {
+    StepVerifier.create(typedGreetingService.helloMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnWildcardMultitype() {
+    StepVerifier.create(typedGreetingService.helloWildcardMultitype())
+        .assertNext(
+            event -> {
+              final var sodEvent = (StartOfDayEvent) event;
+              assertEquals(1, sodEvent.timestamp());
+              assertEquals(1, sodEvent.trackingNumber());
+              assertEquals(1, sodEvent.eventId());
+              assertNotNull(sodEvent.sodTime());
+            })
+        .thenCancel()
+        .verify();
   }
 }

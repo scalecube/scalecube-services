@@ -184,7 +184,7 @@ public class WebsocketGatewayAcceptor
     final long sid = getSid(request);
     final AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request, false);
+    Flux<ServiceMessage> serviceStream = serviceCall.requestMany(request);
     final String limitRate = request.header(RATE_LIMIT_FIELD);
     serviceStream =
         limitRate != null ? serviceStream.limitRate(Integer.parseInt(limitRate)) : serviceStream;

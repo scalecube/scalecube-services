@@ -5,7 +5,6 @@ import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpMethod.HEAD;
 import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
 import static io.netty.handler.codec.http.HttpMethod.TRACE;
-import static io.scalecube.services.gateway.client.ServiceMessageCodec.decodeData;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -20,7 +19,6 @@ import io.scalecube.services.gateway.client.GatewayClientCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.DataCodec;
-import java.lang.reflect.Type;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -104,8 +102,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
                   (clientResponse, mono) ->
                       mono.defaultIfEmpty(Unpooled.EMPTY_BUFFER)
                           .map(ByteBuf::retain)
-                          .map(data -> toMessage(clientResponse, data)))
-              .map(msg -> decodeData(msg, null));
+                          .map(data -> toMessage(clientResponse, data)));
         });
   }
 

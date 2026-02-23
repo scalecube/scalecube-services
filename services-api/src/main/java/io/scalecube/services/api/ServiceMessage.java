@@ -1,6 +1,5 @@
 package io.scalecube.services.api;
 
-import io.scalecube.services.TypeUtils;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Collections;
@@ -17,12 +16,8 @@ public final class ServiceMessage {
   /** Qualifier header. */
   public static final String HEADER_QUALIFIER = "q";
 
-  /**
-   * This is a system header which used by transport for serialization and deserialization purpose.
-   * It is not supposed to be used by application directly and it is subject to changes in future
-   * releases.
-   */
-  public static final String HEADER_DATA_TYPE = "type";
+  /** Data type header. */
+  public static final String HEADER_DATA_TYPE = "dataType";
 
   /** Data format header. */
   public static final String HEADER_DATA_FORMAT = "dataFormat";
@@ -35,6 +30,9 @@ public final class ServiceMessage {
 
   /** Upload filename header. */
   public static final String HEADER_UPLOAD_FILENAME = "uploadFilename";
+
+  /** Propagate data-type header. */
+  public static final String HEADER_PROPAGATE_DATA_TYPE_HEADER = "propagateDataType";
 
   /** Null value for error type. */
   public static final int NULL_ERROR_TYPE = -1;
@@ -84,12 +82,10 @@ public final class ServiceMessage {
    */
   public static ServiceMessage error(
       String qualifier, int errorType, int errorCode, String errorMessage) {
-    final var errorData = new ErrorData(errorCode, errorMessage);
     return ServiceMessage.builder()
         .qualifier(qualifier)
         .header(HEADER_ERROR_TYPE, String.valueOf(errorType))
-        .data(errorData)
-        .dataType(TypeUtils.getTypeDescriptor(errorData))
+        .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
 
@@ -233,6 +229,16 @@ public final class ServiceMessage {
    */
   public String uploadFilename() {
     return headers.get(HEADER_UPLOAD_FILENAME);
+  }
+
+  /**
+   * Returns whether data type header should be propagated downstream.
+   *
+   * @return whether data type header should be propagated downstream
+   */
+  public boolean propagateDataType() {
+    final var s = headers.get(HEADER_PROPAGATE_DATA_TYPE_HEADER);
+    return Boolean.parseBoolean(s);
   }
 
   @Override

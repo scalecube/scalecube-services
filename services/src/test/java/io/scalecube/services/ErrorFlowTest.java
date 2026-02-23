@@ -10,6 +10,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ForbiddenException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
@@ -69,27 +70,31 @@ public class ErrorFlowTest {
   @Test
   public void testCorruptedRequest() {
     Publisher<ServiceMessage> req =
-        consumer.call().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, true);
+        consumer
+            .call()
+            .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
     assertThrows(InternalServiceException.class, () -> from(req).block());
   }
 
   @Test
   public void testNotAuthorized() {
     Publisher<ServiceMessage> req =
-        consumer.call().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, true);
+        consumer
+            .call()
+            .requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
     assertThrows(ForbiddenException.class, () -> from(req).block());
   }
 
   @Test
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req =
-        consumer.call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, true);
+        consumer.call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
   @Test
   public void testServiceUnavailable() {
-    StepVerifier.create(consumer.call().requestOne(TestRequests.NOT_FOUND_REQ, false))
+    StepVerifier.create(consumer.call().requestOne(TestRequests.NOT_FOUND_REQ))
         .expectError(ServiceUnavailableException.class)
         .verify();
   }
