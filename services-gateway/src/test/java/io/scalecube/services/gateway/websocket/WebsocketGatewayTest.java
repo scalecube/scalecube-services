@@ -276,6 +276,20 @@ class WebsocketGatewayTest {
   }
 
   @Test
+  public void shouldReturnListPolymorph() {
+    StepVerifier.create(typedGreetingService.helloListPolymorph())
+        .assertNext(
+            shapes -> {
+              assertEquals(1.0, ((Circle) shapes.get(0)).radius());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).height());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).width());
+              assertEquals(1.0, ((Square) shapes.get(2)).side());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void shouldReturnMultitype() {
     StepVerifier.create(typedGreetingService.helloMultitype())
         .assertNext(

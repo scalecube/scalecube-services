@@ -439,6 +439,22 @@ public class ServiceLocalTest {
   }
 
   @Test
+  public void test_list_polymorph() {
+    final var greetingService = api(TypedGreetingService.class);
+
+    StepVerifier.create(greetingService.helloListPolymorph())
+        .assertNext(
+            shapes -> {
+              assertEquals(1.0, ((Circle) shapes.get(0)).radius());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).height());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).width());
+              assertEquals(1.0, ((Square) shapes.get(2)).side());
+            })
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
   public void test_multitype() {
     final var greetingService = api(TypedGreetingService.class);
 

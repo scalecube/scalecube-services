@@ -23,6 +23,8 @@ import io.scalecube.services.gateway.ErrorServiceImpl;
 import io.scalecube.services.gateway.SomeException;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.gateway.sut.typed.Circle;
+import io.scalecube.services.gateway.sut.typed.Rectangle;
+import io.scalecube.services.gateway.sut.typed.Square;
 import io.scalecube.services.gateway.sut.typed.StartOfDayEvent;
 import io.scalecube.services.routing.StaticAddressRouter;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -227,6 +229,20 @@ class HttpGatewayTest {
   public void shouldReturnPolymorph() {
     StepVerifier.create(typedGreetingService.helloPolymorph())
         .assertNext(shape -> assertEquals(1.0, ((Circle) shape).radius()))
+        .thenCancel()
+        .verify();
+  }
+
+  @Test
+  public void shouldReturnListPolymorph() {
+    StepVerifier.create(typedGreetingService.helloListPolymorph())
+        .assertNext(
+            shapes -> {
+              assertEquals(1.0, ((Circle) shapes.get(0)).radius());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).height());
+              assertEquals(1.0, ((Rectangle) shapes.get(1)).width());
+              assertEquals(1.0, ((Square) shapes.get(2)).side());
+            })
         .thenCancel()
         .verify();
   }
