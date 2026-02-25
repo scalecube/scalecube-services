@@ -87,7 +87,6 @@ public final class GatewayMessages {
         ServiceMessage.builder()
             .qualifier(message.qualifier())
             .data(message.data())
-            .dataFormat(message.dataFormat())
             .header(STREAM_ID_FIELD, sid);
 
     if (message.propagateDataType()) {
