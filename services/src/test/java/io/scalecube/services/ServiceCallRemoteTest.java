@@ -10,9 +10,8 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -208,7 +207,7 @@ public class ServiceCallRemoteTest {
               // print the greeting.
               System.out.println("10. remote_async_greeting_return_Message :" + result.data());
               // print the greeting.
-              assertThat(result.data(), instanceOf(GreetingResponse.class));
+              assertInstanceOf(GreetingResponse.class, result.data());
               assertEquals(" hello to: joe", ((GreetingResponse) result.data()).result());
             });
   }

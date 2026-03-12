@@ -1,11 +1,10 @@
 package io.scalecube.services.gateway.websocket;
 
 import static io.scalecube.services.gateway.GatewayErrorMapperImpl.ERROR_MAPPER;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -171,7 +170,7 @@ class WebsocketLocalGatewayTest {
         .verifyErrorSatisfies(
             ex -> {
               assertInstanceOf(BadRequestException.class, ex);
-              assertThat(ex.getMessage(), startsWith("Wrong request"));
+              assertTrue(ex.getMessage().startsWith("Wrong request"));
             });
   }
 

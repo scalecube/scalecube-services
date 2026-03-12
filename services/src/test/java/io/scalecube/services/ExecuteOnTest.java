@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -163,16 +161,16 @@ public class ExecuteOnTest {
       final var api = microservices.call().api(DefaultSchedulerOnServiceMethod.class);
 
       api.parallel().block();
-      assertThat(service.threadName.get(), startsWith("parallel"));
+      assertTrue(service.threadName.get().startsWith("parallel"));
 
       api.single().block();
-      assertThat(service.threadName.get(), startsWith("single"));
+      assertTrue(service.threadName.get().startsWith("single"));
 
       api.boundedElastic().block();
-      assertThat(service.threadName.get(), startsWith("boundedElastic"));
+      assertTrue(service.threadName.get().startsWith("boundedElastic"));
 
       api.immediate().block();
-      assertThat(service.threadName.get(), startsWith("main"));
+      assertTrue(service.threadName.get().startsWith("main"));
     }
   }
 
@@ -184,7 +182,7 @@ public class ExecuteOnTest {
       final var api = microservices.call().api(DefaultSchedulerOnService.class);
 
       api.hello().block();
-      assertThat(service.threadName.get(), startsWith("single"));
+      assertTrue(service.threadName.get().startsWith("single"));
     }
   }
 

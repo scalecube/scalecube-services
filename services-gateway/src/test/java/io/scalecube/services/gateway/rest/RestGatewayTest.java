@@ -1,12 +1,11 @@
 package io.scalecube.services.gateway.rest;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_ERROR_TYPE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.Address;
 import io.scalecube.services.Microservices;
@@ -27,7 +26,6 @@ import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -170,7 +168,7 @@ public class RestGatewayTest {
               message -> {
                 assertNull(message.data(), "data"); // this is HEAD
                 assertNotNull(message.headers(), "headers");
-                assertThat(message.headers(), not(hasKey(HEADER_ERROR_TYPE)));
+                assertFalse(message.headers().containsKey(HEADER_ERROR_TYPE));
               })
           .verifyComplete();
     }
@@ -398,9 +396,7 @@ public class RestGatewayTest {
               ex -> {
                 final var exception = (ServiceUnavailableException) ex;
                 assertEquals(503, exception.errorCode(), "errorCode");
-                assertThat(
-                    exception.getMessage(),
-                    Matchers.startsWith("No reachable member with such service"));
+                assertTrue(exception.getMessage().startsWith("No reachable member with such service"));
               });
     }
 
@@ -414,14 +410,12 @@ public class RestGatewayTest {
       try (final var serviceCall = new ServiceCall().router(router).transport(clientTransport)) {
         StepVerifier.create(serviceCall.api(RoutingService.class).update(new SomeRequest()))
             .expectSubscription()
-            .expectErrorSatisfies(
-                ex -> {
-                  final var exception = (ServiceUnavailableException) ex;
-                  assertEquals(503, exception.errorCode());
-                  assertThat(
-                      exception.getMessage(),
-                      Matchers.startsWith("No reachable member with such service"));
-                })
+                .expectErrorSatisfies(
+                    ex -> {
+                      final var exception = (ServiceUnavailableException) ex;
+                      assertEquals(503, exception.errorCode());
+                      assertTrue(exception.getMessage().startsWith("No reachable member with such service"));
+                    })
             .verify(Duration.ofSeconds(3));
       }
     }

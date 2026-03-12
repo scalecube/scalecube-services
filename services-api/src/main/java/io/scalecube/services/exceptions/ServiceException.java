@@ -21,10 +21,10 @@ public abstract class ServiceException extends RuntimeException {
     this.errorCode = errorCode;
   }
 
-  @Override
-  public synchronized Throwable fillInStackTrace() {
-    return this;
-  }
+  //  @Override
+  //  public synchronized Throwable fillInStackTrace() {
+  //    return this;
+  //  }
 
   public int errorCode() {
     return errorCode;

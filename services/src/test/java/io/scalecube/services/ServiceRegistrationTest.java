@@ -1,10 +1,10 @@
 package io.scalecube.services;
 
 import static io.scalecube.services.api.ServiceMessage.HEADER_REQUEST_METHOD;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
@@ -13,7 +13,6 @@ import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -36,7 +35,7 @@ public class ServiceRegistrationTest {
       fail("Expected exception");
     } catch (Exception e) {
       assertInstanceOf(IllegalStateException.class, e, e::getMessage);
-      assertThat(e.getMessage(), Matchers.startsWith("MethodInvoker already exists"));
+      assertTrue(e.getMessage().startsWith("MethodInvoker already exists"));
     }
   }
 
@@ -47,7 +46,7 @@ public class ServiceRegistrationTest {
       fail("Expected exception");
     } catch (Exception e) {
       assertInstanceOf(IllegalStateException.class, e, e::getMessage);
-      assertThat(e.getMessage(), Matchers.startsWith("MethodInvoker already exists"));
+      assertTrue(e.getMessage().startsWith("MethodInvoker already exists"));
     }
   }
 
