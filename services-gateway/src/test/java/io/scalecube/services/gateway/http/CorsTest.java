@@ -1,9 +1,8 @@
 package io.scalecube.services.gateway.http;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
@@ -82,9 +81,8 @@ public class CorsTest {
 
     assertEquals(HttpResponseStatus.OK, response.status());
     assertEquals("*", responseHeaders.get("Access-Control-Allow-Origin"));
-    assertThat(responseHeaders.get("Access-Control-Allow-Headers"), containsString("Content-Type"));
-    assertThat(
-        responseHeaders.get("Access-Control-Allow-Headers"), containsString("X-Correlation-ID"));
+    assertTrue(responseHeaders.get("Access-Control-Allow-Headers").contains("Content-Type"));
+    assertTrue(responseHeaders.get("Access-Control-Allow-Headers").contains("X-Correlation-ID"));
     final var allowedMethodsHeader = responseHeaders.get("Access-Control-Allow-Methods");
     assertEquals(
         HttpGateway.SUPPORTED_METHODS.stream().map(HttpMethod::name).collect(Collectors.toSet()),
