@@ -57,7 +57,7 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.7.7</scalecube-cluster.version>
+    <scalecube-cluster.version>2.7.8.bump.rc1</scalecube-cluster.version>
     <scalecube-security.version>1.1.12.bump.rc1</scalecube-security.version>
     <scalecube-test-support.version>0.1.8.bump.rc3</scalecube-test-support.version>
 
