@@ -178,6 +178,9 @@ public class RestServiceImpl implements RestService {
               assertEquals(true, queryParams.getBoolean("debug"));
               assertEquals(1, queryParams.getInt("x"));
               assertEquals(2, queryParams.getInt("y"));
+              assertEquals("1,5,7", queryParams.getString("ids"));
+              assertEquals("ACTIVE,PENDING", queryParams.getString("statuses"));
+              assertEquals("bar", queryParams.getString("foo"));
               return new SomeResponse().name(UUID.randomUUID().toString());
             });
   }
