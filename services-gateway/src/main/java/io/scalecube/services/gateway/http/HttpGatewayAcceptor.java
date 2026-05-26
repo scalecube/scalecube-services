@@ -37,6 +37,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -267,10 +268,26 @@ public class HttpGatewayAcceptor
     return Arrays.stream(queryString.split("&"))
         .map(s -> s.split("=", 2))
         .filter(parts -> parts.length == 2)
-        .collect(
-            Collectors.toMap(
-                parts -> URLDecoder.decode(parts[0], StandardCharsets.UTF_8),
-                parts -> URLDecoder.decode(parts[1], StandardCharsets.UTF_8)));
+        .collect(Collectors.groupingBy(
+            arr -> normalizeQueryKey(arr[0]),
+            LinkedHashMap::new,
+            Collectors.mapping(
+                arr -> decodeUrl(arr.length > 1 ? arr[1] : ""),
+                Collectors.joining(",")
+            )
+        ));
+  }
+
+  private static String normalizeQueryKey(String key) {
+    String decoded = decodeUrl(key);
+    if (decoded.endsWith("[]")) {
+      return decoded.substring(0, decoded.length() - 2);
+    }
+    return decoded;
+  }
+
+  private static String decodeUrl(String value) {
+    return URLDecoder.decode(value, StandardCharsets.UTF_8);
   }
 
   private static Mono<ServiceMessage> emptyMessage(ServiceMessage message) {

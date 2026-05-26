@@ -305,7 +305,7 @@ public class RestGatewayTest {
               serviceCall.requestOne(
                   ServiceMessage.builder()
                       .header("http.method", "GET")
-                      .qualifier("v1/restService/queryParams?x=1&y=2&debug=true")
+                      .qualifier("v1/restService/queryParams?x=1&y=2&debug=true&ids[]=1&ids[]=5&statuses=ACTIVE&ids[]=7&statuses=PENDING&foo[]=bar")
                       .build(),
                   SomeResponse.class))
           .assertNext(
