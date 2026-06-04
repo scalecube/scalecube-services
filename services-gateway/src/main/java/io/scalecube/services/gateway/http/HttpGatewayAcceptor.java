@@ -155,7 +155,7 @@ public class HttpGatewayAcceptor
                           response.isError() // check error
                               ? error(httpResponse, response)
                               : response.hasData() // check data
-                                ? ok(httpResponse, response)
+                                  ? ok(httpResponse, response)
                                   : noContent(httpResponse, response))
                   .doFinally(
                       signalType -> {
@@ -197,8 +197,7 @@ public class HttpGatewayAcceptor
               final var message =
                   messageHandler.mapMessage(
                       httpRequest,
-                      toMessage(httpRequest, builder -> builder.headers(principal).data(data))
-                  );
+                      toMessage(httpRequest, builder -> builder.headers(principal).data(data)));
 
               messageHandler.onRequest(httpRequest, data, message);
 
@@ -220,7 +219,7 @@ public class HttpGatewayAcceptor
                           response.isError() // check error
                               ? error(httpResponse, response)
                               : response.hasData() // check data
-                                ? ok(httpResponse, response)
+                                  ? ok(httpResponse, response)
                                   : noContent(httpResponse, response));
             })
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
@@ -271,14 +270,12 @@ public class HttpGatewayAcceptor
     return Arrays.stream(queryString.split("&"))
         .map(s -> s.split("=", 2))
         .filter(parts -> parts.length == 2)
-        .collect(Collectors.groupingBy(
-            arr -> normalizeQueryKey(arr[0]),
-            LinkedHashMap::new,
-            Collectors.mapping(
-                arr -> decodeUrl(arr.length > 1 ? arr[1] : ""),
-                Collectors.joining(",")
-            )
-        ));
+        .collect(
+            Collectors.groupingBy(
+                arr -> normalizeQueryKey(arr[0]),
+                LinkedHashMap::new,
+                Collectors.mapping(
+                    arr -> decodeUrl(arr.length > 1 ? arr[1] : ""), Collectors.joining(","))));
   }
 
   private static String normalizeQueryKey(String key) {
