@@ -9,6 +9,10 @@ public interface HttpGatewayMessageHandler {
 
   HttpGatewayMessageHandler DEFAULT_INSTANCE = new HttpGatewayMessageHandler() {};
 
+  default ServiceMessage mapMessage(HttpServerRequest request, ServiceMessage message) {
+    return message;
+  }
+
   default void onRequest(HttpServerRequest request, ByteBuf content, ServiceMessage message) {}
 
   default void onResponse(HttpServerResponse response, ByteBuf content, ServiceMessage message) {}

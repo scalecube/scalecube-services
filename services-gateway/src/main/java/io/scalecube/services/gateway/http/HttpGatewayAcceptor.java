@@ -195,7 +195,9 @@ public class HttpGatewayAcceptor
         .flatMap(
             data -> {
               final var message =
-                  toMessage(httpRequest, builder -> builder.headers(principal).data(data));
+                  messageHandler.mapMessage(
+                      httpRequest,
+                      toMessage(httpRequest, builder -> builder.headers(principal).data(data)));
 
               messageHandler.onRequest(httpRequest, data, message);
 
@@ -268,14 +270,12 @@ public class HttpGatewayAcceptor
     return Arrays.stream(queryString.split("&"))
         .map(s -> s.split("=", 2))
         .filter(parts -> parts.length == 2)
-        .collect(Collectors.groupingBy(
-            arr -> normalizeQueryKey(arr[0]),
-            LinkedHashMap::new,
-            Collectors.mapping(
-                arr -> decodeUrl(arr.length > 1 ? arr[1] : ""),
-                Collectors.joining(",")
-            )
-        ));
+        .collect(
+            Collectors.groupingBy(
+                arr -> normalizeQueryKey(arr[0]),
+                LinkedHashMap::new,
+                Collectors.mapping(
+                    arr -> decodeUrl(arr.length > 1 ? arr[1] : ""), Collectors.joining(","))));
   }
 
   private static String normalizeQueryKey(String key) {
