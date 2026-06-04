@@ -155,7 +155,7 @@ public class HttpGatewayAcceptor
                           response.isError() // check error
                               ? error(httpResponse, response)
                               : response.hasData() // check data
-                                  ? ok(httpResponse, response)
+                                ? ok(httpResponse, response)
                                   : noContent(httpResponse, response))
                   .doFinally(
                       signalType -> {
@@ -195,7 +195,10 @@ public class HttpGatewayAcceptor
         .flatMap(
             data -> {
               final var message =
-                  toMessage(httpRequest, builder -> builder.headers(principal).data(data));
+                  messageHandler.mapMessage(
+                      httpRequest,
+                      toMessage(httpRequest, builder -> builder.headers(principal).data(data))
+                  );
 
               messageHandler.onRequest(httpRequest, data, message);
 
@@ -217,7 +220,7 @@ public class HttpGatewayAcceptor
                           response.isError() // check error
                               ? error(httpResponse, response)
                               : response.hasData() // check data
-                                  ? ok(httpResponse, response)
+                                ? ok(httpResponse, response)
                                   : noContent(httpResponse, response));
             })
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
