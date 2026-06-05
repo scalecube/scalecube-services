@@ -307,7 +307,7 @@ public class HttpGatewayAcceptor
 
   private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
     int code = response.errorType();
-    HttpResponseStatus status = HttpResponseStatus.valueOf(code);
+    httpResponse.status(HttpResponseStatus.valueOf(code));
 
     ByteBuf content =
         response.hasData(ErrorData.class)
@@ -318,7 +318,7 @@ public class HttpGatewayAcceptor
 
     // Send with publisher (defer buffer cleanup to netty)
 
-    return httpResponse.status(status).send(Mono.just(content)).then();
+    return httpResponse.send(Mono.just(content)).then();
   }
 
   private Mono<Void> noContent(HttpServerResponse httpResponse, ServiceMessage response) {
