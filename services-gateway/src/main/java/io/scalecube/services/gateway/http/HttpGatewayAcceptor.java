@@ -58,25 +58,27 @@ public class HttpGatewayAcceptor
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
-  private static final long MAX_SERVICE_MESSAGE_SIZE = 1024 * 1024;
 
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
   private final HttpGatewayMessageHandler messageHandler;
   private final ServiceProviderErrorMapper errorMapper;
   private final HttpGatewayAuthenticator authenticator;
+  private final long maxRequestSize;
 
   public HttpGatewayAcceptor(
       ServiceCall serviceCall,
       ServiceRegistry serviceRegistry,
       HttpGatewayMessageHandler messageHandler,
       ServiceProviderErrorMapper errorMapper,
-      HttpGatewayAuthenticator authenticator) {
+      HttpGatewayAuthenticator authenticator,
+      long maxRequestSize) {
     this.serviceCall = serviceCall;
     this.serviceRegistry = serviceRegistry;
     this.messageHandler = messageHandler;
     this.errorMapper = errorMapper;
     this.authenticator = authenticator;
+    this.maxRequestSize = maxRequestSize;
   }
 
   @Override
@@ -179,12 +181,12 @@ public class HttpGatewayAcceptor
         .reduceWith(
             Unpooled::buffer,
             (reduce, byteBuf) -> {
-              final var readableBytes = reduce.readableBytes();
-              final var limit = MAX_SERVICE_MESSAGE_SIZE;
-              if (readableBytes >= limit) {
+              final int totalBytes = reduce.readableBytes() + byteBuf.readableBytes();
+              final var limit = maxRequestSize;
+              if (totalBytes >= limit) {
                 throw new BadRequestException(
                     "Service message is too large (size: "
-                        + readableBytes
+                        + totalBytes
                         + ", limit: "
                         + limit
                         + ")");
@@ -306,7 +308,7 @@ public class HttpGatewayAcceptor
 
   private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
     int code = response.errorType();
-    HttpResponseStatus status = HttpResponseStatus.valueOf(code);
+    httpResponse.status(HttpResponseStatus.valueOf(code));
 
     ByteBuf content =
         response.hasData(ErrorData.class)
@@ -317,7 +319,7 @@ public class HttpGatewayAcceptor
 
     // Send with publisher (defer buffer cleanup to netty)
 
-    return httpResponse.status(status).send(Mono.just(content)).then();
+    return httpResponse.send(Mono.just(content)).then();
   }
 
   private Mono<Void> noContent(HttpServerResponse httpResponse, ServiceMessage response) {

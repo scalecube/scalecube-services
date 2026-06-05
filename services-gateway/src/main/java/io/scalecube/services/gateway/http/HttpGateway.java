@@ -41,6 +41,7 @@ public class HttpGateway implements Gateway {
   private final boolean corsEnabled;
   private final CorsConfigBuilder corsConfigBuilder;
   private final Consumer<HttpServerFormDecoderProvider.Builder> formDecoderBuilder;
+  private final long maxRequestSize;
 
   private DisposableServer server;
   private LoopResources loopResources;
@@ -55,6 +56,7 @@ public class HttpGateway implements Gateway {
     this.corsEnabled = builder.corsEnabled;
     this.corsConfigBuilder = builder.corsConfigBuilder;
     this.formDecoderBuilder = builder.formDecoderBuilder;
+    this.maxRequestSize = builder.maxRequestSize;
   }
 
   public static Builder builder() {
@@ -88,7 +90,8 @@ public class HttpGateway implements Gateway {
                       serviceRegistry,
                       messageHandler,
                       errorMapper,
-                      authenticator))
+                      authenticator,
+                      maxRequestSize))
               .httpFormDecoder(
                   builder -> {
                     if (formDecoderBuilder != null) {
@@ -147,6 +150,7 @@ public class HttpGateway implements Gateway {
             .maxAge(3600);
     private Consumer<HttpServerFormDecoderProvider.Builder> formDecoderBuilder =
         builder -> builder.maxSize(100 * 1024 * 1024);
+    private long maxRequestSize = 1024 * 1024;
 
     private Builder() {}
 
@@ -229,6 +233,15 @@ public class HttpGateway implements Gateway {
 
     public Builder formDecoderBuilder(Consumer<HttpServerFormDecoderProvider.Builder> consumer) {
       this.formDecoderBuilder = consumer;
+      return this;
+    }
+
+    public long maxRequestSize() {
+      return maxRequestSize;
+    }
+
+    public Builder maxRequestSize(long maxRequestSize) {
+      this.maxRequestSize = maxRequestSize;
       return this;
     }
 
