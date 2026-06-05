@@ -58,25 +58,27 @@ public class HttpGatewayAcceptor
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
   private static final String ERROR_NAMESPACE = "io.scalecube.services.error";
-  private static final long MAX_SERVICE_MESSAGE_SIZE = 1024 * 1024;
 
   private final ServiceCall serviceCall;
   private final ServiceRegistry serviceRegistry;
   private final HttpGatewayMessageHandler messageHandler;
   private final ServiceProviderErrorMapper errorMapper;
   private final HttpGatewayAuthenticator authenticator;
+  private final long maxRequestSize;
 
   public HttpGatewayAcceptor(
       ServiceCall serviceCall,
       ServiceRegistry serviceRegistry,
       HttpGatewayMessageHandler messageHandler,
       ServiceProviderErrorMapper errorMapper,
-      HttpGatewayAuthenticator authenticator) {
+      HttpGatewayAuthenticator authenticator,
+      long maxRequestSize) {
     this.serviceCall = serviceCall;
     this.serviceRegistry = serviceRegistry;
     this.messageHandler = messageHandler;
     this.errorMapper = errorMapper;
     this.authenticator = authenticator;
+    this.maxRequestSize = maxRequestSize;
   }
 
   @Override
@@ -179,14 +181,13 @@ public class HttpGatewayAcceptor
         .reduceWith(
             Unpooled::buffer,
             (reduce, byteBuf) -> {
-              final var readableBytes = reduce.readableBytes();
-              final var limit = MAX_SERVICE_MESSAGE_SIZE;
-              if (readableBytes >= limit) {
+              final var totalBytes = reduce.readableBytes() + byteBuf.readableBytes();
+              if (totalBytes >= maxRequestSize) {
                 throw new BadRequestException(
                     "Service message is too large (size: "
-                        + readableBytes
+                        + totalBytes
                         + ", limit: "
-                        + limit
+                        + maxRequestSize
                         + ")");
               }
               return reduce.writeBytes(byteBuf);

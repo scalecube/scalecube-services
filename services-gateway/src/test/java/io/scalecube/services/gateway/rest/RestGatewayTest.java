@@ -15,6 +15,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.examples.GreetingServiceImpl;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.gateway.client.http.HttpGatewayClientTransport;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
@@ -54,7 +55,7 @@ public class RestGatewayTest {
                             .options(opts -> opts.metadata(serviceEndpoint)))
                 .transport(RSocketServiceTransport::new)
                 .defaultLogger("gateway")
-                .gateway(() -> HttpGateway.builder().id("HTTP").build())
+                .gateway(() -> HttpGateway.builder().id("HTTP").maxRequestSize(60_000).build())
                 .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
     gatewayAddress = Address.from("localhost:" + gateway.gateway("HTTP").address().port());
@@ -305,7 +306,8 @@ public class RestGatewayTest {
               serviceCall.requestOne(
                   ServiceMessage.builder()
                       .header("http.method", "GET")
-                      .qualifier("v1/restService/queryParams?x=1&y=2&debug=true&ids[]=1&ids[]=5&statuses=ACTIVE&ids[]=7&statuses=PENDING&foo[]=bar")
+                      .qualifier(
+                          "v1/restService/queryParams?x=1&y=2&debug=true&ids[]=1&ids[]=5&statuses=ACTIVE&ids[]=7&statuses=PENDING&foo[]=bar")
                       .build(),
                   SomeResponse.class))
           .assertNext(
@@ -315,6 +317,30 @@ public class RestGatewayTest {
                 assertNotNull(someResponse.name(), "someResponse.name");
               })
           .verifyComplete();
+    }
+
+    @Test
+    void testMaxRequestSize() {
+      final var param = "post" + System.currentTimeMillis();
+      StepVerifier.create(
+              serviceCall.requestOne(
+                  ServiceMessage.builder()
+                      .header("http.method", "POST")
+                      .qualifier("v1/restService/post/" + param)
+                      .data(new SomeRequest().name("x".repeat(60_001)))
+                      .build(),
+                  SomeResponse.class))
+          .expectErrorSatisfies(
+              th -> {
+                assertEquals(BadRequestException.class, th.getClass(), "error type");
+                final var e = (BadRequestException) th;
+                assertEquals(400, e.errorCode(), "error code");
+                assertEquals(
+                    "Service message is too large (size: 60012, limit: 60000)",
+                    th.getMessage(),
+                    "error message");
+              })
+          .verify();
     }
   }
 
@@ -396,7 +422,8 @@ public class RestGatewayTest {
               ex -> {
                 final var exception = (ServiceUnavailableException) ex;
                 assertEquals(503, exception.errorCode(), "errorCode");
-                assertTrue(exception.getMessage().startsWith("No reachable member with such service"));
+                assertTrue(
+                    exception.getMessage().startsWith("No reachable member with such service"));
               });
     }
 
@@ -410,12 +437,13 @@ public class RestGatewayTest {
       try (final var serviceCall = new ServiceCall().router(router).transport(clientTransport)) {
         StepVerifier.create(serviceCall.api(RoutingService.class).update(new SomeRequest()))
             .expectSubscription()
-                .expectErrorSatisfies(
-                    ex -> {
-                      final var exception = (ServiceUnavailableException) ex;
-                      assertEquals(503, exception.errorCode());
-                      assertTrue(exception.getMessage().startsWith("No reachable member with such service"));
-                    })
+            .expectErrorSatisfies(
+                ex -> {
+                  final var exception = (ServiceUnavailableException) ex;
+                  assertEquals(503, exception.errorCode());
+                  assertTrue(
+                      exception.getMessage().startsWith("No reachable member with such service"));
+                })
             .verify(Duration.ofSeconds(3));
       }
     }
