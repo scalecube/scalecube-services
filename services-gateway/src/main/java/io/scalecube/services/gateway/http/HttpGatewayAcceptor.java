@@ -181,14 +181,13 @@ public class HttpGatewayAcceptor
         .reduceWith(
             Unpooled::buffer,
             (reduce, byteBuf) -> {
-              final int totalBytes = reduce.readableBytes() + byteBuf.readableBytes();
-              final var limit = maxRequestSize;
-              if (totalBytes >= limit) {
+              final var totalBytes = reduce.readableBytes() + byteBuf.readableBytes();
+              if (totalBytes >= maxRequestSize) {
                 throw new BadRequestException(
                     "Service message is too large (size: "
                         + totalBytes
                         + ", limit: "
-                        + limit
+                        + maxRequestSize
                         + ")");
               }
               return reduce.writeBytes(byteBuf);
