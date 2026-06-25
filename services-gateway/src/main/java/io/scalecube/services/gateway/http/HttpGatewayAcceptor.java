@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
+import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
@@ -90,6 +91,8 @@ public class HttpGatewayAcceptor
     if (!SUPPORTED_METHODS.contains(httpRequest.method())) {
       return methodNotAllowed(httpResponse);
     }
+
+    httpResponse.addHeader(CONTENT_TYPE, "application/json; charset=utf-8");
 
     return Mono.defer(() -> authenticator.authenticate(httpRequest))
         .materialize()

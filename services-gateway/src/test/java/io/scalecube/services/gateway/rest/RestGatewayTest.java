@@ -122,6 +122,7 @@ public class RestGatewayTest {
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
+                assertResponseHeaders(message);
                 assertNotNull(someResponse, "data");
                 assertEquals(param, someResponse.name(), "someResponse.name");
               })
@@ -141,7 +142,7 @@ public class RestGatewayTest {
           .assertNext(
               message -> {
                 final var someResponse = message.<SomeResponse>data();
-                assertNotNull(someResponse, "data");
+                assertResponseHeaders(message);
                 assertEquals(param, someResponse.name(), "someResponse.name");
               })
           .verifyComplete();
@@ -167,6 +168,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 assertNull(message.data(), "data"); // this is HEAD
                 assertNotNull(message.headers(), "headers");
                 assertFalse(message.headers().containsKey(HEADER_ERROR_TYPE));
@@ -188,6 +190,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 final var someResponse = message.<SomeResponse>data();
                 assertNotNull(someResponse, "data");
                 assertEquals(name, someResponse.name(), "someResponse.name");
@@ -209,6 +212,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 final var someResponse = message.<SomeResponse>data();
                 assertNotNull(someResponse, "data");
                 assertEquals(name, someResponse.name(), "someResponse.name");
@@ -230,6 +234,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 final var someResponse = message.<SomeResponse>data();
                 assertNotNull(someResponse, "data");
                 assertEquals(name, someResponse.name(), "someResponse.name");
@@ -251,6 +256,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 final var someResponse = message.<SomeResponse>data();
                 assertNotNull(someResponse, "data");
                 assertEquals(param, someResponse.name(), "someResponse.name");
@@ -270,6 +276,7 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
+                assertResponseHeaders(message);
                 final var someResponse = message.<SomeResponse>data();
                 assertNotNull(someResponse, "data");
                 assertEquals(param, someResponse.name(), "someResponse.name");
@@ -341,6 +348,10 @@ public class RestGatewayTest {
                     "error message");
               })
           .verify();
+    }
+
+    static private void assertResponseHeaders(ServiceMessage response) {
+      assertEquals("application/json; charset=utf-8", response.headers().get("content-type"), "content-type header");
     }
   }
 
