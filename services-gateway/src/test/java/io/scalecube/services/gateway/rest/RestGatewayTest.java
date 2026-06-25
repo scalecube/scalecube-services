@@ -141,8 +141,9 @@ public class RestGatewayTest {
                   SomeResponse.class))
           .assertNext(
               message -> {
-                final var someResponse = message.<SomeResponse>data();
                 assertResponseHeaders(message);
+                final var someResponse = message.<SomeResponse>data();
+                assertNotNull(someResponse, "data");
                 assertEquals(param, someResponse.name(), "someResponse.name");
               })
           .verifyComplete();
@@ -350,8 +351,11 @@ public class RestGatewayTest {
           .verify();
     }
 
-    static private void assertResponseHeaders(ServiceMessage response) {
-      assertEquals("application/json; charset=utf-8", response.headers().get("content-type"), "content-type header");
+    private static void assertResponseHeaders(ServiceMessage response) {
+      assertEquals(
+          "application/json; charset=utf-8",
+          response.headers().get("content-type"),
+          "content-type header");
     }
   }
 
