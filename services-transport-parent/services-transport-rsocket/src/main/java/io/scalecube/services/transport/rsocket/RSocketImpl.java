@@ -74,7 +74,7 @@ public class RSocketImpl implements RSocket {
                               .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
-        .handle(this::encodeStreamPayload)
+        .transform(this::encodeStream)
         .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred", ex));
   }
 
@@ -96,7 +96,7 @@ public class RSocketImpl implements RSocket {
               }
               return messages;
             })
-        .handle(this::encodeStreamPayload)
+        .transform(this::encodeStream)
         .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred", ex));
   }
 
@@ -134,6 +134,17 @@ public class RSocketImpl implements RSocket {
     } catch (MessageTooLargeException ex) {
       return toErrorPayload(response, ex);
     }
+  }
+
+  /**
+   * Stream encoder. With no watermark this is a plain {@code map} — identical to the prior behavior,
+   * so existing streaming calls are unaffected. Only when a watermark is set does it switch to {@code
+   * handle}, so an oversized element can terminate the stream with a {@code 413}.
+   */
+  private Flux<Payload> encodeStream(Flux<ServiceMessage> responses) {
+    return maxMessageSize > 0
+        ? responses.handle(this::encodeStreamPayload)
+        : responses.map(this::toPayload);
   }
 
   /**
