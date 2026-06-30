@@ -16,6 +16,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.JdkCodec;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
@@ -87,23 +88,59 @@ public final class ServiceMessageCodec {
   public <T> T encodeAndTransform(
       ServiceMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer)
       throws MessageCodecException {
+    return encodeAndTransform(message, 0, transformer);
+  }
+
+  /**
+   * Encode a message, transform it to T, bounding the encoded data size.
+   *
+   * @param message the message to transform
+   * @param maxMessageSize maximum encoded data size in bytes; when {@code > 0}, encoding aborts with
+   *     {@link MessageTooLargeException} as soon as it would exceed this size (so an oversized
+   *     message is never fully materialized), {@code 0} means unbounded
+   * @param transformer a function that accepts data and header {@link ByteBuf} and return the
+   *     required T
+   * @return the object (transformed message)
+   * @throws MessageTooLargeException when the encoded data would exceed {@code maxMessageSize}
+   * @throws MessageCodecException when encoding cannot be done.
+   */
+  public <T> T encodeAndTransform(
+      ServiceMessage message, int maxMessageSize, BiFunction<ByteBuf, ByteBuf, T> transformer)
+      throws MessageCodecException {
     final var bufAllocator = ByteBufAllocator.DEFAULT;
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
     if (message.hasData(ByteBuf.class)) {
       dataBuffer = message.data();
+      if (maxMessageSize > 0 && dataBuffer.readableBytes() > maxMessageSize) {
+        safestRelease(dataBuffer);
+        throw new MessageTooLargeException(
+            "Message size exceeds limit (" + maxMessageSize + " bytes)");
+      }
     } else if (message.hasData(byte[].class)) {
       final var bytes = (byte[]) message.data();
+      if (maxMessageSize > 0 && bytes.length > maxMessageSize) {
+        throw new MessageTooLargeException(
+            "Message size exceeds limit (" + maxMessageSize + " bytes)");
+      }
       dataBuffer = bufAllocator.buffer(bytes.length);
       dataBuffer.writeBytes(bytes);
     } else if (message.hasData()) {
       dataBuffer = bufAllocator.buffer();
       try {
         DataCodec dataCodec = getDataCodec(message.dataFormatOrDefault());
-        dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
+        OutputStream outputStream = new ByteBufOutputStream(dataBuffer);
+        if (maxMessageSize > 0) {
+          outputStream = new LimitedOutputStream(outputStream, maxMessageSize);
+        }
+        dataCodec.encode(outputStream, message.data());
       } catch (Throwable ex) {
         safestRelease(dataBuffer);
+        final var tooLarge = findTooLarge(ex);
+        if (tooLarge != null) {
+          throw tooLarge;
+        }
         LOGGER.error(
             "Failed to encode service message data on: {}, cause: {}", message, ex.toString());
         throw new MessageCodecException("Failed to encode service message data", ex);
@@ -199,5 +236,17 @@ public final class ServiceMessageCodec {
     Objects.requireNonNull(contentType, "contentType");
     DataCodec dataCodec = dataCodecs.get(contentType);
     return Objects.requireNonNull(dataCodec, "dataCodec");
+  }
+
+  private static MessageTooLargeException findTooLarge(Throwable ex) {
+    for (Throwable t = ex; t != null; t = t.getCause()) {
+      if (t instanceof MessageTooLargeException tooLarge) {
+        return tooLarge;
+      }
+      if (t.getCause() == t) {
+        break;
+      }
+    }
+    return null;
   }
 }

@@ -16,16 +16,22 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
+  // RSocket 24-bit frame-length cap. maxInboundPayloadSize must be >= this (a reassembly buffer must
+  // hold at least one full frame), so the inbound cap is only meaningful when the watermark is >= it.
+  private static final int MAX_FRAME_LENGTH = 0xFFFFFF;
+
   private final Authenticator authenticator;
   private final ServiceRegistry serviceRegistry;
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
   private final RSocketServerTransportFactory serverTransportFactory;
+  private final int mtu;
+  private final int maxMessageSize;
 
   private CloseableChannel serverChannel; // calculated
 
   /**
-   * Constructor for this server transport.
+   * Constructor for this server transport. Fragmentation is disabled and message size is unbounded.
    *
    * @param authenticator authenticator
    * @param serviceRegistry serviceRegistry
@@ -39,11 +45,40 @@ public class RSocketServerTransport implements ServerTransport {
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       RSocketServerTransportFactory serverTransportFactory) {
+    this(authenticator, serviceRegistry, headersCodec, dataCodecs, serverTransportFactory, 0, 0);
+  }
+
+  /**
+   * Constructor for this server transport.
+   *
+   * @param authenticator authenticator
+   * @param serviceRegistry serviceRegistry
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
+   * @param serverTransportFactory serverTransportFactory
+   * @param mtu fragmentation MTU in bytes; {@code 0} disables fragmentation (see {@link
+   *     io.rsocket.core.RSocketServer#fragment(int)})
+   * @param maxMessageSize maximum message size in bytes; {@code 0} means unbounded. Bounds both the
+   *     encoded response size (responses larger than this fail fast with {@link
+   *     MessageTooLargeException} instead of being framed) and inbound reassembly (see {@link
+   *     io.rsocket.core.RSocketServer#maxInboundPayloadSize(int)}), preventing OOM in either
+   *     direction.
+   */
+  public RSocketServerTransport(
+      Authenticator authenticator,
+      ServiceRegistry serviceRegistry,
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      RSocketServerTransportFactory serverTransportFactory,
+      int mtu,
+      int maxMessageSize) {
     this.authenticator = authenticator;
     this.serviceRegistry = serviceRegistry;
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.serverTransportFactory = serverTransportFactory;
+    this.mtu = mtu;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -56,14 +91,19 @@ public class RSocketServerTransport implements ServerTransport {
   @Override
   public ServerTransport bind() {
     try {
-      serverChannel =
+      final var rsocketServer =
           RSocketServer.create()
               .acceptor(
                   new RSocketServiceAcceptor(
-                      headersCodec, dataCodecs, authenticator, serviceRegistry))
-              .bind(serverTransportFactory.serverTransport())
-              .toFuture()
-              .get();
+                      headersCodec, dataCodecs, authenticator, serviceRegistry, maxMessageSize));
+      if (mtu > 0) {
+        rsocketServer.fragment(mtu);
+      }
+      if (maxMessageSize >= MAX_FRAME_LENGTH) {
+        rsocketServer.maxInboundPayloadSize(maxMessageSize);
+      }
+      serverChannel =
+          rsocketServer.bind(serverTransportFactory.serverTransport()).toFuture().get();
       return this;
     } catch (Exception e) {
       throw new RuntimeException(e);

@@ -8,6 +8,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -24,12 +25,22 @@ public class RSocketImpl implements RSocket {
   private final Principal principal;
   private final ServiceMessageCodec messageCodec;
   private final ServiceRegistry serviceRegistry;
+  private final int maxMessageSize;
 
   public RSocketImpl(
       Principal principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+    this(principal, messageCodec, serviceRegistry, 0);
+  }
+
+  public RSocketImpl(
+      Principal principal,
+      ServiceMessageCodec messageCodec,
+      ServiceRegistry serviceRegistry,
+      int maxMessageSize) {
     this.principal = principal;
     this.messageCodec = messageCodec;
     this.serviceRegistry = serviceRegistry;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -101,7 +112,15 @@ public class RSocketImpl implements RSocket {
   }
 
   private Payload toPayload(ServiceMessage response) {
-    return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+    try {
+      return messageCodec.encodeAndTransform(response, maxMessageSize, ByteBufPayload::create);
+    } catch (MessageTooLargeException ex) {
+      // The streaming encoder aborted because the response crossed the watermark: fail fast with a
+      // business error (413) instead of attempting to frame/fragment it. The oversized payload was
+      // never fully materialized, so this cannot OOM the responder.
+      final var errorMessage = DefaultErrorMapper.INSTANCE.toMessage(response.qualifier(), ex);
+      return messageCodec.encodeAndTransform(errorMessage, ByteBufPayload::create);
+    }
   }
 
   private ServiceMessage toMessage(Payload payload) {
