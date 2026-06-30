@@ -27,10 +27,6 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  // RSocket 24-bit frame-length cap. maxInboundPayloadSize must be >= this (a reassembly buffer must
-  // hold at least one full frame), so the inbound cap is only meaningful when the watermark is >= it.
-  private static final int MAX_FRAME_LENGTH = 0xFFFFFF;
-
   private final Map<Destination, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
 
   private final HeadersCodec headersCodec;
@@ -140,7 +136,7 @@ public class RSocketClientTransport implements ClientTransport {
     if (mtu > 0) {
       connector.fragment(mtu);
     }
-    if (maxMessageSize >= MAX_FRAME_LENGTH) {
+    if (maxMessageSize >= RSocketConstants.MAX_FRAME_LENGTH) {
       connector.maxInboundPayloadSize(maxMessageSize);
     }
     return connector

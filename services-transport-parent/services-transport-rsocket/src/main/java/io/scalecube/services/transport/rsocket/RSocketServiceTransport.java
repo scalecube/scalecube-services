@@ -183,13 +183,25 @@ public class RSocketServiceTransport implements ServiceTransport {
   /**
    * Setter for {@code mtu} (fragmentation MTU, in bytes). RSocket frames larger than this are
    * fragmented on send and reassembled on receive; {@code 0} (the default) disables fragmentation.
-   * Set it below the RSocket single-frame cap ({@code 2^24 - 1} bytes) to allow payloads larger
-   * than a single frame. Applies to both the client and server transports.
+   * Applies to both the client and server transports. A non-zero value must be in {@code [64,
+   * 2^24-1)} (RSocket's minimum fragment size, and below the single-frame cap); other values are
+   * rejected up front rather than failing deep inside RSocket at bind/connect.
    *
-   * @param mtu fragmentation MTU in bytes ({@code 0} disables fragmentation)
+   * @param mtu fragmentation MTU in bytes ({@code 0} disables fragmentation, otherwise {@code [64,
+   *     2^24-1)})
    * @return new {@link RSocketServiceTransport} instance
+   * @throws IllegalArgumentException if {@code mtu} is non-zero and outside {@code [64, 2^24-1)}
    */
   public RSocketServiceTransport mtu(int mtu) {
+    if (mtu != 0 && (mtu < RSocketConstants.MIN_MTU || mtu >= RSocketConstants.MAX_FRAME_LENGTH)) {
+      throw new IllegalArgumentException(
+          "mtu must be 0 or in ["
+              + RSocketConstants.MIN_MTU
+              + ", "
+              + RSocketConstants.MAX_FRAME_LENGTH
+              + "): "
+              + mtu);
+    }
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
     rst.mtu = mtu;
     return rst;
@@ -205,14 +217,27 @@ public class RSocketServiceTransport implements ServiceTransport {
    * inbound reassembly is additionally capped at the same size (see {@link
    * io.rsocket.core.RSocketServer#maxInboundPayloadSize(int)}), preventing OOM on the receiver; RSocket
    * forbids an inbound cap below the frame size (a single frame must always fit), so a watermark below
-   * the frame cap bounds only the outbound encode. {@code 0} (the default) means unbounded. Set it
-   * above the single-frame cap and pair it with {@link #mtu(int)} to allow legitimately large
-   * (fragmented) responses up to the watermark while still rejecting anything beyond it.
+   * the frame cap bounds only the outbound encode (so to cap what you <em>receive</em>, the value
+   * must be {@code >=} the frame cap). {@code 0} (the default) means unbounded. Set it above the
+   * single-frame cap and pair it with {@link #mtu(int)} to allow legitimately large (fragmented)
+   * responses up to the watermark while still rejecting anything beyond it.
+   *
+   * <p>Two caveats. (1) Because the limit counts only the encoded data, a value near the frame cap
+   * <em>without</em> {@link #mtu(int)} can still overflow the real single-frame limit (data +
+   * headers + framing) and surface the cryptic RSocket {@code CanceledException} this is meant to
+   * replace; to use it as a {@code CanceledException} replacement without fragmentation, keep it
+   * safely below the frame cap. (2) The {@code 413} does not surface as an error on {@code
+   * byte[]}-typed service methods (the client decodes a {@code byte[]} response before checking the
+   * error flag) until that separate fix lands.
    *
    * @param maxMessageSize maximum message size in bytes ({@code 0} means unbounded)
    * @return new {@link RSocketServiceTransport} instance
+   * @throws IllegalArgumentException if {@code maxMessageSize} is negative
    */
   public RSocketServiceTransport maxMessageSize(int maxMessageSize) {
+    if (maxMessageSize < 0) {
+      throw new IllegalArgumentException("maxMessageSize must be >= 0: " + maxMessageSize);
+    }
     RSocketServiceTransport rst = new RSocketServiceTransport(this);
     rst.maxMessageSize = maxMessageSize;
     return rst;

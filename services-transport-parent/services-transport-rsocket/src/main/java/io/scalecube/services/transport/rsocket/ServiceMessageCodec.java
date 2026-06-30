@@ -115,14 +115,12 @@ public final class ServiceMessageCodec {
       dataBuffer = message.data();
       if (maxMessageSize > 0 && dataBuffer.readableBytes() > maxMessageSize) {
         safestRelease(dataBuffer);
-        throw new MessageTooLargeException(
-            "Message size exceeds limit (" + maxMessageSize + " bytes)");
+        throw MessageTooLargeException.of(maxMessageSize);
       }
     } else if (message.hasData(byte[].class)) {
       final var bytes = (byte[]) message.data();
       if (maxMessageSize > 0 && bytes.length > maxMessageSize) {
-        throw new MessageTooLargeException(
-            "Message size exceeds limit (" + maxMessageSize + " bytes)");
+        throw MessageTooLargeException.of(maxMessageSize);
       }
       dataBuffer = bufAllocator.buffer(bytes.length);
       dataBuffer.writeBytes(bytes);

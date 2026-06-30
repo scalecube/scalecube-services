@@ -16,4 +16,15 @@ public class MessageTooLargeException extends InternalServiceException {
   public MessageTooLargeException(String message) {
     super(ERROR_CODE, message);
   }
+
+  /**
+   * Creates an exception with the canonical message for a given limit. Single source of the message
+   * text so it is asserted in exactly one place.
+   *
+   * @param maxMessageSize the limit that was exceeded, in bytes
+   * @return new {@link MessageTooLargeException}
+   */
+  public static MessageTooLargeException of(long maxMessageSize) {
+    return new MessageTooLargeException("Message size exceeds limit (" + maxMessageSize + " bytes)");
+  }
 }

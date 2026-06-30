@@ -18,6 +18,8 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -83,6 +85,11 @@ final class RSocketLargePayloadTest {
 
   private Microservices service;
   private ServiceCall serviceCall;
+
+  @AfterAll
+  static void afterAll() {
+    LOOP_RESOURCE.disposeLater().block(TIMEOUT);
+  }
 
   @AfterEach
   void afterEach() {
@@ -239,6 +246,43 @@ final class RSocketLargePayloadTest {
         .verify(TIMEOUT);
   }
 
+  @Test
+  @DisplayName("stream: an oversized element terminates the stream with a 413")
+  void oversizedStreamElementTerminatesWith413() {
+    final var api = payloadService(0, WATERMARK, 0);
+
+    // 3 small elements are delivered, then the oversized 4th terminates the stream with the 413 —
+    // the responder stops there rather than encoding and sending anything after it.
+    StepVerifier.create(api.streamMixed(3))
+        .expectNextCount(3)
+        .expectErrorSatisfies(
+            ex -> {
+              final var se = assertInstanceOf(ServiceException.class, ex);
+              assertEquals(413, se.errorCode());
+              assertTrue(se.getMessage().contains("exceeds limit"), "unexpected: " + ex);
+            })
+        .verify(TIMEOUT);
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // known gap (pinned, see ADR) — byte[] return types swallow the 413
+  // ---------------------------------------------------------------------------------------------
+
+  @Test
+  @DisplayName("known gap: a byte[]-typed method receives the 413 as raw bytes, not an error")
+  void byteArrayReturnSwallowsBusinessError() {
+    final var api = payloadService(0, WATERMARK, 0);
+
+    // Pre-existing scalecube quirk: ServiceMessageCodec.decodeData decodes a byte[]-typed response
+    // before checking isError(), so the 413 error body is handed to the caller as raw bytes with no
+    // exception. Pinned here so the gap is visible; flip this assertion when the isError-before-byte[]
+    // fix lands (tracked as a separate PR in the ADR).
+    final byte[] result = api.getPayload(WATERMARK + 1).block(TIMEOUT);
+    assertNotNull(result);
+    final String leaked = new String(result, StandardCharsets.UTF_8);
+    assertTrue(leaked.contains("exceeds limit"), "expected leaked error body, got: " + leaked);
+  }
+
   // ---------------------------------------------------------------------------------------------
   // harness
   // ---------------------------------------------------------------------------------------------
@@ -314,6 +358,10 @@ final class RSocketLargePayloadTest {
     /** Same data, streamed one item per frame. */
     @ServiceMethod("items/stream")
     Flux<Item> streamItems(Integer count);
+
+    /** Emits {@code smallCount} small elements, then one element larger than the watermark. */
+    @ServiceMethod("stream/mixed")
+    Flux<String> streamMixed(Integer smallCount);
   }
 
   public static class PayloadServiceImpl implements PayloadService {
@@ -343,6 +391,13 @@ final class RSocketLargePayloadTest {
     @Override
     public Flux<Item> streamItems(Integer count) {
       return Flux.fromIterable(items(count));
+    }
+
+    @Override
+    public Flux<String> streamMixed(Integer smallCount) {
+      return Flux.concat(
+          Flux.range(0, smallCount).map(i -> "x".repeat(64)),
+          Flux.just("x".repeat(1024 * 1024))); // 1 MiB element, far above the KB-scale watermark
     }
 
     private static List<Item> items(int count) {

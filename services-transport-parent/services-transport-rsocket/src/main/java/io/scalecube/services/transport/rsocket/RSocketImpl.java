@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 public class RSocketImpl implements RSocket {
 
@@ -56,7 +57,7 @@ public class RSocketImpl implements RSocket {
                               .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
-        .map(this::toPayload)
+        .map(this::toResponsePayload)
         .doOnError(ex -> LOGGER.error("[requestResponse] Exception occurred", ex));
   }
 
@@ -73,7 +74,7 @@ public class RSocketImpl implements RSocket {
                               .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
-        .map(this::toPayload)
+        .handle(this::encodeStreamPayload)
         .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred", ex));
   }
 
@@ -95,7 +96,7 @@ public class RSocketImpl implements RSocket {
               }
               return messages;
             })
-        .map(this::toPayload)
+        .handle(this::encodeStreamPayload)
         .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred", ex));
   }
 
@@ -111,15 +112,41 @@ public class RSocketImpl implements RSocket {
         .doOnError(ex -> safestRelease(message.data()));
   }
 
+  /** Encodes a response payload; throws {@link MessageTooLargeException} if it crosses the limit. */
   private Payload toPayload(ServiceMessage response) {
+    return messageCodec.encodeAndTransform(response, maxMessageSize, ByteBufPayload::create);
+  }
+
+  /**
+   * Builds a {@code 413} business-error payload for a response that exceeded the limit. The
+   * oversized payload was never fully materialized (the streaming encoder aborted), so this cannot
+   * OOM the responder.
+   */
+  private Payload toErrorPayload(ServiceMessage response, MessageTooLargeException ex) {
+    final var errorMessage = DefaultErrorMapper.INSTANCE.toMessage(response.qualifier(), ex);
+    return messageCodec.encodeAndTransform(errorMessage, ByteBufPayload::create);
+  }
+
+  /** request-response: an oversized response becomes the single {@code 413} reply. */
+  private Payload toResponsePayload(ServiceMessage response) {
     try {
-      return messageCodec.encodeAndTransform(response, maxMessageSize, ByteBufPayload::create);
+      return toPayload(response);
     } catch (MessageTooLargeException ex) {
-      // The streaming encoder aborted because the response crossed the watermark: fail fast with a
-      // business error (413) instead of attempting to frame/fragment it. The oversized payload was
-      // never fully materialized, so this cannot OOM the responder.
-      final var errorMessage = DefaultErrorMapper.INSTANCE.toMessage(response.qualifier(), ex);
-      return messageCodec.encodeAndTransform(errorMessage, ByteBufPayload::create);
+      return toErrorPayload(response, ex);
+    }
+  }
+
+  /**
+   * request-stream / request-channel: an oversized element terminates the stream with a {@code 413}
+   * — the error is emitted and the stream is completed, so the responder stops producing instead of
+   * encoding and sending the remaining elements.
+   */
+  private void encodeStreamPayload(ServiceMessage response, SynchronousSink<Payload> sink) {
+    try {
+      sink.next(toPayload(response));
+    } catch (MessageTooLargeException ex) {
+      sink.next(toErrorPayload(response, ex));
+      sink.complete();
     }
   }
 

@@ -16,10 +16,6 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  // RSocket 24-bit frame-length cap. maxInboundPayloadSize must be >= this (a reassembly buffer must
-  // hold at least one full frame), so the inbound cap is only meaningful when the watermark is >= it.
-  private static final int MAX_FRAME_LENGTH = 0xFFFFFF;
-
   private final Authenticator authenticator;
   private final ServiceRegistry serviceRegistry;
   private final HeadersCodec headersCodec;
@@ -99,7 +95,7 @@ public class RSocketServerTransport implements ServerTransport {
       if (mtu > 0) {
         rsocketServer.fragment(mtu);
       }
-      if (maxMessageSize >= MAX_FRAME_LENGTH) {
+      if (maxMessageSize >= RSocketConstants.MAX_FRAME_LENGTH) {
         rsocketServer.maxInboundPayloadSize(maxMessageSize);
       }
       serverChannel =

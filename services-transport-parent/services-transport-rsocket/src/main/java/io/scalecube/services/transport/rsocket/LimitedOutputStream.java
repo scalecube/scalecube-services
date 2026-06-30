@@ -36,7 +36,7 @@ final class LimitedOutputStream extends FilterOutputStream {
 
   private void ensureCapacity(int n) {
     if (written + n > limit) {
-      throw new MessageTooLargeException("Message size exceeds limit (" + limit + " bytes)");
+      throw MessageTooLargeException.of(limit);
     }
   }
 }
