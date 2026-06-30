@@ -196,10 +196,12 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   /**
-   * Setter for {@code maxMessageSize} (the high-watermark, in bytes). When {@code > 0}, this is the
-   * maximum size of a single encoded message: an outbound message larger than this fails fast while
-   * encoding with a {@code 413} service error (never framed, fragmented, or fully buffered),
-   * preventing OOM on the sender. When it is also {@code >=} the single-frame cap ({@code 2^24 - 1}),
+   * Setter for {@code maxMessageSize} (the high-watermark, in bytes). When {@code > 0}, this bounds
+   * the encoded <em>data</em> payload of a single message (the message's headers/metadata are not
+   * counted toward the limit, so the full on-wire payload is slightly larger): an outbound message
+   * whose encoded data exceeds this fails fast while encoding with a {@code 413} service error
+   * (never framed, fragmented, or fully buffered), preventing OOM on the sender. When it is also
+   * {@code >=} the single-frame cap ({@code 2^24 - 1}),
    * inbound reassembly is additionally capped at the same size (see {@link
    * io.rsocket.core.RSocketServer#maxInboundPayloadSize(int)}), preventing OOM on the receiver; RSocket
    * forbids an inbound cap below the frame size (a single frame must always fit), so a watermark below

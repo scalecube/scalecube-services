@@ -101,6 +101,13 @@ and composes with this one.
     encoding; pagination/streaming at the service is still required for truly unbounded queries.
   - `maxMessageSize` used as an inbound cap must be `>=` the 16 MB frame cap; smaller values bound
     only the outbound encode (documented on the setter).
+  - The limit is on the encoded **data** payload, not the full RSocket payload — a message's
+    headers/metadata are not counted, so the on-wire payload is slightly larger than the watermark.
+  - The encode-time `413` is shaped by `DefaultErrorMapper`, not a service's configured
+    `ServiceProviderErrorMapper`: the error arises in the transport (`RSocketImpl`), below the method
+    invoker that holds the configured mapper. A service with a custom provider error mapper will see
+    this one error use the default shape. Plumbing the configured mapper into the transport is a
+    possible follow-up if it ever matters.
   - Pre-existing, out-of-scope: a `Mono<byte[]>` service method cannot receive error responses —
     `ServiceMessageCodec.decodeData` decodes a `byte[]`-typed response before checking `isError()`,
     so the client gets the error bytes as a value. Tracked for a separate PR (move the `isError`
