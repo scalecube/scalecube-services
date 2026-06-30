@@ -8,6 +8,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.auth.Principal;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SynchronousSink;
 
 public class RSocketImpl implements RSocket {
 
@@ -24,12 +26,22 @@ public class RSocketImpl implements RSocket {
   private final Principal principal;
   private final ServiceMessageCodec messageCodec;
   private final ServiceRegistry serviceRegistry;
+  private final int maxMessageSize;
 
   public RSocketImpl(
       Principal principal, ServiceMessageCodec messageCodec, ServiceRegistry serviceRegistry) {
+    this(principal, messageCodec, serviceRegistry, 0);
+  }
+
+  public RSocketImpl(
+      Principal principal,
+      ServiceMessageCodec messageCodec,
+      ServiceRegistry serviceRegistry,
+      int maxMessageSize) {
     this.principal = principal;
     this.messageCodec = messageCodec;
     this.serviceRegistry = serviceRegistry;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -45,7 +57,7 @@ public class RSocketImpl implements RSocket {
                               .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
-        .map(this::toPayload)
+        .map(this::toResponsePayload)
         .doOnError(ex -> LOGGER.error("[requestResponse] Exception occurred", ex));
   }
 
@@ -62,7 +74,7 @@ public class RSocketImpl implements RSocket {
                               .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
-        .map(this::toPayload)
+        .transform(this::encodeStream)
         .doOnError(ex -> LOGGER.error("[requestStream] Exception occurred", ex));
   }
 
@@ -84,7 +96,7 @@ public class RSocketImpl implements RSocket {
               }
               return messages;
             })
-        .map(this::toPayload)
+        .transform(this::encodeStream)
         .doOnError(ex -> LOGGER.error("[requestChannel] Exception occurred", ex));
   }
 
@@ -100,8 +112,53 @@ public class RSocketImpl implements RSocket {
         .doOnError(ex -> safestRelease(message.data()));
   }
 
+  /** Encodes a response payload; throws {@link MessageTooLargeException} if it crosses the limit. */
   private Payload toPayload(ServiceMessage response) {
-    return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+    return messageCodec.encodeAndTransform(response, maxMessageSize, ByteBufPayload::create);
+  }
+
+  /**
+   * Builds a {@code 413} business-error payload for a response that exceeded the limit. The
+   * oversized payload was never fully materialized (the streaming encoder aborted), so this cannot
+   * OOM the responder.
+   */
+  private Payload toErrorPayload(ServiceMessage response, MessageTooLargeException ex) {
+    final var errorMessage = DefaultErrorMapper.INSTANCE.toMessage(response.qualifier(), ex);
+    return messageCodec.encodeAndTransform(errorMessage, ByteBufPayload::create);
+  }
+
+  /** request-response: an oversized response becomes the single {@code 413} reply. */
+  private Payload toResponsePayload(ServiceMessage response) {
+    try {
+      return toPayload(response);
+    } catch (MessageTooLargeException ex) {
+      return toErrorPayload(response, ex);
+    }
+  }
+
+  /**
+   * Stream encoder. With no watermark this is a plain {@code map} — identical to the prior behavior,
+   * so existing streaming calls are unaffected. Only when a watermark is set does it switch to {@code
+   * handle}, so an oversized element can terminate the stream with a {@code 413}.
+   */
+  private Flux<Payload> encodeStream(Flux<ServiceMessage> responses) {
+    return maxMessageSize > 0
+        ? responses.handle(this::encodeStreamPayload)
+        : responses.map(this::toPayload);
+  }
+
+  /**
+   * request-stream / request-channel: an oversized element terminates the stream with a {@code 413}
+   * — the error is emitted and the stream is completed, so the responder stops producing instead of
+   * encoding and sending the remaining elements.
+   */
+  private void encodeStreamPayload(ServiceMessage response, SynchronousSink<Payload> sink) {
+    try {
+      sink.next(toPayload(response));
+    } catch (MessageTooLargeException ex) {
+      sink.next(toErrorPayload(response, ex));
+      sink.complete();
+    }
   }
 
   private ServiceMessage toMessage(Payload payload) {

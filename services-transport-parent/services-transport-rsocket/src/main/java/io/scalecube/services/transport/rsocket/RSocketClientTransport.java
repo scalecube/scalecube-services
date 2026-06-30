@@ -34,9 +34,11 @@ public class RSocketClientTransport implements ClientTransport {
   private final RSocketClientTransportFactory clientTransportFactory;
   private final CredentialsSupplier credentialsSupplier;
   private final Collection<String> allowedRoles;
+  private final int mtu;
+  private final int maxMessageSize;
 
   /**
-   * Constructor.
+   * Constructor. Fragmentation is disabled and message size is unbounded.
    *
    * @param headersCodec headersCodec
    * @param dataCodecs dataCodecs
@@ -50,11 +52,40 @@ public class RSocketClientTransport implements ClientTransport {
       RSocketClientTransportFactory clientTransportFactory,
       CredentialsSupplier credentialsSupplier,
       Collection<String> allowedRoles) {
+    this(headersCodec, dataCodecs, clientTransportFactory, credentialsSupplier, allowedRoles, 0, 0);
+  }
+
+  /**
+   * Constructor.
+   *
+   * @param headersCodec headersCodec
+   * @param dataCodecs dataCodecs
+   * @param clientTransportFactory clientTransportFactory
+   * @param credentialsSupplier credentialsSupplier (optional)
+   * @param allowedRoles allowedRoles (optional)
+   * @param mtu fragmentation MTU in bytes; {@code 0} disables fragmentation (see {@link
+   *     io.rsocket.core.RSocketConnector#fragment(int)})
+   * @param maxMessageSize maximum message size in bytes; {@code 0} means unbounded. Bounds both the
+   *     encoded request size (requests larger than this fail fast with {@link
+   *     MessageTooLargeException} instead of being framed) and inbound reassembly (see {@link
+   *     io.rsocket.core.RSocketConnector#maxInboundPayloadSize(int)}), preventing OOM in either
+   *     direction.
+   */
+  public RSocketClientTransport(
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      RSocketClientTransportFactory clientTransportFactory,
+      CredentialsSupplier credentialsSupplier,
+      Collection<String> allowedRoles,
+      int mtu,
+      int maxMessageSize) {
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.clientTransportFactory = clientTransportFactory;
     this.credentialsSupplier = credentialsSupplier;
     this.allowedRoles = allowedRoles;
+    this.mtu = mtu;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -71,7 +102,8 @@ public class RSocketClientTransport implements ClientTransport {
                     .cacheInvalidateIf(RSocket::isDisposed)
                     .doOnError(ex -> monoMap.remove(destination)));
 
-    return new RSocketClientChannel(mono, new ServiceMessageCodec(headersCodec, dataCodecs));
+    return new RSocketClientChannel(
+        mono, new ServiceMessageCodec(headersCodec, dataCodecs), maxMessageSize);
   }
 
   private String selectServiceRole(ServiceReference serviceReference) {
@@ -98,8 +130,16 @@ public class RSocketClientTransport implements ClientTransport {
       Destination destination,
       ServiceReference serviceReference,
       Map<Destination, Mono<RSocket>> monoMap) {
-    return RSocketConnector.create()
-        .setupPayload(Mono.defer(() -> getCredentials(destination, serviceReference)))
+    final var connector =
+        RSocketConnector.create()
+            .setupPayload(Mono.defer(() -> getCredentials(destination, serviceReference)));
+    if (mtu > 0) {
+      connector.fragment(mtu);
+    }
+    if (maxMessageSize >= RSocketConstants.MAX_FRAME_LENGTH) {
+      connector.maxInboundPayloadSize(maxMessageSize);
+    }
+    return connector
         .connect(() -> clientTransportFactory.clientTransport(destination.address()))
         .doOnSuccess(
             rsocket -> {

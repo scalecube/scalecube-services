@@ -15,10 +15,16 @@ public class RSocketClientChannel implements ClientChannel {
 
   private final Mono<RSocket> rsocket;
   private final ServiceMessageCodec messageCodec;
+  private final int maxMessageSize;
 
   public RSocketClientChannel(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
+    this(rsocket, codec, 0);
+  }
+
+  public RSocketClientChannel(Mono<RSocket> rsocket, ServiceMessageCodec codec, int maxMessageSize) {
     this.rsocket = rsocket;
     this.messageCodec = codec;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -46,7 +52,7 @@ public class RSocketClientChannel implements ClientChannel {
   }
 
   private Payload toPayload(ServiceMessage request) {
-    return messageCodec.encodeAndTransform(request, ByteBufPayload::create);
+    return messageCodec.encodeAndTransform(request, maxMessageSize, ByteBufPayload::create);
   }
 
   private ServiceMessage toMessage(Payload payload) {

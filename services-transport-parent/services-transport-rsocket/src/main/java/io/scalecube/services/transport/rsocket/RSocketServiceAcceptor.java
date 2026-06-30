@@ -25,16 +25,27 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   private final Collection<DataCodec> dataCodecs;
   private final Authenticator authenticator;
   private final ServiceRegistry serviceRegistry;
+  private final int maxMessageSize;
 
   public RSocketServiceAcceptor(
       HeadersCodec headersCodec,
       Collection<DataCodec> dataCodecs,
       Authenticator authenticator,
       ServiceRegistry serviceRegistry) {
+    this(headersCodec, dataCodecs, authenticator, serviceRegistry, 0);
+  }
+
+  public RSocketServiceAcceptor(
+      HeadersCodec headersCodec,
+      Collection<DataCodec> dataCodecs,
+      Authenticator authenticator,
+      ServiceRegistry serviceRegistry,
+      int maxMessageSize) {
     this.headersCodec = headersCodec;
     this.dataCodecs = dataCodecs;
     this.authenticator = authenticator;
     this.serviceRegistry = serviceRegistry;
+    this.maxMessageSize = maxMessageSize;
   }
 
   @Override
@@ -59,6 +70,6 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private RSocket newRSocket(Principal principal) {
     return new RSocketImpl(
-        principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry);
+        principal, new ServiceMessageCodec(headersCodec, dataCodecs), serviceRegistry, maxMessageSize);
   }
 }
