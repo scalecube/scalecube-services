@@ -160,12 +160,20 @@ public class WebsocketGatewayAcceptor
         .flatMap(message -> onCancel(session, message))
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
-        .map(message -> gatewayHandler.mapMessage(session, message, context))
+        .map(
+            message -> {
+              try {
+                return gatewayHandler.mapMessage(session, message, context);
+              } catch (Exception ex) {
+                // message was already decoded, so its data must be released on failure too
+                throw WebsocketContextException.of(ex, message);
+              }
+            })
         .doOnNext(request -> onRequest(session, request, context))
         .doOnError(
             th -> {
               if (!(th instanceof WebsocketContextException)) {
-                // decode failed at this point
+                // decode failed at this point, so there's no message data to release
                 gatewayHandler.onError(session, th, context);
                 return;
               }
