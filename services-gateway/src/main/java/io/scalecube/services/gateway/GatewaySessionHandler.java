@@ -17,6 +17,10 @@ public interface GatewaySessionHandler {
   /**
    * Message mapper function.
    *
+   * <p>The caller retains ownership of {@code message} (and its {@code data()} buffer, if any) —
+   * implementations must not {@code release()} it. If this method throws, {@code message.data()}
+   * is released by the caller.
+   *
    * @param session webscoket session (not null)
    * @param message request message (not null)
    * @return message
@@ -29,6 +33,10 @@ public interface GatewaySessionHandler {
   /**
    * Request mapper function.
    *
+   * <p>The caller retains ownership of {@code byteBuf} — implementations must not {@code
+   * release()} it, and must {@code retain()} it (or copy its content) to keep a reference beyond
+   * the scope of this call.
+   *
    * @param session session
    * @param byteBuf request buffer
    * @param context subscriber context
@@ -40,6 +48,10 @@ public interface GatewaySessionHandler {
 
   /**
    * On response handler.
+   *
+   * <p>The caller retains ownership of {@code byteBuf} — implementations must not {@code
+   * release()} it, and must {@code retain()} it (or copy its content) to keep a reference beyond
+   * the scope of this call.
    *
    * @param session session
    * @param byteBuf response buffer
