@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.13.30-SNAPSHOT</version>
+  <version>2.13.29-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.artifactId}</name>
 
