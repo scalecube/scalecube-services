@@ -12,8 +12,10 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Properties;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -39,14 +41,23 @@ public class RSocketServiceTransport implements ServiceTransport {
         });
   }
 
-  private int numOfWorkers = Runtime.getRuntime().availableProcessors();
+  public static final int DEFAULT_MTU = 0;
+  public static final int DEFAULT_MAX_MESSAGE_SIZE = 0;
+
+  public static final String NUM_OF_WORKERS_PROP_NAME = "scalecube.services.transport.numOfWorkers";
+  public static final String ALLOWED_ROLES_PROP_NAME = "scalecube.services.transport.allowedRoles";
+  public static final String MTU_PROP_NAME = "scalecube.services.transport.mtu";
+  public static final String MAX_MESSAGE_SIZE_PROP_NAME =
+      "scalecube.services.transport.maxMessageSize";
+
+  private int numOfWorkers;
   private HeadersCodec headersCodec = HeadersCodec.DEFAULT_INSTANCE;
   private Collection<DataCodec> dataCodecs = DataCodec.getAllInstances();
   private CredentialsSupplier credentialsSupplier;
   private Authenticator authenticator;
   private Collection<String> allowedRoles;
-  private int mtu = 0;
-  private int maxMessageSize = 0;
+  private int mtu;
+  private int maxMessageSize;
 
   private Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory =
       RSocketServerTransportFactory.websocket();
@@ -58,126 +69,162 @@ public class RSocketServiceTransport implements ServiceTransport {
   private LoopResources clientLoopResources;
   private LoopResources serverLoopResources;
 
-  /** Default constructor. */
-  public RSocketServiceTransport() {}
+  public RSocketServiceTransport() {
+    this(System.getProperties());
+  }
+
+  public RSocketServiceTransport(Properties properties) {
+    numOfWorkers(properties);
+    allowedRoles(properties);
+    mtu(properties);
+    maxMessageSize(properties);
+  }
+
+  private static String getProperty(Properties properties, String name) {
+    final var value = properties.getProperty(name);
+    return "@null".equals(value) ? null : value;
+  }
+
+  private static int getProperty(Properties properties, String name, int defaultValue) {
+    final var value = getProperty(properties, name);
+    return value != null ? Integer.parseInt(value) : defaultValue;
+  }
+
+  public int numOfWorkers() {
+    return numOfWorkers;
+  }
+
+  public RSocketServiceTransport numOfWorkers(Properties properties) {
+    return numOfWorkers(
+        getProperty(
+            properties, NUM_OF_WORKERS_PROP_NAME, Runtime.getRuntime().availableProcessors()));
+  }
+
+  public Collection<String> allowedRoles() {
+    return allowedRoles;
+  }
 
   /**
-   * Copy constructor.
+   * Reads comma-separated allowed roles. Absent (or {@code @null}) leaves roles unrestricted.
    *
-   * @param other other instance
+   * @param properties properties
+   * @return this
    */
-  private RSocketServiceTransport(RSocketServiceTransport other) {
-    this.numOfWorkers = other.numOfWorkers;
-    this.headersCodec = other.headersCodec;
-    this.dataCodecs = other.dataCodecs;
-    this.credentialsSupplier = other.credentialsSupplier;
-    this.authenticator = other.authenticator;
-    this.eventLoopGroup = other.eventLoopGroup;
-    this.clientLoopResources = other.clientLoopResources;
-    this.serverLoopResources = other.serverLoopResources;
-    this.serverTransportFactory = other.serverTransportFactory;
-    this.clientTransportFactory = other.clientTransportFactory;
-    this.allowedRoles = other.allowedRoles;
-    this.mtu = other.mtu;
-    this.maxMessageSize = other.maxMessageSize;
+  public RSocketServiceTransport allowedRoles(Properties properties) {
+    final var value = getProperty(properties, ALLOWED_ROLES_PROP_NAME);
+    if (value == null) {
+      this.allowedRoles = null;
+      return this;
+    }
+    return allowedRoles(
+        Arrays.stream(value.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
+  }
+
+  public int mtu() {
+    return mtu;
+  }
+
+  public RSocketServiceTransport mtu(Properties properties) {
+    return mtu(getProperty(properties, MTU_PROP_NAME, DEFAULT_MTU));
+  }
+
+  public int maxMessageSize() {
+    return maxMessageSize;
+  }
+
+  public RSocketServiceTransport maxMessageSize(Properties properties) {
+    return maxMessageSize(
+        getProperty(properties, MAX_MESSAGE_SIZE_PROP_NAME, DEFAULT_MAX_MESSAGE_SIZE));
   }
 
   /**
    * Setter for {@code numOfWorkers}.
    *
    * @param numOfWorkers number of worker threads
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport numOfWorkers(int numOfWorkers) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.numOfWorkers = numOfWorkers;
-    return rst;
+    this.numOfWorkers = numOfWorkers;
+    return this;
   }
 
   /**
    * Setter for {@code headersCodec}.
    *
    * @param headersCodec headers codec
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport headersCodec(HeadersCodec headersCodec) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.headersCodec = headersCodec;
-    return rst;
+    this.headersCodec = headersCodec;
+    return this;
   }
 
   /**
    * Setter for {@code dataCodecs}.
    *
    * @param dataCodecs set of data codecs
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport dataCodecs(Collection<DataCodec> dataCodecs) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.dataCodecs = dataCodecs;
-    return rst;
+    this.dataCodecs = dataCodecs;
+    return this;
   }
 
   /**
    * Setter for {@code credentialsSupplier}.
    *
    * @param credentialsSupplier credentialsSupplier
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport credentialsSupplier(CredentialsSupplier credentialsSupplier) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.credentialsSupplier = credentialsSupplier;
-    return rst;
+    this.credentialsSupplier = credentialsSupplier;
+    return this;
   }
 
   /**
    * Setter for {@code authenticator}.
    *
    * @param authenticator authenticator
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport authenticator(Authenticator authenticator) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.authenticator = authenticator;
-    return rst;
+    this.authenticator = authenticator;
+    return this;
   }
 
   /**
    * Setter for {@code serverTransportFactory}.
    *
    * @param serverTransportFactory serverTransportFactory
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport serverTransportFactory(
       Function<LoopResources, RSocketServerTransportFactory> serverTransportFactory) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.serverTransportFactory = serverTransportFactory;
-    return rst;
+    this.serverTransportFactory = serverTransportFactory;
+    return this;
   }
 
   /**
    * Setter for {@code clientTransportFactory}.
    *
    * @param clientTransportFactory clientTransportFactory
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport clientTransportFactory(
       Function<LoopResources, RSocketClientTransportFactory> clientTransportFactory) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.clientTransportFactory = clientTransportFactory;
-    return rst;
+    this.clientTransportFactory = clientTransportFactory;
+    return this;
   }
 
   /**
    * Setter for {@code allowedRoles}.
    *
    * @param allowedRoles allowedRoles
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    */
   public RSocketServiceTransport allowedRoles(Collection<String> allowedRoles) {
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.allowedRoles = new HashSet<>(allowedRoles);
-    return rst;
+    this.allowedRoles = new HashSet<>(allowedRoles);
+    return this;
   }
 
   /**
@@ -189,7 +236,7 @@ public class RSocketServiceTransport implements ServiceTransport {
    *
    * @param mtu fragmentation MTU in bytes ({@code 0} disables fragmentation, otherwise {@code [64,
    *     2^24-1)})
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    * @throws IllegalArgumentException if {@code mtu} is non-zero and outside {@code [64, 2^24-1)}
    */
   public RSocketServiceTransport mtu(int mtu) {
@@ -202,9 +249,8 @@ public class RSocketServiceTransport implements ServiceTransport {
               + "): "
               + mtu);
     }
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.mtu = mtu;
-    return rst;
+    this.mtu = mtu;
+    return this;
   }
 
   /**
@@ -213,14 +259,14 @@ public class RSocketServiceTransport implements ServiceTransport {
    * counted toward the limit, so the full on-wire payload is slightly larger): an outbound message
    * whose encoded data exceeds this fails fast while encoding with a {@code 413} service error
    * (never framed, fragmented, or fully buffered), preventing OOM on the sender. When it is also
-   * {@code >=} the single-frame cap ({@code 2^24 - 1}),
-   * inbound reassembly is additionally capped at the same size (see {@link
-   * io.rsocket.core.RSocketServer#maxInboundPayloadSize(int)}), preventing OOM on the receiver; RSocket
-   * forbids an inbound cap below the frame size (a single frame must always fit), so a watermark below
-   * the frame cap bounds only the outbound encode (so to cap what you <em>receive</em>, the value
-   * must be {@code >=} the frame cap). {@code 0} (the default) means unbounded. Set it above the
-   * single-frame cap and pair it with {@link #mtu(int)} to allow legitimately large (fragmented)
-   * responses up to the watermark while still rejecting anything beyond it.
+   * {@code >=} the single-frame cap ({@code 2^24 - 1}), inbound reassembly is additionally capped
+   * at the same size (see {@link io.rsocket.core.RSocketServer#maxInboundPayloadSize(int)}),
+   * preventing OOM on the receiver; RSocket forbids an inbound cap below the frame size (a single
+   * frame must always fit), so a watermark below the frame cap bounds only the outbound encode (so
+   * to cap what you <em>receive</em>, the value must be {@code >=} the frame cap). {@code 0} (the
+   * default) means unbounded. Set it above the single-frame cap and pair it with {@link #mtu(int)}
+   * to allow legitimately large (fragmented) responses up to the watermark while still rejecting
+   * anything beyond it.
    *
    * <p>Two caveats. (1) Because the limit counts only the encoded data, a value near the frame cap
    * <em>without</em> {@link #mtu(int)} can still overflow the real single-frame limit (data +
@@ -231,16 +277,15 @@ public class RSocketServiceTransport implements ServiceTransport {
    * error flag) until that separate fix lands.
    *
    * @param maxMessageSize maximum message size in bytes ({@code 0} means unbounded)
-   * @return new {@link RSocketServiceTransport} instance
+   * @return this
    * @throws IllegalArgumentException if {@code maxMessageSize} is negative
    */
   public RSocketServiceTransport maxMessageSize(int maxMessageSize) {
     if (maxMessageSize < 0) {
       throw new IllegalArgumentException("maxMessageSize must be >= 0: " + maxMessageSize);
     }
-    RSocketServiceTransport rst = new RSocketServiceTransport(this);
-    rst.maxMessageSize = maxMessageSize;
-    return rst;
+    this.maxMessageSize = maxMessageSize;
+    return this;
   }
 
   @Override

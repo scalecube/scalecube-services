@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -508,7 +509,13 @@ public class Microservices implements AutoCloseable {
 
   public static final class Context {
 
+    public static final String NAME_PROP_NAME = "scalecube.services.name";
+    public static final String EXTERNAL_HOST_PROP_NAME = "scalecube.services.externalHost";
+    public static final String EXTERNAL_PORT_PROP_NAME = "scalecube.services.externalPort";
+
     private final AtomicBoolean isConcluded = new AtomicBoolean();
+
+    private final Properties properties;
 
     private String name;
     private Map<String, String> tags;
@@ -526,7 +533,56 @@ public class Microservices implements AutoCloseable {
     private final Map<String, Scheduler> schedulers = new ConcurrentHashMap<>();
     private ServiceRolesProcessor serviceRolesProcessor;
 
-    public Context() {}
+    public Context() {
+      this(System.getProperties());
+    }
+
+    public Context(Properties properties) {
+      this.properties = properties;
+      name(properties);
+      externalHost(properties);
+      externalPort(properties);
+    }
+
+    private static String getProperty(Properties properties, String name) {
+      final var value = properties.getProperty(name);
+      return "@null".equals(value) ? null : value;
+    }
+
+    /**
+     * Returns the properties this context was built from, so that components created for it (for
+     * example {@code new ScalecubeServiceDiscovery(context.properties())}) read the same source.
+     *
+     * @return properties
+     */
+    public Properties properties() {
+      return properties;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public String externalHost() {
+      return externalHost;
+    }
+
+    public Integer externalPort() {
+      return externalPort;
+    }
+
+    public Context name(Properties properties) {
+      return name(getProperty(properties, NAME_PROP_NAME));
+    }
+
+    public Context externalHost(Properties properties) {
+      return externalHost(getProperty(properties, EXTERNAL_HOST_PROP_NAME));
+    }
+
+    public Context externalPort(Properties properties) {
+      final var value = getProperty(properties, EXTERNAL_PORT_PROP_NAME);
+      return externalPort(value != null ? Integer.valueOf(value) : null);
+    }
 
     /**
      * Setter for services.
