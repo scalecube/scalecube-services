@@ -20,6 +20,8 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Objects;
+import java.util.Properties;
 import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
@@ -40,41 +42,50 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
       Sinks.many().multicast().directBestEffort();
 
   public ScalecubeServiceDiscovery() {
-    this.clusterConfig = ClusterConfig.defaultLanConfig();
+    this(new ClusterConfig());
   }
 
-  private ScalecubeServiceDiscovery(ScalecubeServiceDiscovery other) {
-    this.clusterConfig = other.clusterConfig;
-    this.cluster = other.cluster;
+  public ScalecubeServiceDiscovery(Properties properties) {
+    this(new ClusterConfig(properties));
+  }
+
+  public ScalecubeServiceDiscovery(ClusterConfig clusterConfig) {
+    this.clusterConfig = Objects.requireNonNull(clusterConfig, "clusterConfig");
+  }
+
+  public ClusterConfig clusterConfig() {
+    return clusterConfig;
   }
 
   public ScalecubeServiceDiscovery options(UnaryOperator<ClusterConfig> op) {
-    ScalecubeServiceDiscovery d = new ScalecubeServiceDiscovery(this);
-    d.clusterConfig = op.apply(clusterConfig);
-    return d;
+    clusterConfig = Objects.requireNonNull(op.apply(clusterConfig), "clusterConfig");
+    return this;
   }
 
   public ScalecubeServiceDiscovery transport(UnaryOperator<TransportConfig> op) {
-    return options(cfg -> cfg.transport(op));
+    clusterConfig.transport(op);
+    return this;
   }
 
   public ScalecubeServiceDiscovery membership(UnaryOperator<MembershipConfig> op) {
-    return options(cfg -> cfg.membership(op));
+    clusterConfig.membership(op);
+    return this;
   }
 
   public ScalecubeServiceDiscovery gossip(UnaryOperator<GossipConfig> op) {
-    return options(cfg -> cfg.gossip(op));
+    clusterConfig.gossip(op);
+    return this;
   }
 
   public ScalecubeServiceDiscovery failureDetector(UnaryOperator<FailureDetectorConfig> op) {
-    return options(cfg -> cfg.failureDetector(op));
+    clusterConfig.failureDetector(op);
+    return this;
   }
 
   @Override
   public void start() {
     cluster =
-        new ClusterImpl()
-            .config(options -> clusterConfig)
+        new ClusterImpl(clusterConfig)
             .handler(
                 cluster -> {
                   //noinspection CodeBlock2Expr
