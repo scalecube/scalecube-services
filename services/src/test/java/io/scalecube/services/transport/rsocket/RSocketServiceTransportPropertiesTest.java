@@ -29,14 +29,14 @@ class RSocketServiceTransportPropertiesTest {
   void testPropertiesAreRead() {
     final var properties = new Properties();
     properties.setProperty(NUM_OF_WORKERS_PROP_NAME, "2");
-    properties.setProperty(ALLOWED_ROLES_PROP_NAME, "admin, api-gateway");
+    properties.setProperty(ALLOWED_ROLES_PROP_NAME, "admin, gateway");
     properties.setProperty(MTU_PROP_NAME, "1024");
     properties.setProperty(MAX_MESSAGE_SIZE_PROP_NAME, "4096");
 
     final var transport = new RSocketServiceTransport(properties);
 
     assertEquals(2, transport.numOfWorkers(), "numOfWorkers");
-    assertEquals(Set.of("admin", "api-gateway"), transport.allowedRoles(), "allowedRoles");
+    assertEquals(Set.of("admin", "gateway"), transport.allowedRoles(), "allowedRoles");
     assertEquals(1024, transport.mtu(), "mtu");
     assertEquals(4096, transport.maxMessageSize(), "maxMessageSize");
   }
