@@ -15,4 +15,12 @@ public interface ServiceMessageDataDecoder {
   ServiceMessage decodeData(ServiceMessage message, Type type);
 
   ServiceMessage copyData(ServiceMessage message, Type type);
+
+  /**
+   * Releases message data if it is a reference-counted buffer. Used on failure paths where the
+   * message was not handed over to a transport or a method invoker. Default: no-op.
+   *
+   * @param message message whose data to release
+   */
+  default void releaseData(ServiceMessage message) {}
 }

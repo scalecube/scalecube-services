@@ -15,4 +15,9 @@ public class ServiceMessageByteBufDataDecoder implements ServiceMessageDataDecod
   public ServiceMessage copyData(ServiceMessage message, Type dataType) {
     return ServiceMessageCodec.decodeData(message, dataType, true);
   }
+
+  @Override
+  public void releaseData(ServiceMessage message) {
+    ReferenceCountUtil.safestRelease(message.data());
+  }
 }
