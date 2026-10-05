@@ -186,6 +186,9 @@ public final class ServiceMessageCodec {
   /**
    * Decode message.
    *
+   * <p>Unless {@code copyOnDecode} is set or {@code dataType} is {@link ByteBuf}, the data buffer is
+   * released, so the caller hands over ownership.
+   *
    * @param message the original message (with {@link ByteBuf} data)
    * @param dataType the type of the data
    * @param copyOnDecode whether to copy the buffer before decoding
@@ -214,6 +217,9 @@ public final class ServiceMessageCodec {
     }
 
     if (dataBuffer.readableBytes() == 0) {
+      if (!copyOnDecode) {
+        safestRelease(dataBuffer);
+      }
       return ServiceMessage.from(message).data(null).build();
     }
 

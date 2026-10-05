@@ -183,6 +183,9 @@ public class ServiceCall implements AutoCloseable {
   /**
    * Invokes request-and-reply request.
    *
+   * <p>Takes ownership of reference-counted request data on subscription: it is released by the
+   * transport, the method invoker, or this call on failure. Callers must not release it.
+   *
    * @param request request message to send.
    * @param responseType type of response (optional).
    * @return mono publisher completing with single response message or with error.
@@ -210,12 +213,15 @@ public class ServiceCall implements AutoCloseable {
                     });
           } else {
             // remote service
-            Objects.requireNonNull(transport, "[requestOne] transport");
-            return Mono.fromCallable(() -> serviceLookup(request))
+            return Mono.fromCallable(
+                    () -> {
+                      Objects.requireNonNull(transport, "[requestOne] transport");
+                      return transport.create(serviceLookup(request));
+                    })
+                .doOnError(ex -> releaseData(request))
                 .flatMap(
-                    serviceReference ->
-                        transport
-                            .create(serviceReference)
+                    channel ->
+                        channel
                             .requestResponse(request)
                             .map(message -> onMessage(message, responseType)));
           }
@@ -234,6 +240,9 @@ public class ServiceCall implements AutoCloseable {
 
   /**
    * Issues request to service which returns stream of service messages back.
+   *
+   * <p>Takes ownership of reference-counted request data on subscription: it is released by the
+   * transport, the method invoker, or this call on failure. Callers must not release it.
    *
    * @param request request with given headers.
    * @param responseType type of responses (optional).
@@ -262,12 +271,15 @@ public class ServiceCall implements AutoCloseable {
                     });
           } else {
             // remote service
-            Objects.requireNonNull(transport, "[requestMany] transport");
-            return Mono.fromCallable(() -> serviceLookup(request))
+            return Mono.fromCallable(
+                    () -> {
+                      Objects.requireNonNull(transport, "[requestMany] transport");
+                      return transport.create(serviceLookup(request));
+                    })
+                .doOnError(ex -> releaseData(request))
                 .flatMapMany(
-                    serviceReference ->
-                        transport
-                            .create(serviceReference)
+                    channel ->
+                        channel
                             .requestStream(request)
                             .map(message -> onMessage(message, responseType)));
           }
@@ -466,6 +478,12 @@ public class ServiceCall implements AutoCloseable {
         Schedulers.immediate(),
         restMethod(method),
         Collections.emptyList());
+  }
+
+  private void releaseData(ServiceMessage request) {
+    if (dataDecoder != null) {
+      dataDecoder.releaseData(request);
+    }
   }
 
   private ServiceMessage onMessage(ServiceMessage message, Type returnType) {

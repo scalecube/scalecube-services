@@ -1,5 +1,7 @@
 package io.scalecube.services.transport.rsocket;
 
+import static io.scalecube.services.transport.rsocket.ReferenceCountUtil.safestRelease;
+
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
@@ -30,6 +32,7 @@ public class RSocketClientChannel implements ClientChannel {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return rsocket
+        .doOnError(ex -> safestRelease(message.data())) // connect failed, payload never created
         .flatMap(rsocket -> rsocket.requestResponse(toPayload(message)))
         .map(this::toMessage)
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
@@ -38,6 +41,7 @@ public class RSocketClientChannel implements ClientChannel {
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
     return rsocket
+        .doOnError(ex -> safestRelease(message.data())) // connect failed, payload never created
         .flatMapMany(rsocket -> rsocket.requestStream(toPayload(message)))
         .map(this::toMessage)
         .onErrorMap(RSocketClientChannel::mapConnectionAborted);
