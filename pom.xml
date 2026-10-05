@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent</artifactId>
-    <version>0.3.26</version>
+    <version>0.3.27-116-rc1</version>
   </parent>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -59,9 +59,9 @@
   </scm>
 
   <properties>
-    <scalecube-cluster.version>2.7.12.properties-config.rc1</scalecube-cluster.version>
-    <scalecube-security.version>1.1.15</scalecube-security.version>
-    <scalecube-test-support.version>0.1.10</scalecube-test-support.version>
+    <scalecube-cluster.version>2.7.12.properties-config.rc3</scalecube-cluster.version>
+    <scalecube-security.version>1.1.17-rc1</scalecube-security.version>
+    <scalecube-test-support.version>0.1.11-rc1</scalecube-test-support.version>
 
     <distributionManagement.url>https://maven.pkg.github.com/scalecube/scalecube-services
     </distributionManagement.url>
