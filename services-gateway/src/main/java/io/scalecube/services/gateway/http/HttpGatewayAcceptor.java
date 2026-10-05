@@ -217,7 +217,6 @@ public class HttpGatewayAcceptor
               return serviceCall
                   .requestOne(message)
                   .switchIfEmpty(Mono.defer(() -> emptyMessage(message)))
-                  .doOnError(th -> safestRelease(message.data()))
                   .flatMap(
                       response ->
                           response.isError() // check error

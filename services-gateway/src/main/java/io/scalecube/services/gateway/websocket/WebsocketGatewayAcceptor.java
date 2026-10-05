@@ -210,7 +210,6 @@ public class WebsocketGatewayAcceptor
                     }))
             .doOnError(
                 th -> {
-                  ReferenceCountUtil.safestRelease(request.data());
                   receivedError.set(true);
                   session
                       .send(toErrorResponse(errorMapper, request, th))
