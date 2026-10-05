@@ -54,7 +54,6 @@ public class RSocketImpl implements RSocket {
                       methodInvoker ->
                           methodInvoker
                               .invokeOne(message)
-                              .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
         .map(this::toResponsePayload)
@@ -71,7 +70,6 @@ public class RSocketImpl implements RSocket {
                       methodInvoker ->
                           methodInvoker
                               .invokeMany(message)
-                              .doOnNext(response -> releaseOnError(message, response))
                               .contextWrite(requestContext(message)));
             })
         .transform(this::encodeStream)
@@ -91,7 +89,6 @@ public class RSocketImpl implements RSocket {
                         methodInvoker ->
                             methodInvoker
                                 .invokeBidirectional(messages)
-                                .doOnNext(response -> releaseOnError(message, response))
                                 .contextWrite(requestContext(message)));
               }
               return messages;
@@ -171,11 +168,5 @@ public class RSocketImpl implements RSocket {
 
   private RequestContext requestContext(ServiceMessage message) {
     return new RequestContext().headers(message.headers()).principal(principal);
-  }
-
-  private static void releaseOnError(ServiceMessage request, ServiceMessage response) {
-    if (response.isError()) {
-      safestRelease(request.data());
-    }
   }
 }
