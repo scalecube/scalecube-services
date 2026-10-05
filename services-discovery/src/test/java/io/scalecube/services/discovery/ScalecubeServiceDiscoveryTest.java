@@ -7,9 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.codec.jackson.JacksonMetadataCodec;
-import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.gossip.GossipConfig;
-import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.metadata.JdkMetadataCodec;
 import io.scalecube.cluster.metadata.MetadataCodec;
 import io.scalecube.services.Address;
@@ -44,10 +41,9 @@ class ScalecubeServiceDiscoveryTest {
   public static final Duration TIMEOUT = Duration.ofSeconds(5);
   public static final Duration SHORT_TIMEOUT = Duration.ofMillis(500);
   public static final AtomicInteger ID_COUNTER = new AtomicInteger();
-  public static final GossipConfig GOSSIP_CONFIG = GossipConfig.defaultLocalConfig();
-  public static final FailureDetectorConfig FAILURE_DETECTOR_CONFIG =
-      FailureDetectorConfig.defaultLocalConfig();
-  public static final MembershipConfig MEMBERSHIP_CONFIG = MembershipConfig.defaultLocalConfig();
+  // Fast settings for a loopback cluster
+  public static final int PING_INTERVAL = 1_000;
+  public static final int SUSPICION_MULT = 3;
   public static final int CLUSTER_SIZE = 3 + 1; // r1 + r2 + r3 (plus 1 for be sure)
   public static final Address SEED_ADDRESS = Address.from("localhost:5678");
 
@@ -246,9 +242,10 @@ class ScalecubeServiceDiscoveryTest {
                 .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
                 .options(opts -> opts.metadata(newServiceEndpoint()))
                 .options(opts -> opts.metadataCodec(metadataCodec))
-                .gossip(cfg -> GOSSIP_CONFIG)
-                .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
-                .membership(cfg -> MEMBERSHIP_CONFIG)
+                .gossip(cfg -> cfg.gossipInterval(100).gossipRepeatMult(2))
+                .failureDetector(
+                    cfg -> cfg.pingInterval(PING_INTERVAL).pingTimeout(200).pingReqMembers(1))
+                .membership(cfg -> cfg.suspicionMult(SUSPICION_MULT).syncInterval(15_000))
                 .membership(cfg -> cfg.seedMembers(seedAddress.toString())));
   }
 
@@ -258,9 +255,9 @@ class ScalecubeServiceDiscoveryTest {
         .membership(opts -> opts.seedMembers(SEED_ADDRESS.toString()))
         .options(opts -> opts.metadata(newServiceEndpoint()))
         .options(opts -> opts.metadataCodec(metadataCodec))
-        .gossip(cfg -> GOSSIP_CONFIG)
-        .failureDetector(cfg -> FAILURE_DETECTOR_CONFIG)
-        .membership(cfg -> MEMBERSHIP_CONFIG)
+        .gossip(cfg -> cfg.gossipInterval(100).gossipRepeatMult(2))
+        .failureDetector(cfg -> cfg.pingInterval(PING_INTERVAL).pingTimeout(200).pingReqMembers(1))
+        .membership(cfg -> cfg.suspicionMult(SUSPICION_MULT).syncInterval(15_000))
         .start();
   }
 
@@ -314,10 +311,7 @@ class ScalecubeServiceDiscoveryTest {
     }
 
     RecordingServiceDiscovery shutdown() {
-      int pingInterval = FailureDetectorConfig.defaultLocalConfig().pingInterval();
-      long timeout =
-          ClusterMath.suspicionTimeout(
-              MEMBERSHIP_CONFIG.suspicionMult(), CLUSTER_SIZE, pingInterval);
+      long timeout = ClusterMath.suspicionTimeout(SUSPICION_MULT, CLUSTER_SIZE, PING_INTERVAL);
       serviceDiscovery.shutdown();
       Mono.delay(Duration.ofMillis(timeout)).block();
       return this;
