@@ -38,8 +38,9 @@ public class ServiceTokenTests {
 
     final var authenticator =
         new ServiceTokenAuthenticator(
-            new Auth0JwtTokenResolver(
-                JwksKeyProvider.builder().jwksUri(vaultEnvironment.jwksUri()).build()));
+            Auth0JwtTokenResolver.builder()
+                .keyProvider(JwksKeyProvider.builder().jwksUri(vaultEnvironment.jwksUri()).build())
+                .build());
 
     // Install service roles
 
