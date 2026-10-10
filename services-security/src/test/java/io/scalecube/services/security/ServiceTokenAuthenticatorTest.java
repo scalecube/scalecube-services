@@ -25,9 +25,13 @@ class ServiceTokenAuthenticatorTest {
     final var invocations = new AtomicInteger();
     final JwtTokenResolver tokenResolver =
         token ->
-            invocations.incrementAndGet() < 3
-                ? CompletableFuture.failedFuture(new JwtUnavailableException("unavailable"))
-                : CompletableFuture.completedFuture(TOKEN);
+            CompletableFuture.supplyAsync(
+                () -> {
+                  if (invocations.incrementAndGet() < 3) {
+                    throw new JwtUnavailableException("unavailable");
+                  }
+                  return TOKEN;
+                });
 
     final var principal =
         (ServicePrincipal)
@@ -44,10 +48,12 @@ class ServiceTokenAuthenticatorTest {
   void testNoRetryOnInvalidToken() {
     final var invocations = new AtomicInteger();
     final JwtTokenResolver tokenResolver =
-        token -> {
-          invocations.incrementAndGet();
-          return CompletableFuture.failedFuture(new JwtTokenException("invalid"));
-        };
+        token ->
+            CompletableFuture.supplyAsync(
+                () -> {
+                  invocations.incrementAndGet();
+                  throw new JwtTokenException("invalid");
+                });
 
     final var authenticator =
         new ServiceTokenAuthenticator(tokenResolver, 5, Duration.ofMillis(10));
