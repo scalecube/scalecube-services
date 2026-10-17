@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -327,7 +326,11 @@ public class RSocketServiceTransport implements ServiceTransport {
         serverLoopResources.dispose();
       }
       if (!eventLoopGroup.isShutdown()) {
-        eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+        // Netty's default quiet period, not (0, 0): the close tasks queued by the server and client
+        // transports must run before the loops terminate, and with a zero quiet period Netty 4.2
+        // can terminate a loop without closing its channels. See
+        // docs/adr/0002-close-connections-on-stop.md
+        eventLoopGroup.shutdownGracefully();
       }
     }
   }
