@@ -28,7 +28,6 @@ public class RSocketServerTransport implements ServerTransport {
   private final int mtu;
   private final int maxMessageSize;
 
-  // accepted connections, closed explicitly by stop(); docs/adr/0002-close-connections-on-stop.md
   private final Set<DuplexConnection> connections = ConcurrentHashMap.newKeySet();
 
   private CloseableChannel serverChannel; // calculated
