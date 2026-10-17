@@ -10,7 +10,7 @@ import io.scalecube.services.transport.api.ClientTransport;
  * unbinds it on close; while unbound, creating a channel fails with {@link
  * ServiceUnavailableException}.
  */
-final class DeferredClientTransport implements ClientTransport {
+class DeferredClientTransport implements ClientTransport {
 
   private volatile ClientTransport delegate;
 

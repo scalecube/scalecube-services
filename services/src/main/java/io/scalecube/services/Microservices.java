@@ -518,7 +518,7 @@ public class Microservices implements AutoCloseable {
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
     private final DeferredClientTransport clientTransport = new DeferredClientTransport();
-    private volatile boolean callIssued;
+    private volatile boolean callCreated;
 
     private final Properties properties;
 
@@ -684,9 +684,9 @@ public class Microservices implements AutoCloseable {
      * @return this
      */
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
-      if (callIssued && serviceRegistry != this.serviceRegistry) {
+      if (callCreated && serviceRegistry != this.serviceRegistry) {
         throw new IllegalStateException(
-            "serviceRegistry cannot be replaced after call() was issued on this context");
+            "serviceRegistry cannot be replaced after call() was used on this context");
       }
       this.serviceRegistry = serviceRegistry;
       return this;
@@ -705,7 +705,7 @@ public class Microservices implements AutoCloseable {
       if (serviceRegistry == null) {
         serviceRegistry = new ServiceRegistryImpl();
       }
-      callIssued = true;
+      callCreated = true;
 
       var serviceCall =
           new ServiceCall()
