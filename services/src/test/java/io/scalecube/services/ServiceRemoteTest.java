@@ -36,6 +36,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -61,6 +62,7 @@ public class ServiceRemoteTest {
     gateway = gateway();
     gatewayAddress = gateway.discoveryAddress();
     provider = serviceProvider();
+    awaitDiscovered(provider);
   }
 
   @AfterAll
@@ -95,6 +97,16 @@ public class ServiceRemoteTest {
             .discovery(ServiceRemoteTest::serviceDiscovery)
             .transport(RSocketServiceTransport::new)
             .services(new GreetingServiceImpl(), new TypedGreetingServiceImpl()));
+  }
+
+  private static void awaitDiscovered(Microservices node) {
+    final long deadline = System.nanoTime() + TIMEOUT.toNanos();
+    while (gateway.serviceEndpoints().stream().noneMatch(e -> e.id().equals(node.id()))) {
+      if (System.nanoTime() > deadline) {
+        throw new AssertionError("Gateway did not discover " + node.id() + " within " + TIMEOUT);
+      }
+      LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
+    }
   }
 
   @Test
@@ -291,6 +303,8 @@ public class ServiceRemoteTest {
                 .services(new CoarseGrainedServiceImpl()) // add service a and b
             );
 
+    awaitDiscovered(provider);
+
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
 
@@ -314,6 +328,8 @@ public class ServiceRemoteTest {
                 .transport(RSocketServiceTransport::new)
                 .services(another));
 
+    awaitDiscovered(provider);
+
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
@@ -334,6 +350,8 @@ public class ServiceRemoteTest {
                 .transport(RSocketServiceTransport::new)
                 .services(another) // add service a and b
             );
+
+    awaitDiscovered(ms);
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
@@ -359,6 +377,8 @@ public class ServiceRemoteTest {
                 .transport(RSocketServiceTransport::new)
                 .services(another) // add service a and b
             );
+
+    awaitDiscovered(provider);
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
