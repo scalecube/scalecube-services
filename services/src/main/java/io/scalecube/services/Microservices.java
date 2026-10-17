@@ -127,10 +127,7 @@ public class Microservices implements AutoCloseable {
   private List<Object> serviceInstances;
   private final List<Gateway> gateways = new ArrayList<>();
   private ServiceDiscovery serviceDiscovery;
-  private final Sinks.Many<ServiceDiscoveryEvent> discoverySink =
-      Sinks.many().multicast().directBestEffort();
   private final Disposable.Composite disposables = Disposables.composite();
-  private Scheduler scheduler;
   private Address discoveryAddress;
 
   private Microservices(Microservices.Context context) {
@@ -253,8 +250,6 @@ public class Microservices implements AutoCloseable {
   }
 
   private void createDiscovery() {
-    scheduler = Schedulers.newSingle("discovery", true);
-
     final ServiceDiscoveryFactory discoveryFactory = context.discoveryFactory;
     if (discoveryFactory == null) {
       return;
@@ -281,13 +276,17 @@ public class Microservices implements AutoCloseable {
       return;
     }
 
+    final var scheduler = context.discoveryScheduler();
+
     disposables.add(
         serviceDiscovery
             .listen()
             .subscribeOn(scheduler)
             .publishOn(scheduler)
             .doOnNext(this::onDiscoveryEvent)
-            .doOnNext(event -> discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
+            .doOnNext(
+                event ->
+                    context.discoverySink.emitNext(event, busyLooping(Duration.ofSeconds(3))))
             .doOnError(ex -> LOGGER.error("[{}] Exception occurred", instanceId, ex))
             .subscribe());
 
@@ -418,11 +417,7 @@ public class Microservices implements AutoCloseable {
    * @return stream of {@link ServiceDiscoveryEvent} objects
    */
   public Flux<ServiceDiscoveryEvent> listenDiscovery() {
-    return Flux.fromStream(context.serviceRegistry.listServiceEndpoints().stream())
-        .map(ServiceDiscoveryEvent::newEndpointAdded)
-        .concatWith(discoverySink.asFlux().onBackpressureBuffer())
-        .subscribeOn(scheduler)
-        .publishOn(scheduler);
+    return context.listenDiscovery();
   }
 
   @Override
@@ -501,10 +496,6 @@ public class Microservices implements AutoCloseable {
         LOGGER.error("[{}][closeDiscovery] Exception occurred: {}", instanceId, e.toString());
       }
     }
-
-    if (scheduler != null) {
-      scheduler.dispose();
-    }
   }
 
   public static final class Context {
@@ -532,6 +523,9 @@ public class Microservices implements AutoCloseable {
     private final List<Supplier<Gateway>> gatewaySuppliers = new ArrayList<>();
     private final Map<String, Scheduler> schedulers = new ConcurrentHashMap<>();
     private ServiceRolesProcessor serviceRolesProcessor;
+    private final Sinks.Many<ServiceDiscoveryEvent> discoverySink =
+        Sinks.many().multicast().directBestEffort();
+    private Scheduler discoveryScheduler;
 
     public Context() {
       this(System.getProperties());
@@ -678,6 +672,34 @@ public class Microservices implements AutoCloseable {
      * @param serviceRegistry serviceRegistry
      * @return this
      */
+    /**
+     * Returns stream of {@link ServiceDiscoveryEvent} objects of the microservices instance started
+     * from this context. Can be subscribed before {@link Microservices#start(Context)}: endpoints
+     * already known at subscription time come first (as endpoint-added events), followed by live
+     * events once the instance is started.
+     *
+     * @return stream of {@link ServiceDiscoveryEvent} objects
+     */
+    public Flux<ServiceDiscoveryEvent> listenDiscovery() {
+      final var scheduler = discoveryScheduler();
+      return Flux.defer(
+              () ->
+                  serviceRegistry != null
+                      ? Flux.fromStream(serviceRegistry.listServiceEndpoints().stream())
+                      : Flux.empty())
+          .map(ServiceDiscoveryEvent::newEndpointAdded)
+          .concatWith(discoverySink.asFlux().onBackpressureBuffer())
+          .subscribeOn(scheduler)
+          .publishOn(scheduler);
+    }
+
+    private synchronized Scheduler discoveryScheduler() {
+      if (discoveryScheduler == null) {
+        discoveryScheduler = Schedulers.newSingle("discovery", true);
+      }
+      return discoveryScheduler;
+    }
+
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
       this.serviceRegistry = serviceRegistry;
       return this;
@@ -858,6 +880,11 @@ public class Microservices implements AutoCloseable {
     private void close() {
       schedulers.values().forEach(Scheduler::dispose);
       schedulers.clear();
+      synchronized (this) {
+        if (discoveryScheduler != null) {
+          discoveryScheduler.dispose();
+        }
+      }
     }
   }
 }
