@@ -28,7 +28,7 @@ public class FileServiceImpl implements FileService, FileStreamer {
   private final int chunkSize;
   private final Duration fileTtl;
 
-  private String serviceEndpointId;
+  private volatile String serviceEndpointId;
 
   public FileServiceImpl() {
     this(new File(DEFAULT_DIR), DEFAULT_CHUNK_SIZE, DEFAULT_TTL);
@@ -56,6 +56,9 @@ public class FileServiceImpl implements FileService, FileStreamer {
   public Mono<String> addFile(AddFileRequest request) {
     return Mono.fromCallable(
         () -> {
+          if (serviceEndpointId == null) {
+            throw new IllegalStateException("Not registered on a started microservices instance");
+          }
           if (request == null) {
             throw new IllegalArgumentException("Wrong request");
           }

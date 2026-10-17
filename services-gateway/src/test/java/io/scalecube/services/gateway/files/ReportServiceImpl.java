@@ -4,7 +4,6 @@ import static io.scalecube.services.api.ServiceMessage.HEADER_UPLOAD_FILENAME;
 import static java.nio.file.StandardOpenOption.APPEND;
 
 import io.scalecube.services.RequestContext;
-import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.files.AddFileRequest;
 import io.scalecube.services.files.FileChannelFlux;
@@ -19,10 +18,13 @@ import reactor.core.publisher.Mono;
 
 public class ReportServiceImpl implements ReportService {
 
-  private FileService fileService;
+  private final FileService fileService;
 
-  @AfterConstruct
-  private void conclude(FileService fileService) {
+  public ReportServiceImpl() {
+    this(null);
+  }
+
+  public ReportServiceImpl(FileService fileService) {
     this.fileService = fileService;
   }
 
