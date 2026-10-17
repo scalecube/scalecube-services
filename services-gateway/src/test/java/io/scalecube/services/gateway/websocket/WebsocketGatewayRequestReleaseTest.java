@@ -161,7 +161,7 @@ class WebsocketGatewayRequestReleaseTest {
       await(
           () ->
               remoteGateway.serviceRegistry().listServiceReferences().stream()
-                  .anyMatch(r -> r.namespace().equals("HangingService")));
+                  .anyMatch(r -> r.namespace().equals(HangingService.class.getName())));
 
       final StepVerifier verifier =
           StepVerifier.create(hangingService(remoteGateway).hang("hello")).expectError().verifyLater();
