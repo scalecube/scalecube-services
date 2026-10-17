@@ -326,10 +326,8 @@ public class RSocketServiceTransport implements ServiceTransport {
         serverLoopResources.dispose();
       }
       if (!eventLoopGroup.isShutdown()) {
-        // Netty's default quiet period, not (0, 0): the close tasks queued by the server and client
-        // transports must run before the loops terminate, and with a zero quiet period Netty 4.2
-        // can terminate a loop without closing its channels. See
-        // docs/adr/0002-close-connections-on-stop.md
+        // not (0, 0): with a zero quiet period Netty 4.2 can terminate a loop
+        // without closing its channels
         eventLoopGroup.shutdownGracefully();
       }
     }

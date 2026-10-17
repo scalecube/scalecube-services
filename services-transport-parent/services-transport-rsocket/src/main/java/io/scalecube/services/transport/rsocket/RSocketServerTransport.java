@@ -127,10 +127,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public void stop() {
-    // Close accepted connections here rather than leaving it to the event loop shutdown: a loop
-    // that terminates without closing its channels (Netty 4.2 can skip that step when shutdown is
-    // requested while the loop is running tasks) leaves the peer's in-flight requests hanging until
-    // keepalive gives up. Disposing the connection closes the socket, so the peer sees the drop.
+    // event loop shutdown alone does not reliably close accepted channels (Netty 4.2)
     connections.forEach(DuplexConnection::dispose);
 
     if (serverChannel != null && !serverChannel.isDisposed()) {
