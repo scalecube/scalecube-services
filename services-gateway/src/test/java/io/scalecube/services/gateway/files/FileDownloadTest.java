@@ -77,6 +77,7 @@ public class FileDownloadTest {
                 .gateway(() -> HttpGateway.builder().id("HTTP").build())
                 .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
+    final var fileService = new FileServiceImpl();
     microservices =
         Microservices.start(
             new Context()
@@ -89,8 +90,8 @@ public class FileDownloadTest {
                                 opts -> opts.seedMembers(gateway.discoveryAddress().toString())))
                 .transport(RSocketServiceTransport::new)
                 .defaultLogger("microservices")
-                .services(new FileServiceImpl()) // "system level" service
-                .services(new ReportServiceImpl()));
+                .services(fileService) // serves added files as FileStreamer
+                .services(new ReportServiceImpl(fileService)));
 
     httpAddress = gateway.gateway("HTTP").address();
     wsAddress = gateway.gateway("WS").address();

@@ -99,7 +99,14 @@ class Injector {
                             } else if (Reflect.isService(mapper.getType())) {
                               return microservices.call().api(mapper.getType());
                             } else {
-                              return null;
+                              throw new IllegalArgumentException(
+                                  "Cannot resolve parameter "
+                                      + mapper.getType().getName()
+                                      + " of @"
+                                      + annotation.getSimpleName()
+                                      + " method "
+                                      + targetMethod
+                                      + ": expected Microservices or a service interface");
                             }
                           })
                       .toArray();
