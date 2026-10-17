@@ -17,7 +17,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -327,7 +326,8 @@ public class RSocketServiceTransport implements ServiceTransport {
         serverLoopResources.dispose();
       }
       if (!eventLoopGroup.isShutdown()) {
-        eventLoopGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+        // default quiet period: lets queued channel-close tasks run before the loops terminate
+        eventLoopGroup.shutdownGracefully();
       }
     }
   }

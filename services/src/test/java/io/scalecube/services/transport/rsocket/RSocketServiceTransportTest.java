@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -70,6 +71,42 @@ public class RSocketServiceTransportTest {
   public void cleanUp() {
     Optional.ofNullable(gateway).ifPresent(Microservices::close);
     Optional.ofNullable(serviceNode).ifPresent(Microservices::close);
+  }
+
+  @Test
+  public void test_closing_node_drops_its_accepted_connections() {
+    awaitDiscovered(serviceNode);
+    final ServiceCall serviceCall = gateway.call();
+    // establishes the gateway -> serviceNode connection
+    serviceCall.api(QuoteService.class).justOne().block(TIMEOUT);
+
+    final AtomicReference<Throwable> error = new AtomicReference<>();
+    final Disposable subscription =
+        serviceCall.requestMany(JUST_MANY_NEVER).doOnError(error::set).subscribe();
+
+    // the node must close the connection itself; the event loop shutdown alone may leave the
+    // socket open and this stream hanging
+    serviceNode.close();
+
+    await(() -> error.get() != null, "connection loss was not observed by the caller");
+    assertEquals(ConnectionClosedException.class, error.get().getClass());
+    assertTrue(subscription.isDisposed());
+  }
+
+  private void awaitDiscovered(Microservices node) {
+    await(
+        () -> gateway.serviceEndpoints().stream().anyMatch(e -> e.id().equals(node.id())),
+        "gateway did not discover " + node.id());
+  }
+
+  private static void await(java.util.function.BooleanSupplier condition, String message) {
+    final long deadline = System.nanoTime() + TIMEOUT.toNanos();
+    while (!condition.getAsBoolean()) {
+      if (System.nanoTime() > deadline) {
+        throw new AssertionError(message + " within " + TIMEOUT);
+      }
+      LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
+    }
   }
 
   @Disabled

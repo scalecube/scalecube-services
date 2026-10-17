@@ -1,6 +1,8 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.rsocket.DuplexConnection;
 import io.rsocket.core.RSocketServer;
+import io.rsocket.plugins.DuplexConnectionInterceptor;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.scalecube.services.Address;
 import io.scalecube.services.auth.Authenticator;
@@ -9,6 +11,8 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +27,8 @@ public class RSocketServerTransport implements ServerTransport {
   private final RSocketServerTransportFactory serverTransportFactory;
   private final int mtu;
   private final int maxMessageSize;
+
+  private final Set<DuplexConnection> connections = ConcurrentHashMap.newKeySet();
 
   private CloseableChannel serverChannel; // calculated
 
@@ -91,7 +97,8 @@ public class RSocketServerTransport implements ServerTransport {
           RSocketServer.create()
               .acceptor(
                   new RSocketServiceAcceptor(
-                      headersCodec, dataCodecs, authenticator, serviceRegistry, maxMessageSize));
+                      headersCodec, dataCodecs, authenticator, serviceRegistry, maxMessageSize))
+              .interceptors(registry -> registry.forConnection(this::trackConnection));
       if (mtu > 0) {
         rsocketServer.fragment(mtu);
       }
@@ -106,8 +113,23 @@ public class RSocketServerTransport implements ServerTransport {
     }
   }
 
+  private DuplexConnection trackConnection(
+      DuplexConnectionInterceptor.Type type, DuplexConnection connection) {
+    if (type == DuplexConnectionInterceptor.Type.SOURCE) {
+      connections.add(connection);
+      connection
+          .onClose()
+          .doFinally(s -> connections.remove(connection))
+          .subscribe(null, ex -> {});
+    }
+    return connection;
+  }
+
   @Override
   public void stop() {
+    // closing the sockets here is what makes peers see the drop immediately
+    connections.forEach(DuplexConnection::dispose);
+
     if (serverChannel != null && !serverChannel.isDisposed()) {
       try {
         serverChannel.dispose();

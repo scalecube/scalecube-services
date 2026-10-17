@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -43,6 +44,7 @@ import reactor.test.StepVerifier;
 class WebsocketGatewayRequestReleaseTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
+  private static final Duration AWAIT_TIMEOUT = Duration.ofSeconds(10);
 
   private static final TrackingHandler remoteHandler = new TrackingHandler();
   private static final TrackingHandler localHandler = new TrackingHandler();
@@ -159,14 +161,14 @@ class WebsocketGatewayRequestReleaseTest {
       await(
           () ->
               remoteGateway.serviceRegistry().listServiceReferences().stream()
-                  .anyMatch(r -> r.namespace().equals("HangingService")));
+                  .anyMatch(r -> r.namespace().equals(HangingService.class.getName())));
 
       final StepVerifier verifier =
           StepVerifier.create(hangingService(remoteGateway).hang("hello")).expectError().verifyLater();
       assertTrue(hangingService.subscribed.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
 
       hangingNode.close(); // drops the gateway's rsocket connection mid-stream
-      verifier.verify(TIMEOUT);
+      verifier.verify(AWAIT_TIMEOUT);
     } finally {
       hangingNode.close();
     }
@@ -229,9 +231,12 @@ class WebsocketGatewayRequestReleaseTest {
   }
 
   private static void await(Supplier<Boolean> condition) {
-    final long deadline = System.nanoTime() + TIMEOUT.toNanos();
-    while (!condition.get() && System.nanoTime() < deadline) {
-      Thread.onSpinWait();
+    final long deadline = System.nanoTime() + AWAIT_TIMEOUT.toNanos();
+    while (!condition.get()) {
+      if (System.nanoTime() > deadline) {
+        throw new AssertionError("Condition not met within " + AWAIT_TIMEOUT);
+      }
+      LockSupport.parkNanos(Duration.ofMillis(10).toNanos());
     }
   }
 
