@@ -509,7 +509,6 @@ public class Microservices implements AutoCloseable {
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
     private final DeferredClientTransport clientTransport = new DeferredClientTransport();
-    private volatile boolean callCreated;
 
     private final Properties properties;
 
@@ -706,10 +705,6 @@ public class Microservices implements AutoCloseable {
     }
 
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
-      if (callCreated && serviceRegistry != this.serviceRegistry) {
-        throw new IllegalStateException(
-            "serviceRegistry cannot be replaced after call() was used on this context");
-      }
       this.serviceRegistry = serviceRegistry;
       return this;
     }
@@ -719,7 +714,9 @@ public class Microservices implements AutoCloseable {
      * to create service proxies with {@link ServiceCall#api(Class)} up front. Calls go through once
      * the microservices instance started from this context is running; before it is started, and
      * after it is closed, they fail with {@link
-     * io.scalecube.services.exceptions.ServiceUnavailableException}.
+     * io.scalecube.services.exceptions.ServiceUnavailableException}. The service registry is taken
+     * when this method is called, so set {@link #serviceRegistry(ServiceRegistry)} before calling
+     * it.
      *
      * @return new {@link ServiceCall} instance bound to this context
      */
@@ -727,7 +724,6 @@ public class Microservices implements AutoCloseable {
       if (serviceRegistry == null) {
         serviceRegistry = new ServiceRegistryImpl();
       }
-      callCreated = true;
 
       var serviceCall =
           new ServiceCall()

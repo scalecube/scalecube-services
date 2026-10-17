@@ -1,11 +1,8 @@
 package io.scalecube.services;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
@@ -70,15 +67,6 @@ class ServiceCallBeforeStartTest {
     } finally {
       gateway.close();
     }
-  }
-
-  @Test
-  void serviceRegistryCannotBeReplacedAfterCall() {
-    final var context = new Context();
-    context.call();
-
-    assertThrows(
-        IllegalStateException.class, () -> context.serviceRegistry(new ServiceRegistryImpl()));
   }
 
   private static Microservices serviceProvider(Microservices gateway) {
