@@ -1,6 +1,8 @@
 package io.scalecube.services;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -77,6 +79,24 @@ public class ServiceLifecycleAnnotationsTest {
 
     verify(afterConstruct, times(1)).invoke();
     verify(beforeDestroy, times(1)).invoke();
+  }
+
+  @Test
+  void testAfterConstructWithUnresolvableParameterFailsStart() {
+    final var context =
+        new Context()
+            .services(
+                new TestService() {
+                  @AfterConstruct
+                  void init(String unresolvable) {
+                    afterConstruct.invoke();
+                  }
+                });
+
+    final var ex = assertThrows(Exception.class, () -> Microservices.start(context));
+
+    assertInstanceOf(IllegalArgumentException.class, getRootCause(ex));
+    verify(afterConstruct, times(0)).invoke();
   }
 
   private static Throwable getRootCause(Throwable t) {
