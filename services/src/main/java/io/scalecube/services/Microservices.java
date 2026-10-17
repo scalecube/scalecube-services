@@ -171,6 +171,7 @@ public class Microservices implements AutoCloseable {
     serviceTransport = transportSupplier.get().start();
     serverTransport = serviceTransport.serverTransport(serviceRegistry).bind();
     clientTransport = serviceTransport.clientTransport();
+    context.clientTransport.bind(clientTransport);
     serviceAddress = prepareAddress(serverTransport.address());
 
     LOGGER.info(
@@ -452,6 +453,8 @@ public class Microservices implements AutoCloseable {
   }
 
   private void closeTransport() {
+    context.clientTransport.unbind();
+
     if (clientTransport != null) {
       try {
         clientTransport.close();
@@ -514,6 +517,8 @@ public class Microservices implements AutoCloseable {
     public static final String EXTERNAL_PORT_PROP_NAME = "scalecube.services.externalPort";
 
     private final AtomicBoolean isConcluded = new AtomicBoolean();
+    private final DeferredClientTransport clientTransport = new DeferredClientTransport();
+    private volatile boolean callIssued;
 
     private final Properties properties;
 
@@ -679,8 +684,38 @@ public class Microservices implements AutoCloseable {
      * @return this
      */
     public Context serviceRegistry(ServiceRegistry serviceRegistry) {
+      if (callIssued && serviceRegistry != this.serviceRegistry) {
+        throw new IllegalStateException(
+            "serviceRegistry cannot be replaced after call() was issued on this context");
+      }
       this.serviceRegistry = serviceRegistry;
       return this;
+    }
+
+    /**
+     * Returns {@link ServiceCall} that can be used before {@link Microservices#start(Context)}, e.g.
+     * to create service proxies with {@link ServiceCall#api(Class)} up front. Calls go through once
+     * the microservices instance started from this context is running; before it is started, and
+     * after it is closed, they fail with {@link
+     * io.scalecube.services.exceptions.ServiceUnavailableException}.
+     *
+     * @return new {@link ServiceCall} instance bound to this context
+     */
+    public ServiceCall call() {
+      if (serviceRegistry == null) {
+        serviceRegistry = new ServiceRegistryImpl();
+      }
+      callIssued = true;
+
+      var serviceCall =
+          new ServiceCall()
+              .transport(clientTransport)
+              .serviceRegistry(serviceRegistry)
+              .router(Routers.getRouter(RoundRobinServiceRouter.class));
+      if (defaultDataDecoder != null) {
+        serviceCall = serviceCall.dataDecoder(defaultDataDecoder);
+      }
+      return serviceCall;
     }
 
     /**
