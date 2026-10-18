@@ -1,11 +1,19 @@
 package io.scalecube.services;
 
 import java.util.Properties;
-import java.util.function.Consumer;
 
 /**
- * Adds or overrides entries of the {@link Properties} a component is configured from, for example
- * the properties passed to a transport. Lets each part of a setup contribute its own properties.
+ * Sets entries on a {@link Properties} object. Several configurers can be applied, one after
+ * another, to the same {@code Properties} before it is used; a later configurer overrides an entry
+ * set by an earlier one.
  */
 @FunctionalInterface
-public interface PropertiesConfigurer extends Consumer<Properties> {}
+public interface PropertiesConfigurer {
+
+  /**
+   * Sets this configurer's entries on the given properties.
+   *
+   * @param properties properties to configure
+   */
+  void configure(Properties properties);
+}

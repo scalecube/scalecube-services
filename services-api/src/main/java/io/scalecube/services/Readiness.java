@@ -12,9 +12,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Executes readiness checks asynchronously until all conditions are satisfied. Each {@link
- * ReadinessCondition} is polled on background thread. The returned {@link CompletableFuture}
- * completes when all conditions report {@code true}.
+ * Waits until a set of readiness conditions are all met, then runs a hook. Each {@link
+ * ReadinessCondition} is polled on its own background thread every 100 ms until it returns {@code
+ * true}; while waiting, the condition is logged at debug level once per log interval.
+ *
+ * <p>When every condition is met, the readiness hook runs and {@link #future()} completes. When a
+ * condition throws, polling of that condition stops, {@link #future()} completes exceptionally and
+ * the hook does not run.
  */
 public class Readiness implements AutoCloseable {
 
@@ -43,14 +47,37 @@ public class Readiness implements AutoCloseable {
     }
   }
 
+  /**
+   * Returns the future of this readiness: it completes after every condition is met and the
+   * readiness hook has run, or completes exceptionally when a condition throws.
+   *
+   * @return future of this readiness
+   */
   public Future<Void> future() {
     return future;
   }
 
+  /**
+   * Starts polling the given conditions, logging a waiting condition every 5 seconds.
+   *
+   * @param conditions conditions to wait for
+   * @param readinessHook runs once every condition is met; may be {@code null}. An exception it
+   *     throws is logged, not propagated.
+   * @return started readiness; close it to stop polling
+   */
   public static Readiness start(List<ReadinessCondition> conditions, Runnable readinessHook) {
     return start(LOG_INTERVAL_MS, conditions, readinessHook);
   }
 
+  /**
+   * Starts polling the given conditions.
+   *
+   * @param logIntervalMs how often, in milliseconds, a condition still waiting is logged
+   * @param conditions conditions to wait for
+   * @param readinessHook runs once every condition is met; may be {@code null}. An exception it
+   *     throws is logged, not propagated.
+   * @return started readiness; close it to stop polling
+   */
   public static Readiness start(
       long logIntervalMs, List<ReadinessCondition> conditions, Runnable readinessHook) {
     return new Readiness(logIntervalMs, conditions, readinessHook);
@@ -104,6 +131,10 @@ public class Readiness implements AutoCloseable {
     };
   }
 
+  /**
+   * Stops polling: interrupts the background threads and waits until they have finished, retrying
+   * the wait every 5 seconds.
+   */
   @Override
   public void close() {
     try {
