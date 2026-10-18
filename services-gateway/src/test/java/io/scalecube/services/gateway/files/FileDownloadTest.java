@@ -20,7 +20,7 @@ import io.scalecube.services.auth.CredentialsSupplier;
 import io.scalecube.services.discovery.ScalecubeServiceDiscovery;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.files.FileServiceImpl;
+import io.scalecube.services.files.LocalFileService;
 import io.scalecube.services.gateway.client.websocket.WebsocketGatewayClientTransport;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.websocket.WebsocketGateway;
@@ -77,7 +77,7 @@ public class FileDownloadTest {
                 .gateway(() -> HttpGateway.builder().id("HTTP").build())
                 .gateway(() -> WebsocketGateway.builder().id("WS").build()));
 
-    final var fileService = new FileServiceImpl();
+    final var fileService = new LocalFileService();
     microservices =
         Microservices.start(
             new Context()

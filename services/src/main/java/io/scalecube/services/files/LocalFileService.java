@@ -3,6 +3,7 @@ package io.scalecube.services.files;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.RequestContext;
 import io.scalecube.services.annotations.AfterConstruct;
+import io.scalecube.services.annotations.Service;
 import io.scalecube.services.api.ServiceMessage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,9 +17,21 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-public class FileServiceImpl implements FileService, FileStreamer {
+/**
+ * {@link FileService} that keeps added files on the local disk of this microservices instance and
+ * serves them as {@link FileStreamer}, under {@code v1/endpoints/${microservices:id}/files/:name}.
+ * Each file is deleted after its time-to-live. Register the instance on a {@code Microservices}
+ * instance (it binds to its endpoint id on start) and pass the same instance to the services that
+ * add files.
+ *
+ * <p>The class carries {@link Service} so that setups which pick the objects to register by that
+ * annotation (e.g. dependency injection containers) pick it up too; the service itself is the
+ * {@link FileStreamer} interface.
+ */
+@Service
+public class LocalFileService implements FileService, FileStreamer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileServiceImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalFileService.class);
 
   private static final int DEFAULT_CHUNK_SIZE = 64 * 1024;
   private static final String DEFAULT_DIR = System.getProperty("java.io.tmpdir");
@@ -30,18 +43,23 @@ public class FileServiceImpl implements FileService, FileStreamer {
 
   private volatile String serviceEndpointId;
 
-  public FileServiceImpl() {
+  /**
+   * Creates a file service that accepts files under {@code java.io.tmpdir}, streams them in 64 KiB
+   * chunks and deletes them after 10 minutes.
+   */
+  public LocalFileService() {
     this(new File(DEFAULT_DIR), DEFAULT_CHUNK_SIZE, DEFAULT_TTL);
   }
 
   /**
-   * Constructor.
+   * Creates a file service.
    *
-   * @param baseDir baseDir for storing files
-   * @param chunkSize maximum buffer size for reading file and publishing by flux
-   * @param fileTtl file lifetime, {@code null} means forever
+   * @param baseDir directory that added files must be under
+   * @param chunkSize maximum size of a chunk when a file is streamed
+   * @param fileTtl default file lifetime, used when a request has no {@code ttl}; {@code null}
+   *     means forever
    */
-  public FileServiceImpl(File baseDir, int chunkSize, Duration fileTtl) {
+  public LocalFileService(File baseDir, int chunkSize, Duration fileTtl) {
     this.baseDir = baseDir.toPath();
     this.chunkSize = chunkSize;
     this.fileTtl = fileTtl;
