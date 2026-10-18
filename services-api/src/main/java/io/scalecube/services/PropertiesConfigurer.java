@@ -3,15 +3,15 @@ package io.scalecube.services;
 import java.util.Properties;
 
 /**
- * Sets entries on a {@link Properties} object. Several configurers can be applied, one after
- * another, to the same {@code Properties} before it is used; a later configurer overrides an entry
- * set by an earlier one.
+ * Configures {@link Properties} before a component (for example a transport) is created from them.
+ * Lets the properties be contributed by independent parts of a setup, each applied to the same
+ * {@code Properties}, for example one per bean of a dependency-injection container.
  */
 @FunctionalInterface
 public interface PropertiesConfigurer {
 
   /**
-   * Sets this configurer's entries on the given properties.
+   * Applies this configuration to the properties.
    *
    * @param properties properties to configure
    */

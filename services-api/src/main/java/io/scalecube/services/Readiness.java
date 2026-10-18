@@ -13,9 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Waits until a set of readiness conditions are all met, then runs a hook. Each {@link
- * ReadinessCondition} is polled on its own background thread every 100 ms until it returns {@code
- * true}; while waiting, the condition is logged at debug level once per log interval.
+ * Waits until every {@link ReadinessCondition} is met, polling each on a background thread, then
+ * runs a readiness hook.
  *
  * <p>When every condition is met, the readiness hook runs and {@link #future()} completes. When a
  * condition throws, polling of that condition stops, {@link #future()} completes exceptionally and
