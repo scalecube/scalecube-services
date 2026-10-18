@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
-class FileServiceImplTest {
+class LocalFileServiceTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
@@ -22,7 +22,7 @@ class FileServiceImplTest {
   void fileServiceIsNotAnnouncedOnlyFileStreamer() {
     assertFalse(Reflect.isService(FileService.class));
 
-    try (var microservices = Microservices.start(new Context().services(new FileServiceImpl()))) {
+    try (var microservices = Microservices.start(new Context().services(new LocalFileService()))) {
       final Set<String> namespaces =
           microservices.serviceEndpoint().serviceRegistrations().stream()
               .map(ServiceRegistration::namespace)
@@ -36,14 +36,14 @@ class FileServiceImplTest {
   void addFileBeforeStartFails() throws Exception {
     final var file = Files.createTempFile("file-service-", ".txt").toFile();
 
-    StepVerifier.create(new FileServiceImpl().addFile(new AddFileRequest(file)))
+    StepVerifier.create(new LocalFileService().addFile(new AddFileRequest(file)))
         .expectError(IllegalStateException.class)
         .verify(TIMEOUT);
   }
 
   @Test
   void addFileReturnsPathOfThisInstance() throws Exception {
-    final var fileService = new FileServiceImpl();
+    final var fileService = new LocalFileService();
     final var file = Files.createTempFile("file-service-", ".txt").toFile();
 
     try (var microservices = Microservices.start(new Context().services(fileService))) {
