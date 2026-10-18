@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 import org.slf4j.Logger;
@@ -18,7 +19,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>When every condition is met, the readiness hook runs and {@link #future()} completes. When a
  * condition throws, polling of that condition stops, {@link #future()} completes exceptionally and
- * the hook does not run.
+ * the hook does not run. When the readiness is {@link #close() closed} before every condition is
+ * met, {@link #future()} is cancelled and the hook does not run.
  */
 public class Readiness implements AutoCloseable {
 
@@ -30,6 +32,7 @@ public class Readiness implements AutoCloseable {
 
   private final ExecutorService readinessExecutor =
       Executors.newCachedThreadPool(r -> new Thread(r, "readiness-executor"));
+  private final AtomicBoolean closed = new AtomicBoolean();
   private final CompletableFuture<Void> future;
 
   private Readiness(
@@ -40,7 +43,13 @@ public class Readiness implements AutoCloseable {
                   conditions.stream()
                       .map(condition -> runAsync(condition, logIntervalMs, readinessExecutor))
                       .toArray(CompletableFuture[]::new))
-              .thenAccept(unused -> runReadinessHook(readinessHook));
+              .thenAccept(
+                  unused -> {
+                    // A poll loop interrupted by close() returns normally, which is not readiness
+                    if (!closed.get()) {
+                      runReadinessHook(readinessHook);
+                    }
+                  });
     } catch (Exception e) {
       close();
       throw new RuntimeException(e);
@@ -49,7 +58,8 @@ public class Readiness implements AutoCloseable {
 
   /**
    * Returns the future of this readiness: it completes after every condition is met and the
-   * readiness hook has run, or completes exceptionally when a condition throws.
+   * readiness hook has run, completes exceptionally when a condition throws, and is cancelled when
+   * the readiness is closed before that.
    *
    * @return future of this readiness
    */
@@ -133,10 +143,15 @@ public class Readiness implements AutoCloseable {
 
   /**
    * Stops polling: interrupts the background threads and waits until they have finished, retrying
-   * the wait every 5 seconds.
+   * the wait every 5 seconds. When called before every condition is met, {@link #future()} is
+   * cancelled and the readiness hook does not run.
    */
   @Override
   public void close() {
+    closed.set(true);
+    if (future != null) {
+      future.cancel(true);
+    }
     try {
       while (true) {
         readinessExecutor.shutdownNow();

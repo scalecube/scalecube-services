@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,6 +96,34 @@ class ReadinessTest {
 
     // The future should complete exceptionally when interrupted
     assertTrue(readiness.future().isDone());
+  }
+
+  @Test
+  void testCloseBeforeReadyDoesNotRunHook() throws Exception {
+    final var hookCalled = new AtomicBoolean(false);
+    final var c =
+        new Readiness.ReadinessCondition() {
+          @Override
+          public String name() {
+            return "never";
+          }
+
+          @Override
+          public boolean getAsBoolean() {
+            return false;
+          }
+        };
+
+    final var readiness = Readiness.start(List.of(c), () -> hookCalled.set(true));
+    Thread.sleep(200);
+
+    readiness.close();
+    // Give a hook wrongly triggered by the interrupted poll loop time to run
+    Thread.sleep(200);
+
+    assertFalse(hookCalled.get());
+    assertTrue(readiness.future().isDone());
+    assertThrows(CancellationException.class, () -> readiness.future().get());
   }
 
   @Test
