@@ -10,18 +10,17 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.registry.api.ServiceRegistryPoller;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -64,8 +63,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public Poller poller() {
-    return new PollerImpl();
+  public ServiceRegistryPoller poller() {
+    return new ServiceRegistryPollerImpl(version, serviceEndpoints);
   }
 
   @Override
@@ -324,47 +323,5 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       final var restMethod = serviceReference.restMethod();
       return restMethod == null || restMethod.equals(requestMethod);
     };
-  }
-
-  private final class PollerImpl implements Poller {
-
-    private long seenVersion = -1;
-    private Map<String, ServiceEndpoint> endpoints = new HashMap<>();
-    private Collection<ServiceEndpoint> endpointsView =
-        Collections.unmodifiableCollection(endpoints.values());
-
-    @Override
-    public int poll(Consumer<ServiceEndpoint> onAdded, Consumer<ServiceEndpoint> onRemoved) {
-      final var currentVersion = version.get(); // before the endpoints
-      if (currentVersion == seenVersion) {
-        return 0;
-      }
-      seenVersion = currentVersion;
-
-      final var previous = endpoints;
-      final var current = new HashMap<>(serviceEndpoints);
-      endpoints = current;
-      endpointsView = Collections.unmodifiableCollection(current.values());
-
-      var changes = 0;
-      for (var endpoint : previous.values()) {
-        if (!current.containsKey(endpoint.id())) {
-          onRemoved.accept(endpoint);
-          changes++;
-        }
-      }
-      for (var endpoint : current.values()) {
-        if (!previous.containsKey(endpoint.id())) {
-          onAdded.accept(endpoint);
-          changes++;
-        }
-      }
-      return changes;
-    }
-
-    @Override
-    public Collection<ServiceEndpoint> endpoints() {
-      return endpointsView;
-    }
   }
 }

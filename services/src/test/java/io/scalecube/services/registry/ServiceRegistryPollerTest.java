@@ -10,7 +10,7 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
-import io.scalecube.services.registry.api.ServiceRegistry.Poller;
+import io.scalecube.services.registry.api.ServiceRegistryPoller;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,6 +103,21 @@ class ServiceRegistryPollerTest {
   }
 
   @Test
+  void testPollWithoutCallbacksCountsChangesAndUpdatesEndpoints() {
+    final var poller = serviceRegistry.poller();
+    serviceRegistry.registerService(endpoint("a"));
+    serviceRegistry.registerService(endpoint("b"));
+    assertEquals(2, poller.poll());
+    assertEquals(Set.of("a", "b"), ids(poller));
+
+    assertEquals(0, poller.poll(), "no changes");
+
+    serviceRegistry.unregisterService("a");
+    assertEquals(1, poller.poll());
+    assertEquals(Set.of("b"), ids(poller));
+  }
+
+  @Test
   void testPollersAreIndependent() {
     final var first = serviceRegistry.poller();
     final var second = serviceRegistry.poller();
@@ -145,13 +160,14 @@ class ServiceRegistryPollerTest {
     assertEquals(mirror, ids(poller));
   }
 
-  private int poll(Poller poller) {
+  private int poll(ServiceRegistryPoller poller) {
     added.clear();
     removed.clear();
-    return poller.poll(endpoint -> added.add(endpoint.id()), endpoint -> removed.add(endpoint.id()));
+    return poller.poll(
+        endpoint -> added.add(endpoint.id()), endpoint -> removed.add(endpoint.id()));
   }
 
-  private static Set<String> ids(Poller poller) {
+  private static Set<String> ids(ServiceRegistryPoller poller) {
     return ids(poller.endpoints());
   }
 
