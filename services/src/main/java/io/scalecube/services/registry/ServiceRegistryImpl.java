@@ -14,11 +14,14 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -31,6 +34,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
+  private final AtomicLong version = new AtomicLong();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
   // remote service references by static and dynamic qualifiers
@@ -52,6 +56,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
     return new ArrayList<>(serviceEndpoints.values());
+  }
+
+  @Override
+  public long version() {
+    return version.get();
+  }
+
+  @Override
+  public Poller poller() {
+    return new PollerImpl();
   }
 
   @Override
@@ -100,6 +114,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+      version.incrementAndGet();
       LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
     }
   }
@@ -129,6 +144,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                       value.dynamicQualifier(),
                       (key, list) -> removeServiceReference(value, list)));
 
+      version.incrementAndGet();
       LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
     }
     return serviceEndpoint;
@@ -308,5 +324,47 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       final var restMethod = serviceReference.restMethod();
       return restMethod == null || restMethod.equals(requestMethod);
     };
+  }
+
+  private final class PollerImpl implements Poller {
+
+    private long seenVersion = -1;
+    private Map<String, ServiceEndpoint> endpoints = new HashMap<>();
+    private Collection<ServiceEndpoint> endpointsView =
+        Collections.unmodifiableCollection(endpoints.values());
+
+    @Override
+    public int poll(Consumer<ServiceEndpoint> onAdded, Consumer<ServiceEndpoint> onRemoved) {
+      final var currentVersion = version.get(); // before the endpoints
+      if (currentVersion == seenVersion) {
+        return 0;
+      }
+      seenVersion = currentVersion;
+
+      final var previous = endpoints;
+      final var current = new HashMap<>(serviceEndpoints);
+      endpoints = current;
+      endpointsView = Collections.unmodifiableCollection(current.values());
+
+      var changes = 0;
+      for (var endpoint : previous.values()) {
+        if (!current.containsKey(endpoint.id())) {
+          onRemoved.accept(endpoint);
+          changes++;
+        }
+      }
+      for (var endpoint : current.values()) {
+        if (!previous.containsKey(endpoint.id())) {
+          onAdded.accept(endpoint);
+          changes++;
+        }
+      }
+      return changes;
+    }
+
+    @Override
+    public Collection<ServiceEndpoint> endpoints() {
+      return endpointsView;
+    }
   }
 }
