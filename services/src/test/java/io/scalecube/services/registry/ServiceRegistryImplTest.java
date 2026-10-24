@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import io.scalecube.services.Address;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.RestMethod;
 import io.scalecube.services.annotations.Service;
@@ -15,9 +16,12 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 
@@ -91,6 +95,48 @@ class ServiceRegistryImplTest {
 
     assertEquals(0, serviceRegistry.listServiceEndpoints().size());
     assertEquals(0, serviceRegistry.listServiceReferences().size());
+  }
+
+  @Test
+  void testServiceEndpointNotListedBeforeServiceReferencesAdded() throws Exception {
+    final var referencesRequested = new CountDownLatch(1);
+    final var releaseReferences = new CountDownLatch(1);
+    final var serviceEndpoint =
+        new ServiceEndpoint() {
+          @Override
+          public String id() {
+            return "endpoint";
+          }
+
+          @Override
+          public Collection<ServiceReference> serviceReferences() {
+            referencesRequested.countDown();
+            try {
+              releaseReferences.await();
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+            }
+            return List.of();
+          }
+
+          @Override
+          public String toString() {
+            return "ServiceEndpoint[id='endpoint']";
+          }
+        };
+
+    final var registerThread =
+        new Thread(() -> serviceRegistry.registerService(serviceEndpoint), "register");
+    registerThread.start();
+    try {
+      assertTrue(referencesRequested.await(10, TimeUnit.SECONDS));
+      assertTrue(serviceRegistry.listServiceEndpoints().isEmpty());
+    } finally {
+      releaseReferences.countDown();
+      registerThread.join(TimeUnit.SECONDS.toMillis(10));
+    }
+
+    assertEquals(List.of(serviceEndpoint), serviceRegistry.listServiceEndpoints());
   }
 
   @Test
