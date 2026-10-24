@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.internal.verification.VerificationModeFactory.atLeast;
 
 import io.scalecube.services.concurrent.ResourceConductor.ResourceHandle;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -481,8 +482,8 @@ public class ResourceConductorTest {
     handle.awaitAdded();
 
     // Any subsequent call to an add-method must fail
-    assertThrows(IllegalStateException.class, handle::awaitAdded);
-    assertThrows(IllegalStateException.class, handle::tryAdd);
+    assertThrows(ConcurrentModificationException.class, handle::awaitAdded);
+    assertThrows(ConcurrentModificationException.class, handle::tryAdd);
   }
 
   @Test
@@ -498,8 +499,8 @@ public class ResourceConductorTest {
     handle.awaitAdded();
 
     // Any subsequent call to an add-method must fail
-    assertThrows(IllegalStateException.class, handle::awaitAdded);
-    assertThrows(IllegalStateException.class, handle::tryAdd);
+    assertThrows(ConcurrentModificationException.class, handle::awaitAdded);
+    assertThrows(ConcurrentModificationException.class, handle::tryAdd);
   }
 
   @Test
@@ -687,10 +688,10 @@ public class ResourceConductorTest {
     assertTrue(handle.tryAdd(), "first tryAdd must succeed");
 
     // Subsequent call via awaitAdded must fail
-    assertThrows(IllegalStateException.class, handle::awaitAdded);
+    assertThrows(ConcurrentModificationException.class, handle::awaitAdded);
 
     // Even another tryAdd after the first one fails
-    assertThrows(IllegalStateException.class, handle::tryAdd);
+    assertThrows(ConcurrentModificationException.class, handle::tryAdd);
   }
 
   @Test
