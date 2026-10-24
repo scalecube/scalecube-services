@@ -96,12 +96,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceEndpoint serviceEndpoint) {
-    boolean putIfAbsent =
-        serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
-    if (putIfAbsent) {
-      serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
-      LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
-    }
+    // Endpoint becomes visible in listServiceEndpoints() only after its references are added
+    serviceEndpoints.computeIfAbsent(
+        serviceEndpoint.id(), id -> addServiceEndpoint(serviceEndpoint));
+  }
+
+  private ServiceEndpoint addServiceEndpoint(ServiceEndpoint serviceEndpoint) {
+    serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+    LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
+    return serviceEndpoint;
   }
 
   @Override
