@@ -109,13 +109,22 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public void registerService(ServiceEndpoint serviceEndpoint) {
-    boolean putIfAbsent =
-        serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
-    if (putIfAbsent) {
-      serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+    // Endpoint becomes visible in listServiceEndpoints() only after its references are added
+    final var registered =
+        serviceEndpoints.computeIfAbsent(
+            serviceEndpoint.id(), id -> addServiceEndpoint(serviceEndpoint));
+    // The version is bumped after the endpoint is in the map: a poller reads the version before
+    // it copies the map, so a bump from inside the mapping function could be seen with a copy
+    // that does not contain the endpoint yet
+    if (registered == serviceEndpoint) {
       version.incrementAndGet();
-      LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
     }
+  }
+
+  private ServiceEndpoint addServiceEndpoint(ServiceEndpoint serviceEndpoint) {
+    serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+    LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
+    return serviceEndpoint;
   }
 
   @Override
