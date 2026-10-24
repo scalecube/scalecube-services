@@ -27,6 +27,23 @@ public interface ServiceRegistry {
   List<ServiceEndpoint> listServiceEndpoints();
 
   /**
+   * Returns version of the {@link ServiceEndpoint} objects, incremented after every change of
+   * {@link #listServiceEndpoints()}. A reader that reads the version before the endpoints sees
+   * every change: either in that read, or by a version different from the one it read.
+   *
+   * @return version of the {@link ServiceEndpoint} objects
+   */
+  long version();
+
+  /**
+   * Returns new {@link ServiceRegistryPoller} of the {@link ServiceEndpoint} objects of this
+   * registry.
+   *
+   * @return poller
+   */
+  ServiceRegistryPoller poller();
+
+  /**
    * Returns list of {@link ServiceReference} objects that was registered locally.
    *
    * @return list of {@link ServiceReference} objects

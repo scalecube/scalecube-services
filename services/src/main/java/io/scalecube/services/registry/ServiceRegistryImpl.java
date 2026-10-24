@@ -10,6 +10,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.registry.api.ServiceRegistryPoller;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
@@ -31,6 +33,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   private final Map<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
+  private final AtomicLong version = new AtomicLong();
   private final List<ServiceInfo> serviceInfos = new CopyOnWriteArrayList<>();
 
   // remote service references by static and dynamic qualifiers
@@ -52,6 +55,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
     return new ArrayList<>(serviceEndpoints.values());
+  }
+
+  @Override
+  public long version() {
+    return version.get();
+  }
+
+  @Override
+  public ServiceRegistryPoller poller() {
+    return new ServiceRegistryPollerImpl(version, serviceEndpoints);
   }
 
   @Override
@@ -100,6 +113,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (putIfAbsent) {
       serviceEndpoint.serviceReferences().forEach(this::addServiceReference);
+      version.incrementAndGet();
       LOGGER.debug("ServiceEndpoint registered: {}", serviceEndpoint);
     }
   }
@@ -129,6 +143,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                       value.dynamicQualifier(),
                       (key, list) -> removeServiceReference(value, list)));
 
+      version.incrementAndGet();
       LOGGER.debug("ServiceEndpoint unregistered: {}", serviceEndpoint);
     }
     return serviceEndpoint;
