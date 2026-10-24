@@ -27,8 +27,11 @@ import reactor.core.publisher.BaseSubscriber;
  * leaving right away, but removed only after the membership timeouts.
  *
  * <p>Whatever {@code onAdded} returns is handed back to {@code onRemoved}, with the same member.
- * Callbacks run on the thread delivering the discovery events, so they must not block. An exception
- * of a callback goes to {@link Builder#onError(Consumer)}.
+ * Callbacks run on the thread delivering the discovery events, so they must not block. If the
+ * filter, the group key function or a callback throws an exception, the exception is passed to
+ * {@link Builder#onError(Consumer)} and the subscriber keeps handling the next events. If the
+ * discovery stream itself fails, that error is passed to {@code onError} too, and the subscriber
+ * stops: nothing is followed after that.
  *
  * @param <R> what {@code onAdded} returns
  */
@@ -72,25 +75,25 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
 
   @Override
   protected synchronized void hookOnNext(ServiceDiscoveryEvent event) {
-    final var endpoint = event.serviceEndpoint();
-    if (!filter.test(endpoint)) {
-      return;
-    }
-    final var group = groupBy.apply(endpoint);
-    if (event.isEndpointAdded()) {
-      groups.computeIfAbsent(group, k -> new LinkedHashMap<>()).put(endpoint.id(), endpoint);
-    } else if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
-      final var members = groups.get(group);
-      if (members == null || members.remove(endpoint.id()) == null) {
+    try {
+      final var endpoint = event.serviceEndpoint();
+      if (!filter.test(endpoint)) {
         return;
       }
-      if (members.isEmpty()) {
-        groups.remove(group);
+      final var group = groupBy.apply(endpoint);
+      if (event.isEndpointAdded()) {
+        groups.computeIfAbsent(group, k -> new LinkedHashMap<>()).put(endpoint.id(), endpoint);
+      } else if (event.isEndpointLeaving() || event.isEndpointRemoved()) {
+        final var members = groups.get(group);
+        if (members == null || members.remove(endpoint.id()) == null) {
+          return;
+        }
+        if (members.isEmpty()) {
+          groups.remove(group);
+        }
+      } else {
+        return;
       }
-    } else {
-      return;
-    }
-    try {
       if (current != null && !groups.containsKey(current)) {
         remove();
       }
@@ -105,6 +108,12 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
     } catch (Exception ex) {
       onError.accept(ex);
     }
+  }
+
+  @Override
+  protected void hookOnError(Throwable throwable) {
+    LOGGER.error("[{}] Discovery stream failed, nothing is followed from now on", name, throwable);
+    onError.accept(throwable);
   }
 
   private void remove() {
@@ -157,7 +166,8 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
 
     /**
      * Filter of the endpoints, applied to every discovery event: an endpoint that does not match is
-     * ignored, as if never discovered. Default: all.
+     * ignored, as if never discovered. If the filter throws an exception, the event is ignored and
+     * the exception is passed to {@code onError}. Default: all.
      *
      * @param filter filter
      * @return this builder
@@ -170,8 +180,9 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
     /**
      * Group key of an endpoint. Must give the same key for the same endpoint on every event, it is
      * how a leaving member finds its group. Keys are compared as strings when choosing the lowest
-     * one ({@code "10"} comes before {@code "9"}). Default: the endpoint id, every endpoint is its
-     * own group.
+     * one ({@code "10"} comes before {@code "9"}). If the function throws an exception, the event
+     * is ignored and the exception is passed to {@code onError}. Default: the endpoint id, every
+     * endpoint is its own group.
      *
      * @param groupBy group key function
      * @return this builder
@@ -208,8 +219,10 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
     }
 
     /**
-     * Handler of an exception thrown by {@code onAdded} or {@code onRemoved}, e.g. to shut down
-     * when a resource cannot be started. Default: logs it.
+     * Handler of errors. It receives an exception thrown by the filter, the group key function,
+     * {@code onAdded} or {@code onRemoved}, for example to shut down when a resource cannot be
+     * started. It also receives an error of the discovery stream; after such an error nothing is
+     * followed any more. Default: logs the error.
      *
      * @param onError handler
      * @return this builder

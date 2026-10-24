@@ -1,6 +1,7 @@
 package io.scalecube.services.discovery.api;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,6 +59,32 @@ class ServiceSubscriberTest {
 
   @Test
   void testGroupIsAddedOnFirstMemberAndRemovedOnLast() {
+    subscribe(true);
+
+    add("a0", "a");
+    add("a1", "a");
+    remove("a0");
+
+    assertEquals(List.of("added a0"), events);
+
+    remove("a1");
+
+    assertEquals(List.of("added a0", "removed a0, resource of a0"), events);
+  }
+
+  @Test
+  void testRestartedMemberRemovedThenAddedRestartsTheGroup() {
+    subscribe(true);
+
+    add("a0", "a");
+    remove("a0");
+    add("a1", "a");
+
+    assertEquals(List.of("added a0", "removed a0, resource of a0", "added a1"), events);
+  }
+
+  @Test
+  void testRestartedMemberAddedThenRemovedKeepsTheGroup() {
     subscribe(true);
 
     add("a0", "a");
@@ -156,6 +183,47 @@ class ServiceSubscriberTest {
     remove("a0");
 
     assertSame(failure, errors.get(0));
+  }
+
+  @Test
+  void testFailedFilterGoesToOnErrorAndTheNextEventIsHandled() {
+    final var failure = new IllegalArgumentException("bad tag");
+    final var subscriber =
+        ServiceSubscriber.<String>builder()
+            .filter(
+                endpoint -> {
+                  if ("bad".equals(endpoint.tags().get("group"))) {
+                    throw failure;
+                  }
+                  return true;
+                })
+            .onAdded(
+                member -> {
+                  events.add("added " + member.id());
+                  return "resource of " + member.id();
+                })
+            .onError(errors::add)
+            .build();
+    discovery.asFlux().subscribe(subscriber);
+
+    add("x0", "bad");
+    add("a0", "a");
+
+    assertEquals(List.of(failure), errors);
+    assertFalse(subscriber.isDisposed());
+    assertEquals(List.of("added a0"), events);
+  }
+
+  @Test
+  void testDiscoveryErrorGoesToOnError() {
+    final var failure = new IllegalStateException("discovery down");
+    final var subscriber = subscribe(true);
+    add("a0", "a");
+
+    discovery.tryEmitError(failure);
+
+    assertEquals(List.of(failure), errors);
+    assertTrue(subscriber.isDisposed());
   }
 
   @Test
