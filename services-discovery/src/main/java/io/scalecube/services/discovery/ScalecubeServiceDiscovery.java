@@ -34,6 +34,8 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
+  private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
+
   private ClusterConfig clusterConfig;
   private Cluster cluster;
 
@@ -114,6 +116,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
     sink.emitComplete(busyLooping(Duration.ofSeconds(3)));
     if (cluster != null) {
       cluster.shutdown();
+      cluster.onShutdown().block(SHUTDOWN_TIMEOUT);
     }
   }
 
