@@ -16,6 +16,8 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.methods.ServiceMethodDefinition;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -225,6 +228,22 @@ class ScalecubeServiceDiscoveryTest {
         .expectNoEvent(SHORT_TIMEOUT)
         .thenCancel()
         .verify();
+  }
+
+  @Test
+  public void testPortIsFreeOnceShutdownReturns() throws Exception {
+    ServiceDiscovery serviceDiscovery =
+        new ScalecubeServiceDiscovery()
+            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+            .options(opts -> opts.metadata(newServiceEndpoint()));
+    serviceDiscovery.start();
+    int port = serviceDiscovery.address().port();
+
+    serviceDiscovery.shutdown();
+
+    try (ServerSocket serverSocket = new ServerSocket()) {
+      serverSocket.bind(new InetSocketAddress(port));
+    }
   }
 
   public static ServiceEndpoint newServiceEndpoint() {
