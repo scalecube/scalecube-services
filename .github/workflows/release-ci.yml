@@ -26,7 +26,7 @@ jobs:
       - name: Set up Java for publishing to GitHub Packages
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: 25
           distribution: zulu
           server-id: github
           server-username: GITHUB_ACTOR
@@ -56,7 +56,7 @@ jobs:
       - name: Set up Java for publishing to Maven Central Repository
         uses: actions/setup-java@v4
         with:
-          java-version: 17
+          java-version: 25
           distribution: zulu
           server-id: central
           server-username: MAVEN_USERNAME
