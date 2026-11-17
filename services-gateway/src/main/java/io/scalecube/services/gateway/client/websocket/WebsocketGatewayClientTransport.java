@@ -41,6 +41,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   private final Function<HttpClient, HttpClient> operator;
 
   private final AtomicLong sidCounter = new AtomicLong();
+  private final Mono<WebsocketGatewayClientSession> clientSession;
   private final AtomicReference<WebsocketGatewayClientSession> clientSessionReference =
       new AtomicReference<>();
 
@@ -48,6 +49,7 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
     this.clientCodec = builder.clientCodec;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.operator = builder.operator;
+    this.clientSession = Mono.defer(this::connect).cacheInvalidateIf(session -> false);
   }
 
   public static Builder builder() {
@@ -56,70 +58,57 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    clientSessionReference.getAndUpdate(
-        oldValue -> {
-          if (oldValue != null) {
-            return oldValue;
-          }
-
-          final HttpClient httpClient =
-              operator.apply(
-                  HttpClient.create(ConnectionProvider.newConnection())
-                      .resolver(DefaultAddressResolverGroup.INSTANCE)
-                      .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
-                      .option(ChannelOption.TCP_NODELAY, true)
-                      .headers(headers -> headers.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)));
-
-          return clientSession(httpClient);
-        });
     return this;
   }
 
-  private WebsocketGatewayClientSession clientSession(HttpClient httpClient) {
-    try {
-      return httpClient
-          .websocket()
-          .uri("/")
-          .connect()
-          .map(
-              connection ->
-                  keepAliveInterval != Duration.ZERO
-                      ? connection
-                          .onReadIdle(keepAliveInterval.toMillis(), () -> onReadIdle(connection))
-                          .onWriteIdle(keepAliveInterval.toMillis(), () -> onWriteIdle(connection))
-                      : connection)
-          .map(
-              connection -> {
-                final WebsocketGatewayClientSession session =
-                    new WebsocketGatewayClientSession(clientCodec, connection);
-                LOGGER.info("Created session: {}", session);
-                // setup shutdown hook
-                session
-                    .onClose()
-                    .doOnTerminate(() -> LOGGER.info("Closed session: {}", session))
-                    .subscribe(
-                        null,
-                        th ->
-                            LOGGER.warn(
-                                "Exception on closing session: {}, cause: {}",
-                                session,
-                                th.toString()));
-                return session;
-              })
-          .doOnError(ex -> LOGGER.warn("Failed to connect, cause: {}", ex.toString()))
-          .toFuture()
-          .get();
-    } catch (Exception e) {
-      throw new RuntimeException(getRootCause(e));
-    }
+  private Mono<WebsocketGatewayClientSession> connect() {
+    final HttpClient httpClient =
+        operator.apply(
+            HttpClient.create(ConnectionProvider.newConnection())
+                .resolver(DefaultAddressResolverGroup.INSTANCE)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .headers(headers -> headers.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)));
+
+    return httpClient
+        .websocket()
+        .uri("/")
+        .connect()
+        .map(
+            connection ->
+                keepAliveInterval != Duration.ZERO
+                    ? connection
+                        .onReadIdle(keepAliveInterval.toMillis(), () -> onReadIdle(connection))
+                        .onWriteIdle(keepAliveInterval.toMillis(), () -> onWriteIdle(connection))
+                    : connection)
+        .map(
+            connection -> {
+              final WebsocketGatewayClientSession session =
+                  new WebsocketGatewayClientSession(clientCodec, connection);
+              LOGGER.info("Created session: {}", session);
+              // setup shutdown hook
+              session
+                  .onClose()
+                  .doOnTerminate(() -> LOGGER.info("Closed session: {}", session))
+                  .subscribe(
+                      null,
+                      th ->
+                          LOGGER.warn(
+                              "Exception on closing session: {}, cause: {}",
+                              session,
+                              th.toString()));
+              return session;
+            })
+        .doOnSuccess(clientSessionReference::set)
+        .doOnError(ex -> LOGGER.warn("Failed to connect, cause: {}", ex.toString()))
+        .onErrorMap(ex -> new RuntimeException(getRootCause(ex)));
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    return Mono.defer(
-        () -> {
+    return clientSession.flatMap(
+        session -> {
           long sid = sidCounter.incrementAndGet();
-          final WebsocketGatewayClientSession session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
@@ -131,10 +120,9 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    return Flux.defer(
-        () -> {
+    return clientSession.flatMapMany(
+        session -> {
           long sid = sidCounter.incrementAndGet();
-          final WebsocketGatewayClientSession session = clientSessionReference.get();
           return session
               .send(encodeRequest(request, sid))
               .doOnSubscribe(s -> LOGGER.debug("Sending request {}", request))
