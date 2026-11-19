@@ -54,11 +54,22 @@ public class JsonMasker {
         continue;
       }
 
+      final byte first = buffer.getByte(valueStart);
+      if (first == '{' || first == '[') {
+        // OBJECT OR ARRAY VALUE: mask everything inside, keep the JSON structure
+        final int end = maskContainer(buffer, valueStart, limit);
+        if (end >= limit) {
+          break;
+        }
+        currentIndex = end;
+        continue;
+      }
+
       int contentStart;
       int contentEnd;
       int searchResumeIndex;
 
-      if (buffer.getByte(valueStart) == '"') {
+      if (first == '"') {
         // QUOTED VALUE
         contentStart = valueStart + 1; // Skip opening quote
         int closeQuote = findClosingQuote(buffer, contentStart, limit);
@@ -106,6 +117,43 @@ public class JsonMasker {
         buffer.setByte(i, (byte) '*');
       }
     }
+  }
+
+  /**
+   * Masks a JSON object or array value that starts at {@code start}: every character of its strings
+   * and every bare value, keeping quotes, brackets, ':', ',' and whitespace.
+   *
+   * @return index right after the closing bracket, or {@code limit} if the value is truncated
+   */
+  private static int maskContainer(ByteBuf buffer, int start, int limit) {
+    int depth = 0;
+    boolean inString = false;
+    boolean escaped = false;
+    for (int i = start; i < limit; i++) {
+      final byte b = buffer.getByte(i);
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (b == '\\') {
+          escaped = true;
+        } else if (b == '"') {
+          inString = false;
+          continue;
+        }
+        buffer.setByte(i, '*');
+      } else if (b == '"') {
+        inString = true;
+      } else if (b == '{' || b == '[') {
+        depth++;
+      } else if (b == '}' || b == ']') {
+        if (--depth == 0) {
+          return i + 1;
+        }
+      } else if (b != ':' && b != ',' && b != ' ' && b != '\t' && b != '\n' && b != '\r') {
+        buffer.setByte(i, '*');
+      }
+    }
+    return limit;
   }
 
   private static int findMatch(ByteBuf buffer, int start, int limit, byte[] pattern) {

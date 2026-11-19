@@ -61,4 +61,29 @@ class JsonMaskerTest {
     JsonMasker.mask(buffer, 0, bytes.length, "username".getBytes(StandardCharsets.UTF_8), false);
     assertEquals(output, buffer.toString(StandardCharsets.UTF_8));
   }
+
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      value = {
+        // object and array values: every string and bare value masked, structure kept
+        "{\"password\":{\"v\":\"s3cret\"}}"
+            + " | {\"password\":{\"*\":\"******\"}}",
+        "{\"password\":[\"s3cret\", 42]}"
+            + " | {\"password\":[\"******\", **]}",
+        "{\"password\":{\"a\":[1,{\"b\":\"}]\"}]}, \"username\":\"daria\"}"
+            + " | {\"password\":{\"*\":[*,{\"*\":\"**\"}]}, \"username\":\"daria\"}",
+        // masking goes on after a nested value
+        "{\"password\":{\"v\":\"x\"}, \"password\":\"LastPwd\"}"
+            + " | {\"password\":{\"*\":\"*\"}, \"password\":\"*******\"}",
+        // truncated nested value is masked to the end
+        "{\"password\":{\"v\":\"s3c"
+            + " | {\"password\":{\"*\":\"***",
+      })
+  void maskNestedPassword(String input, String output) {
+    final var bytes = input.getBytes(StandardCharsets.UTF_8);
+    final var buffer = Unpooled.wrappedBuffer(bytes);
+    JsonMasker.mask(buffer, 0, bytes.length, "password".getBytes(StandardCharsets.UTF_8), true);
+    assertEquals(output, buffer.toString(StandardCharsets.UTF_8));
+  }
 }
