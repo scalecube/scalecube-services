@@ -157,9 +157,11 @@ public class WebsocketGatewayAcceptor
 
     return Mono.fromCallable(() -> messageCodec.decode(byteBuf))
         .map(GatewayMessages::validateSid)
+        .map(GatewayMessages::validateSignal)
         .flatMap(message -> onCancel(session, message))
         .map(message -> validateSidOnSession(session, (ServiceMessage) message))
         .map(GatewayMessages::validateQualifier)
+        .map(GatewayMessages::validateRateLimit)
         .map(
             message -> {
               try {
