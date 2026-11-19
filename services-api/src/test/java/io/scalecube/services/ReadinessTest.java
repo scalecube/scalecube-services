@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -150,6 +151,46 @@ class ReadinessTest {
     readiness.close();
     assertTrue(readiness.future().isDone());
     assertThrows(ExecutionException.class, () -> readiness.future().get());
+  }
+
+  @Test
+  void testConditionThrowsWhileAnotherIsNeverMet() throws Exception {
+    final var hookCalled = new AtomicBoolean(false);
+
+    final var neverMet =
+        new Readiness.ReadinessCondition() {
+          @Override
+          public String name() {
+            return "neverMet";
+          }
+
+          @Override
+          public boolean getAsBoolean() {
+            return false;
+          }
+        };
+
+    final var failing =
+        new Readiness.ReadinessCondition() {
+          @Override
+          public String name() {
+            return "failing";
+          }
+
+          @Override
+          public boolean getAsBoolean() {
+            throw new RuntimeException("intentional failure");
+          }
+        };
+
+    try (var readiness = Readiness.start(List.of(neverMet, failing), () -> hookCalled.set(true))) {
+      // fails without waiting for neverMet and without close()
+      final var ex =
+          assertThrows(
+              ExecutionException.class, () -> readiness.future().get(3, TimeUnit.SECONDS));
+      assertEquals("intentional failure", ex.getCause().getMessage());
+      assertFalse(hookCalled.get());
+    }
   }
 
   @Test
