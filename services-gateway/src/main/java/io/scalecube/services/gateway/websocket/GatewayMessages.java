@@ -48,7 +48,8 @@ public final class GatewayMessages {
     final String sid = request.header(STREAM_ID_FIELD);
     final ServiceMessage errorMessage = errorMapper.toMessage(qualifier, th);
 
-    if (sid == null) {
+    // sid is encoded as a number, so an invalid one can't be echoed back
+    if (sid == null || !isNumber(sid)) {
       return ServiceMessage.from(errorMessage).header(SIGNAL_FIELD, Signal.ERROR.code()).build();
     }
 
@@ -110,11 +111,56 @@ public final class GatewayMessages {
    * @return incoming message
    */
   public static ServiceMessage validateSid(ServiceMessage message) {
-    if (message.header(STREAM_ID_FIELD) == null) {
+    final String sid = message.header(STREAM_ID_FIELD);
+    if (sid == null) {
       throw WebsocketContextException.badRequest("sid is missing", message);
-    } else {
+    }
+    if (!isNumber(sid)) {
+      throw WebsocketContextException.badRequest("sid is invalid: " + sid, message);
+    }
+    return message;
+  }
+
+  /**
+   * Verifies the signal, if present, is a known signal code.
+   *
+   * @param message message
+   * @return incoming message
+   */
+  public static ServiceMessage validateSignal(ServiceMessage message) {
+    final String sig = message.header(SIGNAL_FIELD);
+    if (sig == null) {
       return message;
     }
+    try {
+      Signal.from(Integer.parseInt(sig));
+    } catch (IllegalArgumentException ex) {
+      throw WebsocketContextException.badRequest("sig is invalid: " + sig, message);
+    }
+    return message;
+  }
+
+  /**
+   * Verifies the rate limit, if present, is a positive integer.
+   *
+   * @param message message
+   * @return incoming message
+   */
+  public static ServiceMessage validateRateLimit(ServiceMessage message) {
+    final String rlimit = message.header(RATE_LIMIT_FIELD);
+    if (rlimit == null) {
+      return message;
+    }
+    int value;
+    try {
+      value = Integer.parseInt(rlimit);
+    } catch (NumberFormatException ex) {
+      value = 0;
+    }
+    if (value <= 0) {
+      throw WebsocketContextException.badRequest("rlimit is invalid: " + rlimit, message);
+    }
+    return message;
   }
 
   /**
@@ -166,5 +212,14 @@ public final class GatewayMessages {
   public static Signal getSignal(ServiceMessage message) {
     String header = message.header(SIGNAL_FIELD);
     return header != null ? Signal.from(Integer.parseInt(header)) : null;
+  }
+
+  private static boolean isNumber(String value) {
+    try {
+      Long.parseLong(value);
+      return true;
+    } catch (NumberFormatException ex) {
+      return false;
+    }
   }
 }
