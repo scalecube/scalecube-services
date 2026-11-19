@@ -139,9 +139,17 @@ public class WebsocketGatewayAcceptor
                 return;
               }
 
-              Mono.deferContextual(context -> onRequest(session, byteBuf, (Context) context))
-                  .contextWrite(context -> gatewayHandler.onRequest(session, byteBuf, context))
-                  .subscribe();
+              final Context context;
+              try {
+                context = gatewayHandler.onRequest(session, byteBuf, Context.empty());
+              } catch (Throwable th) {
+                // frame was not decoded yet, so release it here
+                ReferenceCountUtil.safestRelease(byteBuf);
+                gatewayHandler.onError(session, th, Context.empty());
+                return;
+              }
+
+              onRequest(session, byteBuf, context).contextWrite(c -> context).subscribe();
             },
             th -> {
               if (!(th instanceof AbortedException)) {

@@ -129,9 +129,12 @@ public class HttpGatewayAcceptor
               return file.retain();
             })
         .collectList()
+        // on error, collectList discards files it already retained
+        .doOnDiscard(FileUpload.class, HttpGatewayAcceptor::deleteAndRelease)
         .flatMap(
             files -> {
               if (files.size() != 1) {
+                files.forEach(HttpGatewayAcceptor::deleteAndRelease);
                 return Mono.error(
                     new BadRequestException(
                         "Exactly one file-upload part is expected (received: "
@@ -162,14 +165,7 @@ public class HttpGatewayAcceptor
                               : response.hasData() // check data
                                   ? ok(httpResponse, response)
                                   : noContent(httpResponse, response))
-                  .doFinally(
-                      signalType -> {
-                        try {
-                          fileUpload.delete();
-                        } finally {
-                          safestRelease(fileUpload);
-                        }
-                      });
+                  .doFinally(signalType -> deleteAndRelease(fileUpload));
             })
         .then()
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
@@ -423,7 +419,16 @@ public class HttpGatewayAcceptor
         return FileChannelFlux.createFrom(httpData.getFile().toPath());
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      // error signal, not a throw, so the caller's doFinally still cleans up
+      return Flux.error(new RuntimeException(e));
+    }
+  }
+
+  private static void deleteAndRelease(HttpData httpData) {
+    try {
+      httpData.delete();
+    } finally {
+      safestRelease(httpData);
     }
   }
 }

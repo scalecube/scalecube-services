@@ -91,8 +91,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
   public Mono<Void> send(ServiceMessage response) {
     return Mono.deferContextual(
         context -> {
-          final TextWebSocketFrame frame = new TextWebSocketFrame(codec.encode(response));
-          gatewayHandler.onResponse(this, frame.content(), response, (Context) context);
+          final var frame = toFrame(response, (Context) context);
           // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(frame)
@@ -113,15 +112,7 @@ public final class WebsocketGatewaySession implements GatewaySession {
           // send with publisher (defer buffer cleanup to netty)
           return outbound
               .sendObject(
-                  messages.map(
-                      response -> {
-                        final TextWebSocketFrame frame =
-                            new TextWebSocketFrame(codec.encode(response));
-                        gatewayHandler.onResponse(
-                            this, frame.content(), response, (Context) context);
-                        return frame;
-                      }),
-                  SEND_PREDICATE)
+                  messages.map(response -> toFrame(response, (Context) context)), SEND_PREDICATE)
               .then()
               .doOnError(th -> gatewayHandler.onError(this, th, (Context) context));
         });
@@ -206,6 +197,18 @@ public final class WebsocketGatewaySession implements GatewaySession {
     LOGGER.debug("Clear subscriptions on session={}", sessionId);
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
+  }
+
+  private TextWebSocketFrame toFrame(ServiceMessage response, Context context) {
+    final var frame = new TextWebSocketFrame(codec.encode(response));
+    try {
+      gatewayHandler.onResponse(this, frame.content(), response, context);
+      return frame;
+    } catch (Throwable th) {
+      // frame never reaches netty, so release it here
+      frame.release();
+      throw th;
+    }
   }
 
   @Override
