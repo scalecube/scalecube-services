@@ -37,11 +37,12 @@ public class Readiness implements AutoCloseable {
   private Readiness(
       long logIntervalMs, List<ReadinessCondition> conditions, Runnable readinessHook) {
     try {
-      future =
-          CompletableFuture.allOf(
-                  conditions.stream()
-                      .map(condition -> runAsync(condition, logIntervalMs, readinessExecutor))
-                      .toArray(CompletableFuture[]::new))
+      final CompletableFuture<?>[] polls =
+          conditions.stream()
+              .map(condition -> runAsync(condition, logIntervalMs, readinessExecutor))
+              .toArray(CompletableFuture[]::new);
+      final CompletableFuture<Void> allMet =
+          CompletableFuture.allOf(polls)
               .thenAccept(
                   unused -> {
                     // A poll loop interrupted by close() returns normally, which is not readiness
@@ -49,6 +50,16 @@ public class Readiness implements AutoCloseable {
                       runReadinessHook(readinessHook);
                     }
                   });
+      // fail as soon as any condition throws, without waiting for the others
+      for (var poll : polls) {
+        poll.whenComplete(
+            (unused, ex) -> {
+              if (ex != null) {
+                allMet.completeExceptionally(ex);
+              }
+            });
+      }
+      future = allMet;
     } catch (Exception e) {
       close();
       throw new RuntimeException(e);
