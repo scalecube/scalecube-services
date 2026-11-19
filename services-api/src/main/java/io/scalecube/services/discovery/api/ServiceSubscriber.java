@@ -123,7 +123,12 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
     current = null;
     currentMember = null;
     currentResource = null;
-    onRemoved.accept(member, resource);
+    // caught here, so a failing onRemoved never stops the failover to the next group
+    try {
+      onRemoved.accept(member, resource);
+    } catch (Exception ex) {
+      onError.accept(ex);
+    }
   }
 
   /**
@@ -133,12 +138,8 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
   @Override
   public synchronized void close() {
     dispose();
-    try {
-      if (current != null) {
-        remove();
-      }
-    } catch (Exception ex) {
-      onError.accept(ex);
+    if (current != null) {
+      remove();
     }
   }
 
@@ -207,7 +208,8 @@ public final class ServiceSubscriber<R> extends BaseSubscriber<ServiceDiscoveryE
 
     /**
      * Called with the member and the result of {@code onAdded} when the followed group is removed,
-     * or on {@link ServiceSubscriber#close()}. The group is no longer followed even if it throws.
+     * or on {@link ServiceSubscriber#close()}. If it throws, the exception goes to {@code onError},
+     * the group is no longer followed, and another matching group, if any, is followed as usual.
      * Default: no-op.
      *
      * @param onRemoved callback
