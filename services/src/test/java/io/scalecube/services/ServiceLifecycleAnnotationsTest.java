@@ -11,6 +11,9 @@ import io.scalecube.services.Microservices.Context;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.BeforeDestroy;
 import io.scalecube.services.annotations.Service;
+import io.scalecube.services.gateway.Gateway;
+import io.scalecube.services.registry.api.ServiceRegistry;
+import java.util.ConcurrentModificationException;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -44,6 +47,75 @@ public class ServiceLifecycleAnnotationsTest {
                         .build()))) {}
 
     verify(afterConstruct, times(1)).invoke();
+    verify(beforeDestroy, times(1)).invoke();
+  }
+
+  @Test
+  void testStartFailsWithConcurrentModificationThenBeforeDestroy() {
+    final var exception = new ConcurrentModificationException("gateway start failed");
+
+    final var ex =
+        assertThrows(
+            ConcurrentModificationException.class,
+            () ->
+                Microservices.start(
+                    new Context()
+                        .gateway(
+                            () ->
+                                new Gateway() {
+                                  @Override
+                                  public String id() {
+                                    return "failing";
+                                  }
+
+                                  @Override
+                                  public Address address() {
+                                    return Address.NULL_ADDRESS;
+                                  }
+
+                                  @Override
+                                  public Gateway start(
+                                      ServiceCall call, ServiceRegistry serviceRegistry) {
+                                    throw exception;
+                                  }
+
+                                  @Override
+                                  public void stop() {}
+                                })
+                        .services(
+                            ServiceInfo.fromServiceInstance(
+                                    new TestService() {
+                                      @BeforeDestroy
+                                      void cleanup() {
+                                        beforeDestroy.invoke();
+                                      }
+                                    })
+                                .build())));
+
+    assertSame(exception, ex);
+    // startup failed, so the partly started instance was cleaned up
+    verify(beforeDestroy, times(1)).invoke();
+  }
+
+  @Test
+  void testStartWithConcludedContextKeepsFirstInstance() {
+    final var context =
+        new Context()
+            .services(
+                ServiceInfo.fromServiceInstance(
+                        new TestService() {
+                          @BeforeDestroy
+                          void cleanup() {
+                            beforeDestroy.invoke();
+                          }
+                        })
+                    .build());
+
+    try (Microservices first = Microservices.start(context)) {
+      assertThrows(ConcurrentModificationException.class, () -> Microservices.start(context));
+      // the context belongs to the first instance, which must not be closed
+      verify(beforeDestroy, times(0)).invoke();
+    }
     verify(beforeDestroy, times(1)).invoke();
   }
 

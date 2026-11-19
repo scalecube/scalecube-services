@@ -135,9 +135,11 @@ public class Microservices implements AutoCloseable {
   }
 
   public static Microservices start(Microservices.Context context) {
+    // outside try: a context already concluded belongs to a running instance, don't close it
+    context.conclude();
     Microservices microservices = null;
     try {
-      microservices = new Microservices(context.conclude());
+      microservices = new Microservices(context);
       LOGGER.info("[{}] Starting {}", microservices.instanceId, microservices);
       microservices.startTransport(context.transportSupplier, context.serviceRegistry);
       microservices.createServiceEndpoint();
@@ -147,8 +149,6 @@ public class Microservices implements AutoCloseable {
       microservices.processServiceRoles();
       microservices.startListen();
       LOGGER.info("[{}] Started {}", microservices.instanceId, microservices);
-    } catch (ConcurrentModificationException e) {
-      throw e;
     } catch (Exception e) {
       if (microservices != null) {
         microservices.close();
