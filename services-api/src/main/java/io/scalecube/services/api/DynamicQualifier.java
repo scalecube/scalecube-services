@@ -32,13 +32,14 @@ public final class DynamicQualifier {
     final var list = new ArrayList<String>();
     final var builder = new StringBuilder();
 
-    for (var s : qualifier.split("/")) {
+    // -1 keeps a trailing empty segment, so a trailing '/' stays part of the pattern
+    for (var s : qualifier.split("/", -1)) {
       if (s.startsWith(":")) {
-        final var param = s.substring(1);
-        builder.append("(?<").append(param).append(">.+)");
-        list.add(param);
+        // unnamed group, matched to the param by position: group names can't contain '_'
+        builder.append("([^/]+)");
+        list.add(s.substring(1));
       } else {
-        builder.append(s);
+        builder.append(Pattern.quote(s));
       }
       builder.append("/");
     }
@@ -123,12 +124,8 @@ public final class DynamicQualifier {
     }
 
     final var map = new LinkedHashMap<String, String>();
-    for (var param : pathParams) {
-      final var value = matcher.group(param);
-      if (value == null || value.isEmpty()) {
-        throw new IllegalArgumentException("Wrong path param: " + param);
-      }
-      map.put(param, value);
+    for (int i = 0; i < pathParams.size(); i++) {
+      map.put(pathParams.get(i), matcher.group(i + 1));
     }
 
     return map;

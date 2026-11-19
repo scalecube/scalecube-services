@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -100,5 +101,25 @@ class DynamicQualifierTest {
     assertEquals("123", map.get("foo"));
     assertEquals("456", map.get("bar"));
     assertEquals("678", map.get("baz"));
+  }
+
+  @Test
+  void testPathParamNamesWithUnderscoreAndLeadingDigit() {
+    final var qualifier = DynamicQualifier.from("v1/users/:user_id/:1st");
+    assertEquals(Map.of("user_id", "42", "1st", "x"), qualifier.matchQualifier("v1/users/42/x"));
+  }
+
+  @Test
+  void testTrailingSlash() {
+    final var qualifier = DynamicQualifier.from("v1/api/orders/:orderId/");
+    assertEquals(Map.of("orderId", "123"), qualifier.matchQualifier("v1/api/orders/123/"));
+    assertNull(qualifier.matchQualifier("v1/api/orders/123"));
+  }
+
+  @Test
+  void testLiteralSegmentsAreNotRegex() {
+    final var qualifier = DynamicQualifier.from("v1/api.x/:id");
+    assertEquals(Map.of("id", "5"), qualifier.matchQualifier("v1/api.x/5"));
+    assertNull(qualifier.matchQualifier("v1/apiZx/5"));
   }
 }
