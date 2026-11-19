@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.DataCodec;
 import io.scalecube.services.transport.api.HeadersCodec;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringJoiner;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public class RSocketClientTransport implements ClientTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
   private final Map<Destination, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
+  private final Set<RSocket> connections = ConcurrentHashMap.newKeySet();
 
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
@@ -94,13 +96,14 @@ public class RSocketClientTransport implements ClientTransport {
     final var address = serviceReference.address();
     final var serviceRole = selectServiceRole(serviceReference);
 
+    // Connects at most once (failed connects are retried); the entry is dropped when the connection
+    // closes, so a stale mono never opens a connection that nothing tracks
     final var mono =
         monoMap.computeIfAbsent(
             new Destination(address, serviceRole),
             destination ->
                 connect(destination, serviceReference, monoMap)
-                    .cacheInvalidateIf(RSocket::isDisposed)
-                    .doOnError(ex -> monoMap.remove(destination)));
+                    .cacheInvalidateIf(rsocket -> false));
 
     return new RSocketClientChannel(
         mono, new ServiceMessageCodec(headersCodec, dataCodecs), maxMessageSize);
@@ -144,12 +147,14 @@ public class RSocketClientTransport implements ClientTransport {
         .doOnSuccess(
             rsocket -> {
               LOGGER.debug("Connected successfully ({})", destination);
+              connections.add(rsocket);
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doFinally(
                       s -> {
                         monoMap.remove(destination);
+                        connections.remove(rsocket);
                         LOGGER.debug("Connection closed ({})", destination);
                       })
                   .doOnError(
@@ -181,14 +186,9 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public void close() {
-    rsockets.forEach(
-        (address, socketMono) ->
-            socketMono.subscribe(
-                RSocket::dispose,
-                throwable -> {
-                  // no-op
-                }));
     rsockets.clear();
+    connections.forEach(RSocket::dispose);
+    connections.clear();
   }
 
   private record Destination(Address address, String role) {

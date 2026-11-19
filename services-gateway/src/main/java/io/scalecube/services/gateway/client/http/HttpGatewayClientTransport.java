@@ -25,7 +25,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -49,19 +48,25 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   private final GatewayClientCodec clientCodec;
   private final LoopResources loopResources;
-  private final Function<HttpClient, HttpClient> operator;
   private final boolean ownsLoopResources;
-
-  private final AtomicReference<HttpClient> httpClientReference = new AtomicReference<>();
+  private final ConnectionProvider connectionProvider;
+  private final HttpClient httpClient;
 
   private HttpGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
-    this.operator = builder.operator;
     this.loopResources =
         builder.loopResources == null
             ? LoopResources.create("http-gateway-client", 1, true)
             : builder.loopResources;
     this.ownsLoopResources = builder.loopResources == null;
+    this.connectionProvider = ConnectionProvider.create("http-gateway-client");
+    this.httpClient =
+        builder.operator.apply(
+            HttpClient.create(connectionProvider)
+                .runOn(loopResources)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
+                .option(ChannelOption.TCP_NODELAY, true)
+                .headers(headers -> headers.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)));
   }
 
   public static Builder builder() {
@@ -70,19 +75,6 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   @Override
   public ClientChannel create(ServiceReference serviceReference) {
-    httpClientReference.getAndUpdate(
-        oldValue -> {
-          if (oldValue != null) {
-            return oldValue;
-          }
-
-          return operator.apply(
-              HttpClient.create(ConnectionProvider.create("http-gateway-client"))
-                  .runOn(loopResources)
-                  .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
-                  .option(ChannelOption.TCP_NODELAY, true)
-                  .headers(headers -> headers.set(HttpHeaderNames.CONTENT_TYPE, CONTENT_TYPE)));
-        });
     return this;
   }
 
@@ -90,7 +82,6 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return Mono.defer(
         () -> {
-          final var httpClient = httpClientReference.get();
           final var method = message.headers().getOrDefault("http.method", "POST");
           final var queryParams = headersByPrefix(message.headers(), "http.query");
 
@@ -197,6 +188,7 @@ public final class HttpGatewayClientTransport implements ClientChannel, ClientTr
 
   @Override
   public void close() {
+    connectionProvider.dispose();
     if (ownsLoopResources) {
       loopResources.dispose();
     }
