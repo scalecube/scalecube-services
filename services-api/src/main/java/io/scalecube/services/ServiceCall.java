@@ -39,6 +39,7 @@ import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.context.Context;
 
 public class ServiceCall implements AutoCloseable {
 
@@ -200,17 +201,7 @@ public class ServiceCall implements AutoCloseable {
             return methodInvoker
                 .invokeOne(request)
                 .map(message -> onMessage(message, responseType))
-                .contextWrite(
-                    context -> {
-                      if (context.hasKey(RequestContext.class)) {
-                        return context;
-                      } else {
-                        return new RequestContext(context)
-                            .headers(request.headers())
-                            .request(request)
-                            .principal(NULL_PRINCIPAL);
-                      }
-                    });
+                .contextWrite(context -> localRequestContext(context, request));
           } else {
             // remote service
             return Mono.fromCallable(
@@ -258,17 +249,7 @@ public class ServiceCall implements AutoCloseable {
             return methodInvoker
                 .invokeMany(request)
                 .map(message -> onMessage(message, responseType))
-                .contextWrite(
-                    context -> {
-                      if (context.hasKey(RequestContext.class)) {
-                        return context;
-                      } else {
-                        return new RequestContext(context)
-                            .headers(request.headers())
-                            .request(request)
-                            .principal(NULL_PRINCIPAL);
-                      }
-                    });
+                .contextWrite(context -> localRequestContext(context, request));
           } else {
             // remote service
             return Mono.fromCallable(
@@ -317,17 +298,7 @@ public class ServiceCall implements AutoCloseable {
                   return methodInvoker
                       .invokeBidirectional(messages)
                       .map(message -> onMessage(message, responseType))
-                      .contextWrite(
-                          context -> {
-                            if (context.hasKey(RequestContext.class)) {
-                              return context;
-                            } else {
-                              return new RequestContext(context)
-                                  .headers(request.headers())
-                                  .request(request)
-                                  .principal(NULL_PRINCIPAL);
-                            }
-                          });
+                      .contextWrite(context -> localRequestContext(context, request));
                 } else {
                   // remote service
                   Objects.requireNonNull(transport, "[requestBidirectional] transport");
@@ -396,6 +367,17 @@ public class ServiceCall implements AutoCloseable {
                       "Communication mode is not supported: " + method);
               }
             });
+  }
+
+  private static Context localRequestContext(Context context, ServiceMessage request) {
+    final var principal =
+        context.hasKey(RequestContext.class)
+            ? context.get(RequestContext.class).principal()
+            : null;
+    return new RequestContext(context)
+        .headers(request.headers())
+        .request(request)
+        .principal(principal != null ? principal : NULL_PRINCIPAL);
   }
 
   private ServiceReference serviceLookup(ServiceMessage request) {
