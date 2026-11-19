@@ -44,12 +44,15 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   private final Mono<WebsocketGatewayClientSession> clientSession;
   private final AtomicReference<WebsocketGatewayClientSession> clientSessionReference =
       new AtomicReference<>();
+  private volatile boolean closed;
 
   private WebsocketGatewayClientTransport(Builder builder) {
     this.clientCodec = builder.clientCodec;
     this.keepAliveInterval = builder.keepAliveInterval;
     this.operator = builder.operator;
-    this.clientSession = Mono.defer(this::connect).cacheInvalidateIf(session -> false);
+    this.clientSession =
+        Mono.defer(this::connect)
+            .cacheInvalidateIf(WebsocketGatewayClientSession::isDisposed);
   }
 
   public static Builder builder() {
@@ -62,6 +65,10 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
   }
 
   private Mono<WebsocketGatewayClientSession> connect() {
+    if (closed) {
+      return Mono.error(new IllegalStateException("Transport is closed"));
+    }
+
     final HttpClient httpClient =
         operator.apply(
             HttpClient.create(ConnectionProvider.newConnection())
@@ -99,7 +106,12 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
                               th.toString()));
               return session;
             })
-        .doOnSuccess(clientSessionReference::set)
+        .doOnSuccess(session -> {
+          clientSessionReference.set(session);
+          if (closed && clientSessionReference.compareAndSet(session, null)) {
+            session.close().onErrorComplete().subscribe();
+          }
+        })
         .doOnError(ex -> LOGGER.warn("Failed to connect, cause: {}", ex.toString()))
         .onErrorMap(ex -> new RuntimeException(getRootCause(ex)));
   }
@@ -172,9 +184,10 @@ public final class WebsocketGatewayClientTransport implements ClientChannel, Cli
 
   @Override
   public void close() {
-    final var session = clientSessionReference.get();
+    closed = true;
+    final var session = clientSessionReference.getAndSet(null);
     if (session != null) {
-      session.close().doOnError(ex -> {}).subscribe();
+      session.close().onErrorComplete().subscribe();
     }
   }
 

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.util.retry.Retry;
 
 class WebsocketClientConnectionTest {
 
@@ -160,6 +161,26 @@ class WebsocketClientConnectionTest {
       assertEquals(1, sessionEventHandler.openedSessions.get());
     } finally {
       executor.shutdownNow();
+    }
+  }
+
+  @Test
+  void testReconnectAfterServerClosedSession() throws Exception {
+    try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final TestService service = serviceCall.api(TestService.class);
+      service.one("one").block(TIMEOUT);
+      assertEquals(1, sessionEventHandler.openedSessions.get());
+
+      // server drops the connection
+      ((WebsocketGatewaySession) sessionEventHandler.lastSession()).close().block(TIMEOUT);
+      assertTrue(sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS));
+
+      // client notices the close asynchronously, so retry until a call gets through
+      Mono.defer(() -> service.one("one").timeout(Duration.ofSeconds(1)))
+          .retryWhen(Retry.fixedDelay(20, Duration.ofMillis(100)))
+          .block(TIMEOUT);
+
+      assertEquals(2, sessionEventHandler.openedSessions.get());
     }
   }
 
