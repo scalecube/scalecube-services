@@ -330,12 +330,16 @@ public class ServiceCall implements AutoCloseable {
                           });
                 } else {
                   // remote service
-                  Objects.requireNonNull(transport, "[requestBidirectional] transport");
-                  return Mono.fromCallable(() -> serviceLookup(request))
+                  return Mono.fromCallable(
+                          () -> {
+                            Objects.requireNonNull(transport, "[requestBidirectional] transport");
+                            return transport.create(serviceLookup(request));
+                          })
+                      // no channel took the first message, so release it here
+                      .doOnError(ex -> releaseData(request))
                       .flatMapMany(
-                          serviceReference ->
-                              transport
-                                  .create(serviceReference)
+                          channel ->
+                              channel
                                   .requestChannel(messages)
                                   .map(message -> onMessage(message, responseType)));
                 }
