@@ -209,6 +209,49 @@ class ServiceRegistryImplTest {
   }
 
   @Test
+  void testLookupServiceFallsThroughWhenRequestMethodDoesNotMatch() {
+    serviceRegistry.registerService(
+        ServiceEndpoint.builder()
+            .id("endpoint")
+            .name("app-service")
+            .address(Address.create("endpoint", 4848))
+            .contentTypes(Set.of(CONTENT_TYPE))
+            .serviceRegistrations(
+                List.of(
+                    new ServiceRegistration(
+                        "v1",
+                        new HashMap<>(),
+                        List.of(
+                            restMethod("users/me", "GET"),
+                            restMethod("users/:id", "DELETE"),
+                            restMethod("orders/:id", "GET"),
+                            restMethod("orders/:orderId", "DELETE")))))
+            .build());
+
+    // exact match exists for GET only, DELETE must fall through to the dynamic qualifier
+    assertEquals("v1/users/me", lookupOne("v1/users/me", "GET"));
+    assertEquals("v1/users/:id", lookupOne("v1/users/me", "DELETE"));
+    // two dynamic qualifiers match, each serves one method, map order must not matter
+    assertEquals("v1/orders/:id", lookupOne("v1/orders/5", "GET"));
+    assertEquals("v1/orders/:orderId", lookupOne("v1/orders/5", "DELETE"));
+  }
+
+  private static ServiceMethodDefinition restMethod(String action, String restMethod) {
+    return ServiceMethodDefinition.builder().action(action).restMethod(restMethod).build();
+  }
+
+  private String lookupOne(String qualifier, String requestMethod) {
+    final var references =
+        serviceRegistry.lookupService(
+            ServiceMessage.builder()
+                .qualifier(qualifier)
+                .header(ServiceMessage.HEADER_REQUEST_METHOD, requestMethod)
+                .build());
+    assertEquals(1, references.size(), requestMethod + " " + qualifier);
+    return references.get(0).qualifier();
+  }
+
+  @Test
   void testRegisterRestMethodsWithDifferentMethods() {
     final var restOne =
         ServiceInfo.fromServiceInstance(new RestServiceOneImpl())
