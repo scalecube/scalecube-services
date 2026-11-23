@@ -186,6 +186,32 @@ class ServiceSubscriberTest {
   }
 
   @Test
+  void testFailedRemoveStillFailsOver() {
+    final var failure = new IllegalStateException("cannot remove");
+    final var subscriber =
+        ServiceSubscriber.<String>builder()
+            .onAdded(
+                member -> {
+                  events.add("added " + member.id());
+                  return "resource of " + member.id();
+                })
+            .onRemoved(
+                (member, resource) -> {
+                  throw failure;
+                })
+            .onError(errors::add)
+            .build();
+    discovery.asFlux().subscribe(subscriber);
+    add("a0", "a");
+    add("a1", "a");
+
+    remove("a0");
+
+    assertEquals(List.of(failure), errors);
+    assertEquals(List.of("added a0", "added a1"), events);
+  }
+
+  @Test
   void testFailedFilterGoesToOnErrorAndTheNextEventIsHandled() {
     final var failure = new IllegalArgumentException("bad tag");
     final var subscriber =
