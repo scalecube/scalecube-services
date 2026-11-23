@@ -24,7 +24,14 @@ class JsonMaskerTest {
     "'{\"username\":\"daria\",\"password\":\"Test\\\"12345\", \"options\": \"ABC\"}', "
         + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\"}'",
     "'{\"username\":\"daria\",\"password\":\"Test\\\"12345\", \"options\": \"ABC\", \"password\":\"LastPwd\"}', "
-        + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\", \"password\":\"*******\"}'"
+        + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\", \"password\":\"*******\"}'",
+    // a value equal to the key is not a key
+    "'{\"type\":\"password\",\"data\":\"secret\"}', "
+        + "'{\"type\":\"password\",\"data\":\"secret\"}'",
+    "'{\"type\":\"password\", \"password\":\"LastPwd\"}', "
+        + "'{\"type\":\"password\", \"password\":\"*******\"}'",
+    // whitespace between the key and the colon
+    "'{\"password\" : \"LastPwd\"}', " + "'{\"password\" : \"*******\"}'"
   })
   void maskPassword(String input, String output) {
     System.out.println(input);
@@ -88,6 +95,9 @@ class JsonMaskerTest {
             + " | {\"password\":{}, \"password\":\"***\"}",
         "{\"password\":[], \"password\":\"abc\"}"
             + " | {\"password\":[], \"password\":\"***\"}",
+        // a value equal to the key is not a key, so the next object is left alone
+        "{\"type\":\"password\",\"data\":{\"v\":\"x\"}}"
+            + " | {\"type\":\"password\",\"data\":{\"v\":\"x\"}}",
       })
   void maskNestedPassword(String input, String output) {
     final var bytes = input.getBytes(StandardCharsets.UTF_8);

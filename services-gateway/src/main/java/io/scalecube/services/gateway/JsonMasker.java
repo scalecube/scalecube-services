@@ -41,10 +41,14 @@ public class JsonMasker {
         continue;
       }
 
-      // 2. Find colon
-      int colonIndex = findNextChar(buffer, keyEnd, limit, (byte) ':');
+      // 2. Find colon: only whitespace may follow the key, otherwise it is a value, not a key
+      int colonIndex = findValueStart(buffer, keyEnd + 1, limit);
       if (colonIndex == -1) {
         break;
+      }
+      if (buffer.getByte(colonIndex) != ':') {
+        currentIndex = keyEnd + 1;
+        continue;
       }
 
       // 3. Find START of value
@@ -172,15 +176,6 @@ public class JsonMasker {
       }
     }
     return true;
-  }
-
-  private static int findNextChar(ByteBuf buffer, int start, int limit, byte target) {
-    for (int i = start; i < limit; i++) {
-      if (buffer.getByte(i) == target) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   private static int findValueStart(ByteBuf buffer, int start, int limit) {
