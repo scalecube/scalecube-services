@@ -85,10 +85,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
     final var list = serviceReferencesByQualifier.get(qualifier);
     if (list != null) {
-      return list.stream()
-          .filter(byDataFormat(dataFormat))
-          .filter(byRequestMethod(requestMethod))
-          .toList();
+      final var result =
+          list.stream()
+              .filter(byDataFormat(dataFormat))
+              .filter(byRequestMethod(requestMethod))
+              .toList();
+      if (!result.isEmpty()) {
+        return result;
+      }
     }
 
     // Match by dynamic-qualifier
@@ -97,10 +101,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       final var dynamicQualifier = entry.getKey();
       final var serviceReferences = entry.getValue();
       if (dynamicQualifier.matchQualifier(qualifier) != null) {
-        return serviceReferences.stream()
-            .filter(byDataFormat(dataFormat))
-            .filter(byRequestMethod(requestMethod))
-            .toList();
+        final var result =
+            serviceReferences.stream()
+                .filter(byDataFormat(dataFormat))
+                .filter(byRequestMethod(requestMethod))
+                .toList();
+        if (!result.isEmpty()) {
+          return result;
+        }
       }
     }
 
