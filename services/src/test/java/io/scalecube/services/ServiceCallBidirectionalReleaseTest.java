@@ -1,7 +1,9 @@
 package io.scalecube.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -33,6 +35,18 @@ class ServiceCallBidirectionalReleaseTest {
   void noTransportReleasesFirstMessage() {
     final ServiceCall serviceCall =
         new ServiceCall().router((registry, request) -> Optional.empty());
+
+    assertReleasedOnError(serviceCall);
+  }
+
+  @Test
+  void failingTransportCreateReleasesFirstMessage() {
+    final ClientTransport transport = mock(ClientTransport.class);
+    when(transport.create(any())).thenThrow(new IllegalStateException("create failed"));
+    final ServiceCall serviceCall =
+        new ServiceCall()
+            .transport(transport)
+            .router((registry, request) -> Optional.of(mock(ServiceReference.class)));
 
     assertReleasedOnError(serviceCall);
   }
