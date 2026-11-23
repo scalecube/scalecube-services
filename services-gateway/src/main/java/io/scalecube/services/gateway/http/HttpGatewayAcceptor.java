@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -118,59 +119,57 @@ public class HttpGatewayAcceptor
       Map<String, String> principal,
       HttpServerRequest httpRequest,
       HttpServerResponse httpResponse) {
-    return httpRequest
-        .receiveForm()
-        .map(
-            data -> {
-              if (!(data instanceof FileUpload file)) {
-                throw new BadRequestException(
-                    "Non file-upload part is not allowed, name=" + data.getName());
-              }
-              return file.retain();
-            })
-        .collectList()
-        .flatMap(
-            files -> {
-              if (files.size() != 1) {
-                return Mono.error(
-                    new BadRequestException(
-                        "Exactly one file-upload part is expected (received: "
-                            + files.size()
-                            + ")"));
-              }
+    // release only the files retained here, on any termination
+    return Mono.using(
+            ArrayList<FileUpload>::new,
+            retained ->
+                httpRequest
+                    .receiveForm()
+                    .map(
+                        data -> {
+                          if (!(data instanceof FileUpload file)) {
+                            throw new BadRequestException(
+                                "Non file-upload part is not allowed, name=" + data.getName());
+                          }
+                          retained.add(file.retain());
+                          return file;
+                        })
+                    .collectList()
+                    .flatMap(
+                        files -> {
+                          if (files.size() != 1) {
+                            return Mono.error(
+                                new BadRequestException(
+                                    "Exactly one file-upload part is expected (received: "
+                                        + files.size()
+                                        + ")"));
+                          }
 
-              final var fileUpload = files.get(0);
-              final var filename = fileUpload.getFilename();
+                          final var fileUpload = files.get(0);
+                          final var filename = fileUpload.getFilename();
 
-              return serviceCall
-                  .requestBidirectional(
-                      createFileFlux(fileUpload)
-                          .map(
-                              data ->
-                                  toMessage(
-                                      httpRequest,
-                                      builder ->
-                                          builder
-                                              .headers(principal)
-                                              .header(HEADER_UPLOAD_FILENAME, filename)
-                                              .data(data))))
-                  .last()
-                  .flatMap(
-                      response ->
-                          response.isError() // check error
-                              ? error(httpResponse, response)
-                              : response.hasData() // check data
-                                  ? ok(httpResponse, response)
-                                  : noContent(httpResponse, response))
-                  .doFinally(
-                      signalType -> {
-                        try {
-                          fileUpload.delete();
-                        } finally {
-                          safestRelease(fileUpload);
-                        }
-                      });
-            })
+                          return serviceCall
+                              .requestBidirectional(
+                                  createFileFlux(fileUpload)
+                                      .map(
+                                          data ->
+                                              toMessage(
+                                                  httpRequest,
+                                                  builder ->
+                                                      builder
+                                                          .headers(principal)
+                                                          .header(HEADER_UPLOAD_FILENAME, filename)
+                                                          .data(data))))
+                              .last()
+                              .flatMap(
+                                  response ->
+                                      response.isError() // check error
+                                          ? error(httpResponse, response)
+                                          : response.hasData() // check data
+                                              ? ok(httpResponse, response)
+                                              : noContent(httpResponse, response));
+                        }),
+            retained -> retained.forEach(HttpGatewayAcceptor::deleteAndRelease))
         .then()
         .onErrorResume(ex -> error(httpResponse, errorMapper.toMessage(ERROR_NAMESPACE, ex)));
   }
@@ -198,12 +197,18 @@ public class HttpGatewayAcceptor
         .defaultIfEmpty(Unpooled.EMPTY_BUFFER)
         .flatMap(
             data -> {
-              final var message =
-                  messageHandler.mapMessage(
-                      httpRequest,
-                      toMessage(httpRequest, builder -> builder.headers(principal).data(data)));
-
-              messageHandler.onRequest(httpRequest, data, message);
+              final ServiceMessage message;
+              try {
+                message =
+                    messageHandler.mapMessage(
+                        httpRequest,
+                        toMessage(httpRequest, builder -> builder.headers(principal).data(data)));
+                messageHandler.onRequest(httpRequest, data, message);
+              } catch (Throwable th) {
+                // request never reaches the service, so release its data here
+                safestRelease(data);
+                throw th;
+              }
 
               // Match and handle file-download request
 
@@ -424,6 +429,14 @@ public class HttpGatewayAcceptor
       }
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private static void deleteAndRelease(HttpData httpData) {
+    try {
+      httpData.delete();
+    } finally {
+      safestRelease(httpData);
     }
   }
 }
