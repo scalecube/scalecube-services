@@ -30,6 +30,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private final Map<Destination, Mono<RSocket>> rsockets = new ConcurrentHashMap<>();
   private final Set<RSocket> connections = ConcurrentHashMap.newKeySet();
+  private volatile boolean closed;
 
   private final HeadersCodec headersCodec;
   private final Collection<DataCodec> dataCodecs;
@@ -96,14 +97,15 @@ public class RSocketClientTransport implements ClientTransport {
     final var address = serviceReference.address();
     final var serviceRole = selectServiceRole(serviceReference);
 
-    // Connects at most once (failed connects are retried); the entry is dropped when the connection
-    // closes, so a stale mono never opens a connection that nothing tracks
+    // Connects at most once (failed connects are retried); the entry is dropped on connect error or
+    // when the connection closes
     final var mono =
         monoMap.computeIfAbsent(
             new Destination(address, serviceRole),
             destination ->
                 connect(destination, serviceReference, monoMap)
-                    .cacheInvalidateIf(rsocket -> false));
+                    .cacheInvalidateIf(rsocket -> false)
+                    .doOnError(ex -> monoMap.remove(destination)));
 
     return new RSocketClientChannel(
         mono, new ServiceMessageCodec(headersCodec, dataCodecs), maxMessageSize);
@@ -162,6 +164,10 @@ public class RSocketClientTransport implements ClientTransport {
                           LOGGER.warn(
                               "Exception occurred ({}), cause: {}", destination, ex.toString()))
                   .subscribe();
+              // connect completed after close(), which has already disposed the tracked connections
+              if (closed) {
+                rsocket.dispose();
+              }
             })
         .doOnError(
             ex -> LOGGER.warn("Failed to connect ({}), cause: {}", destination, ex.toString()));
@@ -186,6 +192,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public void close() {
+    closed = true;
     rsockets.clear();
     connections.forEach(RSocket::dispose);
     connections.clear();

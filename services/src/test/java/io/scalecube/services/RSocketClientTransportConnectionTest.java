@@ -14,8 +14,10 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.rsocket.RSocketClientTransport;
 import io.scalecube.services.transport.rsocket.RSocketClientTransportFactory;
 import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
@@ -33,6 +35,8 @@ class RSocketClientTransportConnectionTest {
       ServiceMessage.builder().qualifier("v1/conn/hello").build();
 
   private final List<DuplexConnection> connections = new CopyOnWriteArrayList<>();
+  private volatile Duration connectDelay = Duration.ZERO;
+  private volatile boolean failConnect;
 
   private Microservices server;
   private LoopResources loopResources;
@@ -92,8 +96,43 @@ class RSocketClientTransportConnectionTest {
     await(() -> connections.stream().allMatch(DuplexConnection::isDisposed));
   }
 
+  @Test
+  void connectCompletingAfterCloseIsDisposed() {
+    connectDelay = Duration.ofMillis(300);
+    transport
+        .create(serviceReference)
+        .requestResponse(REQUEST)
+        .onErrorResume(ex -> Mono.empty())
+        .subscribe();
+
+    // close while the connect is still in flight
+    transport.close();
+
+    await(() -> connections.size() == 1);
+    await(() -> connections.get(0).isDisposed());
+  }
+
+  @Test
+  void failedConnectIsEvicted() throws Exception {
+    failConnect = true;
+    transport
+        .create(serviceReference)
+        .requestResponse(REQUEST)
+        .onErrorResume(ex -> Mono.empty())
+        .block(TIMEOUT);
+
+    final Field field = RSocketClientTransport.class.getDeclaredField("rsockets");
+    field.setAccessible(true);
+    assertEquals(0, ((Map<?, ?>) field.get(transport)).size(), "cached destinations");
+  }
+
   private ClientTransport recording(ClientTransport clientTransport) {
-    return () -> clientTransport.connect().doOnNext(connections::add);
+    return () ->
+        failConnect
+            ? Mono.error(new IllegalStateException("connect failed"))
+            : Mono.delay(connectDelay)
+                .then(clientTransport.connect())
+                .doOnNext(connections::add);
   }
 
   private static void await(BooleanSupplier condition) {
