@@ -16,8 +16,14 @@ import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
 import io.scalecube.transport.netty.websocket.WebsocketTransportFactory;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import reactor.util.retry.Retry;
 
 class WebsocketClientConnectionTest {
 
@@ -127,6 +134,53 @@ class WebsocketClientConnectionTest {
       serviceCall.close();
       assertTrue(sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS));
       assertEquals(0, sessionEventHandler.disconnLatch.getCount());
+    }
+  }
+
+  @Test
+  void testConcurrentFirstCallsShareOneSession() throws Exception {
+    final int threads = 8;
+    final ExecutorService executor = Executors.newFixedThreadPool(threads);
+    try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final TestService service = serviceCall.api(TestService.class);
+      final CountDownLatch start = new CountDownLatch(1);
+      final List<Future<String>> results = new ArrayList<>();
+      for (int i = 0; i < threads; i++) {
+        results.add(
+            executor.submit(
+                () -> {
+                  start.await();
+                  return service.one("one").block(TIMEOUT);
+                }));
+      }
+      start.countDown();
+      for (Future<String> result : results) {
+        result.get(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+      }
+
+      assertEquals(1, sessionEventHandler.openedSessions.get());
+    } finally {
+      executor.shutdownNow();
+    }
+  }
+
+  @Test
+  void testReconnectAfterServerClosedSession() throws Exception {
+    try (ServiceCall serviceCall = serviceCall(gatewayAddress)) {
+      final TestService service = serviceCall.api(TestService.class);
+      service.one("one").block(TIMEOUT);
+      assertEquals(1, sessionEventHandler.openedSessions.get());
+
+      // server drops the connection
+      ((WebsocketGatewaySession) sessionEventHandler.lastSession()).close().block(TIMEOUT);
+      assertTrue(sessionEventHandler.disconnLatch.await(3, TimeUnit.SECONDS));
+
+      // client notices the close asynchronously, so retry until a call gets through
+      Mono.defer(() -> service.one("one").timeout(Duration.ofSeconds(1)))
+          .retryWhen(Retry.fixedDelay(20, Duration.ofMillis(100)))
+          .block(TIMEOUT);
+
+      assertEquals(2, sessionEventHandler.openedSessions.get());
     }
   }
 

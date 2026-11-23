@@ -4,6 +4,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.gateway.GatewaySession;
 import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import reactor.util.context.Context;
 
@@ -12,6 +13,7 @@ public class TestGatewaySessionHandler implements GatewaySessionHandler {
   public final CountDownLatch msgLatch = new CountDownLatch(1);
   public final CountDownLatch connLatch = new CountDownLatch(1);
   public final CountDownLatch disconnLatch = new CountDownLatch(1);
+  public final AtomicInteger openedSessions = new AtomicInteger();
   private final AtomicReference<GatewaySession> lastSession = new AtomicReference<>();
 
   @Override
@@ -22,6 +24,7 @@ public class TestGatewaySessionHandler implements GatewaySessionHandler {
 
   @Override
   public void onSessionOpen(GatewaySession s) {
+    openedSessions.incrementAndGet();
     connLatch.countDown();
     lastSession.set(s);
   }

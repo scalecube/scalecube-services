@@ -154,6 +154,10 @@ public final class WebsocketGatewayClientSession {
     return connection.onDispose();
   }
 
+  public boolean isDisposed() {
+    return connection.isDisposed();
+  }
+
   private void handleResponse(ServiceMessage response, Object processor) {
     LOGGER.debug("Handle response: {}, session={}", response, id);
 
