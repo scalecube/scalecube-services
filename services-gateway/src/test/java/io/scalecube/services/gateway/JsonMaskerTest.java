@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -79,11 +80,58 @@ class JsonMaskerTest {
         // truncated nested value is masked to the end
         "{\"password\":{\"v\":\"s3c"
             + " | {\"password\":{\"*\":\"***",
+        // escaped quote inside a nested string
+        "{\"password\":{\"v\":\"a\\\"b\"}, \"username\":\"daria\"}"
+            + " | {\"password\":{\"*\":\"****\"}, \"username\":\"daria\"}",
+        // empty object and array, masking goes on after them
+        "{\"password\":{}, \"password\":\"abc\"}"
+            + " | {\"password\":{}, \"password\":\"***\"}",
+        "{\"password\":[], \"password\":\"abc\"}"
+            + " | {\"password\":[], \"password\":\"***\"}",
       })
   void maskNestedPassword(String input, String output) {
     final var bytes = input.getBytes(StandardCharsets.UTF_8);
     final var buffer = Unpooled.wrappedBuffer(bytes);
     JsonMasker.mask(buffer, 0, bytes.length, "password".getBytes(StandardCharsets.UTF_8), true);
     assertEquals(output, buffer.toString(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void maskNestedValueFullyWhenPartialMaskRequested() {
+    assertEquals(
+        "{\"username\":{\"*\":\"*******\"}}",
+        mask("{\"username\":{\"v\":\"LastPwd\"}}", "username", false));
+  }
+
+  @Test
+  void maskNestedValueInPrettyPrintedJson() {
+    final var input =
+        """
+        {
+          "password": {
+            "v": "s3cret",
+            "n": 42
+          },
+          "username": "daria"
+        }
+        """;
+    final var output =
+        """
+        {
+          "password": {
+            "*": "******",
+            "*": **
+          },
+          "username": "daria"
+        }
+        """;
+    assertEquals(output, mask(input, "password", true));
+  }
+
+  private static String mask(String input, String key, boolean fullMask) {
+    final var bytes = input.getBytes(StandardCharsets.UTF_8);
+    final var buffer = Unpooled.wrappedBuffer(bytes);
+    JsonMasker.mask(buffer, 0, bytes.length, key.getBytes(StandardCharsets.UTF_8), fullMask);
+    return buffer.toString(StandardCharsets.UTF_8);
   }
 }

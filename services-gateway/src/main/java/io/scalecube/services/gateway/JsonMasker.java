@@ -12,7 +12,7 @@ public class JsonMasker {
    * @param length Number of bytes to scan starting from offset.
    * @param keyBytes The key to search for (e.g. "password".getBytes()).
    * @param fullMask If true, masks the entire value. If false, keeps first/last 2 chars visible for
-   *     values >= 6 chars.
+   *     values >= 6 chars. Object and array values are always fully masked, nested keys included.
    */
   public static void mask(
       ByteBuf buffer, int offset, int length, byte[] keyBytes, boolean fullMask) {
