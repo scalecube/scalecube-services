@@ -13,6 +13,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,17 +163,22 @@ public class ServiceMethodInvoker {
                           final var message = first.get();
                           final var request = copyRequest(message);
                           final var qualifier = message.qualifier();
+                          // the first message is released by toRequest if the messages get
+                          // subscribed, otherwise by doFinally below
+                          final var claimed = new AtomicBoolean();
 
-                          return mapPrincipal(context)
+                          return Mono.defer(() -> mapPrincipal(context))
                               .flatMapMany(
                                   principal ->
                                       requestContext()
                                           .thenMany(
                                               Flux.defer(
                                                   () ->
-                                                      messages
-                                                          .map(this::toRequest)
-                                                          .transform(this::invokeRequest)))
+                                                      claimed.getAndSet(true)
+                                                          ? Flux.empty()
+                                                          : messages
+                                                              .map(this::toRequest)
+                                                              .transform(this::invokeRequest)))
                                           .contextWrite(
                                               enhanceRequestContext(context, request, principal)))
                               .doOnSubscribe(
@@ -201,6 +207,12 @@ public class ServiceMethodInvoker {
                                           qualifier,
                                           ServiceMessage.toString(request),
                                           ex);
+                                    }
+                                  })
+                              .doFinally(
+                                  signalType -> {
+                                    if (!claimed.getAndSet(true)) {
+                                      dataDecoder.releaseData(message);
                                     }
                                   })
                               .map(response -> toResponse(response, message.headers()))

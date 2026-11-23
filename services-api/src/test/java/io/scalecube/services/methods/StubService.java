@@ -38,6 +38,9 @@ public interface StubService {
   @ServiceMethod
   Mono<Void> invokeWithAuthContext();
 
+  @ServiceMethod
+  Flux<String> invokeBidirectionalWithAuthContext(Flux<String> request);
+
   // Services secured by code in method body
 
   @ServiceMethod

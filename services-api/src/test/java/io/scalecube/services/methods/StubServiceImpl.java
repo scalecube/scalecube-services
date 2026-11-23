@@ -73,6 +73,12 @@ public class StubServiceImpl implements StubService {
         .then();
   }
 
+  @Secured
+  @Override
+  public Flux<String> invokeBidirectionalWithAuthContext(Flux<String> request) {
+    return request.thenMany(Flux.empty());
+  }
+
   // Services secured by code in method body
 
   @Secured

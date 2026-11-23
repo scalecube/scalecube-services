@@ -19,6 +19,7 @@ import io.scalecube.services.transport.api.ServiceMessageDataDecoder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +38,7 @@ class ServiceMethodInvokerTest {
 
   private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("user", List.of("permission"));
 
+  private final List<ServiceMessage> released = new CopyOnWriteArrayList<>();
   private final ServiceMessageDataDecoder dataDecoder =
       new ServiceMessageDataDecoder() {
         @Override
@@ -47,6 +49,11 @@ class ServiceMethodInvokerTest {
         @Override
         public ServiceMessage copyData(ServiceMessage message, Type type) {
           return message;
+        }
+
+        @Override
+        public void releaseData(ServiceMessage message) {
+          released.add(message);
         }
       };
   private final PrincipalMapper principalMapper = context -> Mono.just(PRINCIPAL);
@@ -220,6 +227,49 @@ class ServiceMethodInvokerTest {
                   .invokeOne(message)
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
+    }
+
+    @Test
+    @DisplayName("invokeBidirectional() releases the first message when auth fails")
+    void testBidirectionalAuthFailureReleasesFirstMessage() throws Exception {
+      final var methodName = "invokeBidirectionalWithAuthContext";
+      final var method = StubService.class.getMethod(methodName, Flux.class);
+      final var methodInfo = getMethodInfo(stubService, methodName);
+      final var message = serviceMessage(methodName);
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeBidirectional(Flux.just(message))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
+          .assertNext(assertError(403, "Insufficient permissions"))
+          .verifyComplete();
+
+      assertEquals(List.of(message), released, "released messages");
+    }
+
+    @Test
+    @DisplayName("invokeBidirectional() leaves the first message to the service when auth passes")
+    void testBidirectionalAuthSuccessDoesNotReleaseFirstMessage() throws Exception {
+      final var methodName = "invokeBidirectionalWithAuthContext";
+      final var method = StubService.class.getMethod(methodName, Flux.class);
+      final var methodInfo = getMethodInfo(stubService, methodName);
+      final var message =
+          ServiceMessage.builder()
+              .qualifier(Qualifier.asString(NAMESPACE, methodName))
+              .data("hello")
+              .build();
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, principalMapper);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeBidirectional(Flux.just(message))
+                  .contextWrite(requestContext(message, PRINCIPAL)))
+          .verifyComplete();
+
+      assertEquals(List.of(), released, "released messages");
     }
 
     @ParameterizedTest
