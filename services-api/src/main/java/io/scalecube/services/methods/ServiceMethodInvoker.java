@@ -259,6 +259,9 @@ public class ServiceMethodInvoker {
     if (dynamicQualifier != null) {
       pathParams = dynamicQualifier.matchQualifier(context.requestQualifier());
     }
+    if (pathParams == null) {
+      pathParams = Map.of();
+    }
 
     return new RequestContext(context)
         .request(request)
