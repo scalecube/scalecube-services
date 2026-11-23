@@ -26,7 +26,6 @@ import java.util.StringJoiner;
 import java.util.function.UnaryOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
@@ -123,7 +122,14 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private void onMembershipEvent(MembershipEvent membershipEvent) {
     LOGGER.debug("onMembershipEvent: {}", membershipEvent);
 
-    ServiceDiscoveryEvent discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
+    final ServiceDiscoveryEvent discoveryEvent;
+    try {
+      discoveryEvent = toServiceDiscoveryEvent(membershipEvent);
+    } catch (Exception ex) {
+      LOGGER.error("Failed to read metadata, skipping membershipEvent: {}", membershipEvent, ex);
+      return;
+    }
+
     if (discoveryEvent == null) {
       LOGGER.warn(
           "DiscoveryEvent is null, cannot publish it (corresponding membershipEvent: {})",
@@ -152,12 +158,7 @@ public final class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private ServiceEndpoint toServiceEndpoint(ByteBuffer byteBuffer) {
-    try {
-      return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer.duplicate());
-    } catch (Exception e) {
-      LOGGER.error("Failed to read metadata", e);
-      throw Exceptions.propagate(e);
-    }
+    return (ServiceEndpoint) clusterConfig.metadataCodec().deserialize(byteBuffer.duplicate());
   }
 
   @Override

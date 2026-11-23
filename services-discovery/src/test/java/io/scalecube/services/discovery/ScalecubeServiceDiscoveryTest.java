@@ -246,6 +246,52 @@ class ScalecubeServiceDiscoveryTest {
     }
   }
 
+  @Test
+  public void testUnreadableMetadataDoesNotStopDiscovery() {
+    final ServiceDiscovery seed = newDiscovery(newServiceEndpoint(), null);
+    seed.start();
+    final ServiceDiscovery badMember = newDiscovery("not-a-service-endpoint", seed.address());
+    final ServiceEndpoint goodEndpoint = newServiceEndpoint();
+    ServiceDiscovery goodMember = null;
+    try {
+      final Sinks.Many<ServiceDiscoveryEvent> events = Sinks.many().replay().all();
+      seed.listen().subscribe(events::tryEmitNext);
+
+      badMember.start();
+      // let the seed process the bad member before the good one joins
+      Mono.delay(Duration.ofSeconds(1)).block();
+
+      goodMember = newDiscovery(goodEndpoint, seed.address());
+      goodMember.start();
+
+      StepVerifier.create(
+              events.asFlux().filter(ScalecubeServiceDiscoveryTest::filterNonGroupDiscoveryEvents))
+          .assertNext(
+              event -> {
+                assertEquals(ENDPOINT_ADDED, event.type());
+                assertEquals(goodEndpoint.id(), event.serviceEndpoint().id());
+              })
+          .thenCancel()
+          .verify();
+    } finally {
+      if (goodMember != null) {
+        goodMember.shutdown();
+      }
+      badMember.shutdown();
+      seed.shutdown();
+    }
+  }
+
+  private static ServiceDiscovery newDiscovery(Object metadata, Address seedAddress) {
+    final ScalecubeServiceDiscovery discovery =
+        new ScalecubeServiceDiscovery()
+            .transport(cfg -> cfg.transportFactory(new WebsocketTransportFactory()))
+            .options(opts -> opts.metadata(metadata));
+    return seedAddress != null
+        ? discovery.membership(cfg -> cfg.seedMembers(seedAddress.toString()))
+        : discovery;
+  }
+
   public static ServiceEndpoint newServiceEndpoint() {
     return ServiceEndpoint.builder()
         .id("" + ID_COUNTER.incrementAndGet())
