@@ -99,16 +99,17 @@ public class RSocketClientTransport implements ClientTransport {
 
     // Connects at most once (failed connects are retried); the entry is dropped on connect error or
     // when the connection closes
+    final var destination = new Destination(address, serviceRole);
     final var mono =
         monoMap.computeIfAbsent(
-            new Destination(address, serviceRole),
-            destination ->
-                connect(destination, serviceReference, monoMap)
-                    .cacheInvalidateIf(rsocket -> false)
-                    .doOnError(ex -> monoMap.remove(destination)));
+            destination,
+            d -> connect(d, serviceReference, monoMap).cacheInvalidateIf(rsocket -> false));
 
     return new RSocketClientChannel(
-        mono, new ServiceMessageCodec(headersCodec, dataCodecs), maxMessageSize);
+        // remove only this mono, not a newer entry created for the same destination meanwhile
+        mono.doOnError(ex -> monoMap.remove(destination, mono)),
+        new ServiceMessageCodec(headersCodec, dataCodecs),
+        maxMessageSize);
   }
 
   private String selectServiceRole(ServiceReference serviceReference) {

@@ -121,9 +121,28 @@ class RSocketClientTransportConnectionTest {
         .onErrorResume(ex -> Mono.empty())
         .block(TIMEOUT);
 
+    assertEquals(0, cachedDestinations(), "cached destinations");
+  }
+
+  @Test
+  void failedConnectDoesNotEvictNewerEntry() throws Exception {
+    failConnect = true;
+    final var staleChannel = transport.create(serviceReference);
+    staleChannel.requestResponse(REQUEST).onErrorResume(ex -> Mono.empty()).block(TIMEOUT);
+
+    // a newer entry is created for the same destination
+    transport.create(serviceReference);
+    assertEquals(1, cachedDestinations(), "cached destinations");
+
+    // the stale channel fails again, and must not evict the newer entry
+    staleChannel.requestResponse(REQUEST).onErrorResume(ex -> Mono.empty()).block(TIMEOUT);
+    assertEquals(1, cachedDestinations(), "cached destinations");
+  }
+
+  private int cachedDestinations() throws Exception {
     final Field field = RSocketClientTransport.class.getDeclaredField("rsockets");
     field.setAccessible(true);
-    assertEquals(0, ((Map<?, ?>) field.get(transport)).size(), "cached destinations");
+    return ((Map<?, ?>) field.get(transport)).size();
   }
 
   private ClientTransport recording(ClientTransport clientTransport) {
