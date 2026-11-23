@@ -54,7 +54,7 @@ public class LocalFileService implements FileService, FileStreamer {
   /**
    * Creates a file service.
    *
-   * @param baseDir directory that added files must be under
+   * @param baseDir directory that added files must be directly in
    * @param chunkSize maximum size of a chunk when a file is streamed
    * @param fileTtl default file lifetime, used when a request has no {@code ttl}; {@code null}
    *     means forever
@@ -141,6 +141,6 @@ public class LocalFileService implements FileService, FileStreamer {
   private boolean isPathValid(Path filePath) {
     return Files.exists(filePath)
         && !Files.isDirectory(filePath)
-        && filePath.normalize().startsWith(baseDir.normalize());
+        && baseDir.normalize().equals(filePath.normalize().getParent());
   }
 }
