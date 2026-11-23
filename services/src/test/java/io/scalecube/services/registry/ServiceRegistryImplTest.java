@@ -27,6 +27,8 @@ import reactor.core.publisher.Mono;
 
 class ServiceRegistryImplTest {
 
+  private static final String MSGPACK = "application/msgpack";
+
   private final ServiceRegistryImpl serviceRegistry = new ServiceRegistryImpl();
   private final ServiceProviderErrorMapper errorMapper = mock(ServiceProviderErrorMapper.class);
   private final ServiceMessageDataDecoder dataDecoder = mock(ServiceMessageDataDecoder.class);
@@ -236,18 +238,45 @@ class ServiceRegistryImplTest {
     assertEquals("v1/orders/:orderId", lookupOne("v1/orders/5", "DELETE"));
   }
 
+  @Test
+  void testLookupServiceFallsThroughWhenDataFormatDoesNotMatch() {
+    registerEndpoint("json-endpoint", CONTENT_TYPE, restMethod("users/me", "GET"));
+    registerEndpoint("msgpack-endpoint", MSGPACK, restMethod("users/:id", "GET"));
+
+    // exact match exists for json only, msgpack must fall through to the dynamic qualifier
+    assertEquals("v1/users/me", lookupOne("v1/users/me", "GET", CONTENT_TYPE));
+    assertEquals("v1/users/:id", lookupOne("v1/users/me", "GET", MSGPACK));
+  }
+
+  private void registerEndpoint(String id, String contentType, ServiceMethodDefinition method) {
+    serviceRegistry.registerService(
+        ServiceEndpoint.builder()
+            .id(id)
+            .name("app-service")
+            .address(Address.create(id, 4848))
+            .contentTypes(Set.of(contentType))
+            .serviceRegistrations(
+                List.of(new ServiceRegistration("v1", new HashMap<>(), List.of(method))))
+            .build());
+  }
+
   private static ServiceMethodDefinition restMethod(String action, String restMethod) {
     return ServiceMethodDefinition.builder().action(action).restMethod(restMethod).build();
   }
 
   private String lookupOne(String qualifier, String requestMethod) {
+    return lookupOne(qualifier, requestMethod, CONTENT_TYPE);
+  }
+
+  private String lookupOne(String qualifier, String requestMethod, String dataFormat) {
     final var references =
         serviceRegistry.lookupService(
             ServiceMessage.builder()
                 .qualifier(qualifier)
                 .header(ServiceMessage.HEADER_REQUEST_METHOD, requestMethod)
+                .dataFormat(dataFormat)
                 .build());
-    assertEquals(1, references.size(), requestMethod + " " + qualifier);
+    assertEquals(1, references.size(), requestMethod + " " + dataFormat + " " + qualifier);
     return references.get(0).qualifier();
   }
 
