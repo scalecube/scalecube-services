@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.websocket;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.netty.buffer.ByteBuf;
@@ -14,9 +15,11 @@ import io.scalecube.services.gateway.GatewaySessionHandler;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 
@@ -75,6 +78,38 @@ class WebsocketGatewayHookFailureTest {
     awaitReleased(buffers);
   }
 
+  @Test
+  void failingOnRequestAndOnErrorKeepSessionReading() {
+    final List<ByteBuf> buffers = new CopyOnWriteArrayList<>();
+    final AtomicInteger sessionErrors = new AtomicInteger();
+    startGateway(
+        new GatewaySessionHandler() {
+          @Override
+          public reactor.util.context.Context onRequest(
+              GatewaySession session, ByteBuf byteBuf, reactor.util.context.Context context) {
+            buffers.add(byteBuf);
+            throw new IllegalStateException("onRequest failed");
+          }
+
+          @Override
+          public void onError(
+              GatewaySession session, Throwable throwable, reactor.util.context.Context context) {
+            throw new IllegalStateException("onError failed");
+          }
+
+          @Override
+          public void onSessionError(GatewaySession session, Throwable throwable) {
+            sessionErrors.incrementAndGet();
+          }
+        });
+
+    send(REQUEST, REQUEST);
+
+    awaitReleased(buffers);
+    assertEquals(2, buffers.size(), "frames reaching onRequest");
+    assertEquals(0, sessionErrors.get(), "onSessionError calls");
+  }
+
   private void startGateway(GatewaySessionHandler handler) {
     gateway =
         Microservices.start(
@@ -83,14 +118,14 @@ class WebsocketGatewayHookFailureTest {
                 .services(new EchoServiceImpl()));
   }
 
-  private void send(String frame) {
+  private void send(String... frames) {
     final Address address = gateway.gateway("WS").address();
     HttpClient.create()
         .websocket()
         .uri("ws://" + address.host() + ":" + address.port() + "/")
         .handle(
             (in, out) ->
-                out.sendString(Mono.just(frame))
+                out.sendString(Flux.just(frames))
                     .then()
                     // keep the connection open for a while so the gateway handles the frame
                     .then(Mono.delay(Duration.ofMillis(500)))

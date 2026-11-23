@@ -34,6 +34,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Operators;
 import reactor.netty.DisposableChannel;
 import reactor.netty.channel.AbortedException;
 import reactor.netty.http.server.HttpServerRequest;
@@ -145,11 +146,17 @@ public class WebsocketGatewayAcceptor
               } catch (Throwable th) {
                 // frame was not decoded yet, so release it here
                 ReferenceCountUtil.safestRelease(byteBuf);
-                gatewayHandler.onError(session, th, Context.empty());
+                try {
+                  gatewayHandler.onError(session, th, Context.empty());
+                } catch (Throwable ex) {
+                  th.addSuppressed(ex);
+                  // must not escape the receive consumer, or the session stops reading frames
+                  Operators.onErrorDropped(th, Context.empty());
+                }
                 return;
               }
 
-              onRequest(session, byteBuf, context).contextWrite(c -> context).subscribe();
+              onRequest(session, byteBuf, context).contextWrite(context).subscribe();
             },
             th -> {
               if (!(th instanceof AbortedException)) {
