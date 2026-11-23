@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
@@ -121,5 +122,21 @@ class DynamicQualifierTest {
     final var qualifier = DynamicQualifier.from("v1/api.x/:id");
     assertEquals(Map.of("id", "5"), qualifier.matchQualifier("v1/api.x/5"));
     assertNull(qualifier.matchQualifier("v1/apiZx/5"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"orders/:id/:", "orders/:id/:b:ar", "orders/:id/:b-ar"})
+  void testWrongPathParamNameIsRejected(String input) {
+    final var ex = assertThrows(IllegalArgumentException.class, () -> DynamicQualifier.from(input));
+    assertTrue(ex.getMessage().startsWith("Wrong path param name"), ex.getMessage());
+  }
+
+  @Test
+  void testDuplicatePathParamNameIsRejected() {
+    final var ex =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> DynamicQualifier.from("orders/:id/items/:id"));
+    assertTrue(ex.getMessage().startsWith("Duplicate path param name"), ex.getMessage());
   }
 }

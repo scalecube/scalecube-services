@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 public final class DynamicQualifier {
 
   private static final Pattern DYNAMIC_QUALIFIER_PATTERN = Pattern.compile("(^|/):\\w+(?:/|$)");
+  private static final Pattern PATH_PARAM_NAME = Pattern.compile("\\w+");
 
   private final String qualifier;
   private final Pattern pattern;
@@ -35,9 +36,18 @@ public final class DynamicQualifier {
     // -1 keeps a trailing empty segment, so a trailing '/' stays part of the pattern
     for (var s : qualifier.split("/", -1)) {
       if (s.startsWith(":")) {
+        final var name = s.substring(1);
+        if (!PATH_PARAM_NAME.matcher(name).matches()) {
+          throw new IllegalArgumentException(
+              "Wrong path param name: '" + name + "', qualifier: " + qualifier);
+        }
+        if (list.contains(name)) {
+          throw new IllegalArgumentException(
+              "Duplicate path param name: '" + name + "', qualifier: " + qualifier);
+        }
         // unnamed group, matched to the param by position: group names can't contain '_'
         builder.append("([^/]+)");
-        list.add(s.substring(1));
+        list.add(name);
       } else {
         builder.append(Pattern.quote(s));
       }
