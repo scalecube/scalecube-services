@@ -193,13 +193,14 @@ public final class WebsocketGatewaySession implements GatewaySession {
    * @param disposable service subscription
    */
   public void register(Long streamId, Disposable disposable) {
-    boolean result = false;
-    if (!disposable.isDisposed()) {
-      result = subscriptions.putIfAbsent(streamId, disposable) == null;
+    if (subscriptions.putIfAbsent(streamId, disposable) != null) {
+      return;
     }
-    if (result) {
-      LOGGER.debug("Registered subscription by sid={}, session={}", streamId, sessionId);
+    if (disposable.isDisposed()) {
+      subscriptions.remove(streamId, disposable);
+      return;
     }
+    LOGGER.debug("Registered subscription by sid={}, session={}", streamId, sessionId);
   }
 
   private void clearSubscriptions() {
