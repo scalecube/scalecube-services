@@ -428,8 +428,7 @@ public class HttpGatewayAcceptor
         return FileChannelFlux.createFrom(httpData.getFile().toPath());
       }
     } catch (IOException e) {
-      // error signal, not a throw, so the caller's doFinally still cleans up
-      return Flux.error(new RuntimeException(e));
+      throw new RuntimeException(e);
     }
   }
 

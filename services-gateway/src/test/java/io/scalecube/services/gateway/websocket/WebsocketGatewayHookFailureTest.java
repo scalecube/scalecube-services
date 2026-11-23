@@ -1,7 +1,6 @@
 package io.scalecube.services.gateway.websocket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.services.Address;
@@ -54,7 +53,7 @@ class WebsocketGatewayHookFailureTest {
 
     send(REQUEST);
 
-    awaitReleased(buffers);
+    awaitReleased(buffers, 1);
   }
 
   @Test
@@ -75,7 +74,7 @@ class WebsocketGatewayHookFailureTest {
 
     send(REQUEST);
 
-    awaitReleased(buffers);
+    awaitReleased(buffers, 1);
   }
 
   @Test
@@ -105,7 +104,7 @@ class WebsocketGatewayHookFailureTest {
 
     send(REQUEST, REQUEST);
 
-    awaitReleased(buffers);
+    awaitReleased(buffers, 2);
     assertEquals(2, buffers.size(), "frames reaching onRequest");
     assertEquals(0, sessionErrors.get(), "onSessionError calls");
   }
@@ -134,11 +133,11 @@ class WebsocketGatewayHookFailureTest {
         .block(TIMEOUT);
   }
 
-  private static void awaitReleased(List<ByteBuf> buffers) {
+  private static void awaitReleased(List<ByteBuf> buffers, int expected) {
     final long deadline = System.nanoTime() + TIMEOUT.toNanos();
-    while (buffers.isEmpty() || buffers.stream().anyMatch(b -> b.refCnt() > 0)) {
+    while (buffers.size() < expected || buffers.stream().anyMatch(b -> b.refCnt() > 0)) {
       if (System.nanoTime() > deadline) {
-        assertFalse(buffers.isEmpty(), "hook was not called");
+        assertEquals(expected, buffers.size(), "hook calls");
         throw new AssertionError(
             "Buffers not released: "
                 + buffers.stream().map(b -> "refCnt=" + b.refCnt()).toList());
