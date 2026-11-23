@@ -424,9 +424,10 @@ public class Microservices implements AutoCloseable {
   @Override
   public void close() {
     LOGGER.info("[{}] Closing {} ...", instanceId, this);
-    processBeforeDestroy();
     closeDiscovery();
     closeGateways();
+    stopServerTransport();
+    processBeforeDestroy();
     closeTransport();
     context.close();
     LOGGER.info("[{}] Closed {}", instanceId, this);
@@ -459,15 +460,6 @@ public class Microservices implements AutoCloseable {
       }
     }
 
-    if (serverTransport != null) {
-      try {
-        serverTransport.stop();
-      } catch (Exception e) {
-        LOGGER.error(
-            "[{}][serverTransport.close] Exception occurred: {}", instanceId, e.toString());
-      }
-    }
-
     if (serviceTransport != null) {
       try {
         serviceTransport.stop();
@@ -487,6 +479,17 @@ public class Microservices implements AutoCloseable {
             LOGGER.error("[{}][gateway.stop] Exception occurred: {}", instanceId, e.toString());
           }
         });
+  }
+
+  private void stopServerTransport() {
+    if (serverTransport != null) {
+      try {
+        serverTransport.stop();
+      } catch (Exception e) {
+        LOGGER.error(
+            "[{}][serverTransport.close] Exception occurred: {}", instanceId, e.toString());
+      }
+    }
   }
 
   private void closeDiscovery() {
