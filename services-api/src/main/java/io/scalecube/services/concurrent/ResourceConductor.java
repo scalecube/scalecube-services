@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadFactory;
@@ -18,6 +19,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentInvoker;
 import org.agrona.concurrent.AgentRunner;
@@ -26,7 +28,6 @@ import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.DynamicCompositeAgent;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.ManyToOneConcurrentLinkedQueue;
 import org.agrona.concurrent.NoOpIdleStrategy;
 import org.agrona.concurrent.SleepingIdleStrategy;
 import org.agrona.concurrent.SleepingMillisIdleStrategy;
@@ -58,7 +59,10 @@ import org.slf4j.LoggerFactory;
  * most {@link #AWAIT_TIMEOUT_MS} and then throw {@link IllegalStateException}.
  *
  * <p>Closing the conductor closes all groups and runners, then the tracked resources in reverse
- * order of registration. An agent added after that is closed right away.
+ * order of registration. A group closes its agents in reverse order of joining, on the group
+ * thread, so the agents that joined before an agent are not yet closed while it closes; they are
+ * no longer run by the group though. The agents of a group that are not started yet are closed
+ * before the started ones. An agent added after that is closed right away.
  */
 public class ResourceConductor implements AutoCloseable {
 
@@ -139,13 +143,12 @@ public class ResourceConductor implements AutoCloseable {
         invokerName,
         name -> {
           final var group = new AgentGroup(name);
-          group.runner =
+          register(
               startAgentRunner(
                   group.composite,
                   invokerIdleStrategy(invokerName),
                   invokerThreadFactory(invokerName),
-                  invokerErrorHandler(invokerName));
-          register(group.runner);
+                  invokerErrorHandler(invokerName)));
           return group;
         });
   }
@@ -345,14 +348,16 @@ public class ResourceConductor implements AutoCloseable {
   /**
    * Named shared thread group: an Agrona {@link DynamicCompositeAgent} plus this agent, which moves
    * pending handles into the composite's single add slot one per duty cycle, so that adding never
-   * blocks the caller, including callers on the group thread itself.
+   * blocks the caller, including callers on the group thread itself. On close, it closes the
+   * started handles in reverse order of joining.
    */
   private static class AgentGroup implements Agent {
 
-    private final Queue<AgentInvokerHandle> pendingQueue = new ManyToOneConcurrentLinkedQueue<>();
+    private final Queue<AgentInvokerHandle> pendingQueue = new ConcurrentLinkedQueue<>();
+    private final List<AgentInvokerHandle> startedHandles = new ArrayList<>();
     private final DynamicCompositeAgent composite;
-    private volatile AgentRunner runner;
     private AgentInvokerHandle addedHandle;
+    private volatile Thread thread;
 
     private AgentGroup(String name) {
       composite = new DynamicCompositeAgent(name, this);
@@ -366,8 +371,12 @@ public class ResourceConductor implements AutoCloseable {
     }
 
     private boolean isOnGroupThread() {
-      final var agentRunner = runner;
-      return agentRunner != null && agentRunner.thread() == Thread.currentThread();
+      return thread == Thread.currentThread();
+    }
+
+    @Override
+    public void onStart() {
+      thread = Thread.currentThread();
     }
 
     @Override
@@ -383,17 +392,44 @@ public class ResourceConductor implements AutoCloseable {
 
     @Override
     public void onClose() {
-      final var handle = addedHandle;
-      addedHandle = null;
-      if (handle != null) {
-        handle.onClose();
+      // This agent is the first of the composite, so it closes first: the handles closed here in
+      // reverse order of joining are then a no-op for the composite's own forward pass.
+      final var handles = new ArrayList<>(startedHandles);
+      if (addedHandle != null) {
+        handles.add(addedHandle);
+        addedHandle = null;
       }
-      closePendingQueue();
+      drainPendingQueue(handles); // not started yet: joined last, so closed first
+      closeInReverse(handles);
     }
 
-    private synchronized void closePendingQueue() {
+    private void closePendingQueue() {
+      final var handles = new ArrayList<AgentInvokerHandle>();
+      drainPendingQueue(handles);
+      closeInReverse(handles);
+    }
+
+    private void drainPendingQueue(List<AgentInvokerHandle> handles) {
       for (var handle = pendingQueue.poll(); handle != null; handle = pendingQueue.poll()) {
-        handle.onClose();
+        handles.add(handle);
+      }
+    }
+
+    private static void closeInReverse(List<AgentInvokerHandle> handles) {
+      Throwable error = null;
+      for (int i = handles.size() - 1; i >= 0; i--) {
+        try {
+          handles.get(i).onClose();
+        } catch (Throwable ex) { // keep closing the rest, then rethrow the first error
+          if (error == null) {
+            error = ex;
+          } else if (ex != error) { // the same instance cannot suppress itself
+            error.addSuppressed(ex);
+          }
+        }
+      }
+      if (error != null) {
+        LangUtil.rethrowUnchecked(error);
       }
     }
 
@@ -441,6 +477,7 @@ public class ResourceConductor implements AutoCloseable {
       if (shouldStart) {
         agentInvoker.start();
       }
+      group.startedHandles.add(this);
       isStarted = true;
     }
 
@@ -463,6 +500,9 @@ public class ResourceConductor implements AutoCloseable {
       try {
         agentInvoker.close();
       } finally {
+        if (isStarted) {
+          group.startedHandles.remove(this); // a started handle is closed on the group thread
+        }
         isClosed = true;
       }
     }

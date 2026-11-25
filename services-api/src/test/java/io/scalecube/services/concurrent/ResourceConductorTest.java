@@ -17,6 +17,7 @@ import io.scalecube.services.concurrent.ResourceConductor.ResourceHandle;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -822,5 +823,287 @@ public class ResourceConductorTest {
 
     assertTrue(childClosed.await(2, TimeUnit.SECONDS), "child must be closed");
     assertFalse(childStarted.get(), "child must not have been started");
+  }
+
+  @Test
+  void shouldCloseGroupAgentsInReverseOrderOfJoining() {
+    String group = "reverse-close-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    final var second =
+        conductor.agent(closeRecordingAgent("second", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("third", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("fourth", closed)).invokerName(group).awaitAdded();
+
+    second.awaitRemoved();
+    conductor.close();
+
+    // each agent is closed once: "second" on its removal, the rest last joined first
+    assertEquals(List.of("second", "fourth", "third", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseGroupWhenAgentFailedToStart() {
+    String group = "start-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var startFailing =
+        new Agent() {
+          @Override
+          public void onStart() {
+            throw new IllegalStateException("start failure");
+          }
+
+          @Override
+          public int doWork() {
+            return 0;
+          }
+
+          @Override
+          public String roleName() {
+            return "start-failing";
+          }
+        };
+    // a throwing error handler makes the start of the invoker itself throw
+    final ErrorHandler rethrowing =
+        ex -> {
+          throw new IllegalStateException(ex);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(startFailing).invokerName(group).errorHandler(rethrowing).tryAdd();
+    conductor.agent(closeRecordingAgent("third", closed)).invokerName(group).awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("third", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseRemainingGroupAgentsInReverseOrderWhenCloseFails() {
+    String group = "close-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var closeFailing =
+        new Agent() {
+          @Override
+          public int doWork() {
+            return 0;
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("close-failing");
+            throw new IllegalStateException("close failure");
+          }
+
+          @Override
+          public String roleName() {
+            return "close-failing";
+          }
+        };
+    final ErrorHandler rethrowing =
+        ex -> {
+          throw new IllegalStateException(ex);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("second", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeFailing).invokerName(group).errorHandler(rethrowing).awaitAdded();
+
+    try {
+      conductor.close();
+    } catch (RuntimeException expected) {
+      // the close failure may surface from the conductor
+    }
+
+    assertEquals(List.of("close-failing", "second", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseGroupAgentsNotYetStartedBeforeStartedOnes() {
+    String group = "pending-close-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var adding =
+        new Agent() {
+          @Override
+          public int doWork() {
+            conductor.agent(closeRecordingAgent("pending", closed)).invokerName(group).tryAdd();
+            throw new IllegalStateException("stop the group");
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("adding");
+          }
+
+          @Override
+          public String roleName() {
+            return "adding";
+          }
+        };
+    // terminates the group thread within the duty cycle that queued "pending", so "pending" is
+    // still not started when the group closes
+    final ErrorHandler terminating =
+        ex -> {
+          throw new AgentTerminationException(ex, true);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(adding).invokerName(group).errorHandler(terminating).awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("pending", "adding", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseAllPendingGroupAgentsWhenOneCloseFails() {
+    String group = "pending-close-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final ErrorHandler rethrowing =
+        ex -> {
+          throw new IllegalStateException(ex);
+        };
+    final var adding =
+        new Agent() {
+          @Override
+          public int doWork() {
+            conductor
+                .agent(closeFailingAgent("pending-failing", closed))
+                .invokerName(group)
+                .errorHandler(rethrowing)
+                .tryAdd();
+            conductor.agent(closeRecordingAgent("pending-2", closed)).invokerName(group).tryAdd();
+            conductor.agent(closeRecordingAgent("pending-3", closed)).invokerName(group).tryAdd();
+            throw new IllegalStateException("stop the group");
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("adding");
+          }
+
+          @Override
+          public String roleName() {
+            return "adding";
+          }
+        };
+    // terminates the group thread within the duty cycle that queued the pending agents
+    final ErrorHandler terminating =
+        ex -> {
+          throw new AgentTerminationException(ex, true);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(adding).invokerName(group).errorHandler(terminating).awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("pending-3", "pending-2", "pending-failing", "adding", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseGroupAgentsInReverseOrderWhenClosesFailWithSameError() {
+    String group = "same-close-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var sameError = new IllegalStateException("same close failure");
+    final ErrorHandler rethrowingSame =
+        ex -> {
+          throw sameError;
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("second", closed)).invokerName(group).awaitAdded();
+    conductor
+        .agent(closeFailingAgent("failing-1", closed))
+        .invokerName(group)
+        .errorHandler(rethrowingSame)
+        .awaitAdded();
+    conductor
+        .agent(closeFailingAgent("failing-2", closed))
+        .invokerName(group)
+        .errorHandler(rethrowingSame)
+        .awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("failing-2", "failing-1", "second", "first"), closed);
+  }
+
+  @Test
+  void shouldNotBlockGroupThreadOnAwaitRemovedWhileGroupCloses() {
+    String group = "await-removed-on-close-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var awaitFailed = new AtomicBoolean();
+    final var first = conductor.agent(closeRecordingAgent("first", closed)).invokerName(group);
+    first.awaitAdded();
+    final var second =
+        new Agent() {
+          @Override
+          public int doWork() {
+            return 0;
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("second");
+            try {
+              first.awaitRemoved(); // on the group thread: must return at once
+            } catch (IllegalStateException ex) {
+              awaitFailed.set(true);
+            }
+          }
+
+          @Override
+          public String roleName() {
+            return "second";
+          }
+        };
+    conductor.agent(second).invokerName(group).awaitAdded();
+
+    // blocks for AWAIT_TIMEOUT_MS, i.e. beyond the timeout of this test, if the await blocks
+    conductor.close();
+
+    assertFalse(awaitFailed.get(), "awaitRemoved must not time out on the group thread");
+    assertEquals(List.of("second", "first"), closed);
+  }
+
+  private static Agent closeFailingAgent(String roleName, List<String> closed) {
+    return new Agent() {
+      @Override
+      public String roleName() {
+        return roleName;
+      }
+
+      @Override
+      public int doWork() {
+        return 0;
+      }
+
+      @Override
+      public void onClose() {
+        closed.add(roleName);
+        throw new IllegalStateException("close failure");
+      }
+    };
+  }
+
+  private static Agent closeRecordingAgent(String roleName, List<String> closed) {
+    return new Agent() {
+      @Override
+      public String roleName() {
+        return roleName;
+      }
+
+      @Override
+      public int doWork() {
+        return 0;
+      }
+
+      @Override
+      public void onClose() {
+        closed.add(roleName);
+      }
+    };
   }
 }
