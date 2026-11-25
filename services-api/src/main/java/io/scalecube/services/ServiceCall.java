@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import reactor.core.Exceptions;
@@ -280,6 +281,9 @@ public class ServiceCall implements AutoCloseable {
   /**
    * Issues stream of service requests to service which returns stream of service messages back.
    *
+   * <p>Takes ownership of reference-counted data of the requests it receives: it is released by
+   * the transport, the method invoker, or this call on failure. Callers must not release it.
+   *
    * @param publisher of service requests.
    * @param responseType type of responses (optional).
    * @return flux publisher of service responses.
@@ -300,15 +304,27 @@ public class ServiceCall implements AutoCloseable {
                       .map(message -> onMessage(message, responseType))
                       .contextWrite(context -> localRequestContext(context, request));
                 } else {
-                  // remote service
-                  Objects.requireNonNull(transport, "[requestBidirectional] transport");
-                  return Mono.fromCallable(() -> serviceLookup(request))
+                  // remote service: the first message is released by the channel if it subscribes
+                  // to the messages, otherwise by doFinally below
+                  final var claimed = new AtomicBoolean();
+                  final var channelMessages =
+                      Flux.defer(() -> claimed.getAndSet(true) ? Flux.empty() : messages);
+                  return Mono.fromCallable(
+                          () -> {
+                            Objects.requireNonNull(transport, "[requestBidirectional] transport");
+                            return transport.create(serviceLookup(request));
+                          })
                       .flatMapMany(
-                          serviceReference ->
-                              transport
-                                  .create(serviceReference)
-                                  .requestChannel(messages)
-                                  .map(message -> onMessage(message, responseType)));
+                          channel ->
+                              channel
+                                  .requestChannel(channelMessages)
+                                  .map(message -> onMessage(message, responseType)))
+                      .doFinally(
+                          signalType -> {
+                            if (!claimed.getAndSet(true)) {
+                              releaseData(request);
+                            }
+                          });
                 }
               }
               return messages;
