@@ -18,6 +18,7 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import org.agrona.CloseHelper;
 import org.agrona.ErrorHandler;
+import org.agrona.LangUtil;
 import org.agrona.concurrent.Agent;
 import org.agrona.concurrent.AgentInvoker;
 import org.agrona.concurrent.AgentRunner;
@@ -59,8 +60,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Closing the conductor closes all groups and runners, then the tracked resources in reverse
  * order of registration. A group closes its agents in reverse order of joining, on the group
- * thread, so an agent may still use the agents that joined before it while it closes. An agent
- * added after that is closed right away.
+ * thread, so the agents that joined before an agent are not yet closed while it closes; they are
+ * no longer run by the group though. An agent added after that is closed right away.
  */
 public class ResourceConductor implements AutoCloseable {
 
@@ -390,8 +391,18 @@ public class ResourceConductor implements AutoCloseable {
     public void onClose() {
       // This agent is the first of the composite, so it is closed first. The composite closes its
       // agents in order of joining; closing them here in reverse order makes that a no-op.
+      Throwable error = null;
       while (!startedHandles.isEmpty()) {
-        startedHandles.get(startedHandles.size() - 1).onClose();
+        try {
+          startedHandles.remove(startedHandles.size() - 1).onClose();
+        } catch (Throwable ex) {
+          // keep closing: the rest must still be closed in reverse order
+          if (error == null) {
+            error = ex;
+          } else {
+            error.addSuppressed(ex);
+          }
+        }
       }
       final var handle = addedHandle;
       addedHandle = null;
@@ -399,6 +410,9 @@ public class ResourceConductor implements AutoCloseable {
         handle.onClose();
       }
       closePendingQueue();
+      if (error != null) {
+        LangUtil.rethrowUnchecked(error);
+      }
     }
 
     private synchronized void closePendingQueue() {
@@ -448,10 +462,10 @@ public class ResourceConductor implements AutoCloseable {
     @Override
     public void onStart() {
       group.addedHandle = null;
-      group.startedHandles.add(this);
       if (shouldStart) {
         agentInvoker.start();
       }
+      group.startedHandles.add(this);
       isStarted = true;
     }
 

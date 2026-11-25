@@ -843,6 +843,82 @@ public class ResourceConductorTest {
     assertEquals(List.of("second", "fourth", "third", "first"), closed);
   }
 
+  @Test
+  void shouldCloseGroupWhenAgentFailedToStart() {
+    String group = "start-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var startFailing =
+        new Agent() {
+          @Override
+          public void onStart() {
+            throw new IllegalStateException("start failure");
+          }
+
+          @Override
+          public int doWork() {
+            return 0;
+          }
+
+          @Override
+          public String roleName() {
+            return "start-failing";
+          }
+        };
+    // a throwing error handler makes the start of the invoker itself throw
+    final ErrorHandler rethrowing =
+        ex -> {
+          throw new IllegalStateException(ex);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(startFailing).invokerName(group).errorHandler(rethrowing).tryAdd();
+    conductor.agent(closeRecordingAgent("third", closed)).invokerName(group).awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("third", "first"), closed);
+  }
+
+  @Test
+  void shouldCloseRemainingGroupAgentsInReverseOrderWhenCloseFails() {
+    String group = "close-failure-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var closeFailing =
+        new Agent() {
+          @Override
+          public int doWork() {
+            return 0;
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("close-failing");
+            throw new IllegalStateException("close failure");
+          }
+
+          @Override
+          public String roleName() {
+            return "close-failing";
+          }
+        };
+    final ErrorHandler rethrowing =
+        ex -> {
+          throw new IllegalStateException(ex);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("second", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeFailing).invokerName(group).errorHandler(rethrowing).awaitAdded();
+
+    try {
+      conductor.close();
+    } catch (RuntimeException expected) {
+      // the close failure may surface from the conductor
+    }
+
+    assertEquals(List.of("close-failing", "second", "first"), closed);
+  }
+
   private static Agent closeRecordingAgent(String roleName, List<String> closed) {
     return new Agent() {
       @Override
