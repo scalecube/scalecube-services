@@ -354,12 +354,10 @@ public class ResourceConductor implements AutoCloseable {
   private static class AgentGroup implements Agent {
 
     private final Queue<AgentInvokerHandle> pendingQueue = new ManyToOneConcurrentLinkedQueue<>();
-    private final DynamicCompositeAgent composite;
-    // set on start; the runner's own thread reference is replaced once the runner is being closed
-    private volatile Thread thread;
-    private AgentInvokerHandle addedHandle;
-    // group thread only, in order of joining
     private final List<AgentInvokerHandle> startedHandles = new ArrayList<>();
+    private final DynamicCompositeAgent composite;
+    private AgentInvokerHandle addedHandle;
+    private volatile Thread thread;
 
     private AgentGroup(String name) {
       composite = new DynamicCompositeAgent(name, this);
@@ -413,7 +411,7 @@ public class ResourceConductor implements AutoCloseable {
           startedHandles.remove(startedHandles.size() - 1).onClose();
         } catch (Throwable ex) {
           // keep closing: the rest must still be closed in reverse order
-          error = collect(error, ex);
+          error = appendError(error, ex);
         }
       }
       if (error != null) {
@@ -428,7 +426,7 @@ public class ResourceConductor implements AutoCloseable {
           handle.onClose();
         } catch (Throwable ex) {
           // keep closing: the rest of the queue must still be closed
-          error = collect(error, ex);
+          error = appendError(error, ex);
         }
       }
       if (error != null) {
@@ -436,7 +434,7 @@ public class ResourceConductor implements AutoCloseable {
       }
     }
 
-    private static Throwable collect(Throwable error, Throwable ex) {
+    private static Throwable appendError(Throwable error, Throwable ex) {
       if (error == null) {
         return ex;
       }
