@@ -143,13 +143,12 @@ public class ResourceConductor implements AutoCloseable {
         invokerName,
         name -> {
           final var group = new AgentGroup(name);
-          group.runner =
+          register(
               startAgentRunner(
                   group.composite,
                   invokerIdleStrategy(invokerName),
                   invokerThreadFactory(invokerName),
-                  invokerErrorHandler(invokerName));
-          register(group.runner);
+                  invokerErrorHandler(invokerName)));
           return group;
         });
   }
@@ -356,7 +355,8 @@ public class ResourceConductor implements AutoCloseable {
 
     private final Queue<AgentInvokerHandle> pendingQueue = new ManyToOneConcurrentLinkedQueue<>();
     private final DynamicCompositeAgent composite;
-    private volatile AgentRunner runner;
+    // set on start; the runner's own thread reference is replaced once the runner is being closed
+    private volatile Thread thread;
     private AgentInvokerHandle addedHandle;
     // group thread only, in order of joining
     private final List<AgentInvokerHandle> startedHandles = new ArrayList<>();
@@ -373,8 +373,12 @@ public class ResourceConductor implements AutoCloseable {
     }
 
     private boolean isOnGroupThread() {
-      final var agentRunner = runner;
-      return agentRunner != null && agentRunner.thread() == Thread.currentThread();
+      return thread == Thread.currentThread();
+    }
+
+    @Override
+    public void onStart() {
+      thread = Thread.currentThread();
     }
 
     @Override
@@ -409,11 +413,7 @@ public class ResourceConductor implements AutoCloseable {
           startedHandles.remove(startedHandles.size() - 1).onClose();
         } catch (Throwable ex) {
           // keep closing: the rest must still be closed in reverse order
-          if (error == null) {
-            error = ex;
-          } else {
-            error.addSuppressed(ex);
-          }
+          error = collect(error, ex);
         }
       }
       if (error != null) {
@@ -422,9 +422,28 @@ public class ResourceConductor implements AutoCloseable {
     }
 
     private synchronized void closePendingQueue() {
+      Throwable error = null;
       for (var handle = pendingQueue.poll(); handle != null; handle = pendingQueue.poll()) {
-        handle.onClose();
+        try {
+          handle.onClose();
+        } catch (Throwable ex) {
+          // keep closing: the rest of the queue must still be closed
+          error = collect(error, ex);
+        }
       }
+      if (error != null) {
+        LangUtil.rethrowUnchecked(error);
+      }
+    }
+
+    private static Throwable collect(Throwable error, Throwable ex) {
+      if (error == null) {
+        return ex;
+      }
+      if (ex != error) { // the same instance may be thrown twice, and cannot suppress itself
+        error.addSuppressed(ex);
+      }
+      return error;
     }
 
     @Override
