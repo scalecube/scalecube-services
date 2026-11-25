@@ -61,7 +61,8 @@ import org.slf4j.LoggerFactory;
  * <p>Closing the conductor closes all groups and runners, then the tracked resources in reverse
  * order of registration. A group closes its agents in reverse order of joining, on the group
  * thread, so the agents that joined before an agent are not yet closed while it closes; they are
- * no longer run by the group though. An agent added after that is closed right away.
+ * no longer run by the group though. The agents of a group that are not started yet are closed
+ * before the started ones. An agent added after that is closed right away.
  */
 public class ResourceConductor implements AutoCloseable {
 
@@ -391,7 +392,18 @@ public class ResourceConductor implements AutoCloseable {
     public void onClose() {
       // This agent is the first of the composite, so it is closed first. The composite closes its
       // agents in order of joining; closing them here in reverse order makes that a no-op.
+      // The handles that are not started yet joined last, so they are closed first.
       Throwable error = null;
+      try {
+        closePendingQueue();
+      } catch (Throwable ex) {
+        error = ex;
+      }
+      final var handle = addedHandle;
+      addedHandle = null;
+      if (handle != null) {
+        startedHandles.add(handle);
+      }
       while (!startedHandles.isEmpty()) {
         try {
           startedHandles.remove(startedHandles.size() - 1).onClose();
@@ -404,12 +416,6 @@ public class ResourceConductor implements AutoCloseable {
           }
         }
       }
-      final var handle = addedHandle;
-      addedHandle = null;
-      if (handle != null) {
-        handle.onClose();
-      }
-      closePendingQueue();
       if (error != null) {
         LangUtil.rethrowUnchecked(error);
       }

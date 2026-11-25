@@ -919,6 +919,43 @@ public class ResourceConductorTest {
     assertEquals(List.of("close-failing", "second", "first"), closed);
   }
 
+  @Test
+  void shouldCloseGroupAgentsNotYetStartedBeforeStartedOnes() {
+    String group = "pending-close-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+    final var adding =
+        new Agent() {
+          @Override
+          public int doWork() {
+            conductor.agent(closeRecordingAgent("pending", closed)).invokerName(group).tryAdd();
+            throw new IllegalStateException("stop the group");
+          }
+
+          @Override
+          public void onClose() {
+            closed.add("adding");
+          }
+
+          @Override
+          public String roleName() {
+            return "adding";
+          }
+        };
+    // terminates the group thread within the duty cycle that queued "pending", so "pending" is
+    // still not started when the group closes
+    final ErrorHandler terminating =
+        ex -> {
+          throw new AgentTerminationException(ex, true);
+        };
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    conductor.agent(adding).invokerName(group).errorHandler(terminating).awaitAdded();
+
+    conductor.close();
+
+    assertEquals(List.of("pending", "adding", "first"), closed);
+  }
+
   private static Agent closeRecordingAgent(String roleName, List<String> closed) {
     return new Agent() {
       @Override
