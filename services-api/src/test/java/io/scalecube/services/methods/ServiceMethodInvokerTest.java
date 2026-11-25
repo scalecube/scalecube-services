@@ -39,6 +39,7 @@ class ServiceMethodInvokerTest {
   private static final PrincipalImpl PRINCIPAL = new PrincipalImpl("user", List.of("permission"));
 
   private final List<ServiceMessage> released = new CopyOnWriteArrayList<>();
+  private RuntimeException copyError;
   private final ServiceMessageDataDecoder dataDecoder =
       new ServiceMessageDataDecoder() {
         @Override
@@ -48,6 +49,9 @@ class ServiceMethodInvokerTest {
 
         @Override
         public ServiceMessage copyData(ServiceMessage message, Type type) {
+          if (copyError != null) {
+            throw copyError;
+          }
           return message;
         }
 
@@ -113,6 +117,8 @@ class ServiceMethodInvokerTest {
                   .invokeBidirectional(Flux.just(message))
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .verifyComplete();
+
+      assertEquals(List.of(message), released, "released messages");
     }
 
     @Test
@@ -167,6 +173,29 @@ class ServiceMethodInvokerTest {
                   .contextWrite(requestContext(message, NULL_PRINCIPAL)))
           .assertNext(assertError(500, "Error"))
           .verifyComplete();
+
+      assertEquals(List.of(message), released, "released messages");
+    }
+
+    @Test
+    @DisplayName("invokeBidirectional() releases the first message when copying its data fails")
+    void invokeBidirectionalCopyDataFails() throws Exception {
+      final var methodName = "invokeBidirectionalReturnsNull";
+      final var method = StubService.class.getMethod(methodName, Flux.class);
+      final var methodInfo = getMethodInfo(stubService, methodName);
+      final var message = serviceMessage(methodName);
+      copyError = new IllegalStateException("Cannot decode");
+
+      serviceMethodInvoker = serviceMethodInvoker(method, methodInfo, null);
+
+      StepVerifier.create(
+              serviceMethodInvoker
+                  .invokeBidirectional(Flux.just(message))
+                  .contextWrite(requestContext(message, NULL_PRINCIPAL)))
+          .assertNext(assertError(500, "Cannot decode"))
+          .verifyComplete();
+
+      assertEquals(List.of(message), released, "released messages");
     }
   }
 
