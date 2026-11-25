@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.netty.buffer.Unpooled;
 import java.nio.charset.StandardCharsets;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -23,7 +24,14 @@ class JsonMaskerTest {
     "'{\"username\":\"daria\",\"password\":\"Test\\\"12345\", \"options\": \"ABC\"}', "
         + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\"}'",
     "'{\"username\":\"daria\",\"password\":\"Test\\\"12345\", \"options\": \"ABC\", \"password\":\"LastPwd\"}', "
-        + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\", \"password\":\"*******\"}'"
+        + "'{\"username\":\"daria\",\"password\":\"***********\", \"options\": \"ABC\", \"password\":\"*******\"}'",
+    // a value equal to the key is not a key
+    "'{\"type\":\"password\",\"data\":\"secret\"}', "
+        + "'{\"type\":\"password\",\"data\":\"secret\"}'",
+    "'{\"type\":\"password\", \"password\":\"LastPwd\"}', "
+        + "'{\"type\":\"password\", \"password\":\"*******\"}'",
+    // whitespace between the key and the colon
+    "'{\"password\" : \"LastPwd\"}', " + "'{\"password\" : \"*******\"}'"
   })
   void maskPassword(String input, String output) {
     System.out.println(input);
@@ -60,5 +68,80 @@ class JsonMaskerTest {
     final var buffer = Unpooled.wrappedBuffer(bytes);
     JsonMasker.mask(buffer, 0, bytes.length, "username".getBytes(StandardCharsets.UTF_8), false);
     assertEquals(output, buffer.toString(StandardCharsets.UTF_8));
+  }
+
+  @ParameterizedTest
+  @CsvSource(
+      delimiter = '|',
+      value = {
+        // object and array values: every string and bare value masked, structure kept
+        "{\"password\":{\"v\":\"s3cret\"}}"
+            + " | {\"password\":{\"*\":\"******\"}}",
+        "{\"password\":[\"s3cret\", 42]}"
+            + " | {\"password\":[\"******\", **]}",
+        "{\"password\":{\"a\":[1,{\"b\":\"}]\"}]}, \"username\":\"daria\"}"
+            + " | {\"password\":{\"*\":[*,{\"*\":\"**\"}]}, \"username\":\"daria\"}",
+        // masking goes on after a nested value
+        "{\"password\":{\"v\":\"x\"}, \"password\":\"LastPwd\"}"
+            + " | {\"password\":{\"*\":\"*\"}, \"password\":\"*******\"}",
+        // truncated nested value is masked to the end
+        "{\"password\":{\"v\":\"s3c"
+            + " | {\"password\":{\"*\":\"***",
+        // escaped quote inside a nested string
+        "{\"password\":{\"v\":\"a\\\"b\"}, \"username\":\"daria\"}"
+            + " | {\"password\":{\"*\":\"****\"}, \"username\":\"daria\"}",
+        // empty object and array, masking goes on after them
+        "{\"password\":{}, \"password\":\"abc\"}"
+            + " | {\"password\":{}, \"password\":\"***\"}",
+        "{\"password\":[], \"password\":\"abc\"}"
+            + " | {\"password\":[], \"password\":\"***\"}",
+        // a value equal to the key is not a key, so the next object is left alone
+        "{\"type\":\"password\",\"data\":{\"v\":\"x\"}}"
+            + " | {\"type\":\"password\",\"data\":{\"v\":\"x\"}}",
+      })
+  void maskNestedPassword(String input, String output) {
+    final var bytes = input.getBytes(StandardCharsets.UTF_8);
+    final var buffer = Unpooled.wrappedBuffer(bytes);
+    JsonMasker.mask(buffer, 0, bytes.length, "password".getBytes(StandardCharsets.UTF_8), true);
+    assertEquals(output, buffer.toString(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void maskNestedValueFullyWhenPartialMaskRequested() {
+    assertEquals(
+        "{\"username\":{\"*\":\"*******\"}}",
+        mask("{\"username\":{\"v\":\"LastPwd\"}}", "username", false));
+  }
+
+  @Test
+  void maskNestedValueInPrettyPrintedJson() {
+    final var input =
+        """
+        {
+          "password": {
+            "v": "s3cret",
+            "n": 42
+          },
+          "username": "daria"
+        }
+        """;
+    final var output =
+        """
+        {
+          "password": {
+            "*": "******",
+            "*": **
+          },
+          "username": "daria"
+        }
+        """;
+    assertEquals(output, mask(input, "password", true));
+  }
+
+  private static String mask(String input, String key, boolean fullMask) {
+    final var bytes = input.getBytes(StandardCharsets.UTF_8);
+    final var buffer = Unpooled.wrappedBuffer(bytes);
+    JsonMasker.mask(buffer, 0, bytes.length, key.getBytes(StandardCharsets.UTF_8), fullMask);
+    return buffer.toString(StandardCharsets.UTF_8);
   }
 }
