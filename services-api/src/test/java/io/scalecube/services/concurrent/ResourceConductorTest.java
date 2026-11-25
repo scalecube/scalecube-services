@@ -17,6 +17,7 @@ import io.scalecube.services.concurrent.ResourceConductor.ResourceHandle;
 import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -822,5 +823,42 @@ public class ResourceConductorTest {
 
     assertTrue(childClosed.await(2, TimeUnit.SECONDS), "child must be closed");
     assertFalse(childStarted.get(), "child must not have been started");
+  }
+
+  @Test
+  void shouldCloseGroupAgentsInReverseOrderOfJoining() {
+    String group = "reverse-close-group";
+    List<String> closed = new CopyOnWriteArrayList<>();
+
+    conductor.agent(closeRecordingAgent("first", closed)).invokerName(group).awaitAdded();
+    final var second =
+        conductor.agent(closeRecordingAgent("second", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("third", closed)).invokerName(group).awaitAdded();
+    conductor.agent(closeRecordingAgent("fourth", closed)).invokerName(group).awaitAdded();
+
+    second.awaitRemoved();
+    conductor.close();
+
+    // each agent is closed once: "second" on its removal, the rest last joined first
+    assertEquals(List.of("second", "fourth", "third", "first"), closed);
+  }
+
+  private static Agent closeRecordingAgent(String roleName, List<String> closed) {
+    return new Agent() {
+      @Override
+      public String roleName() {
+        return roleName;
+      }
+
+      @Override
+      public int doWork() {
+        return 0;
+      }
+
+      @Override
+      public void onClose() {
+        closed.add(roleName);
+      }
+    };
   }
 }
