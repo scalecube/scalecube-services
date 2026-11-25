@@ -12,7 +12,7 @@ public class JsonMasker {
    * @param length Number of bytes to scan starting from offset.
    * @param keyBytes The key to search for (e.g. "password".getBytes()).
    * @param fullMask If true, masks the entire value. If false, keeps first/last 2 chars visible for
-   *     values >= 6 chars.
+   *     values >= 6 chars. Object and array values are always fully masked, nested keys included.
    */
   public static void mask(
       ByteBuf buffer, int offset, int length, byte[] keyBytes, boolean fullMask) {
@@ -41,10 +41,14 @@ public class JsonMasker {
         continue;
       }
 
-      // 2. Find colon
-      int colonIndex = findNextChar(buffer, keyEnd, limit, (byte) ':');
+      // 2. Find colon: only whitespace may follow the key, otherwise it is a value, not a key
+      int colonIndex = findValueStart(buffer, keyEnd + 1, limit);
       if (colonIndex == -1) {
         break;
+      }
+      if (buffer.getByte(colonIndex) != ':') {
+        currentIndex = keyEnd + 1;
+        continue;
       }
 
       // 3. Find START of value
@@ -54,11 +58,22 @@ public class JsonMasker {
         continue;
       }
 
+      final byte first = buffer.getByte(valueStart);
+      if (first == '{' || first == '[') {
+        // OBJECT OR ARRAY VALUE: mask everything inside, keep the JSON structure
+        final int end = maskContainer(buffer, valueStart, limit);
+        if (end >= limit) {
+          break;
+        }
+        currentIndex = end;
+        continue;
+      }
+
       int contentStart;
       int contentEnd;
       int searchResumeIndex;
 
-      if (buffer.getByte(valueStart) == '"') {
+      if (first == '"') {
         // QUOTED VALUE
         contentStart = valueStart + 1; // Skip opening quote
         int closeQuote = findClosingQuote(buffer, contentStart, limit);
@@ -108,6 +123,43 @@ public class JsonMasker {
     }
   }
 
+  /**
+   * Masks a JSON object or array value that starts at {@code start}: every character of its strings
+   * and every bare value, keeping quotes, brackets, ':', ',' and whitespace.
+   *
+   * @return index right after the closing bracket, or {@code limit} if the value is truncated
+   */
+  private static int maskContainer(ByteBuf buffer, int start, int limit) {
+    int depth = 0;
+    boolean inString = false;
+    boolean escaped = false;
+    for (int i = start; i < limit; i++) {
+      final byte b = buffer.getByte(i);
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (b == '\\') {
+          escaped = true;
+        } else if (b == '"') {
+          inString = false;
+          continue;
+        }
+        buffer.setByte(i, '*');
+      } else if (b == '"') {
+        inString = true;
+      } else if (b == '{' || b == '[') {
+        depth++;
+      } else if (b == '}' || b == ']') {
+        if (--depth == 0) {
+          return i + 1;
+        }
+      } else if (b != ':' && b != ',' && b != ' ' && b != '\t' && b != '\n' && b != '\r') {
+        buffer.setByte(i, '*');
+      }
+    }
+    return limit;
+  }
+
   private static int findMatch(ByteBuf buffer, int start, int limit, byte[] pattern) {
     for (int i = start; i <= limit - pattern.length; i++) {
       if (matches(buffer, i, pattern)) {
@@ -124,15 +176,6 @@ public class JsonMasker {
       }
     }
     return true;
-  }
-
-  private static int findNextChar(ByteBuf buffer, int start, int limit, byte target) {
-    for (int i = start; i < limit; i++) {
-      if (buffer.getByte(i) == target) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   private static int findValueStart(ByteBuf buffer, int start, int limit) {
