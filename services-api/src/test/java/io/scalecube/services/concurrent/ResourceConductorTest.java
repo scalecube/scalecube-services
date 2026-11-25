@@ -999,7 +999,7 @@ public class ResourceConductorTest {
 
     conductor.close();
 
-    assertEquals(List.of("pending-failing", "pending-2", "pending-3", "adding", "first"), closed);
+    assertEquals(List.of("pending-3", "pending-2", "pending-failing", "adding", "first"), closed);
   }
 
   @Test

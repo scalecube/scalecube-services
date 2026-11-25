@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadFactory;
@@ -27,7 +28,6 @@ import org.agrona.concurrent.BackoffIdleStrategy;
 import org.agrona.concurrent.BusySpinIdleStrategy;
 import org.agrona.concurrent.DynamicCompositeAgent;
 import org.agrona.concurrent.IdleStrategy;
-import org.agrona.concurrent.ManyToOneConcurrentLinkedQueue;
 import org.agrona.concurrent.NoOpIdleStrategy;
 import org.agrona.concurrent.SleepingIdleStrategy;
 import org.agrona.concurrent.SleepingMillisIdleStrategy;
@@ -353,7 +353,7 @@ public class ResourceConductor implements AutoCloseable {
    */
   private static class AgentGroup implements Agent {
 
-    private final Queue<AgentInvokerHandle> pendingQueue = new ManyToOneConcurrentLinkedQueue<>();
+    private final Queue<AgentInvokerHandle> pendingQueue = new ConcurrentLinkedQueue<>();
     private final List<AgentInvokerHandle> startedHandles = new ArrayList<>();
     private final DynamicCompositeAgent composite;
     private AgentInvokerHandle addedHandle;
@@ -392,56 +392,45 @@ public class ResourceConductor implements AutoCloseable {
 
     @Override
     public void onClose() {
-      // This agent is the first of the composite, so it is closed first. The composite closes its
-      // agents in order of joining; closing them here in reverse order makes that a no-op.
-      // The handles that are not started yet joined last, so they are closed first.
-      Throwable error = null;
-      try {
-        closePendingQueue();
-      } catch (Throwable ex) {
-        error = ex;
+      // This agent is the first of the composite, so it closes first: the handles closed here in
+      // reverse order of joining are then a no-op for the composite's own forward pass.
+      final var handles = new ArrayList<>(startedHandles);
+      if (addedHandle != null) {
+        handles.add(addedHandle);
+        addedHandle = null;
       }
-      final var handle = addedHandle;
-      addedHandle = null;
-      if (handle != null) {
-        startedHandles.add(handle);
-      }
-      while (!startedHandles.isEmpty()) {
-        try {
-          startedHandles.remove(startedHandles.size() - 1).onClose();
-        } catch (Throwable ex) {
-          // keep closing: the rest must still be closed in reverse order
-          error = appendError(error, ex);
-        }
-      }
-      if (error != null) {
-        LangUtil.rethrowUnchecked(error);
-      }
+      drainPendingQueue(handles); // not started yet: joined last, so closed first
+      closeInReverse(handles);
     }
 
-    private synchronized void closePendingQueue() {
-      Throwable error = null;
+    private void closePendingQueue() {
+      final var handles = new ArrayList<AgentInvokerHandle>();
+      drainPendingQueue(handles);
+      closeInReverse(handles);
+    }
+
+    private void drainPendingQueue(List<AgentInvokerHandle> handles) {
       for (var handle = pendingQueue.poll(); handle != null; handle = pendingQueue.poll()) {
+        handles.add(handle);
+      }
+    }
+
+    private static void closeInReverse(List<AgentInvokerHandle> handles) {
+      Throwable error = null;
+      for (int i = handles.size() - 1; i >= 0; i--) {
         try {
-          handle.onClose();
-        } catch (Throwable ex) {
-          // keep closing: the rest of the queue must still be closed
-          error = appendError(error, ex);
+          handles.get(i).onClose();
+        } catch (Throwable ex) { // keep closing the rest, then rethrow the first error
+          if (error == null) {
+            error = ex;
+          } else if (ex != error) { // the same instance cannot suppress itself
+            error.addSuppressed(ex);
+          }
         }
       }
       if (error != null) {
         LangUtil.rethrowUnchecked(error);
       }
-    }
-
-    private static Throwable appendError(Throwable error, Throwable ex) {
-      if (error == null) {
-        return ex;
-      }
-      if (ex != error) { // the same instance may be thrown twice, and cannot suppress itself
-        error.addSuppressed(ex);
-      }
-      return error;
     }
 
     @Override
